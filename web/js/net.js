@@ -11,6 +11,8 @@ const PREFIX = 'joseon-poke-v2-';
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const TURN_WAIT = 12; // seconds a dungeon turn waits for a guest before its Pokémon falls back to the AI
 
+// everything else plays offline (the Android app ships the whole game), but co-op needs the PeerJS servers
+const OFFLINE = () => tr('멀티플레이는 인터넷 연결이 필요해요. Wi-Fi나 모바일 데이터를 켠 뒤 다시 눌러 주세요.', 'Co-op needs an internet connection. Turn on Wi-Fi or mobile data and try again.');
 let loading = null;
 function loadPeer() {
   if (window.Peer) return Promise.resolve(window.Peer);
@@ -39,6 +41,7 @@ export const NET = {
   turnWait: TURN_WAIT,
   async host() {
     if (this.role) return;
+    if (navigator.onLine === false) return this.set(null, OFFLINE());
     this.set('host', tr('방을 여는 중…', 'Opening a room…'));
     try {
       const Peer = await loadPeer();
@@ -103,6 +106,7 @@ export const NET = {
     if (this.role) return;
     code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length !== 6) { this.set(null, tr('방 코드는 6글자예요.', 'Room codes have 6 characters.')); return; }
+    if (navigator.onLine === false) return this.set(null, OFFLINE());
     this.set('guest', tr('연결하는 중…', 'Connecting…'));
     try {
       const Peer = await loadPeer();

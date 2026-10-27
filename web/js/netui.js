@@ -1,6 +1,6 @@
 // Multiplayer panel (HTML, beside the canvas) and the guest's view: the host's streamed screen plus
 // keyboard / touch controls that are sent to the host as dungeon commands.
-import { G, input } from './core.js';
+import { G, APP, input } from './core.js';
 import { tr, onLang } from './i18n.js';
 import { NET } from './net.js';
 import { unlockAudio, stopBgm } from './audio.js';
@@ -49,15 +49,19 @@ export function initNetUI() {
     if (k) { e.preventDefault(); NET.send({ t: 'cmd', kind: k[0], arg: k[1] }); }
   }, true);
   addEventListener('keyup', (e) => { held.delete(e.code); }, true);
-  document.querySelectorAll('#touch [data-k]').forEach((b) => b.addEventListener('touchstart', (e) => {
-    if (NET.role !== 'guest') return;
-    e.stopImmediatePropagation();
-    const k = b.dataset.k, dir = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[k];
-    if (dir) NET.send({ t: 'cmd', kind: 'move', arg: dir });
-    else if (k === 'ok') NET.send({ t: 'cmd', kind: 'basic' });
+  // a guest's touch pad steers its Pokémon on the host (core.js initTouch asks these first)
+  G.onPadDir = (dx, dy) => {
+    if (NET.role !== 'guest') return false;
+    if (dx || dy) NET.send({ t: 'cmd', kind: 'move', arg: [dx, dy] });
+    return true;
+  };
+  G.onPadKey = (k) => {
+    if (NET.role !== 'guest') return false;
+    if (k === 'ok') NET.send({ t: 'cmd', kind: 'basic' });
     else if (k === 'rest') NET.send({ t: 'cmd', kind: 'wait' });
     else if (/^m[1-4]$/.test(k)) NET.send({ t: 'cmd', kind: 'move-skill', arg: +k[1] - 1 });
-  }, { capture: true }));
+    return true;
+  };
   const vid = $('mp-video');
   $('mp-play').addEventListener('click', () => { vid.muted = false; vid.play().catch(() => {}); $('mp-play').hidden = true; });
   // ?join=CODE opens the panel and connects straight away
@@ -66,8 +70,10 @@ export function initNetUI() {
   render();
 }
 
+// the app's own page lives at https://localhost, so its invites point friends at the web version
+const WEB_URL = 'https://jbh99.github.io/joseon-poke-timetravel/';
 function shareUrl() {
-  const u = new URL(location.href);
+  const u = new URL(APP ? WEB_URL : location.href);
   u.search = ''; u.searchParams.set('join', NET.code);
   return u.toString();
 }

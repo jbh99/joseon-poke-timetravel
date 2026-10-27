@@ -1,0 +1,13 @@
+{
+  "appId": "io.github.jbh99.joseonpoke",
+  "appName": "조선 시간여행",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0c0a0e"
+  },
+  "server": {
+    "androidScheme": "https",
+    "hostname": "localhost"
+  }
+}

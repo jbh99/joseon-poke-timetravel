@@ -17,3 +17,11 @@ __pycache__/
 web/assets/tiles/
 web/assets/img/e*.png
 web/assets/img/title.png
+
+# Android app (mobile/): npm packages, the copied web build and build outputs
+mobile/node_modules/
+mobile/www/
+*.apk
+*.aab
+*.jks
+*.keystore

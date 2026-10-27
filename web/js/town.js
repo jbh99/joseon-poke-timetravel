@@ -1,5 +1,5 @@
 // Hub town for the current era: generated tile map + Blender-rendered buildings + NPCs.
-import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs } from './core.js';
+import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef } from './game.js';
 import { ERAS, QITEMS, CELEBI } from './content.js';
@@ -87,7 +87,8 @@ export class Town {
     if (S.townPos) { [this.px, this.py] = S.townPos; S.townPos = null; }
     this.vx = this.px; this.vy = this.py; this.moving = false; this.moveT = 0;
     this.trail = [[this.px, this.py + 1]];
-    this.partner = { x: this.px, y: Math.min(this.H - 1, this.py + 1), vx: this.px, vy: this.py + 1, face: 'up' };
+    const py = Math.min(this.H - 1, this.py + 1);
+    this.partner = { x: this.px, y: py, fx: this.px, fy: py, vx: this.px, vy: py, face: 'up' };
     this.mate = null; // third follower (recruit), created on demand in update()
   }
   enter() {
@@ -289,18 +290,18 @@ export class Town {
         }
       }
     }
-    // player
+    // player, then the followers: each walks the tile the one ahead just left, in step with the player
     const P = this.partner;
+    if (S.party[2] && !this.mate) this.mate = this.spawnMate(P);
+    if (!S.party[2]) this.mate = null;
+    const Q = this.mate;
     if (this.moving) {
       this.moveT += dt / 0.15;
       if (this.moveT >= 1) { this.moving = false; this.vx = this.px; this.vy = this.py; this.onArrive(); }
       else { this.vx = this.fx + (this.px - this.fx) * this.moveT; this.vy = this.fy + (this.py - this.fy) * this.moveT; }
     }
-    P.vx += (P.x - P.vx) * Math.min(1, dt * 9); P.vy += (P.y - P.vy) * Math.min(1, dt * 9);
-    if (S.party[2] && !this.mate) this.mate = { x: P.x, y: P.y, vx: P.x, vy: P.y, face: P.face };
-    if (!S.party[2]) this.mate = null;
-    const Q = this.mate;
-    if (Q) { Q.vx += (Q.x - Q.vx) * Math.min(1, dt * 8); Q.vy += (Q.y - Q.vy) * Math.min(1, dt * 8); }
+    const t = this.moving ? this.moveT : 1;
+    for (const f of Q ? [P, Q] : [P]) { f.vx = f.fx + (f.x - f.fx) * t; f.vy = f.fy + (f.y - f.fy) * t; }
     // Z/X/J/P/Tab pressed mid-step act when the step lands instead of being dropped
     for (const k of ['ok', 'cancel', 'menu', 'quest', 'party', 'tag']) if (input.hit(k)) this.queued = k;
     if (!this.moving && !fade.cb) {
@@ -316,8 +317,10 @@ export class Town {
         const nx = this.px + dx, ny = this.py + dy;
         const exit = this.exitTiles.some(([ex, ey]) => ex === this.px && ey === this.py) && (ny >= this.H || nx >= this.W);
         if (exit) return this.leave();
-        if (!this.blocked(nx, ny) || (nx === P.x && ny === P.y)) {
-          if (Q) { Q.x = P.x; Q.y = P.y; Q.face = P.face; Q.dir = P.dir; }
+        const swap = nx === P.x && ny === P.y; // walking into the partner swaps the two; the third member stays put
+        if (!this.blocked(nx, ny) || swap) {
+          for (const f of Q ? [P, Q] : [P]) { f.fx = f.x; f.fy = f.y; }
+          if (Q && !swap) { Q.x = P.x; Q.y = P.y; Q.face = P.face; Q.dir = P.dir; }
           P.x = this.px; P.y = this.py;
           P.dir = this.face; // PMD sprites face every way; box icons keep their last left/right
           P.face = this.face === 'up' || this.face === 'down' ? P.face : this.face;
@@ -325,6 +328,12 @@ export class Town {
         } else if (input.pressed.size) sfx('bump');
       }
     }
+  }
+  // the third member appears on a free tile beside the partner rather than on top of it
+  spawnMate(P) {
+    const spot = [[0, 1], [-1, 0], [1, 0], [0, -1]].map(([dx, dy]) => [P.x + dx, P.y + dy])
+      .find(([x, y]) => !this.blocked(x, y) && !(x === this.px && y === this.py)) || [P.x, P.y];
+    return { x: spot[0], y: spot[1], fx: spot[0], fy: spot[1], vx: spot[0], vy: spot[1], face: P.face, dir: P.dir };
   }
   onArrive() {}
   facing() { const d = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] }[this.face]; return [this.px + d[0], this.py + d[1]]; }
@@ -478,6 +487,6 @@ export class Town {
       lines.forEach((l, i) => ui.text(l, VW - 180, 22 + i * 11, { size: 9 }));
     }
     ui.text(tr(`${S.money}냥`, `${S.money} nyang`), 14, VH - 16, { size: 9, color: '#fff', shadow: true });
-    if (prefs.hints) ui.text(tr('Z 조사 · X 메뉴 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
+    if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 메뉴 · J 퀘스트 · P 동료', 'Z talk · X menu · J quests · P team') : tr('Z 조사 · X 메뉴 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
   }
 }

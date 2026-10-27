@@ -191,18 +191,62 @@ function evolveScene(mon, to) { return new Promise((res) => G.overlays.push(new 
 
 // ---------------------------------------------------------------- menus
 const ROLE = () => tr(['리더', '파트너', '동료'], ['Leader', 'Partner', 'Ally']);
-// box icon (2-frame 32x32 sheet); only the starters have shiny icons in the ROM set
+// box icon (2-frame 32x32 sheet)
 function drawIcon(m, x, y) {
   const im = img(iconPath(m.sp, m.shiny));
   ui.image(im, 0, Math.floor(G.time * 3) % 2 * 32, 32, 32, x, y, 32, 32);
 }
+// the team screen: Z on a member offers reordering its moves (anywhere) or the team (outside dungeons);
+// reordering picks one entry with Z and swaps it with the next entry picked. Taps work like the cursor plus Z.
+const MOVE_ROW = { x: 166, y: 151, w: 296, h: 24 };
 class PartyView {
-  constructor() { this.done = false; this.sel = 0; }
+  constructor(o = {}) { this.done = false; this.sel = 0; this.mode = 'team'; this.held = -1; this.mv = 0; this.dungeon = !!o.dungeon; }
   update() {
-    const n = S.party.length;
-    if (input.hit('cancel') || input.hit('ok')) { sfx('cancel'); this.done = true; }
-    if (input.repeat('up') || input.repeat('left')) { this.sel = (this.sel + n - 1) % n; sfx('cursor'); }
-    if (input.repeat('down') || input.repeat('right')) { this.sel = (this.sel + 1) % n; sfx('cursor'); }
+    const team = this.mode === 'team', list = team ? S.party : S.party[this.sel].moves, n = list.length;
+    let cur = team ? this.sel : this.mv, ok = false;
+    if (input.repeat('up') || input.repeat('left')) { cur = (cur + n - 1) % n; sfx('cursor'); }
+    if (input.repeat('down') || input.repeat('right')) { cur = (cur + 1) % n; sfx('cursor'); }
+    const c = input.click;
+    if (c) {
+      input.click = null;
+      const i = Math.floor((c.y - 32) / 56), j = Math.floor((c.y - MOVE_ROW.y) / MOVE_ROW.h);
+      if (c.x >= 14 && c.x < 144 && i >= 0 && i < S.party.length && (team || this.held < 0)) { // a member
+        if (!team) { this.mode = 'team'; this.held = -1; }
+        if (i === this.sel && team) ok = true; else { this.sel = i; sfx('cursor'); }
+        return;
+      }
+      if (c.x >= MOVE_ROW.x && c.x < MOVE_ROW.x + MOVE_ROW.w && j >= 0 && j < S.party[this.sel].moves.length && (!team || this.held < 0)) { // a move
+        if (team) { this.mode = 'moves'; this.held = -1; this.mv = j; sfx('cursor'); return; }
+        if (j === cur) ok = true; else { cur = j; sfx('cursor'); }
+      }
+    }
+    if (team) this.sel = cur; else this.mv = cur;
+    if (input.hit('cancel')) {
+      sfx('cancel');
+      if (this.held >= 0) this.held = -1;
+      else if (!team) this.mode = 'team';
+      else this.done = true;
+      return;
+    }
+    if (!(input.hit('ok') || ok)) return;
+    if (this.held >= 0) { // second pick: swap
+      if (this.held !== cur) { [list[this.held], list[cur]] = [list[cur], list[this.held]]; sfx('confirm'); } else sfx('cancel');
+      this.held = -1;
+      return;
+    }
+    if (!team) { this.held = cur; sfx('confirm'); return; }
+    const m = S.party[this.sel];
+    openMenu([
+      { label: tr('기술 순서 바꾸기', 'Reorder moves'), fn: () => { this.mode = 'moves'; this.mv = 0; } },
+      ...(S.party.length > 1 ? [this.dungeon
+        ? { label: tr('파티 순서 바꾸기', 'Reorder team'), right: tr('마을에서', 'in town'), disabled: true }
+        : { label: tr('파티 순서 바꾸기', 'Reorder team'), fn: () => { this.held = this.sel; } }] : []),
+      { label: tr('닫기', 'Close') },
+    ], { title: m.name, x: 156, y: 60, w: 190 });
+  }
+  hint() {
+    if (this.held >= 0) return tr('바꿀 자리 고르고 Z · X 취소', 'Pick the spot, Z swaps · X cancel');
+    return this.mode === 'moves' ? tr('↑↓ 기술 · Z 골라서 바꾸기 · X 돌아가기', '↑↓ move · Z pick to swap · X back') : tr('↑↓ 선택 · Z 순서 바꾸기 · X 닫기', '↑↓ select · Z reorder · X close');
   }
   drawUI() {
     ui.rect(0, 0, VW, VH, COL.dim);
@@ -211,7 +255,8 @@ class PartyView {
     ui.text(tr('함께하는 포켓몬', 'Your team'), 16, 18, { bold: true, size: 9, color: COL.red });
     S.party.forEach((m, i) => {
       const y = 32 + i * 56;
-      ui.panel(14, y, 130, 50, { accent: false, fill: i === this.sel ? '#fff6dc' : COL.paper2 });
+      const held = this.mode === 'team' && this.held === i;
+      ui.panel(14, y, 130, 50, { accent: false, fill: held ? '#f3d27a' : i === this.sel ? '#fff6dc' : COL.paper2 });
       drawIcon(m, 16, y + 6);
       ui.text(m.name, 50, y + 6, { bold: true, size: 9 });
       ui.text(ROLE()[i], 140, y + 6, { size: 9, align: 'right', color: i === 2 ? COL.blue : COL.ink2 });
@@ -239,17 +284,19 @@ class PartyView {
     const st = tr([['공격', 'atk'], ['방어', 'def'], ['특공', 'spa'], ['특방', 'spd'], ['스피드', 'spe']], [['Atk', 'atk'], ['Def', 'def'], ['SpA', 'spa'], ['SpD', 'spd'], ['Spe', 'spe']]);
     st.forEach(([n, k], j) => ui.text(`${n} ${Math.round(m.stat(k))}`, x + 12 + j * 60, y + 108, { size: 9 }));
     ui.text(tr('기술', 'Moves'), x + 12, y + 128, { bold: true, size: 9, color: COL.red });
+    const picking = this.mode === 'moves';
     m.moves.forEach((mv, j) => {
       const d = DEX.moves[mv.id], ry = y + 141 + j * 24;
-      ui.rect(x + 10, ry, w - 20, 21, '#efe2c2');
+      ui.rect(x + 10, ry, w - 20, 21, picking && this.held === j ? '#f3d27a' : picking && this.mv === j ? '#fff6dc' : '#efe2c2');
+      if (picking && this.mv === j) ui.text('▶', x + 2, ry + 5, { size: 9, color: COL.red });
       ui.rect(x + 10, ry, 4, 21, TYPE_COLORS[d.type]);
-      ui.text(`${j + 1}. ${d.name}`, x + 18, ry + 5, { size: 11 });
+      ui.text(`${'QWER'[j]}. ${d.name}`, x + 18, ry + 5, { size: 11 });
       ui.text(`${DEX.types[d.type]} · ${d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리 ', 'Phys ') : tr('특수 ', 'Spec ')) + d.power}  PP ${mv.pp}/${d.pp}`, x + w - 16, ry + 6, { size: 9, align: 'right', color: COL.ink2 });
     });
-    ui.text(tr('↑↓ 선택 · X 닫기', '↑↓ select · X close'), VW - 10, VH - 12, { size: 9, color: '#fff', align: 'right', shadow: true });
+    ui.text(this.hint(), VW - 10, VH - 12, { size: 9, color: '#fff', align: 'right', shadow: true });
   }
 }
-export function partyMenu() { G.overlays.push(new PartyView()); }
+export function partyMenu(o) { G.overlays.push(new PartyView(o)); }
 
 // recruits: one may travel with the leader and partner; the rest wait in the town roster
 export function rosterMenu() {
@@ -310,7 +357,7 @@ function useItem(id, dungeon) {
   if (d.escape) { if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.')); takeItem(id); return dungeon.escape(); }
   if (d.throw) { if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.')); takeItem(id); return dungeon.throwStone(d.throw); }
   const pick = (m) => {
-    if (d.pp) m.moves.forEach((mv) => { mv.pp = DEX.moves[mv.id].pp; });
+    if (d.pp) m.restorePP();
     if (d.heal || d.healPct) m.hp = Math.min(m.maxhp, m.hp + (d.heal || Math.round(m.maxhp * d.healPct)));
     if (d.cure) m.status = null;
     takeItem(id); sfx('heal'); toast(tr(`${m.name}에게 ${d.name}을(를) 썼다.`, `Used ${d.name} on ${m.name}.`));

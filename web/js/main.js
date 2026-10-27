@@ -1,6 +1,6 @@
 // Boot and main loop.
-import { G, VW, VH, initCanvas, initTouch, input, ui, setScene, fade, fadeTo, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
-import { initAudio, unlockAudio, playBgm, stopBgm, setMuted } from './audio.js';
+import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
+import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted } from './audio.js';
 import { initData, S, save, load, newGame } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
@@ -38,7 +38,7 @@ function htmlLang() {
   document.documentElement.lang = LANG;
   document.title = tr('포켓몬 조선 시간여행', 'Pokémon Joseon Time Travel');
   document.querySelectorAll('[data-lang]').forEach((el) => { el.hidden = el.dataset.lang !== LANG; });
-  document.getElementById('btn-guide').textContent = tr('가이드 (H)', 'Guide (H)');
+  document.getElementById('btn-guide').textContent = tr('가이드', 'Guide') + keyHint(' (H)');
   document.getElementById('btn-full').textContent = tr('전체화면', 'Fullscreen');
   document.getElementById('btn-lang').textContent = EN ? '한국어' : 'English';
   if (G.speed) speedLabel();
@@ -52,9 +52,11 @@ onLang(() => {
   G.scene?.relang?.(swapText);
   relangToasts(swapText);
 });
+// the HUD labels name their keyboard keys, which a touch screen has no use for
+const keyHint = (s) => (touchUI ? '' : s);
 // game speed: 1x runs a little slower than the old pace, 2x / 3x multiply it; kept per browser
 const BASE_SPEED = 0.8, SPEEDS = [1, 2, 3];
-function speedLabel() { document.getElementById('btn-speed').textContent = tr(`속도 ${G.speed}배 (1·2·3)`, `Speed ${G.speed}x (1·2·3)`); }
+function speedLabel() { document.getElementById('btn-speed').textContent = tr(`속도 ${G.speed}배`, `Speed ${G.speed}x`) + keyHint(' (1·2·3)'); }
 function setSpeed(n, quiet) {
   G.speed = n;
   try { localStorage.setItem('joseon-speed', String(n)); } catch (e) { /* private mode */ }
@@ -102,6 +104,17 @@ function initGuide() {
   if (!seen) open();
 }
 
+// Android app: the back button (MainActivity) closes the guide or the co-op panel, works as X everywhere else,
+// and leaves the app from the bare title screen; music stops while the app is in the background (unless hosting co-op)
+window.onAndroidBack = () => {
+  const open = ['guide', 'mp'].map((id) => document.getElementById(id)).find((el) => !el.hidden);
+  if (open) return open.querySelector('[data-close]').click();
+  if (G.scene instanceof Title && !G.overlays.length && !G.paused) return window.AndroidHost?.exit();
+  dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
+  setTimeout(() => dispatchEvent(new KeyboardEvent('keyup', { code: 'Escape' })), 60);
+};
+if (APP) document.addEventListener('visibilitychange', () => { if (NET.role !== 'host') pauseAudio(document.hidden); });
+
 async function boot() {
   initCanvas();
   initTouch();
@@ -127,6 +140,8 @@ async function boot() {
   await Promise.all([loadImages(['bld', 'prop'].flatMap((k) => man[k].map((n) => `${k}/${n}.png`))), ...townSets().map((id) => tileSet(id).ready)]);
   status.remove();
   setScene(new Title());
+  let gamepads = false; // polled only once a controller has shown up
+  addEventListener('gamepadconnected', () => { gamepads = true; });
   let last = performance.now();
   const params = new URLSearchParams(location.search);
   const dev = Math.min(8, +params.get('speed') || 0); // ?speed=4 fast-forwards automated playtests
@@ -135,6 +150,7 @@ async function boot() {
     const dt = real * (dev || BASE_SPEED * G.speed);
     last = now;
     G.time += dt; G.real += real; G.dt = dt;
+    if (gamepads) pollGamepads();
     if (S.party.length) S.playtime += real;
     const top = G.overlays[G.overlays.length - 1];
     if (top) { top.update(dt); G.overlays = G.overlays.filter((o) => !o.done); }

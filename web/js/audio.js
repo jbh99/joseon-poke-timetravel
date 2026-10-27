@@ -27,6 +27,8 @@ export function unlockAudio() {
   if (pending) { const p = pending; pending = null; playBgm(p); }
 }
 let pending = null;
+// the Android app silences everything while it sits in the background
+export function pauseAudio(on) { if (!ctx) return; if (on) ctx.suspend(); else ctx.resume(); }
 // sound on/off silences the master bus (music, cries and effects; co-op guests hear the same mix)
 export function setMuted(on) { setPref('muted', on); if (master) master.gain.setValueAtTime(on ? 0 : 1, ctx.currentTime); }
 

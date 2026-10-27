@@ -1,5 +1,5 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
-import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs } from './core.js';
+import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX } from './game.js';
 import { QITEMS, TELE_TUT, ERAS } from './content.js';
@@ -785,7 +785,9 @@ export class Dungeon {
   result(title, ok) {
     this.restoreCrew();
     const items = Object.entries(this.found.items).map(([id, n]) => `${(ITEMS[id] || QITEMS[id]).name}×${n}`).join(', ');
-    say([{ who: 'narr', text: `${title}\n${tr(`얻은 엽전 ${this.found.money}냥`, `Coins earned: ${this.found.money} nyang`)}${items ? ' · ' + items : ''}` }], () => {
+    S.party.forEach((m) => m.restorePP()); // leaving a dungeon, however it ends, refills every move's PP
+    const pp = tr('던전을 나오니 기술의 PP가 모두 회복되었다.', 'Back outside, every move\'s PP is restored.');
+    say([{ who: 'narr', text: `${title}\n${tr(`얻은 엽전 ${this.found.money}냥`, `Coins earned: ${this.found.money} nyang`)}${items ? ' · ' + items : ''}\n${pp}` }], () => {
       S.party.forEach((m) => { m.stages = {}; if (m.hp <= 0) m.hp = 1; });
       S.night = !S.night;
       if (ok) jingle('fanfa4');
@@ -877,7 +879,7 @@ export class Dungeon {
     openMenu([
       { label: tr('기술', 'Moves'), fn: () => openMenu(this.player.mon.moves.map((mv, k) => { const d = DEX.moves[mv.id]; return { label: `${'QWER'[k]}. ${d.name}`, right: `PP ${mv.pp}/${d.pp}`, desc: `${DEX.types[d.type]} · ${d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리(바로 앞)', 'Physical (front tile)') : tr('특수(직선 6칸)', 'Special (6-tile line)')) + tr(' 위력 ', ' power ') + d.power}${d.target === 4 || d.target === 8 ? tr(' · 주변 전체', ' · all around') : ''}`, fn: () => this.playerAct('move-skill', k) }; }), { title: tr('기술', 'Moves'), desc: true, x: 140, y: 40, w: 220 }) },
       { label: tr('도구', 'Items'), fn: () => itemMenu(this) },
-      { label: tr('포켓몬', 'Pokémon'), fn: partyMenu },
+      { label: tr('포켓몬', 'Pokémon'), fn: () => partyMenu({ dungeon: true }) },
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('발밑 / 쉬기', 'Rest a turn'), fn: () => this.playerAct('wait') },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
@@ -1062,7 +1064,7 @@ export class Dungeon {
       ui.panel(VW / 2 - tw / 2, 52, tw, 18, { accent: false, fill: '#ffe9c8' });
       ui.text(txt, VW / 2, 56, { align: 'center', bold: true, color: COL.red });
     }
-    if (!ms.length && prefs.hints) ui.text(tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8, VH - 12, { size: 9, color: '#fff', shadow: true });
+    if (!ms.length && prefs.hints) ui.text(touchUI ? tr('패드 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴', 'Pad moves · Z attack · QWER moves · Tab tag · A rest · X menu') : tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8, VH - 12, { size: 9, color: '#fff', shadow: true });
   }
 }
 const STATS_OF = (d) => ({ 10: 'atk', 11: 'def', 12: 'spe', 13: 'spa', 14: 'spd', 50: 'atk', 51: 'def', 52: 'spe', 53: 'spa', 54: 'spd' })[d.effect] || 'atk';

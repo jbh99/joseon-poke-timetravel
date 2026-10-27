@@ -1,0 +1,16 @@
+{
+  "name": "joseon-poke-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "포켓몬 조선 시간여행 Android app (Capacitor wrapper around ../web, playable offline)",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
+  }
+}

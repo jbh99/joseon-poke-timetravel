@@ -119,7 +119,8 @@ export class Mon {
     return ev;
   }
   evolve(to) { const r = this.hp / this.maxhp; this.sp = to; this.hp = Math.max(1, Math.round(this.maxhp * r)); }
-  heal(full = true) { this.hp = this.maxhp; this.status = null; if (full) this.moves.forEach((m) => { m.pp = DEX.moves[m.id].pp; }); }
+  heal(full = true) { this.hp = this.maxhp; this.status = null; if (full) this.restorePP(); }
+  restorePP() { this.moves.forEach((m) => { m.pp = DEX.moves[m.id].pp; }); }
   toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves }; }
   static from(o) { return new Mon(o.sp, o.lv, o); }
 }
@@ -233,7 +234,7 @@ export function load() {
   } catch (e) { console.warn('save load failed', e); return false; }
 }
 
-export const ROSTER_MAX = 99; // the 35% recruit rate fills a roster fast
+export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
 // a defeated Pokémon joins: straight into the party if there is room, otherwise into the town roster
 export function recruit(mon) {
   // keeps the moves it fought with (bosses have hand-picked sets) with full PP

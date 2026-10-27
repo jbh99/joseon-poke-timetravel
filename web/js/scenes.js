@@ -1,5 +1,5 @@
 // Title, starter selection, era transition cards, world map and ending.
-import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs } from './core.js';
+import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, hasSave, readSave, load, save, TYPE_COLORS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
@@ -85,7 +85,7 @@ export class Title {
     ui.text(tr('조선 시간여행', 'Joseon Time Travel'), VW / 4, y / 2, { align: 'center', size: 11, bold: true, color: '#fff7e6', shadow: '#3a1a10' });
     ui.c.restore();
     ui.text(tr('612 → 1953 · 시간의 꽃과 아르세우스', '612 → 1953 · The Flower of Time and Arceus'), VW / 2, y + 32, { align: 'center', size: 9, color: '#fff', shadow: true });
-    if (!this.started && Math.floor(this.t * 2) % 2) ui.text(tr('Z 키 또는 Enter를 누르세요', 'Press Z or Enter'), VW / 2, 206, { align: 'center', color: '#fff', shadow: true });
+    if (!this.started && Math.floor(this.t * 2) % 2) ui.text(touchUI ? tr('화면을 누르거나 Z를 누르세요', 'Tap the screen or press Z') : tr('Z 키 또는 Enter를 누르세요', 'Press Z or Enter'), VW / 2, 206, { align: 'center', color: '#fff', shadow: true });
     ui.text(tr('팬메이드 비공식 게임 · 원작 © Nintendo / Creatures / GAME FREAK', 'Unofficial fan game · Pokémon © Nintendo / Creatures / GAME FREAK'), VW / 2, VH - 11, { align: 'center', size: 9, color: '#ddd', shadow: true });
   }
 }
@@ -342,7 +342,7 @@ export class WorldMap {
     ui.panel(x, qy, w, 22 + shown.length * 11);
     ui.text(tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true });
     shown.forEach((q, i) => ui.text(q.t, x + 8, qy + 19 + i * 11, { size: 9, color: q.c }));
-    if (prefs.hints) ui.text(tr('클릭·↑↓ 장소 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
+    if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · J 퀘스트 · P 동료 · X 마을로', 'Tap a place to go · J quests · P team · X town') : tr('클릭·↑↓ 장소 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
   }
 }
 

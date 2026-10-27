@@ -1,11 +1,11 @@
-"""Extract front sprites (normal + shiny) and party icons; derive shiny icons for the starter lines."""
+"""Extract front sprites (normal + shiny) and party icons; derive a shiny icon for every species."""
 import numpy as np
 from romlib import narc, ncgr_raw, decrypt_dp, nibbles_linear, nibbles_tiled, nclr_palettes, to_image, \
     front_index
 
 OUT = "../web/assets/poke"
 ICON_PAL_TABLE = np.load("../work/iconpal_table.npy")  # from ARM9 @ 0xF36C4
-SHINY_ICON_SPECIES = [*range(387, 396), 493]  # Turtwig..Empoleon lines, golden Arceus (final boss's second form)
+SHINY_ICON_SPECIES = range(1, 494)  # every shiny recruit keeps its colours in lists and, for Gen 4, in the field
 
 
 def save_png(img, path):

@@ -110,6 +110,5 @@ export function paintTerrain(ctx, set, W, H, at, ox = 0, oy = 0, seed = 1) {
   }
 }
 
-// Pearl box icons have no shiny palette; these were derived from the shiny battle sprites (tools/extract_sprites.py)
-const SHINY_ICONS = new Set([387, 388, 389, 390, 391, 392, 393, 394, 395, 493]);
-export const iconPath = (sp, shiny) => `poke/icon/${sp}${shiny && SHINY_ICONS.has(sp) ? 's' : ''}.png`;
+// Pearl box icons have no shiny palette; every species' shiny icon was derived from its shiny battle sprite (tools/extract_sprites.py)
+export const iconPath = (sp, shiny) => `poke/icon/${sp}${shiny ? 's' : ''}.png`;

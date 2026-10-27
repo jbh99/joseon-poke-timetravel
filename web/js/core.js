@@ -14,8 +14,14 @@ export const randInt = (a, b) => Math.floor(rand(a, b + 1));
 export const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 export const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = randInt(0, i); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
 
+// touch screens get the on-screen pad: the Android app always, phones and tablets by their coarse pointer, ?touch=1 for testing
+export const APP = !!window.Capacitor?.isNativePlatform?.();
+export const touchUI = APP || /[?&]touch=1/.test(location.search) || !!window.matchMedia?.('(pointer: coarse)').matches;
+
 // ---------------------------------------------------------------- canvas
 export function initCanvas() {
+  if (touchUI) document.body.classList.add('touch');
+  if (APP) document.body.classList.add('app');
   const screen = document.getElementById('screen');
   G.screen = screen;
   G.sctx = screen.getContext('2d');
@@ -26,16 +32,23 @@ export function initCanvas() {
   // fill the browser window (letterboxed 16:9); the backing store matches device pixels so UI text stays sharp
   const fit = () => {
     const dpr = window.devicePixelRatio || 1;
-    const css = Math.min(innerWidth / VW, innerHeight / VH);
+    let w = innerWidth;
+    if (touchUI) { // the pad columns take the sides (inside the safe-area insets body.touch pads itself by); the game fills the middle
+      const b = getComputedStyle(document.body), inner = w - parseFloat(b.paddingLeft) - parseFloat(b.paddingRight);
+      const pad = Math.round(clamp(inner * 0.16, 104, 170));
+      document.documentElement.style.setProperty('--pad', pad + 'px');
+      w = inner - 2 * pad;
+    }
+    const css = Math.min(w / VW, innerHeight / VH);
     const S = Math.max(0.5, css * dpr);
     G.S = S;
     screen.width = Math.round(VW * S); screen.height = Math.round(VH * S);
     screen.style.width = Math.floor(VW * css) + 'px';
     screen.style.height = Math.floor(VH * css) + 'px';
     G.sctx.imageSmoothingEnabled = false;
-    // the HUD buttons go in the free strip beside or above the game; with no room (fullscreen, phones) they fade over it
+    // the HUD buttons go in the free strip beside or above the game (the left pad column on touch screens); with no room they fade over it
     const hud = document.getElementById('hud');
-    if (hud) hud.className = (innerWidth - VW * css) / 2 >= 124 ? 'side' : (innerHeight - VH * css) / 2 >= 36 ? '' : 'over';
+    if (hud) hud.className = touchUI ? 'inpad' : (innerWidth - VW * css) / 2 >= 124 ? 'side' : (innerHeight - VH * css) / 2 >= 36 ? '' : 'over';
   };
   addEventListener('resize', fit);
   fit();
@@ -87,17 +100,74 @@ const release = (k) => { input.down.delete(k); delete input.repeatAt[k]; };
 addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) release(k); });
 addEventListener('blur', () => { input.down.clear(); input.repeatAt = {}; });
 
-// touch pad (shown on touch devices)
+const press = (k) => { if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); };
+// keeps a finger's pointer on the control it started on; capture can be refused (the pointer already ended), which is harmless
+const capture = (el, id) => { try { el.setPointerCapture(id); } catch (e) { /* pointer gone */ } };
+
+// touch pad: each button holds its action like the key with the same letter. Pointer events give every finger
+// its own pointer, so the pad and a button work together (⇧ + direction). A co-op guest's G.onPadKey / G.onPadDir
+// take the input instead (netui.js). pointerup also unlocks audio: browsers only count the end of a touch as a user gesture.
 export function initTouch() {
-  if (!('ontouchstart' in window)) return;
-  const pad = document.getElementById('touch');
-  pad.style.display = 'block';
-  pad.querySelectorAll('[data-k]').forEach((b) => {
+  if (!touchUI) return;
+  document.querySelectorAll('#touch button[data-k]').forEach((b) => {
     const k = b.dataset.k;
-    const on = (e) => { e.preventDefault(); if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); G.onFirstInput?.(); };
-    const off = (e) => { e.preventDefault(); release(k); };
-    b.addEventListener('touchstart', on); b.addEventListener('touchend', off); b.addEventListener('touchcancel', off);
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); capture(b, e.pointerId); b.classList.add('on');
+      if (!G.onPadKey?.(k)) press(k);
+      G.onFirstInput?.();
+    });
+    const up = () => { b.classList.remove('on'); release(k); G.onFirstInput?.(); };
+    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
   });
+  initDpad();
+  document.getElementById('touch').addEventListener('contextmenu', (e) => e.preventDefault());
+}
+// 8-way pad: straight directions get 60° each and diagonals 30°, so a slightly crooked thumb still walks straight in town
+const DIRS = [[30, ['right']], [60, ['down', 'right']], [120, ['down']], [150, ['down', 'left']], [210, ['left']], [240, ['up', 'left']], [300, ['up']], [330, ['up', 'right']], [361, ['right']]];
+function initDpad() {
+  const pad = document.getElementById('dpad'), knob = pad.querySelector('i');
+  let held = [], id = null;
+  const set = (keys) => {
+    if (keys.join() === held.join()) return;
+    for (const k of held) if (!keys.includes(k)) release(k);
+    const dx = keys.includes('right') - keys.includes('left'), dy = keys.includes('down') - keys.includes('up');
+    if (!G.onPadDir?.(dx, dy)) for (const k of keys) if (!held.includes(k)) press(k);
+    held = keys;
+  };
+  const move = (e) => {
+    const r = pad.getBoundingClientRect(), x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
+    const d = Math.hypot(x, y), m = Math.min(d, r.width * 0.3);
+    knob.style.transform = d ? `translate(${x / d * m}px, ${y / d * m}px)` : '';
+    if (d < r.width * 0.12) return set([]); // the middle is a dead zone
+    const a = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; // 0 = right, 90 = down
+    set(DIRS.find(([lim]) => a < lim)[1]);
+  };
+  pad.addEventListener('pointerdown', (e) => {
+    if (id !== null) return;
+    e.preventDefault(); id = e.pointerId; capture(pad, id); pad.classList.add('on'); move(e);
+  });
+  pad.addEventListener('pointermove', (e) => { if (e.pointerId === id) move(e); });
+  const end = (e) => { if (e.pointerId !== id) return; id = null; pad.classList.remove('on'); knob.style.transform = ''; set([]); G.onFirstInput?.(); };
+  pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
+}
+
+// Bluetooth / USB gamepads (standard layout), read once per frame by main.js after one connects:
+// A OK, B menu, X Y LB RB moves 1-4, LT face only, RT rest, Select quests, Start menu, L3 map, R3 tag, d-pad or left stick moves
+const PAD_KEYS = ['ok', 'cancel', 'm1', 'm2', 'm3', 'm4', 'shift', 'rest', 'quest', 'menu', 'map', 'tag', 'up', 'down', 'left', 'right'];
+let padHeld = new Set();
+export function pollGamepads() {
+  const now = new Set();
+  for (const p of navigator.getGamepads?.() || []) {
+    if (!p) continue;
+    p.buttons.forEach((b, i) => { if (b.pressed && PAD_KEYS[i]) now.add(PAD_KEYS[i]); });
+    const [ax = 0, ay = 0] = p.axes;
+    if (ax < -0.5) now.add('left'); else if (ax > 0.5) now.add('right');
+    if (ay < -0.5) now.add('up'); else if (ay > 0.5) now.add('down');
+  }
+  if (G.paused) now.clear();
+  for (const k of padHeld) if (!now.has(k)) release(k);
+  for (const k of now) if (!padHeld.has(k)) { press(k); G.onFirstInput?.(); }
+  padHeld = now;
 }
 
 // ---------------------------------------------------------------- assets
@@ -284,6 +354,10 @@ export class Menu {
     const n = this.items.length;
     if (input.repeat('up')) { this.sel = (this.sel + n - 1) % n; G.sfx?.('cursor'); }
     if (input.repeat('down')) { this.sel = (this.sel + 1) % n; G.sfx?.('cursor'); }
+    // ◀ ▶ jump a page in long lists (a roster holds up to 500)
+    const page = this.box?.rows || n;
+    if (n > page && input.repeat('left')) { this.sel = Math.max(0, this.sel - page); G.sfx?.('cursor'); }
+    if (n > page && input.repeat('right')) { this.sel = Math.min(n - 1, this.sel + page); G.sfx?.('cursor'); }
     const b = this.box;
     if (input.click && b) {
       const j = Math.floor((input.click.y - b.y - 5) / 16);

@@ -26,10 +26,49 @@
   #hud.side { flex-direction: column; align-items: stretch; }
   #hud.over { opacity: 0.4; transition: opacity 0.2s; }
   #hud.over:hover, #hud.over:focus-within { opacity: 1; }
-  #touch { display: none; position: fixed; inset: auto 0 0 0; height: 0; }
-  #touch button { position: fixed; width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--ink); background: rgba(243,232,207,0.55);
-    font: 16px 'Galmuri11', sans-serif; color: var(--ink); touch-action: none; }
-  #touch button.small { width: 44px; height: 44px; font-size: 13px; }
+  /* touch screens (phones, the Android app): an 8-way pad and the buttons sit in columns beside the game,
+     and every button carries its keyboard letter so the on-screen key hints read the same */
+  #touch { display: none; }
+  body.touch { padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); box-sizing: border-box;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  body.touch #touch { display: block; }
+  .pad { position: fixed; z-index: 6; top: 0; bottom: 0; width: var(--pad, 140px); box-sizing: border-box; padding: 8px 7px 12px;
+    display: flex; flex-direction: column; justify-content: space-between; touch-action: none; }
+  #pad-l { left: env(safe-area-inset-left, 0px); justify-content: flex-end; }
+  #pad-r { right: env(safe-area-inset-right, 0px); }
+  #touch button { font: 15px 'Galmuri11B', sans-serif; color: var(--ink); background: rgba(243,232,207,0.9); border: 2px solid var(--ink);
+    border-radius: 10px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+    touch-action: none; box-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+  #touch button small { font: 9px 'Galmuri9', sans-serif; color: var(--ink2); margin-top: 2px; }
+  #touch button.on { background: var(--gold); transform: translateY(2px); box-shadow: none; }
+  #touch .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  #touch .chips button { height: 34px; font-size: 13px; }
+  #touch .moves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #touch .moves button { height: 40px; font-size: 17px; }
+  #touch .acts { position: relative; height: 142px; }
+  #touch .acts .mini { position: absolute; top: 0; width: calc((100% - 10px) / 3); height: 38px; font-size: 12px; }
+  #touch .acts .mini:nth-child(1) { left: 0; } #touch .acts .mini:nth-child(2) { left: calc((100% - 10px) / 3 + 5px); } #touch .acts .mini:nth-child(3) { right: 0; }
+  #touch .acts .b, #touch .acts .a { position: absolute; border-radius: 50%; font-size: 20px; }
+  #touch .acts .a { right: 0; bottom: 0; width: 64px; height: 64px; background: rgba(178,53,43,0.92); color: #fff4dc; }
+  #touch .acts .a small { color: #ffe0c8; }
+  #touch .acts .b { left: 0; bottom: 30px; width: 56px; height: 56px; }
+  #dpad { position: relative; align-self: center; width: min(calc(var(--pad, 140px) - 10px), 150px); aspect-ratio: 1; border-radius: 50%;
+    background: rgba(243,232,207,0.16); border: 2px solid rgba(243,232,207,0.55); touch-action: none; }
+  #dpad span { position: absolute; color: rgba(243,232,207,0.85); font: 16px sans-serif; transform: translate(-50%, -50%); pointer-events: none; }
+  #dpad .u { left: 50%; top: 15%; } #dpad .d { left: 50%; top: 85%; } #dpad .l { left: 15%; top: 50%; } #dpad .r { left: 85%; top: 50%; }
+  #dpad i { position: absolute; left: 50%; top: 50%; width: 38%; height: 38%; margin: -19% 0 0 -19%; border-radius: 50%;
+    background: rgba(243,232,207,0.85); border: 2px solid var(--ink); pointer-events: none; transition: transform 0.05s; }
+  #dpad.on i { background: var(--gold); }
+  /* the HUD buttons pack into the top of the left column */
+  #hud.inpad { left: calc(env(safe-area-inset-left, 0px) + 7px); right: auto; top: 8px; width: calc(var(--pad, 140px) - 14px); flex-wrap: wrap; gap: 4px; }
+  #hud.inpad button { flex: 1 1 calc(50% - 4px); font-size: 10px; padding: 5px 2px; }
+  body.app #btn-full { display: none; }
+  body.touch #mp-video { inset: 0 calc(var(--pad, 140px) + env(safe-area-inset-right, 0px)) 0 calc(var(--pad, 140px) + env(safe-area-inset-left, 0px)); width: auto; height: auto; }
+  #rotate { display: none; }
+  @media (orientation: portrait) {
+    body.touch #rotate { display: flex; position: fixed; inset: 0; z-index: 20; background: var(--bg); color: var(--paper); align-items: center; justify-content: center;
+      font: 16px 'Galmuri11', sans-serif; text-align: center; padding: 24px; }
+  }
 
 
   /* co-op panel and the guest's streamed screen */
@@ -106,19 +145,29 @@
   </div>
 </div>
 <div id="touch">
-  <button data-k="up" style="left:66px;bottom:126px">▲</button>
-  <button data-k="left" style="left:10px;bottom:70px">◀</button>
-  <button data-k="right" style="left:122px;bottom:70px">▶</button>
-  <button data-k="down" style="left:66px;bottom:14px">▼</button>
-  <button data-k="ok" style="right:16px;bottom:80px">Z</button>
-  <button data-k="cancel" style="right:80px;bottom:30px">X</button>
-  <button class="small" data-k="m1" style="right:166px;bottom:146px">Q</button>
-  <button class="small" data-k="m2" style="right:116px;bottom:146px">W</button>
-  <button class="small" data-k="m3" style="right:66px;bottom:146px">E</button>
-  <button class="small" data-k="m4" style="right:16px;bottom:146px">R</button>
-  <button class="small" data-k="rest" style="right:146px;bottom:40px">A</button>
-  <button class="small" data-k="tag" style="right:146px;bottom:92px">태그</button>
+  <div id="pad-l" class="pad">
+    <div id="dpad"><span class="u">▲</span><span class="l">◀</span><span class="r">▶</span><span class="d">▼</span><i></i></div>
+  </div>
+  <div id="pad-r" class="pad">
+    <div class="chips">
+      <button type="button" data-k="quest">J<small data-lang="ko">퀘스트</small><small data-lang="en" hidden>Quests</small></button>
+      <button type="button" data-k="party">P<small data-lang="ko">동료</small><small data-lang="en" hidden>Team</small></button>
+      <button type="button" data-k="map">M<small data-lang="ko">지도</small><small data-lang="en" hidden>Map</small></button>
+    </div>
+    <div class="moves">
+      <button type="button" data-k="m1">Q</button><button type="button" data-k="m2">W</button>
+      <button type="button" data-k="m3">E</button><button type="button" data-k="m4">R</button>
+    </div>
+    <div class="acts">
+      <button type="button" class="mini" data-k="shift">⇧<small data-lang="ko">방향만</small><small data-lang="en" hidden>Face</small></button>
+      <button type="button" class="mini" data-k="tag">Tab<small data-lang="ko">태그</small><small data-lang="en" hidden>Tag</small></button>
+      <button type="button" class="mini" data-k="rest">A<small data-lang="ko">쉬기</small><small data-lang="en" hidden>Rest</small></button>
+      <button type="button" class="b" data-k="cancel">X<small data-lang="ko">메뉴</small><small data-lang="en" hidden>Menu</small></button>
+      <button type="button" class="a" data-k="ok">Z<small data-lang="ko">확인</small><small data-lang="en" hidden>OK</small></button>
+    </div>
+  </div>
 </div>
+<div id="rotate"><span data-lang="ko">휴대폰을 가로로 돌려 주세요</span><span data-lang="en" hidden>Turn your phone sideways</span></div>
 
 <div id="guide" hidden>
   <div class="sheet" role="dialog" aria-labelledby="guide-title" data-lang="ko">
@@ -144,12 +193,13 @@
           <span><kbd>A</kbd> (누르고 있기)</span><span>쉬기 · 턴 넘기기</span>
           <span><kbd>Tab</kbd></span><span>태그: 던전에서 조종할 포켓몬을 다음 동료로 교대 (턴 소모 없음)</span>
           <span><kbd>J</kbd> / <kbd>M</kbd></span><span>퀘스트 목록 열기·닫기 / 미니맵 켜고 끄기</span>
-          <span><kbd>P</kbd></span><span>동료 명부 열기·닫기: 잡은 동료를 세 번째 자리에 데려가기 (던전 밖에서만)</span>
+          <span><kbd>P</kbd></span><span>동료 명부 열기·닫기: 잡은 동료를 세 번째 자리에 데려가기 (던전 밖에서만). 리더·파트너 순서와 기술 순서는 X 메뉴 → 포켓몬에서 Z로 바꿉니다</span>
           <span><kbd>H</kbd></span><span>이 가이드 열기·닫기</span>
         </div>
       </div>
       <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리, 아래쪽 조작키 안내 보이기/숨기기, 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
-      <p>스마트폰에서는 화면의 버튼으로 조작합니다. 오른쪽 위 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
+      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽 버튼에는 키보드와 같은 글자(Z 확인 · X 메뉴 · QWER 기술 · Tab 태그 · A 쉬기 · ⇧ 방향만 바꾸기 · J 퀘스트 · P 동료 · M 지도)가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다. 화면을 직접 눌러 장소·대화·메뉴를 고를 수도 있고, 휴대폰의 뒤로 가기 버튼은 X와 같아요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
+      <p>화면 옆 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
 
       <h2>진행 방법</h2>
       <ul>
@@ -197,7 +247,8 @@
       <h2>동료</h2>
       <ul>
         <li>쓰러뜨린 야생 포켓몬은 <b>35%</b> 확률(이로치는 70%)로 동료가 되고 싶어 합니다. <b>보스와 전설의 포켓몬은 이기면 반드시</b> 동료가 될 수 있어요.</li>
-        <li>던전에는 리더 · 파트너 · 동료 1마리까지 셋이 갑니다. 나머지는 <b>동료 명부</b>(X 메뉴 또는 주막)에서 쉬며 <b>경험치를 절반씩</b> 함께 받습니다.</li>
+        <li>던전에는 리더 · 파트너 · 동료 1마리까지 셋이 갑니다. 나머지는 <b>동료 명부</b>(X 메뉴 또는 주막, 최대 500마리)에서 쉬며 <b>경험치를 절반씩</b> 함께 받습니다.</li>
+        <li>던전을 나오면 기술의 <b>PP가 모두 회복</b>됩니다.</li>
       </ul>
 
       <h2>한국 전쟁: 진영 선택</h2>
@@ -246,12 +297,13 @@
           <span><kbd>A</kbd> (hold)</span><span>Rest · pass the turn</span>
           <span><kbd>Tab</kbd></span><span>Tag: hand control to the next teammate in dungeons (no turn spent)</span>
           <span><kbd>J</kbd> / <kbd>M</kbd></span><span>Open or close the quest list / toggle the minimap</span>
-          <span><kbd>P</kbd></span><span>Open or close the companion roster: bring a recruit into the third slot (outside dungeons)</span>
+          <span><kbd>P</kbd></span><span>Open or close the companion roster: bring a recruit into the third slot (outside dungeons). Reorder the team and each Pokémon's moves under X menu → Pokémon with Z</span>
           <span><kbd>H</kbd></span><span>Open or close this guide</span>
         </div>
       </div>
       <p><b>Mouse</b>: click a place on the world map to go there, and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound and the on-screen key hints on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
-      <p>On phones, use the on-screen buttons. The <b>English / 한국어</b> button at the top right switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
+      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons), and the buttons on the right carry the keyboard letters (Z OK · X menu · QWER moves · Tab tag · A rest · ⇧ face only · J quests · P team · M map), so the hints at the bottom of the screen still apply. You can also tap places, dialogue and menus on the screen, and the phone's back button works like X. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
+      <p>The <b>English / 한국어</b> button beside the screen switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
 
       <h2>How to play</h2>
       <ul>
@@ -299,7 +351,8 @@
       <h2>Companions</h2>
       <ul>
         <li>Defeated wild Pokémon want to join you <b>35%</b> of the time (Shiny ones 70%). <b>Bosses and legendary Pokémon always</b> offer to join once you win.</li>
-        <li>Up to three go into dungeons: leader, partner and one ally. The rest wait in the <b>roster</b> (X menu or the inn) and <b>earn half the experience</b> your team gets.</li>
+        <li>Up to three go into dungeons: leader, partner and one ally. The rest wait in the <b>roster</b> (X menu or the inn, up to 500) and <b>earn half the experience</b> your team gets.</li>
+        <li>Leaving a dungeon <b>restores every move's PP</b>.</li>
       </ul>
 
       <h2>The Korean War: choosing a side</h2>

@@ -22,6 +22,39 @@
 | **마을** | **황금빛 아르세우스 (2페이즈)** |
 | ![마을](docs/screenshots/town.jpg) | ![보스전](docs/screenshots/boss.jpg) |
 
+## 안드로이드 앱
+
+웹 게임 전체를 앱 안에 담은 안드로이드 버전입니다. **인터넷 없이 플레이**되고, 멀티플레이(함께 하기)만 인터넷이 필요합니다.
+
+- **화면**: 가로 화면 고정 · 전체 화면. 가운데에 게임, 왼쪽에 이동 패드, 오른쪽에 버튼이 놓여 게임 화면을 가리지 않습니다.
+- **이동 패드**(왼쪽 아래 원): 손가락을 대고 밀면 그쪽으로 움직입니다. 던전에서는 대각선까지 8방향입니다.
+- **버튼**: 키보드와 같은 글자가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다.
+
+  | 버튼 | 기능 |
+  |---|---|
+  | **Z** 확인 · **X** 메뉴 | 조사·대화·공격·결정 / 메뉴·취소 |
+  | **Q W E R** | 던전에서 기술 1~4 |
+  | **⇧** 방향만 | 누른 채로 패드를 밀면 제자리에서 방향만 바꿉니다 |
+  | **Tab** 태그 · **A** 쉬기 | 조종할 포켓몬 교대 / 누르고 있으면 턴 넘기기 |
+  | **J** 퀘스트 · **P** 동료 · **M** 지도 | 퀘스트 목록 / 동료 명부 / 던전 미니맵 |
+  | 왼쪽 위 작은 버튼 | 소리 · 속도(1→2→3배) · 멀티 · English · 가이드 |
+
+- 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수도 있습니다.
+- 휴대폰의 **뒤로 가기**는 X와 같습니다. 가이드나 멀티 창은 닫고, 타이틀 화면에서 누르면 앱을 끝냅니다.
+- 블루투스·USB 게임패드: A 확인 · B 메뉴 · X/Y/LB/RB 기술 1~4 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트 · 십자키나 왼쪽 스틱 이동.
+- 앱을 내려 두면 음악이 멈춥니다. 기록은 휴대폰 안에 따로 저장되며, PC 웹 버전과는 이어지지 않습니다.
+- 멀티플레이는 웹 버전과 서로 연결됩니다. 앱에서 방을 열면 초대 링크는 GitHub Pages 주소로 만들어집니다.
+
+### 앱 빌드
+
+`mobile/`이 [Capacitor](https://capacitorjs.com) 안드로이드 프로젝트이고, `tools/build_mobile.ps1`이 `web/`을 `mobile/www`로 복사한 뒤 디버그 APK를 만듭니다. JDK 21과 Android SDK가 필요합니다 (스크립트 안의 경로를 자기 PC에 맞게 바꾸세요).
+
+```powershell
+cd mobile; npm install; cd ..
+.\tools\build_mobile.ps1          # mobile\android\app\build\outputs\apk\debug\app-debug.apk
+adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
 ## 조작법
 
 | 키 | 기능 |
@@ -107,8 +140,10 @@
 
 ### 동료
 - 쓰러뜨린 야생 포켓몬은 **35%** 확률(이로치는 70%)로 동료가 되고 싶어 합니다. **보스와 전설의 포켓몬은 이기면 반드시** 동료로 맞이할 수 있습니다.
-- 파티는 주인공·파트너·동료 1마리, 모두 3마리입니다. 나머지는 **동료 명부**(최대 99마리)에서 기다리며 경험치를 절반씩 받습니다.
-- **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 데려갈 포켓몬을 고르면 세 번째 자리의 동료와 교체됩니다. 주인공과 파트너는 이야기 속 고정 캐릭터라 바뀌지 않습니다.
+- 파티는 주인공·파트너·동료 1마리, 모두 3마리입니다. 나머지는 **동료 명부**(최대 500마리)에서 기다리며 경험치를 절반씩 받습니다.
+- **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 데려갈 포켓몬을 고르면 세 번째 자리의 동료와 교체됩니다.
+- **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
+- **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다.
 - **태그(Tab)**: 던전에서 조종하는 포켓몬을 다음 동료로 바꿉니다. 턴을 쓰지 않습니다. 조종 중인 포켓몬이 리더이고, 리더가 쓰러지면 던전 탐험이 실패하니 위험할 때 교대하세요.
 
 ### 엽전과 상점
@@ -156,6 +191,7 @@ web/                    게임 본체 (이 폴더가 그대로 배포됩니다)
   js/pmd.js             불가사의 던전 스프라이트와 지형 타일 그리기
   js/net.js, netui.js   멀티플레이 (PeerJS)
   js/audio.js           배경음악, 울음소리, 효과음
+mobile/                 안드로이드 앱 (Capacitor 8): 전체 화면·가로 고정·뒤로 가기 처리, 아이콘
   assets/               스프라이트, 지형, 음악, 데이터
   dev/                  자동 플레이 봇과 콘텐츠 점검 스크립트 (배포에서 제외)
 tools/                  롬에서 그래픽·음악·데이터를 추출한 스크립트 (롬 파일은 포함하지 않음)
@@ -169,6 +205,7 @@ docs/screenshots/       README 스크린샷
 
 - **GitHub Pages**: `main` 브랜치에 push하면 `.github/workflows/pages.yml`이 `web/`(dev 제외)를 배포합니다.
 - **Netlify**: `tools/build_dist.ps1`로 `dist/`를 만든 뒤 `netlify deploy --prod --dir dist`로 올립니다.
+- **안드로이드**: `tools/build_mobile.ps1`로 APK를 만듭니다 (위의 [앱 빌드](#앱-빌드)).
 
 ## 저작권 고지
 
@@ -195,8 +232,9 @@ docs/screenshots/       README 스크린샷
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
   - Arceus is the final boss and turns golden for a second phase.
   - Water-only naval battles; pick a side in the Korean War.
-  - 35% recruit rate (legendaries always join) and a 99-slot roster.
+  - 35% recruit rate (legendaries always join) and a 500-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.
+- **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left and buttons on the right that carry the keyboard letters, so the on-screen hints still apply. The back button works like X, and Bluetooth gamepads are supported. Build the debug APK with `tools/build_mobile.ps1` (JDK 21 and the Android SDK required).
 - **Run locally**: `python -m http.server 8000 --directory web`, then open http://localhost:8000.
 - **Notice**:
   - Pokémon © Nintendo / Creatures Inc. / GAME FREAK inc.; Pokémon Mystery Dungeon © Spike Chunsoft.
