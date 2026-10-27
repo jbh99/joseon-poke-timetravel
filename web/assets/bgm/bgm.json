@@ -1,0 +1,659 @@
+{
+ "legend": {
+  "file": "legend.ogg",
+  "seq": "SEQ_EV_LEGEND",
+  "dur": 67.896,
+  "loop": [
+   15.8838,
+   67.8958
+  ]
+ },
+ "pc": {
+  "file": "pc.ogg",
+  "seq": "SEQ_PC_01",
+  "dur": 41.395,
+  "loop": [
+   0.0052,
+   41.3949
+  ]
+ },
+ "title": {
+  "file": "title.ogg",
+  "seq": "SEQ_TITLE00",
+  "dur": 104.743
+ },
+ "halloffame": {
+  "file": "halloffame.ogg",
+  "seq": "SEQ_EV_DENDO1",
+  "dur": 68.297,
+  "loop": [
+   4.2405,
+   68.2969
+  ]
+ },
+ "opening": {
+  "file": "opening.ogg",
+  "seq": "SEQ_OPENING",
+  "dur": 68.297,
+  "loop": [
+   4.2405,
+   68.2969
+  ]
+ },
+ "naminori": {
+  "file": "naminori.ogg",
+  "seq": "SEQ_NAMINORI",
+  "dur": 85.087,
+  "loop": [
+   1.4482,
+   85.0872
+  ]
+ },
+ "town01_d": {
+  "file": "town01_d.ogg",
+  "seq": "SEQ_TOWN01_D",
+  "dur": 75.022,
+  "loop": [
+   0.0052,
+   75.0224
+  ]
+ },
+ "town01_n": {
+  "file": "town01_n.ogg",
+  "seq": "SEQ_TOWN01_N",
+  "dur": 75.022,
+  "loop": [
+   0.0052,
+   75.0224
+  ]
+ },
+ "town02_d": {
+  "file": "town02_d.ogg",
+  "seq": "SEQ_TOWN02_D",
+  "dur": 55.883,
+  "loop": [
+   4.1468,
+   55.8826
+  ]
+ },
+ "town02_n": {
+  "file": "town02_n.ogg",
+  "seq": "SEQ_TOWN02_N",
+  "dur": 57.878,
+  "loop": [
+   4.2926,
+   57.8778
+  ]
+ },
+ "town03_d": {
+  "file": "town03_d.ogg",
+  "seq": "SEQ_TOWN03_D",
+  "dur": 72.027,
+  "loop": [
+   3.6102,
+   72.0269
+  ]
+ },
+ "town03_n": {
+  "file": "town03_n.ogg",
+  "seq": "SEQ_TOWN03_N",
+  "dur": 72.027,
+  "loop": [
+   3.6102,
+   72.0269
+  ]
+ },
+ "ending": {
+  "file": "ending.ogg",
+  "seq": "SEQ_BLD_ENDING",
+  "dur": 275.449
+ },
+ "city01_d": {
+  "file": "city01_d.ogg",
+  "seq": "SEQ_CITY01_D",
+  "dur": 44.588,
+  "loop": [
+   0.0052,
+   44.5883
+  ]
+ },
+ "city01_n": {
+  "file": "city01_n.ogg",
+  "seq": "SEQ_CITY01_N",
+  "dur": 45.562,
+  "loop": [
+   0.0052,
+   45.5625
+  ]
+ },
+ "city02_d": {
+  "file": "city02_d.ogg",
+  "seq": "SEQ_CITY02_D",
+  "dur": 84.551,
+  "loop": [
+   10.492,
+   84.5506
+  ]
+ },
+ "city05_d": {
+  "file": "city05_d.ogg",
+  "seq": "SEQ_CITY05_D",
+  "dur": 60.821,
+  "loop": [
+   6.4077,
+   60.8212
+  ]
+ },
+ "city02_n": {
+  "file": "city02_n.ogg",
+  "seq": "SEQ_CITY02_N",
+  "dur": 91.406,
+  "loop": [
+   11.388,
+   91.4063
+  ]
+ },
+ "city04_d": {
+  "file": "city04_d.ogg",
+  "seq": "SEQ_CITY04_D",
+  "dur": 98.366,
+  "loop": [
+   2.7662,
+   98.3663
+  ]
+ },
+ "city04_n": {
+  "file": "city04_n.ogg",
+  "seq": "SEQ_CITY04_N",
+  "dur": 98.366,
+  "loop": [
+   2.7662,
+   98.3663
+  ]
+ },
+ "city05_n": {
+  "file": "city05_n.ogg",
+  "seq": "SEQ_CITY05_N",
+  "dur": 67.578,
+  "loop": [
+   7.1214,
+   67.578
+  ]
+ },
+ "city07_d": {
+  "file": "city07_d.ogg",
+  "seq": "SEQ_CITY07_D",
+  "dur": 89.276,
+  "loop": [
+   12.6175,
+   89.2757
+  ]
+ },
+ "city09_n": {
+  "file": "city09_n.ogg",
+  "seq": "SEQ_CITY09_N",
+  "dur": 109.744,
+  "loop": [
+   0.0052,
+   109.7439
+  ]
+ },
+ "city09_d": {
+  "file": "city09_d.ogg",
+  "seq": "SEQ_CITY09_D",
+  "dur": 109.744,
+  "loop": [
+   0.0052,
+   109.7439
+  ]
+ },
+ "city07_n": {
+  "file": "city07_n.ogg",
+  "seq": "SEQ_CITY07_N",
+  "dur": 90.797,
+  "loop": [
+   12.8311,
+   90.7968
+  ]
+ },
+ "city11_d": {
+  "file": "city11_d.ogg",
+  "seq": "SEQ_CITY11_D",
+  "dur": 61.597,
+  "loop": [
+   3.1674,
+   61.5975
+  ]
+ },
+ "city08_d": {
+  "file": "city08_d.ogg",
+  "seq": "SEQ_CITY08_D",
+  "dur": 86.223,
+  "loop": [
+   10.9817,
+   86.2229
+  ]
+ },
+ "city08_n": {
+  "file": "city08_n.ogg",
+  "seq": "SEQ_CITY08_N",
+  "dur": 90.26,
+  "loop": [
+   11.4922,
+   90.2602
+  ]
+ },
+ "road_a": {
+  "file": "road_a.ogg",
+  "seq": "SEQ_ROAD_A_D",
+  "dur": 30.012,
+  "loop": [
+   2.0056,
+   30.0121
+  ]
+ },
+ "city10_d": {
+  "file": "city10_d.ogg",
+  "seq": "SEQ_CITY10_D",
+  "dur": 79.44,
+  "loop": [
+   2.834,
+   79.4401
+  ]
+ },
+ "city11_n": {
+  "file": "city11_n.ogg",
+  "seq": "SEQ_CITY11_N",
+  "dur": 61.597,
+  "loop": [
+   3.1674,
+   61.5975
+  ]
+ },
+ "road_d": {
+  "file": "road_d.ogg",
+  "seq": "SEQ_ROAD_D_D",
+  "dur": 42.577,
+  "loop": [
+   9.7522,
+   42.5775
+  ]
+ },
+ "road_c": {
+  "file": "road_c.ogg",
+  "seq": "SEQ_ROAD_C_D",
+  "dur": 48.016,
+  "loop": [
+   0.0052,
+   48.0162
+  ]
+ },
+ "road_a_n": {
+  "file": "road_a_n.ogg",
+  "seq": "SEQ_ROAD_A_N",
+  "dur": 30.012,
+  "loop": [
+   2.0056,
+   30.0121
+  ]
+ },
+ "d_01": {
+  "file": "d_01.ogg",
+  "seq": "SEQ_D_01",
+  "dur": 30.012,
+  "loop": [
+   0.0052,
+   30.0121
+  ]
+ },
+ "road_e": {
+  "file": "road_e.ogg",
+  "seq": "SEQ_ROAD_E_D",
+  "dur": 75.377,
+  "loop": [
+   2.7975,
+   75.3766
+  ]
+ },
+ "road_b": {
+  "file": "road_b.ogg",
+  "seq": "SEQ_ROAD_B_D",
+  "dur": 90.964,
+  "loop": [
+   14.0709,
+   90.9636
+  ]
+ },
+ "road_bza": {
+  "file": "road_bza.ogg",
+  "seq": "SEQ_ROAD_BZA_D",
+  "dur": 48.141,
+  "loop": [
+   3.1309,
+   48.1412
+  ]
+ },
+ "road_f": {
+  "file": "road_f.ogg",
+  "seq": "SEQ_ROAD_F_D",
+  "dur": 71.089,
+  "loop": [
+   0.2552,
+   71.0892
+  ]
+ },
+ "road_snow": {
+  "file": "road_snow.ogg",
+  "seq": "SEQ_ROAD_SNOW_D",
+  "dur": 107.269,
+  "loop": [
+   45.9741,
+   107.2693
+  ]
+ },
+ "d_mount2": {
+  "file": "d_mount2.ogg",
+  "seq": "SEQ_D_MOUNT2",
+  "dur": 43.463,
+  "loop": [
+   2.0786,
+   43.463
+  ]
+ },
+ "d_03": {
+  "file": "d_03.ogg",
+  "seq": "SEQ_D_03",
+  "dur": 102.159,
+  "loop": [
+   0.0052,
+   102.1588
+  ]
+ },
+ "d_02": {
+  "file": "d_02.ogg",
+  "seq": "SEQ_D_02",
+  "dur": 75.814,
+  "loop": [
+   3.1674,
+   75.8142
+  ]
+ },
+ "d_06": {
+  "file": "d_06.ogg",
+  "seq": "SEQ_D_06",
+  "dur": 68.891,
+  "loop": [
+   0.0052,
+   68.8907
+  ]
+ },
+ "d_ice": {
+  "file": "d_ice.ogg",
+  "seq": "SEQ_D_ICE",
+  "dur": 2.568
+ },
+ "d_ginlobby": {
+  "file": "d_ginlobby.ogg",
+  "seq": "SEQ_D_GINLOBBY",
+  "dur": 32.013,
+  "loop": [
+   0.0052,
+   32.0125
+  ]
+ },
+ "d_05": {
+  "file": "d_05.ogg",
+  "seq": "SEQ_D_05",
+  "dur": 80.169,
+  "loop": [
+   1.7452,
+   80.1694
+  ]
+ },
+ "d_04": {
+  "file": "d_04.ogg",
+  "seq": "SEQ_D_04",
+  "dur": 90.026,
+  "loop": [
+   0.0052,
+   90.0258
+  ]
+ },
+ "d_agito": {
+  "file": "d_agito.ogg",
+  "seq": "SEQ_D_AGITO",
+  "dur": 55.7,
+  "loop": [
+   7.3454,
+   55.7003
+  ]
+ },
+ "d_safari": {
+  "file": "d_safari.ogg",
+  "seq": "SEQ_D_SAFARI",
+  "dur": 55.653,
+  "loop": [
+   3.282,
+   55.6534
+  ]
+ },
+ "d_lake": {
+  "file": "d_lake.ogg",
+  "seq": "SEQ_D_LAKE",
+  "dur": 66.896,
+  "loop": [
+   1.8806,
+   66.8955
+  ]
+ },
+ "ba_poke": {
+  "file": "ba_poke.ogg",
+  "seq": "SEQ_BA_POKE",
+  "dur": 70.459,
+  "loop": [
+   13.0551,
+   70.4588
+  ]
+ },
+ "ba_ginga": {
+  "file": "ba_ginga.ogg",
+  "seq": "SEQ_BA_GINGA",
+  "dur": 75.679,
+  "loop": [
+   13.0551,
+   75.6788
+  ]
+ },
+ "ba_gym": {
+  "file": "ba_gym.ogg",
+  "seq": "SEQ_BA_GYM",
+  "dur": 92.026,
+  "loop": [
+   13.3416,
+   92.0263
+  ]
+ },
+ "ba_train": {
+  "file": "ba_train.ogg",
+  "seq": "SEQ_BA_TRAIN",
+  "dur": 96.548,
+  "loop": [
+   13.0551,
+   96.5481
+  ]
+ },
+ "win_poke": {
+  "file": "win_poke.ogg",
+  "seq": "SEQ_WINPOKE",
+  "dur": 11.753,
+  "loop": [
+   1.3128,
+   11.7527
+  ]
+ },
+ "ba_rival": {
+  "file": "ba_rival.ogg",
+  "seq": "SEQ_BA_RIVAL",
+  "dur": 65.598,
+  "loop": [
+   13.128,
+   65.5983
+  ]
+ },
+ "ba_chanp": {
+  "file": "ba_chanp.ogg",
+  "seq": "SEQ_BA_CHANP",
+  "dur": 85.077,
+  "loop": [
+   8.0539,
+   85.0768
+  ]
+ },
+ "fanfa1": {
+  "file": "fanfa1.ogg",
+  "seq": "SEQ_FANFA1",
+  "dur": 1.302
+ },
+ "fanfa2": {
+  "file": "fanfa2.ogg",
+  "seq": "SEQ_FANFA2",
+  "dur": 3.24
+ },
+ "fanfa3": {
+  "file": "fanfa3.ogg",
+  "seq": "SEQ_FANFA3",
+  "dur": 2.537
+ },
+ "fanfa4": {
+  "file": "fanfa4.ogg",
+  "seq": "SEQ_FANFA4",
+  "dur": 2.678
+ },
+ "ba_secret1": {
+  "file": "ba_secret1.ogg",
+  "seq": "SEQ_BA_SECRET1",
+  "dur": 80.024,
+  "loop": [
+   16.0089,
+   80.0235
+  ]
+ },
+ "fanfa5": {
+  "file": "fanfa5.ogg",
+  "seq": "SEQ_FANFA5",
+  "dur": 4.741
+ },
+ "fanfa6": {
+  "file": "fanfa6.ogg",
+  "seq": "SEQ_FANFA6",
+  "dur": 3.714
+ },
+ "ba_akagi": {
+  "file": "ba_akagi.ogg",
+  "seq": "SEQ_BA_AKAGI",
+  "dur": 128.951,
+  "loop": [
+   13.7271,
+   128.9514
+  ]
+ },
+ "win_champ": {
+  "file": "win_champ.ogg",
+  "seq": "SEQ_WINCHAMP",
+  "dur": 34.607,
+  "loop": [
+   10.6014,
+   34.6069
+  ]
+ },
+ "ba_dpoke1": {
+  "file": "ba_dpoke1.ogg",
+  "seq": "SEQ_BA_DPOKE1",
+  "dur": 109.707,
+  "loop": [
+   21.9477,
+   109.7074
+  ]
+ },
+ "event01": {
+  "file": "event01.ogg",
+  "seq": "SEQ_THE_EVENT01",
+  "dur": 14.222,
+  "loop": [
+   1.5889,
+   14.222
+  ]
+ },
+ "event02": {
+  "file": "event02.ogg",
+  "seq": "SEQ_THE_EVENT02",
+  "dur": 33.487,
+  "loop": [
+   30.5591,
+   33.4868
+  ]
+ },
+ "win_gym": {
+  "file": "win_gym.ogg",
+  "seq": "SEQ_WINTGYM",
+  "dur": 43.515,
+  "loop": [
+   6.0066,
+   43.5152
+  ]
+ },
+ "event03": {
+  "file": "event03.ogg",
+  "seq": "SEQ_THE_EVENT03",
+  "dur": 36.003,
+  "loop": [
+   33.0753,
+   36.0031
+  ]
+ },
+ "event04": {
+  "file": "event04.ogg",
+  "seq": "SEQ_THE_EVENT04",
+  "dur": 26.678,
+  "loop": [
+   0.0052,
+   26.6779
+  ]
+ },
+ "event05": {
+  "file": "event05.ogg",
+  "seq": "SEQ_THE_EVENT05",
+  "dur": 25.542,
+  "loop": [
+   5.1158,
+   25.5423
+  ]
+ },
+ "ba_tenno": {
+  "file": "ba_tenno.ogg",
+  "seq": "SEQ_BA_TENNO",
+  "dur": 92.026,
+  "loop": [
+   13.3416,
+   92.0263
+  ]
+ },
+ "ba_secret2": {
+  "file": "ba_secret2.ogg",
+  "seq": "SEQ_BA_SECRET2",
+  "dur": 55.513,
+  "loop": [
+   17.3217,
+   55.5127
+  ]
+ },
+ "ba_dpoke2": {
+  "file": "ba_dpoke2.ogg",
+  "seq": "SEQ_BA_DPOKE2",
+  "dur": 154.04,
+  "loop": [
+   16.0089,
+   154.0405
+  ]
+ }
+}

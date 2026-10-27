@@ -1,0 +1,19 @@
+# ROM dumps and extraction work files: ROMs are never published
+work/
+*.nds
+*.sav
+
+# build output (tools/build_dist.ps1)
+dist/
+
+# secrets and local tool state
+.fal_key
+*.key
+.netlify/
+__pycache__/
+*.pyc
+
+# early AI-made placeholders, replaced by PMD Blue Rescue Team chunk sets and backdrops (the game no longer loads them)
+web/assets/tiles/
+web/assets/img/e*.png
+web/assets/img/title.png
