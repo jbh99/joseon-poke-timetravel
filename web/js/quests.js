@@ -51,10 +51,10 @@ export function giveMons(list) {
 export async function chooseFaction() {
   await say(lines(FACTION_TALK));
   let f = 'south', pick = null;
-  await say([{ who: 'narr', text: tr('어느 쪽 사람들 곁에 있을까?', 'Whose side will you stay beside?'), choices: [FACTIONS.south.name, FACTIONS.north.name], onChoice: (i) => { f = i ? 'north' : 'south'; } }]);
+  await say([{ who: 'narr', text: tr('어느 쪽 사람들 곁에 있을까?', 'Whose side will you stay beside?'), choices: [FACTIONS.south.name, FACTIONS.north.name], cancel: false, onChoice: (i) => { f = i ? 'north' : 'south'; } }]);
   S.faction = f;
   const mons = FACTIONS[f].mons;
-  await say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: FACTION_PICK.text, choices: mons.map((sp) => DEX.species[sp].name), onChoice: (i) => { pick = mons[i]; } }]);
+  await say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: FACTION_PICK.text, choices: mons.map((sp) => DEX.species[sp].name), cancel: false, onChoice: (i) => { pick = mons[i]; } }]);
   giveMons([pick]);
 }
 // which town holds the NPC of a 'talk' step (1 main, 2 second town)

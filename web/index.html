@@ -22,6 +22,10 @@
     padding: 4px 9px; cursor: pointer; }
   #hud button:hover { background: var(--paper); }
   #hud button:disabled { opacity: 0.5; cursor: default; }
+  /* core.js fit() picks the layout: a column in the strip beside the game, a row above it, or faded over it */
+  #hud.side { flex-direction: column; align-items: stretch; }
+  #hud.over { opacity: 0.4; transition: opacity 0.2s; }
+  #hud.over:hover, #hud.over:focus-within { opacity: 1; }
   #touch { display: none; position: fixed; inset: auto 0 0 0; height: 0; }
   #touch button { position: fixed; width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--ink); background: rgba(243,232,207,0.55);
     font: 16px 'Galmuri11', sans-serif; color: var(--ink); touch-action: none; }
@@ -131,7 +135,7 @@
         <div class="keys">
           <span><kbd>방향키</kbd></span><span>이동 (던전은 8방향, 대각선은 두 키 동시)</span>
           <span><kbd>Z</kbd> <kbd>Enter</kbd> <kbd>Space</kbd></span><span>조사 · 대화 · 기본 공격 · 결정</span>
-          <span><kbd>X</kbd> <kbd>Esc</kbd> <kbd>C</kbd></span><span>메뉴 · 취소</span>
+          <span><kbd>X</kbd> <kbd>Esc</kbd> <kbd>C</kbd></span><span>메뉴 · 취소 (예/아니오 질문엔 '아니오')</span>
           <span><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd></span><span>던전에서 기술 1~4 사용</span>
           <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>게임 속도 1배 · 2배 · 3배 (오른쪽 위 버튼도 가능)</span>
         </div>
@@ -233,7 +237,7 @@
         <div class="keys">
           <span><kbd>Arrows</kbd></span><span>Move (8 directions in dungeons; hold two keys for diagonals)</span>
           <span><kbd>Z</kbd> <kbd>Enter</kbd> <kbd>Space</kbd></span><span>Inspect · talk · basic attack · confirm</span>
-          <span><kbd>X</kbd> <kbd>Esc</kbd> <kbd>C</kbd></span><span>Menu · cancel</span>
+          <span><kbd>X</kbd> <kbd>Esc</kbd> <kbd>C</kbd></span><span>Menu · cancel (answers "no" to questions)</span>
           <span><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd></span><span>Use moves 1-4 in dungeons</span>
           <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span>Game speed 1x · 2x · 3x (or the button at the top right)</span>
         </div>

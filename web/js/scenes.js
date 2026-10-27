@@ -116,7 +116,7 @@ export class Intro {
         } else {
           newGame(this.starter, sp);
           this.phase = 'done';
-          say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: tr('준비됐지? 첫 번째 꽃잎이 있는 곳, 1392년으로 간다!', 'Ready? Off to 1392, where the first petal fell!') }], () => { sfx('warp'); fadeTo(() => setScene(new EraCard()), '#fff', 1.5); });
+          say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: tr(`준비됐지? 첫 번째 꽃잎이 있는 곳, ${ERAS[0].year}년으로 간다!`, `Ready? Off to ${ERAS[0].year}, where the first petal fell!`) }], () => { sfx('warp'); fadeTo(() => setScene(new EraCard()), '#fff', 1.5); });
         }
       } }]);
     }

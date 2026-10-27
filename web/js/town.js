@@ -1,5 +1,5 @@
 // Hub town for the current era: generated tile map + Blender-rendered buildings + NPCs.
-import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, choice, prefs } from './core.js';
+import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef } from './game.js';
 import { ERAS, QITEMS, CELEBI } from './content.js';
@@ -301,7 +301,15 @@ export class Town {
     if (!S.party[2]) this.mate = null;
     const Q = this.mate;
     if (Q) { Q.vx += (Q.x - Q.vx) * Math.min(1, dt * 8); Q.vy += (Q.y - Q.vy) * Math.min(1, dt * 8); }
-    if (!this.moving) {
+    // Z/X/J/P/Tab pressed mid-step act when the step lands instead of being dropped
+    for (const k of ['ok', 'cancel', 'menu', 'quest', 'party', 'tag']) if (input.hit(k)) this.queued = k;
+    if (!this.moving && !fade.cb) {
+      const k = this.queued; this.queued = null;
+      if (k === 'ok') return this.interact();
+      if (k === 'cancel' || k === 'menu') return this.openMain();
+      if (k === 'quest') return questMenu();
+      if (k === 'party') return rosterMenu();
+      if (k === 'tag') toast(tr('태그(Tab)는 던전에서 조종할 포켓몬을 바꿀 때 써요.', 'Tag (Tab) switches the Pokémon you control in dungeons.'));
       let dx = 0, dy = 0;
       if (input.isDown('left')) { dx = -1; this.face = 'left'; } else if (input.isDown('right')) { dx = 1; this.face = 'right'; } else if (input.isDown('up')) { dy = -1; this.face = 'up'; } else if (input.isDown('down')) { dy = 1; this.face = 'down'; }
       if (dx || dy) {
@@ -316,11 +324,6 @@ export class Town {
           this.fx = this.px; this.fy = this.py; this.px = nx; this.py = ny; this.moving = true; this.moveT = 0;
         } else if (input.pressed.size) sfx('bump');
       }
-      if (input.hit('ok')) this.interact();
-      else if (input.hit('cancel') || input.hit('menu')) this.openMain();
-      else if (input.hit('quest')) questMenu();
-      else if (input.hit('party')) rosterMenu();
-      else if (input.hit('tag')) toast(tr('태그(Tab)는 던전에서 조종할 포켓몬을 바꿀 때 써요.', 'Tag (Tab) switches the Pokémon you control in dungeons.'));
     }
   }
   onArrive() {}

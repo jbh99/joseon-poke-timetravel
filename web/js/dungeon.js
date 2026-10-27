@@ -752,7 +752,7 @@ export class Dungeon {
   offerRecruit(mon, text) {
     if (S.party.length >= 3 && S.roster.length >= ROSTER_MAX) return Promise.resolve();
     const name = DEX.species[mon.sp].name;
-    return new Promise((res) => say([{ who: mon.sp, shiny: mon.shiny, name, text: text || tr(`쓰러졌던 ${name}이(가) 일어나 동료가 되고 싶은 듯 이쪽을 바라보고 있다!`, `${name} got back up and is looking at you. It seems to want to join you!`), choices: tr(['동료로 맞이한다', '보내 준다'], ['Welcome it aboard', 'Let it go']), onChoice: (i) => {
+    return new Promise((res) => say([{ who: mon.sp, shiny: mon.shiny, name, text: text || tr(`쓰러졌던 ${name}이(가) 일어나 동료가 되고 싶은 듯 이쪽을 바라보고 있다!`, `${name} got back up and is looking at you. It seems to want to join you!`), choices: tr(['동료로 맞이한다', '보내 준다'], ['Welcome it aboard', 'Let it go']), cancel: false, onChoice: (i) => { // X mashed through battle text must not wave a recruit away
       if (i) return;
       const { m, where } = recruit(mon);
       if (where === 'full') return toast(tr('동료 명부가 가득 찼다.', 'The companion roster is full.'), COL.red);
@@ -834,12 +834,14 @@ export class Dungeon {
     if (this.beam) { this.beam.t -= dt; if (this.beam.t <= 0) this.beam = null; }
     if (this.blast) { this.blast.t -= dt; if (this.blast.t <= 0) this.blast = null; }
     if (this.shake) this.shake = Math.max(0, this.shake - dt);
+    // X/C/M/J/Tab/P pressed while a turn plays out wait for it instead of being dropped
+    for (const k of ['cancel', 'menu', 'map', 'quest', 'tag', 'party']) if (input.hit(k)) this.latch = k;
     if (this.cur) { this.cur.t -= dt; if (this.cur.t <= 0) this.cur = null; return; }
     if (this.queue.length) { const s = this.queue.shift(); s.fn(); this.cur = { t: s.dur }; return; }
     if (this.pendingMates?.length && !G.overlays.length) { this.resumeTurn(); return; }
     if (G.overlays.length || this.done) return;
     if (this.bossIntro) {
-      this.bossIntro = false;
+      this.bossIntro = false; this.latch = null;
       const b = this.boss.def;
       playBgm(b.bgm || 'ba_gym', 0.4); cry(b.sp);
       const L = lines(b.say || []);
@@ -848,15 +850,16 @@ export class Dungeon {
       return;
     }
     if (this.pendingStairs) {
-      this.pendingStairs = false;
+      this.pendingStairs = false; this.latch = null;
       return say([{ who: 'narr', text: this.floor >= this.def.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?') : tr('다음 층으로 가는 계단이다. 내려갈까?', 'Stairs to the next floor. Go down?'), choices: tr(['간다', '그만둔다'], ['Go', 'Stay']), onChoice: (i) => { if (i === 0) this.descend(); } }]);
     }
     // input
-    if (input.hit('cancel') || input.hit('menu')) return this.menu();
-    if (input.hit('map')) { this.showMap = !this.showMap; return; }
-    if (input.hit('quest')) return questMenu();
-    if (input.hit('tag')) return this.tag();
-    if (input.hit('party')) return this.msg(tr('던전에서는 동료를 바꿀 수 없다. 마을이나 세계 지도에서 P를 누르자.', 'You can\'t swap companions in a dungeon. Press P in town or on the world map.'), COL.red);
+    const key = this.latch; this.latch = null;
+    if (key === 'cancel' || key === 'menu') return this.menu();
+    if (key === 'map') { this.showMap = !this.showMap; return; }
+    if (key === 'quest') return questMenu();
+    if (key === 'tag') return this.tag();
+    if (key === 'party') return this.msg(tr('던전에서는 동료를 바꿀 수 없다. 마을이나 세계 지도에서 P를 누르자.', 'You can\'t swap companions in a dungeon. Press P in town or on the world map.'), COL.red);
     for (let k = 0; k < 4; k++) if (input.hit('m' + (k + 1))) return this.playerAct('move-skill', k);
     if (input.hit('ok')) return this.playerAct('basic');
     if (input.isDown('rest')) { if (!this.restT || G.time > this.restT) { this.restT = G.time + 0.12; return this.playerAct('wait'); } return; }
@@ -995,10 +998,10 @@ export class Dungeon {
     // party HUD
     const team = [this.player, ...this.mates], at = (e) => { const i = S.party.indexOf(e.mon); return i < 0 ? 99 : i; };
     const allies = team.slice().sort((a, b) => at(a) - at(b)); // party order; the one in control is marked
-    ui.panel(6, 6, 168, 16 + allies.length * 22);
-    ui.text(tr(`${this.def.name}  ${this.floor}층`, `${this.def.name}  F${this.floor}`), 12, 10, { size: 9, color: COL.red, bold: true });
+    ui.panel(6, 6, 168, 18 + allies.length * 22);
+    ui.text(tr(`${this.def.name}  ${this.floor}층`, `${this.def.name}  F${this.floor}`), 12, 12, { size: 9, color: COL.red, bold: true }); // below the dancheong stripe
     allies.forEach((e, i) => {
-      const m = e.mon, y = 22 + i * 22;
+      const m = e.mon, y = 24 + i * 22;
       if (e.isPlayer) ui.rect(8, y + 1, 3, 8, '#e0a020');
       ui.text(`${m.name}`, 12, y, { size: 9, color: e.alive ? (e.isPlayer ? COL.red : COL.ink) : '#999' });
       ui.text(`Lv${m.lv}`, 82, y, { size: 9, color: COL.ink2 });

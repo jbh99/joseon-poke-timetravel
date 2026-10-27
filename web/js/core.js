@@ -33,6 +33,9 @@ export function initCanvas() {
     screen.style.width = Math.floor(VW * css) + 'px';
     screen.style.height = Math.floor(VH * css) + 'px';
     G.sctx.imageSmoothingEnabled = false;
+    // the HUD buttons go in the free strip beside or above the game; with no room (fullscreen, phones) they fade over it
+    const hud = document.getElementById('hud');
+    if (hud) hud.className = (innerWidth - VW * css) / 2 >= 124 ? 'side' : (innerHeight - VH * css) / 2 >= 36 ? '' : 'over';
   };
   addEventListener('resize', fit);
   fit();
@@ -221,7 +224,12 @@ export class Dialog {
       input.click = null;
       return this.advance();
     }
-    if (input.hit('ok') || (input.hit('cancel') && !L.choices)) this.advance();
+    if (input.hit('ok')) this.advance();
+    else if (input.hit('cancel')) {
+      // X on a question picks its last answer (no / not now / cancel); questions marked cancel:false must be answered with Z
+      if (!L.choices || this.chars < full) this.advance();
+      else if (L.cancel !== false) { this.sel = L.choices.length - 1; this.advance(); }
+    }
   }
   advance() {
     const L = this.line;
@@ -290,7 +298,7 @@ export class Menu {
   }
   drawUI() {
     const o = this.o, w = o.w || Math.max(90, ...this.items.map((i) => ui.measure(i.label) + 34));
-    const x = o.x ?? VW - w - 8, y = o.y ?? 8;
+    const x = o.x ?? VW - w - 8, y = o.y ?? (o.title ? 24 : 8); // a title tab sits above the list, so keep it on screen
     // long lists (roster, items) scroll so they never run off the screen
     const n = this.items.length, rows = Math.min(n, Math.max(3, Math.floor((VH - y - (o.desc ? 50 : 14) - 12) / 16)));
     const top = clamp(this.sel - Math.floor(rows / 2), 0, n - rows);

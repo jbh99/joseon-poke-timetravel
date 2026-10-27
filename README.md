@@ -28,7 +28,7 @@
 |---|---|
 | **방향키** | 이동 (던전은 8방향, 대각선은 두 키를 동시에) |
 | **Z / Enter / Space** | 조사 · 대화 · 기본 공격 · 결정 |
-| **X / Esc / C** | 메뉴 · 취소 |
+| **X / Esc / C** | 메뉴 · 취소 (예/아니오 질문에서는 '아니오') |
 | **Q W E R** | 던전에서 기술 1~4 사용 |
 | **Tab** | **태그**: 던전에서 조종할 포켓몬을 다음 동료로 교대 (턴 소모 없음) |
 | **A** (누르고 있기) | 쉬기 · 턴 넘기기 |
@@ -187,7 +187,7 @@ docs/screenshots/       README 스크린샷
 
 - **Play**: https://joseon-poke-timetravel.netlify.app or https://jbh99.github.io/joseon-poke-timetravel/ in a desktop browser (phones get on-screen buttons). The **English / 한국어** button switches the language live.
 - **Controls**:
-  - Arrows move; Z/Enter attacks or confirms; X/Esc opens the menu; Q W E R use moves.
+  - Arrows move; Z/Enter attacks or confirms; X/Esc opens the menu or answers "no"; Q W E R use moves.
   - Tab tags the next teammate in; A (hold) rests; J opens and closes the quest list.
   - P opens the companion roster outside dungeons; 1/2/3 set the game speed.
   - The mouse picks places on the world map, dialogue choices and menu rows.
