@@ -202,10 +202,10 @@ const SAVE_KEY = 'joseon-poke-save-v1';
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
 const SAVE_V = 3, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null });
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', inRun: null });
 export const S = { ...FRESH(), party: [] };
-export function newGame(starter, partner) {
-  Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300 });
+export function newGame(starter, partner, mode = 'normal') {
+  Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode });
   S.party = [new Mon(starter, 6, { shiny: true }), new Mon(partner, 6, { shiny: true })];
 }
 export function save() {
@@ -236,6 +236,17 @@ export function load() {
 
 export const LEGENDS = new Set([144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
   480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493]);
+// the final forms of the 600-total lines: as bosses they fight a tier below the legends (see Dungeon bossTier)
+export const PSEUDO = new Set([149, 248, 373, 376, 445]);
+// difficulty: a shift to every foe's level, boss HP and the damage foes deal. Challenge plays at Normal strength, but a
+// wipe ends the challenge and legendary Pokémon never join; it opens once any ending has been seen (prefs.ended).
+export const MODES = {
+  easy: { lv: -2, hp: 0.8, dmg: 0.75 },
+  normal: { lv: 0, hp: 1, dmg: 1 },
+  hard: { lv: 2, hp: 1.25, dmg: 1.25 },
+  challenge: { lv: 0, hp: 1, dmg: 1 },
+};
+export const mode = () => MODES[S.mode] || MODES.normal;
 export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
 // a defeated Pokémon joins: straight into the party if there is room, otherwise into the town roster
 export function recruit(mon) {

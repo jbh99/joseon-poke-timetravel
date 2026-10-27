@@ -1,9 +1,9 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save } from './game.js';
 import { QITEMS, TELE_TUT, ERAS } from './content.js';
-import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss } from './quests.js';
+import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, challenge, loseChallenge } from './quests.js';
 import { drawMon } from './town.js';
 import { tr } from './i18n.js';
 import { tileSet, paintTerrain, hasPmdSprite } from './pmd.js';
@@ -13,6 +13,18 @@ const W = 44, H = 32;
 const DIRS8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
 const faceName = (d) => (d[0] > 0 ? 'right' : d[0] < 0 ? 'left' : null);
 const RECRUIT_RATE = 0.35; // wild Pokémon asking to join after fainting (shiny: 70%; legendaries: always)
+// Boss tiers. Legends (birds, lake trio, Lugia, the Sinnoh legends...) are a tier above: +3 levels, 3.2x HP, harder hits,
+// bigger telegraphed blasts, shorter openings and a second blast phase. The 600-total lines (Garchomp, Salamence, Metagross,
+// Tyranitar, Dragonite) fight at 85% of the legend tier. From 1200 on, ordinary bosses carry 30% more HP.
+// The final boss sets its own numbers.
+const LEGEND_TIER = { up: 3, hp: 3.2, atk: 1.2, cap: 0.38, blast: 1.25, stagger: 1, phase2: true };
+const PSEUDO_TIER = { up: 2, hp: 3.2 * 0.85, atk: 1.2 * 0.85, cap: 0.38 * 0.85, blast: 1.25 * 0.85, stagger: 1, phase2: true };
+function bossTier(b) {
+  if (b.final) return { up: 0, hp: 1, atk: 1, cap: 0.3, blast: 1, stagger: 2 };
+  if (LEGENDS.has(b.sp)) return LEGEND_TIER;
+  if (PSEUDO.has(b.sp)) return PSEUDO_TIER;
+  return { up: 0, hp: era().year >= 1200 ? 1.3 : 1, atk: 1, cap: 0.3, blast: 1, stagger: 2 };
+}
 // difficulty along the journey: 0 in the first era, 1 in the last. Early floors are sparse and forgiving, late ones crowded and harsh.
 export const curve = () => clamp(S.era / Math.max(1, ERAS.length - 1), 0, 1);
 
@@ -39,6 +51,7 @@ export class Dungeon {
     this.def = era().dungeons[dId];
     this.main = mainStep()?.do === 'dungeon' && mainStep().d === dId;
     this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting one floor below the usual last one
+    if (challenge()) { S.inRun = dId; save(); } // a challenge run left unfinished counts as a wipe (quests.js checkRun)
     this.floor = 1;
     this.msgs = [];
     this.pops = [];
@@ -157,20 +170,22 @@ export class Dungeon {
     if (this.bossFloor) {
       const b = this.bossDef;
       const avg = Math.round((S.party[0].lv + S.party[1].lv) / 2);
-      // legendary bosses (birds, lake trio, Lugia, the Sinnoh legends...) are a tier above: +3 levels, 3.2x HP,
-      // harder hits, bigger telegraphed blasts and shorter openings. The final boss sets its own numbers.
-      // A boss with `revive` gets back up once in a second form (see reviveBoss). A returning legend (b.wander) fights at its new dungeon's level.
-      const legend = LEGENDS.has(b.sp) && !b.final, up = legend && !b.wander ? 3 : 0;
-      const lv = clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up);
-      const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * (legend ? 3.2 : 1), atkMul: (b.atk || 0.9) * (legend ? 1.2 : 1), moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
+      // the boss's tier (bossTier) sets its level bonus and multipliers; from 1200 on it also stays ahead of the team's
+      // growth (foeLevels). A boss with `revive` gets back up once in a second form (see reviveBoss).
+      // A returning legend (b.wander) fights at exactly its new dungeon's level.
+      const t = bossTier(b), [, top, scaled] = foeLevels(this.def), up = b.wander ? 0 : t.up;
+      let lv = b.wander ? b.lv : clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up) + mode().lv;
+      if (scaled && !b.wander) lv = Math.max(lv, top + 2 + up);
+      const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
       mon.slowT = b.slow || 0;
       const e = this.boss = this.addEnt(mon, 22, 12, 'foe');
       e.isBoss = true; e.def = b; e.bphase = 1; e.stagger = 0; e.tele = null;
-      e.legend = legend; e.cap = b.cap ?? (legend ? 0.38 : 0.3);
-      // a legend with a single telegraph gains a second, faster and harder phase below half HP
-      e.teleSet = legend && b.tele && !Array.isArray(b.tele)
+      e.tier = t; e.cap = b.cap ?? t.cap;
+      // a legend or 600-class boss with a single telegraph gains a second, faster and harder phase below half HP
+      e.teleSet = t.phase2 && b.tele && !Array.isArray(b.tele)
         ? [b.tele, { ...b.tele, at: 0.5, every: Math.max(2, b.tele.every - 2), dmg: b.tele.dmg * 1.2, stagger: 1,
-          msg: tr(`${mon.name}이(가) 전설의 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} unleashes its legendary power! Its attacks grow fiercer!`) }]
+          msg: t === LEGEND_TIER ? tr(`${mon.name}이(가) 전설의 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} unleashes its legendary power! Its attacks grow fiercer!`)
+            : tr(`${mon.name}이(가) 온 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} draws on all its strength! Its attacks grow fiercer!`) }]
         : b.tele;
       e.teleCD = b.tele ? (this.teleConf(e).first ?? 3) : 0;
       this.bossIntro = true;
@@ -211,10 +226,10 @@ export class Dungeon {
   }
   spawnFoe(p) {
     if (!p) return;
-    const [a, b] = this.def.lv;
-    let lv = clamp(randInt(a, b) + Math.floor((this.floor - 1) / 2), a, b + 1);
-    // the first eras never field foes above the team's average level
-    if (curve() < 0.3) lv = Math.min(lv, Math.max(a, Math.round(S.party.reduce((s, m) => s + m.lv, 0) / S.party.length)));
+    const [a, b, scaled] = foeLevels(this.def); // deeper floors lean to the top of the band
+    let lv = clamp(randInt(a, b - 1) + Math.floor((this.floor - 1) / 2), a, b);
+    // the first eras never field foes above the team's average level (shifted by the difficulty)
+    if (!scaled && curve() < 0.3) lv = Math.min(lv, Math.max(a, Math.round(S.party.reduce((s, m) => s + m.lv, 0) / S.party.length) + mode().lv));
     const mon = new Mon(choice(this.def.mons), lv);
     const e = this.addEnt(mon, p[0], p[1], 'foe');
     if (Math.random() < 1 / 48) { mon.shiny = true; e.shiny = true; }
@@ -279,25 +294,38 @@ export class Dungeon {
     } else if (kind === 'wait') this.endTurn(() => {});
   }
   // Tab: control passes to the next living teammate in party order (no turn spent); a co-op guest's Pokémon is skipped.
-  // Whoever is in control is the leader: if the leader faints, the expedition fails.
-  tag() {
+  // When the one in control faints, the next one standing takes the lead (a guest's Pokémon too if no other is left);
+  // the expedition fails only once the whole team is down.
+  nextLeader(guests) {
     const all = [this.player, ...this.mates];
     const order = [...S.party.map((m) => all.find((a) => a.mon === m)).filter(Boolean), ...all.filter((a) => !S.party.includes(a.mon))];
     const i = order.indexOf(this.player);
     for (let k = 1; k < order.length; k++) {
       const e = order[(i + k) % order.length];
-      if (!e.alive || NET.guestFor(S.party.indexOf(e.mon))) continue;
-      this.player.isPlayer = false; e.isPlayer = true;
-      this.player = e; this.leadMon = e.mon;
-      this.mates = order.filter((a) => a !== e);
-      this.dirSince = 0; this.nextMoveAt = 0; this.restT = 0;
-      this.updateVis();
-      sfx('cursor');
-      this.msg(tr(`${e.mon.name}(으)로 교대했다!`, `Tagged in ${e.mon.name}!`), COL.blue);
-      return;
+      if (e.alive && (guests || !NET.guestFor(S.party.indexOf(e.mon)))) return { e, order };
     }
-    sfx('cancel');
-    this.msg(tr('교대할 수 있는 동료가 없다.', 'No teammate can tag in.'), COL.red);
+    return { order };
+  }
+  lead(e, order) {
+    this.player.isPlayer = false; e.isPlayer = true;
+    this.player = e; this.leadMon = e.mon;
+    this.mates = order.filter((a) => a !== e);
+    this.dirSince = 0; this.nextMoveAt = 0; this.restT = 0;
+    this.updateVis();
+  }
+  tag() {
+    const { e, order } = this.nextLeader(false);
+    if (!e) { sfx('cancel'); this.msg(tr('교대할 수 있는 동료가 없다.', 'No teammate can tag in.'), COL.red); return; }
+    this.lead(e, order);
+    sfx('cursor');
+    this.msg(tr(`${e.mon.name}(으)로 교대했다!`, `Tagged in ${e.mon.name}!`), COL.blue);
+  }
+  takeOver() {
+    if (this.player.alive || this.done) return;
+    const n = this.nextLeader(false).e ? this.nextLeader(false) : this.nextLeader(true);
+    if (!n.e) return this.failed();
+    this.lead(n.e, n.order);
+    this.msg(tr(`${n.e.mon.name}이(가) 앞장선다! 남은 동료와 함께 나아가자.`, `${n.e.mon.name} takes the lead! Press on with the rest of the team.`), COL.blue);
   }
   endTurn(playerFn) {
     if (this.player.mon.status === 'slp' || this.player.mon.status === 'frz' || (this.player.mon.status === 'par' && Math.random() < 0.25)) {
@@ -448,6 +476,7 @@ export class Dungeon {
     }
     if (r.dmg == null) { this.step(() => this.msg(tr('그러나 아무 일도 일어나지 않았다.', 'But nothing happened.')), 0.15); return; }
     if (def.stagger > 0 && r.dmg > 0) { r.dmg = Math.round(r.dmg * 1.5); r.gap = true; }
+    if (r.dmg > 0 && att.team === 'foe' && def.team === 'ally') r.dmg = Math.max(1, Math.round(r.dmg * mode().dmg)); // difficulty
     // a boss's ordinary hit is capped so the telegraphed blasts stay the real threat (dodging is the skill check)
     if (att.isBoss && def.team === 'ally') r.dmg = Math.min(r.dmg, Math.ceil(D.maxhp * (att.cap ?? att.def.cap ?? 0.3)));
     // phased bosses can't be burst past a phase: HP stops at the next threshold until the phase change happens
@@ -490,7 +519,8 @@ export class Dungeon {
       this.step(() => { this.msg(coin ? tr(`경험치 ${xp} · 엽전 ${coin}냥을 얻었다.`, `Gained ${xp} Exp. Points and ${coin} nyang.`) : tr(`경험치 ${xp}을(를) 얻었다.`, `Gained ${xp} Exp. Points.`), COL.green); for (const a of allies) gainExpFor(a.mon, xp, (t, c) => this.msg(t, c)); shareExp(xp); }, 0.15);
       if (e.isBoss) this.step(() => this.bossDefeated(e), 0.4);
       else if (!e.summoned && (LEGENDS.has(e.mon.sp) || Math.random() < (e.shiny ? 0.7 : RECRUIT_RATE))) this.step(() => this.offerRecruit(e.mon), 0.1);
-    } else if (e.isPlayer) this.step(() => this.failed(), 0.5);
+    } else if (!this.ents.some((a) => a.team === 'ally' && a.alive)) this.step(() => this.failed(), 0.5); // the whole team is down
+    else if (e.isPlayer) this.step(() => this.takeOver(), 0.3);
     else this.step(() => this.msg(tr(`${e.mon.name}이(가) 쓰러졌다… 남은 동료와 함께 나아가자.`, `${e.mon.name} is down... Press on with the rest of the team.`), COL.red), 0.2);
   }
   turnEffects() {
@@ -697,7 +727,7 @@ export class Dungeon {
     if (!pick) pick = { tiles: this.patternTiles('target', e, allies), delay: 1 };
     e.teleN = (e.teleN || 0) + 1;
     e.teleCD = T.every;
-    e.tele = { tiles: pick.tiles, turns: pick.delay, name: T.name, dmg: T.dmg * (e.legend ? 1.25 : 1), color: TYPE_COLORS[T.type ?? e.mon.types[0]] };
+    e.tele = { tiles: pick.tiles, turns: pick.delay, name: T.name, dmg: T.dmg * e.tier.blast, color: TYPE_COLORS[T.type ?? e.mon.types[0]] };
     e.face = [0, 1];
     this.step(() => { this.msg(tr(`${e.mon.name}의 ${T.name}! 붉은 칸에서 벗어나라!`, `${e.mon.name}'s ${T.name}! Get off the red tiles!`), COL.red); sfx('buff'); this.shake = 0.15; }, 0.3);
   }
@@ -708,12 +738,12 @@ export class Dungeon {
     this.step(() => { this.blast = { tiles: t.tiles, t: 0.45 }; this.shake = 0.4; sfx('super'); this.msg(tr(`${t.name}이(가) 쏟아졌다!`, `${t.name} came crashing down!`), COL.red); }, 0.4);
     if (!hits.length) this.step(() => this.msg(tr('모두 피했다! 지금이 기회다!', 'Everyone dodged! Now\'s the chance!'), COL.green), 0.2);
     for (const a of hits) {
-      const d = Math.max(1, Math.round(a.mon.maxhp * t.dmg));
+      const d = Math.max(1, Math.round(a.mon.maxhp * t.dmg * mode().dmg));
       a.mon.hp = Math.max(0, a.mon.hp - d);
       this.step(() => { a.hurt = 0.4; this.pop(a, String(d), '#ff6a4a'); this.msg(tr(`${a.mon.name}은(는) ${t.name}에 휘말렸다! ${d} 데미지!`, `${a.mon.name} was caught in ${t.name}! ${d} damage!`), COL.red); sfx('hit'); }, 0.2);
       if (a.mon.hp <= 0) this.faint(a, e);
     }
-    e.stagger = this.teleConf(e).stagger ?? (e.legend ? 1 : 2);
+    e.stagger = this.teleConf(e).stagger ?? e.tier.stagger;
     this.step(() => this.msg(tr(`${e.mon.name}에게 빈틈이 생겼다! 지금 공격하면 1.5배!`, `${e.mon.name} left an opening! Attacks deal 1.5x now!`), COL.green), 0.15);
   }
   moveAnim(e, fx, fy) { e.ax = fx; e.ay = fy; }
@@ -754,6 +784,7 @@ export class Dungeon {
   offerRecruit(mon, text) {
     if (S.party.length >= 3 && S.roster.length >= ROSTER_MAX) return Promise.resolve();
     const name = DEX.species[mon.sp].name;
+    if (challenge() && LEGENDS.has(mon.sp)) return new Promise((res) => say([{ who: 'narr', text: tr(`챌린지에서는 전설의 포켓몬을 동료로 맞을 수 없다. ${name}은(는) 조용히 모습을 감췄다.`, `Legendary Pokémon can't join a challenge. ${name} quietly vanished.`) }], res));
     return new Promise((res) => say([{ who: mon.sp, shiny: mon.shiny, name, text: text || tr(`쓰러졌던 ${name}이(가) 일어나 동료가 되고 싶은 듯 이쪽을 바라보고 있다!`, `${name} got back up and is looking at you. It seems to want to join you!`), choices: tr(['동료로 맞이한다', '보내 준다'], ['Welcome it aboard', 'Let it go']), cancel: false, onChoice: (i) => { // X mashed through battle text must not wave a recruit away
       if (i) return;
       const { m, where } = recruit(mon);
@@ -777,7 +808,15 @@ export class Dungeon {
     const lost = Math.floor(S.money * (0.1 + curve() * 0.2)); // early defeats cost little
     S.money -= lost;
     S.party.forEach((m) => { m.hp = Math.max(1, Math.floor(m.maxhp / 2)); m.status = null; });
-    this.result(tr(`쓰러지고 말았다… 엽전 ${lost}냥을 잃었다.`, `You fainted... and lost ${lost} nyang.`), false);
+    const lostCh = loseChallenge() ? [tr('챌린지 실패… 모두 쓰러지고 말았다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the whole team went down. The journey now continues at Normal.')] : [];
+    this.result(tr(`모두 쓰러지고 말았다… 엽전 ${lost}냥을 잃었다.`, `The whole team fainted... and lost ${lost} nyang.`), false, lostCh);
+  }
+  // walking back out the way you came: only from the first floor, at no cost
+  leave() {
+    if (this.done || this.floor !== 1) return;
+    this.done = true;
+    sfx('stairs');
+    this.result(tr('왔던 길로 되돌아 던전을 나왔다.', 'You walked back out the way you came.'), false);
   }
   escape() {
     if (this.done) return;
@@ -785,12 +824,16 @@ export class Dungeon {
     sfx('warp');
     this.result(tr('탈출 부적의 힘으로 마을로 돌아왔다.', 'The Escape Charm carried you back to town.'), false);
   }
-  result(title, ok) {
+  result(title, ok, extra = []) {
+    S.inRun = null;
+    // a cleared dungeon gets everyone who fell back on their feet (before restoreCrew, so a naval crew's fallen too)
+    const fallen = ok ? S.party.filter((m) => m.hp <= 0) : [];
+    if (fallen.length) { fallen.forEach((m) => { m.hp = m.maxhp; m.status = null; }); extra = [tr(`쓰러졌던 ${fallen.map((m) => m.name).join(', ')}도 기운을 되찾았다!`, `${fallen.map((m) => m.name).join(', ')} got back on their feet!`), ...extra]; }
     this.restoreCrew();
     const items = Object.entries(this.found.items).map(([id, n]) => `${(ITEMS[id] || QITEMS[id]).name}×${n}`).join(', ');
     S.party.forEach((m) => m.restorePP()); // leaving a dungeon, however it ends, refills every move's PP
     const pp = tr('던전을 나오니 기술의 PP가 모두 회복되었다.', 'Back outside, every move\'s PP is restored.');
-    say([{ who: 'narr', text: `${title}\n${tr(`얻은 엽전 ${this.found.money}냥`, `Coins earned: ${this.found.money} nyang`)}${items ? ' · ' + items : ''}\n${pp}` }], () => {
+    say([{ who: 'narr', text: `${title}\n${tr(`얻은 엽전 ${this.found.money}냥`, `Coins earned: ${this.found.money} nyang`)}${items ? ' · ' + items : ''}\n${pp}` }, ...extra.map((text) => ({ who: 'narr', text }))], () => {
       S.party.forEach((m) => { m.stages = {}; if (m.hp <= 0) m.hp = 1; });
       S.night = !S.night;
       if (ok) jingle('fanfa4');
@@ -885,6 +928,7 @@ export class Dungeon {
       { label: tr('포켓몬', 'Pokémon'), fn: () => partyMenu({ dungeon: true }) },
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('발밑 / 쉬기', 'Rest a turn'), fn: () => this.playerAct('wait') },
+      { label: tr('던전에서 나가기', 'Leave the dungeon'), right: this.floor === 1 ? '' : tr('1층에서만', 'Floor 1 only'), disabled: this.floor !== 1, fn: () => say([{ who: 'narr', text: tr('아직 1층이라 왔던 길로 되돌아 나갈 수 있다. 던전에서 나갈까?', 'Still on floor 1, you can walk back out the way you came. Leave the dungeon?'), choices: tr(['나간다', '그만둔다'], ['Leave', 'Stay']), onChoice: (i) => { if (i === 0) this.leave(); } }]) },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
       quitItem(true, () => this.restoreCrew()),
       { label: tr('닫기', 'Close') },

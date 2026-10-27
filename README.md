@@ -79,7 +79,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 ## 게임 진행
 
-1. **새로운 여행**에서 주인공과 파트너를 고릅니다 (모부기·불꽃숭이·팽도리). 시간을 건너온 탓에 둘 다 **이로치**입니다.
+1. **새로운 여행**에서 난이도(쉬움 · 보통 · 어려움, 엔딩 후 챌린지)를 정하고 주인공과 파트너를 고릅니다 (모부기·불꽃숭이·팽도리). 시간을 건너온 탓에 둘 다 **이로치**입니다.
 2. **마을**: 머리 위에 **!** 표시가 있는 포켓몬이 메인 퀘스트 상대입니다.
    - **주막**: 회복 · 기록 · 동료 명부
    - **장터**: 도구 사고팔기
@@ -121,7 +121,8 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **썬더(676) · 파이어(1232) · 프리져(1388)**: 같은 시대 보스 중 가장 강합니다. 체력이 보통 보스의 약 10배이고, 예고 공격을 모으는 동안에도 계속 공격합니다. 어렵다면 레벨을 올려 다시 도전하세요. 전설의 레벨은 일정 이상 오르지 않습니다.
 - **놓친 전설**: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 평소 마지막 층보다 한 층 더 깊은 곳에서 그 던전의 적과 같은 레벨로 기다리고, 또 놓치면 그다음 시대로 옮겨 갑니다.
 - **예고 공격**: 보스가 바닥을 붉게 표시하면 몇 턴 뒤 그 칸에 큰 공격이 떨어집니다. 붉은 칸 밖으로 피하면 보스에게 **빈틈**이 생겨 받는 피해가 1.5배가 됩니다.
-- **600족 보스**: 가디안(1866), 메타그로스(1887), 한카리아스·보만다·마기라스(1950)는 실제 능력치처럼 빠르고 단단합니다.
+- **600족 보스**: 메타그로스(1887), 한카리아스·보만다·마기라스(1950)는 전설의 포켓몬보다 15%쯤 약한 강적입니다 (레벨 +2, 체력·공격·예고 공격이 전설의 85%).
+- **일반 보스**: 1200년부터 체력이 30% 늘어나고, 우리 팀이 성장하면 보스 레벨도 함께 오릅니다.
 
 ### 2페이즈
 - **아르세우스**(최종 보스, Lv80): 쓰러뜨리면 **황금빛 이로치**로 다시 일어납니다. 체력은 처음의 2/3이고, 공격과 예고 패턴이 훨씬 거세집니다.
@@ -142,18 +143,31 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 ### 동료
 - 쓰러뜨린 야생 포켓몬은 **35%** 확률(이로치는 70%)로 동료가 되고 싶어 합니다. **보스와 전설의 포켓몬은 이기면 반드시** 동료로 맞이할 수 있습니다.
 - 파티는 주인공·파트너·동료 1마리, 모두 3마리입니다. 나머지는 **동료 명부**(최대 500마리)에서 기다리며 경험치를 절반씩 받습니다.
-- **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 데려갈 포켓몬을 고르면 세 번째 자리의 동료와 교체됩니다.
+- **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 명부 위쪽의 팀에서 하나를 고르면 서로 자리를 바꾸고, 명부의 포켓몬을 고르면 리더·파트너·동료 중 원하는 자리와 교체합니다. 명부의 동료는 던전에서 불러올 수 없습니다.
+- **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 · 도감 번호 · 이름 순입니다.
 - **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
 - **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다.
-- **태그(Tab)**: 던전에서 조종하는 포켓몬을 다음 동료로 바꿉니다. 턴을 쓰지 않습니다. 조종 중인 포켓몬이 리더이고, 리더가 쓰러지면 던전 탐험이 실패하니 위험할 때 교대하세요.
+- **태그(Tab)**: 던전에서 조종하는 포켓몬을 다음 동료로 바꿉니다. 턴을 쓰지 않습니다. 조종하던 포켓몬이 쓰러지면 남은 동료가 앞장서고, **셋이 모두 쓰러져야** 탐험이 실패합니다. 던전을 클리어하면 쓰러졌던 동료도 기운을 되찾습니다.
+- **1층에서 나가기**: 아직 1층이라면 X 메뉴 → **던전에서 나가기**로 대가 없이 되돌아 나올 수 있습니다.
 
 ### 엽전과 상점
 - 엽전은 쓰러뜨린 적(레벨이 높을수록 많이, 보스는 10배), 바닥에 떨어진 엽전, **던전 클리어 보상**(층수 × 시대), 방(榜) 의뢰 보상으로 모읍니다.
-- 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다.
+- 셋이 모두 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다.
 - 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 절반), 주먹밥(HP 80 + 상태 이상 회복), 약초(상태 이상), 인삼(PP 회복), 탈출 부적, 돌팔매.
 
 ### 난이도
 초반 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며, 회복도 느려집니다. 보스는 시대가 갈수록 더 강해지고, 후반 전설은 회복 도구와 타입 상성을 챙겨야 이길 수 있습니다.
+
+- **던전 레벨**: 1200년 전까지, 그리고 팀의 가장 높은 레벨이 20 이하일 때는 던전마다 정해진 레벨입니다. 그 뒤로는 팀에서 가장 높은 레벨에 맞춰 **같은 레벨 ~ +2**, 그 레벨이 **45를 넘으면 +3 ~ +5**로 적이 나옵니다. 정해진 레벨보다 낮아지지는 않습니다.
+
+| 난이도 | 내용 |
+|---|---|
+| 쉬움 | 적 레벨 −2, 적이 주는 피해 −25%, 보스 체력 −20% |
+| 보통 | 기본 |
+| 어려움 | 적 레벨 +2, 적이 주는 피해와 보스 체력 +25% |
+| 챌린지 | 어느 난이도로든 엔딩을 한 번 보면 열립니다. 보통의 강함으로 **한 번도 전멸하지 않고** 엔딩까지 가야 하고, **전설의 포켓몬은 동료가 되지 않습니다**. 전멸하거나 던전 도중에 게임을 끄면 챌린지가 끝나고 그 여행은 보통 난이도로 이어집니다. |
+
+쉬움 · 보통 · 어려움은 X 메뉴 → 설정에서 언제든 바꿀 수 있습니다.
 
 ### 함께 하기 (멀티플레이)
 - 혼자 하던 게임에 친구를 불러 이야기를 같이 보고 던전을 같이 깰 수 있습니다. 혼자 하다가 언제든 방을 열 수 있습니다.
@@ -227,12 +241,15 @@ docs/screenshots/       README 스크린샷
 - **Controls**:
   - Arrows move; Z/Enter attacks or confirms; X/Esc opens the menu or answers "no"; Q W E R use moves.
   - Tab tags the next teammate in; A (hold) rests; J opens and closes the quest list.
-  - P opens the companion roster outside dungeons; 1/2/3 set the game speed.
+  - P opens the companion roster outside dungeons: search it (name, type, dex number), sort it, and swap anyone into any team slot; 1/2/3 set the game speed.
   - The mouse picks places on the world map, dialogue choices and menu rows; dragging or the wheel scrolls the map.
 - **Features**:
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
-  - Arceus is the final boss and turns golden for a second phase.
+  - Arceus is the final boss and turns golden for a second phase; the 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
+  - A run fails only when all three are down; clearing revives the fallen, and floor 1 can be left from the menu.
+  - From 1200 on, foes follow your strongest Pokémon (its level to +2, +3 to +5 past Lv 45) and bosses have 30% more HP.
+  - Easy, Normal and Hard difficulty; Challenge (after any ending) means no wipes and no legendary recruits.
   - Water-only naval battles; pick a side in the Korean War.
   - 35% recruit rate (legendaries always join) and a 500-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.

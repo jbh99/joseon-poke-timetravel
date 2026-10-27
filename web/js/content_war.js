@@ -155,7 +155,7 @@ export const WAR = [
     get nodes() { return S.faction === 'north' ? NODES_N : NODES_S; },
     dungeons: {
       nakdong: { name: K('낙동강 전선', 'Nakdong Front'), tiles: T.flat, floors: 4, lv: [56, 60], mons: [262, 229, 112, 76, 26, 82, 135, 335, 336, 357], bgm: 'd_agito',
-        boss: { sp: 445, lv: 64, lvMin: 58, lvUp: 4, hp: 3.2, atk: 1.0, cap: 0.35, bgm: 'ba_chanp', moves: [407, 89, 242, 337],
+        boss: { sp: 445, lv: 64, lvMin: 58, lvUp: 4, hp: 2.2, atk: 0.95, cap: 0.35, bgm: 'ba_chanp', moves: [407, 89, 242, 337], // 600-class tier (dungeon.js bossTier) scales these
           tele: [
             { name: K('지진', 'Earthquake'), every: 3, dmg: 0.38, stagger: 1, pats: ['near', 'ring', 'rows', 'cols'], type: 4, first: 2 },
             { at: 0.5, name: K('드래곤다이브', 'Dragon Rush'), every: 2, dmg: 0.42, stagger: 1, pats: ['target', 'cross', 'x', 'star', 'quad'], type: 16,
@@ -186,7 +186,7 @@ export const WAR = [
           after: [{ who: 460, text: K('…눈이 그쳤다. 따뜻한 곳으로 내려가거라.', '...The snow has stopped. Go down to somewhere warm.') }] } },
       baengma: { name: K('백마고지', 'White Horse Hill'), tiles: T.cliff, floors: 3, lv: [58, 62], legend: true, mons: [74, 75, 76, 95, 111, 112, 246, 247, 208], bgm: 'd_mount2',
         tint: 'rgba(90,70,50,0.10)',
-        boss: { sp: 248, lv: 66, lvMin: 59, lvUp: 4, hp: 2.6, atk: 0.95, cap: 0.33, bgm: 'ba_secret2', moves: [242, 157, 89, 444],
+        boss: { sp: 248, lv: 66, lvMin: 59, lvUp: 4, hp: 2.2, atk: 0.95, cap: 0.33, bgm: 'ba_secret2', moves: [242, 157, 89, 444], // 600-class tier (dungeon.js bossTier) scales these
           tele: { name: K('스톤에지', 'Stone Edge'), every: 3, dmg: 0.36, stagger: 1, pats: ['cols', 'rows', 'near', 'checker', 'target'], type: 5 },
           say: [
             { who: 'narr', text: K('1952년 10월, 열흘 동안 주인이 스물네 번이나 바뀐 고지. 포탄에 깎인 산 위에서 마기라스가 울부짖는다!', 'October 1952: a hill that changed hands twenty-four times in ten days. On the shell-carved summit, Tyranitar roars!') },
@@ -195,7 +195,7 @@ export const WAR = [
           after: [{ who: 248, name: K('마기라스', 'Tyranitar'), text: K('…산은 다시 풀이 자라겠지. 너희가 그렇게 믿는다면.', '...Grass will grow on the mountain again. If you believe so.') }],
           join: K('마기라스가 묵직한 발걸음으로 다가왔다. 함께 가고 싶어 한다!', 'Tyranitar comes closer with heavy steps. It wants to come along!') } },
       panmun: { name: K('판문점 · 시간의 틈', 'Panmunjom · Rift'), tiles: T.rift, floors: 5, lv: [60, 64], mons: [443, 444, 359, 197, 229, 247, 281, 429, 477, 356], bgm: 'd_mount2',
-        mid: { floor: 2, sp: 373, lv: 66, lvUp: 3, hp: 2.4, atk: 0.9, cap: 0.33, bgm: 'ba_dpoke1', moves: [337, 53, 242, 89],
+        mid: { floor: 2, sp: 373, lv: 66, lvUp: 3, hp: 2.0, atk: 0.9, cap: 0.33, bgm: 'ba_dpoke1', moves: [337, 53, 242, 89], // 600-class tier (dungeon.js bossTier) scales these
           tele: { name: K('용성군', 'Draco Meteor'), every: 3, dmg: 0.38, stagger: 1, pats: ['random', 'star', 'quad', 'far'], type: 16 },
           say: [
             { who: 373, name: K('보만다', 'Salamence'), text: K('크오오오! 하늘을 나는 것이 꿈이었던 나다. 이 갈라진 하늘을 날게 두지 않겠다면, 힘으로 증명해 봐라!', 'Kroooh! I who dreamed of flight! If you would keep me from this torn sky, prove it with strength!') },

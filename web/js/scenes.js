@@ -1,9 +1,9 @@
 // Title, starter selection, era transition cards, world map and ending.
-import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, touchUI } from './core.js';
+import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, hasSave, readSave, load, save, TYPE_COLORS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, legendsAt, wanderAt } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
@@ -52,7 +52,7 @@ export class Title {
       if (sv) {
         const pt = Math.floor((sv.playtime || 0) / 60);
         items.unshift({ label: tr('이어하기', 'Continue'), right: `${ERAS[sv.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}`, fn: () => {
-          if (load()) fadeTo(() => { liftLevels(); G.goTown(); });
+          if (load()) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); });
           else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
         } });
       }
@@ -66,9 +66,24 @@ export class Title {
     this.reopen = true;
   }
   newGame() {
-    const go = () => fadeTo(() => setScene(new Intro()));
-    if (hasSave()) say([{ who: 'narr', text: tr('새로 시작하면 기존 기록을 덮어씁니다. 괜찮나요?', 'Starting over will overwrite your saved journey. Is that OK?'), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
-    else go();
+    const N = MODE_NAMES(), desc = tr({
+      easy: '적 레벨 −2, 적이 주는 피해 −25%, 보스 체력 −20%. 이야기를 편하게 즐기고 싶다면.',
+      normal: '기본 난이도. 1200년부터 던전이 우리 팀의 성장에 맞춰 강해진다.',
+      hard: '적 레벨 +2, 적이 주는 피해와 보스 체력 +25%.',
+      challenge: prefs.ended ? '보통의 강함으로, 한 번도 전멸하지 않고 엔딩까지 가야 한다. 전설의 포켓몬은 동료가 되지 않는다.' : '어느 난이도로든 엔딩을 한 번 보면 열린다.',
+    }, {
+      easy: 'Foes −2 levels, foes deal 25% less damage, bosses have 20% less HP. For enjoying the story.',
+      normal: 'The standard game. From 1200 on, dungeons grow with your team.',
+      hard: 'Foes +2 levels; foe damage and boss HP +25%.',
+      challenge: prefs.ended ? 'Normal strength, but reach the ending without a single wipe. Legendary Pokémon never join.' : 'Opens once you have seen an ending at any difficulty.',
+    });
+    const pick = (m) => {
+      const go = () => fadeTo(() => setScene(new Intro(m)));
+      if (hasSave()) say([{ who: 'narr', text: tr('새로 시작하면 기존 기록을 덮어씁니다. 괜찮나요?', 'Starting over will overwrite your saved journey. Is that OK?'), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
+      else go();
+    };
+    openMenu(['easy', 'normal', 'hard', 'challenge'].map((m) => ({ label: N[m], desc: desc[m], right: m === 'challenge' && !prefs.ended ? tr('엔딩 후', 'After an ending') : '',
+      disabled: m === 'challenge' && !prefs.ended, fn: () => pick(m) })), { title: tr('난이도', 'Difficulty'), desc: true, sel: 1, x: VW / 2 - 120, y: 130, w: 240, onCancel: () => { this.started = false; } });
   }
   draw(c) {
     drawBackdrop(c, 41, 3, 1.04 + Math.sin(this.t * 0.15) * 0.02);
@@ -92,6 +107,7 @@ export class Title {
 
 // ---------------------------------------------------------------- intro & starter choice
 export class Intro {
+  constructor(mode = 'normal') { this.mode = mode; }
   enter() {
     playBgm('legend');
     this.phase = 'talk'; this.sel = 0; this.t = 0; this.starter = null;
@@ -114,7 +130,7 @@ export class Intro {
           this.starter = sp; this.sel = 0; this.phase = 'partner';
           say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: tr('좋아! 그럼 함께 여행할 친구도 골라 볼까? 이 친구도 시간을 건너와서 몸 색이 달라졌어.', 'Great! Now pick a friend to travel with. Crossing time changed its colors too.') }]);
         } else {
-          newGame(this.starter, sp);
+          newGame(this.starter, sp, this.mode);
           this.phase = 'done';
           say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: tr(`준비됐지? 첫 번째 꽃잎이 있는 곳, ${ERAS[0].year}년으로 간다!`, `Ready? Off to ${ERAS[0].year}, where the first petal fell!`) }], () => { sfx('warp'); fadeTo(() => setScene(new EraCard()), '#fff', 1.5); });
         }
@@ -256,8 +272,8 @@ export class WorldMap {
       S.lastNode = n.id;
       if (n.mark) return say([{ who: 'narr', text: `【${n.name}】 ${n.text}` }]);
       if (n.id === 'town' || n.town) return fadeTo(() => G.goTown(n.town || 1));
-      const d = this.e.dungeons[n.d];
-      say([{ who: 'narr', text: tr(`${d.name} (${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${d.lv[0]}~${d.lv[1] + 1})에 들어갈까?`, `Enter ${d.name}? (${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${d.lv[0]}-${d.lv[1] + 1})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
+      const d = this.e.dungeons[n.d], [lo, hi] = foeLevels(d);
+      say([{ who: 'narr', text: tr(`${d.name} (${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${lo}~${hi})에 들어갈까?`, `Enter ${d.name}? (${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${lo}-${hi})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('quest')) return questMenu();
     if (input.hit('party')) return rosterMenu(); // companions can be swapped anywhere outside dungeons
@@ -341,9 +357,10 @@ export class WorldMap {
     else {
       const d = this.e.dungeons[n.d], w = wanderAt(n.d), fl = d.floors + (w ? 1 : 0);
       const legs = legendsAt(n.d).filter((sp) => sp !== w).map((sp) => DEX.species[sp].name).join(' · ');
-      lines2.push(tr(`${fl}층 · 적 Lv ${d.lv[0]}~${d.lv[1] + 1}`, `${fl} floors · foes Lv ${d.lv[0]}-${d.lv[1] + 1}`));
+      const [lo, hi] = foeLevels(d);
+      lines2.push(tr(`${fl}층 · 적 Lv ${lo}~${hi}`, `${fl} floors · foes Lv ${lo}-${hi}`));
       if (d.water) lines2.push(tr('[해전] 물 타입 포켓몬만 출전한다', '[Naval] Only Water-type Pokémon can fight'));
-      if (w) lines2.push(tr(`★ 지난 시대에 놓친 ${DEX.species[w].name}이(가) ${fl}층에서 기다린다! (Lv ${d.lv[1] + 1})`, `★ ${DEX.species[w].name}, missed in an earlier era, waits on floor ${fl}! (Lv ${d.lv[1] + 1})`));
+      if (w) lines2.push(tr(`★ 지난 시대에 놓친 ${DEX.species[w].name}이(가) ${fl}층에서 기다린다! (Lv ${hi})`, `★ ${DEX.species[w].name}, missed in an earlier era, waits on floor ${fl}! (Lv ${hi})`));
       if (legs) lines2.push(tr(`★ 전설의 포켓몬 ${legs}의 기척이 있다!`, `★ A legendary presence: ${legs}!`));
       else if (d.legend) lines2.push(tr('전설의 포켓몬과 이미 만났다', 'Legend already met'));
       else if (!w && d.boss && mainStep()?.d === n.d) lines2.push(tr('깊은 곳에 강한 기척이 있다…', 'Something strong lurks deep inside...'));
@@ -373,6 +390,8 @@ export class WorldMap {
 const hofX = (i) => VW / 2 + (i - (S.party.length - 1) / 2) * (S.party.length > 2 ? 140 : 160); // hall-of-fame column centres
 export class Ending {
   enter() {
+    setPref('ended', true);
+    if (S.mode === 'challenge') setPref('challengeClear', true);
     playBgm('ending', 1.5);
     tileSet(41); tileSet(33);
     this.t = 0; this.phase = 0;
@@ -409,6 +428,7 @@ export class Ending {
     } else {
       ui.text(tr('명예의 전당', 'Hall of Fame'), VW / 2, 24, { align: 'center', bold: true, color: '#ffe9a8', shadow: '#000' });
       ui.text(tr('612 → 1953 시간여행 완주!', 'Journey from 612 to 1953 complete!'), VW / 2, 42, { align: 'center', color: '#fff', shadow: '#000' });
+      ui.text(S.mode === 'challenge' ? tr('챌린지 달성! 한 번도 전멸하지 않고 완주했다', 'Challenge complete! Not a single wipe all the way') : tr(`난이도: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`, `Difficulty: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`), VW / 2, 56, { align: 'center', size: 9, color: S.mode === 'challenge' ? '#ffe27a' : '#ddd', shadow: '#000' });
       S.party.forEach((m, i) => { ui.text(`${m.name}  Lv.${m.lv}`, hofX(i), 176, { align: 'center', bold: true, color: '#fff', shadow: '#000' }); });
       const pt = Math.floor(S.playtime / 60);
       ui.text(tr(`플레이 시간 ${Math.floor(pt / 60)}시간 ${pt % 60}분`, `Play time ${Math.floor(pt / 60)}h ${pt % 60}m`), VW / 2, 210, { align: 'center', size: 9, color: '#fff', shadow: '#000' });

@@ -820,7 +820,7 @@ const J = (y) => JOSEON.find((e) => e.year === y);
 { // 1887: Metagross, a steel brain overheating in the new power plant; Electivire waits halfway
   const d = J(1887).dungeons.plant;
   d.mid = { ...d.boss, floor: 2 };
-  d.boss = { sp: 376, lv: 44, lvMin: 38, lvUp: 4, hp: 3.0, atk: 1.0, cap: 0.35, bgm: 'ba_chanp', moves: [309, 428, 418, 89],
+  d.boss = { sp: 376, lv: 44, lvMin: 38, lvUp: 4, hp: 2.1, atk: 0.9, cap: 0.35, bgm: 'ba_chanp', moves: [309, 428, 418, 89], // 600-class tier (dungeon.js bossTier) scales these
     tele: [
       { name: K('코멧펀치', 'Meteor Mash'), every: 3, dmg: 0.36, stagger: 1, pats: ['cols', 'rows', 'cross', 'target'], type: 8, first: 2 },
       { at: 0.5, name: K('사이코키네시스', 'Psychic'), every: 2, dmg: 0.4, stagger: 1, pats: ['checker', 'quad', 'x', 'ring', 'star'], type: 14,

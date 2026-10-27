@@ -65,6 +65,14 @@
   #hud.inpad button { flex: 1 1 calc(50% - 4px); font-size: 10px; padding: 5px 2px; }
   body.app #btn-full { display: none; }
   body.touch #mp-video { inset: 0 calc(var(--pad, 140px) + env(safe-area-inset-right, 0px)) 0 calc(var(--pad, 140px) + env(safe-area-inset-left, 0px)); width: auto; height: auto; }
+  /* roster search box (core.js askText): game paper and ink, near the top so a phone keyboard doesn't cover it */
+  #ask { position: fixed; left: 50%; top: max(12%, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 30; width: min(360px, 86vw);
+    background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,0.45); padding: 12px 14px;
+    font: 14px 'Galmuri11', sans-serif; display: flex; flex-direction: column; gap: 8px; }
+  #ask input { font: 16px 'Galmuri11', sans-serif; color: var(--ink); background: #fffaf0; border: 2px solid var(--ink); padding: 6px 8px; }
+  #ask div { display: flex; gap: 8px; justify-content: flex-end; }
+  #ask button { font: 13px 'Galmuri11', sans-serif; color: var(--ink); background: rgba(243,232,207,0.9); border: 2px solid var(--ink); padding: 5px 14px; cursor: pointer; }
+  #ask button[type=submit] { background: var(--red); color: #fff; }
   #rotate { display: none; }
   @media (orientation: portrait) {
     body.touch #rotate { display: flex; position: fixed; inset: 0; z-index: 20; background: var(--bg); color: var(--paper); align-items: center; justify-content: center;
@@ -194,7 +202,7 @@
           <span><kbd>A</kbd> (누르고 있기)</span><span>쉬기 · 턴 넘기기</span>
           <span><kbd>Tab</kbd></span><span>태그: 던전에서 조종할 포켓몬을 다음 동료로 교대 (턴 소모 없음)</span>
           <span><kbd>J</kbd> / <kbd>M</kbd></span><span>퀘스트 목록 열기·닫기 / 미니맵 켜고 끄기</span>
-          <span><kbd>P</kbd></span><span>동료 명부 열기·닫기: 잡은 동료를 세 번째 자리에 데려가기 (던전 밖에서만). 리더·파트너 순서와 기술 순서는 X 메뉴 → 포켓몬에서 Z로 바꿉니다</span>
+          <span><kbd>P</kbd></span><span>동료 명부 열기·닫기 (던전 밖에서만): <b>찾기</b>(이름·초성·타입·도감 번호)로 원하는 동료를 골라 리더·파트너·동료 어느 자리에든 데려가고, 팀끼리 자리도 바꿉니다. 기술 순서는 X 메뉴 → 포켓몬에서 Z로 바꿉니다</span>
           <span><kbd>H</kbd></span><span>이 가이드 열기·닫기</span>
         </div>
       </div>
@@ -218,14 +226,18 @@
         <li><b>물리 기술</b>은 바로 앞 한 칸, <b>특수 기술</b>은 바라보는 방향 직선 6칸, "주변 전체" 기술은 둘레 8칸을 공격합니다.</li>
         <li><b>초반은 쉽게, 중반부터 어렵게</b>: 앞쪽 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며 회복이 느려져요.</li>
         <li><b>엽전</b>: 쓰러뜨린 적(레벨이 높을수록 많이, 보스는 10배), 바닥에 떨어진 엽전, <b>던전 클리어 보상</b>(층수 × 시대), 방(榜) 의뢰 보상으로 모읍니다.</li>
-        <li>쓰러지면 마을로 돌아오고 엽전을 잃습니다 (초반 10% → 후반 30%).</li>
+        <li><b>셋이 모두 쓰러져야</b> 실패입니다. 조종하던 포켓몬이 쓰러지면 남은 동료가 앞장서고, 던전을 클리어하면 쓰러졌던 동료도 기운을 되찾아요. 모두 쓰러지면 마을로 돌아오고 엽전을 잃습니다 (초반 10% → 후반 30%).</li>
+        <li><b>1층</b>에서는 X 메뉴 → <b>던전에서 나가기</b>로 대가 없이 되돌아 나올 수 있어요.</li>
+        <li><b>던전 레벨</b>: 1200년 전까지, 그리고 우리 팀의 가장 높은 레벨이 20 이하일 때는 던전마다 정해진 레벨입니다. 그 뒤로는 우리 팀에서 가장 높은 레벨에 맞춰 <b>같은 레벨 ~ +2</b>, 그 레벨이 <b>45를 넘으면 +3 ~ +5</b>로 적이 나옵니다 (정해진 레벨보다 낮아지지는 않아요). 1200년부터는 보스 체력도 30% 늘어납니다.</li>
+        <li><b>난이도</b>: 새로운 여행을 시작할 때 <b>쉬움</b>(적 레벨 −2, 적의 피해 −25%, 보스 체력 −20%) · <b>보통</b> · <b>어려움</b>(적 레벨 +2, 적의 피해·보스 체력 +25%) 중에서 고르고, X 메뉴 → 설정에서 언제든 바꿀 수 있어요.</li>
+        <li><b>챌린지</b>: 어느 난이도로든 엔딩을 한 번 보면 열리는 특수 모드입니다. 보통의 강함으로, <b>한 번도 전멸하지 않고</b> 엔딩까지 가야 하고 <b>전설의 포켓몬은 동료가 되지 않습니다</b>. 전멸하거나 던전 도중에 게임을 끄면 챌린지가 끝나고 그 여행은 보통 난이도로 이어집니다.</li>
       </ul>
 
       <h2>보스 공략: 붉은 칸을 피하라</h2>
       <ul>
         <li>바닥이 <b style="color:var(--red)">붉게 빛나는 칸</b>에는 곧 강력한 공격이 떨어집니다. 남은 턴 안에 붉은 칸 밖으로 이동하세요.</li>
         <li>큰 기술을 쓴 직후 보스에게는 <b style="color:var(--green)">빈틈</b>이 생겨 받는 피해가 <b>1.5배</b>가 됩니다. 피하고 → 반격하는 리듬이 핵심입니다.</li>
-        <li><b>한카리아스·메타그로스</b>는 실제 능력치처럼 빠르고 단단한 2단계 보스이고, <b>아르세우스</b>는 <b>레벨 80</b>, 체력이 매우 높은 3단계 최종 보스입니다. 쓰러뜨려도 <b>황금빛 이로치</b>로 다시 일어나는 <b>2페이즈</b>가 있어요 (체력은 처음의 2/3, 공격과 예고 패턴이 더 거셈).</li>
+        <li><b>600족</b>(한카리아스·보만다·메타그로스·마기라스·망나뇽) 보스는 전설의 포켓몬보다 <b>15%쯤 약한</b> 강적이고 (레벨 +2, 체력·공격·예고 공격이 전설의 85%), <b>아르세우스</b>는 <b>레벨 80</b>, 체력이 매우 높은 3단계 최종 보스입니다. 쓰러뜨려도 <b>황금빛 이로치</b>로 다시 일어나는 <b>2페이즈</b>가 있어요 (체력은 처음의 2/3, 공격과 예고 패턴이 더 거셈).</li>
         <li><b>펄기아·디아루가·기라티나</b>도 쓰러뜨리면 <b>오리진폼</b>으로 변해 2페이즈를 시작합니다 (체력 2/3, 더 강한 공격과 겹치는 패턴). 1919년 디아루가와 1940년 기라티나는 메인 보스라 꼭 이겨야 해요.</li>
         <li><b>기라티나</b>는 고스트·드래곤 타입이라 격투 기술은 아예 안 듣고 물·불꽃 기술은 반감돼요. 1388년에 동료가 되는 <b>프리저</b>(얼음)처럼 얼음·드래곤·고스트·악 기술을 쓰는 동료를 데려가세요.</li>
         <li><b>썬더·파이어·프리져</b>는 같은 시대 보스 중 가장 강합니다. 체력이 보통 보스의 약 10배이고 공격도 매우 아파서, 예고 공격을 피하고 회복 도구를 챙겨야 합니다. 어렵다면 레벨을 올려 다시 도전하세요 (전설의 레벨은 일정 이상 오르지 않아요).</li>
@@ -249,7 +261,8 @@
       <h2>동료</h2>
       <ul>
         <li>쓰러뜨린 야생 포켓몬은 <b>35%</b> 확률(이로치는 70%)로 동료가 되고 싶어 합니다. <b>보스와 전설의 포켓몬은 이기면 반드시</b> 동료가 될 수 있어요.</li>
-        <li>던전에는 리더 · 파트너 · 동료 1마리까지 셋이 갑니다. 나머지는 <b>동료 명부</b>(X 메뉴 또는 주막, 최대 500마리)에서 쉬며 <b>경험치를 절반씩</b> 함께 받습니다.</li>
+        <li>던전에는 리더 · 파트너 · 동료 1마리까지 셋이 갑니다. 나머지는 <b>동료 명부</b>(P, X 메뉴 또는 주막, 최대 500마리)에서 쉬며 <b>경험치를 절반씩</b> 함께 받습니다. 명부에 있는 동료는 던전에서 불러올 수 없으니, 마을이나 세계 지도에서 미리 팀을 짜 두세요.</li>
+        <li>명부의 <b>찾기</b>는 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"로 찾고, <b>정렬</b>은 들어온 순 · 레벨 · 도감 번호 · 이름 순으로 바꿉니다.</li>
         <li>던전을 나오면 기술의 <b>PP가 모두 회복</b>됩니다.</li>
       </ul>
 
@@ -299,7 +312,7 @@
           <span><kbd>A</kbd> (hold)</span><span>Rest · pass the turn</span>
           <span><kbd>Tab</kbd></span><span>Tag: hand control to the next teammate in dungeons (no turn spent)</span>
           <span><kbd>J</kbd> / <kbd>M</kbd></span><span>Open or close the quest list / toggle the minimap</span>
-          <span><kbd>P</kbd></span><span>Open or close the companion roster: bring a recruit into the third slot (outside dungeons). Reorder the team and each Pokémon's moves under X menu → Pokémon with Z</span>
+          <span><kbd>P</kbd></span><span>Open or close the companion roster (outside dungeons): <b>Search</b> (name, type, dex number) for the one you want and bring it into any slot, or swap the team's places. Reorder each Pokémon's moves under X menu → Pokémon with Z</span>
           <span><kbd>H</kbd></span><span>Open or close this guide</span>
         </div>
       </div>
@@ -323,14 +336,18 @@
         <li><b>Physical moves</b> hit the tile in front, <b>special moves</b> travel 6 tiles in a straight line, and "all around" moves hit all 8 neighbors.</li>
         <li><b>Easy at first, hard from the middle on</b>: early eras field fewer, weaker foes and you heal quickly. Later eras bring more foes, harder hits and slower recovery.</li>
         <li><b>Coins</b> come from defeated foes (more for higher levels, 10x for bosses), coins on the floor, a <b>dungeon-clear reward</b> (floors × era) and notice-board requests.</li>
-        <li>If you faint you return to town and lose some coins (10% early, up to 30% late).</li>
+        <li>A run only fails once <b>all three are down</b>. When the one you control faints, the next one standing takes the lead, and clearing the dungeon gets the fallen back on their feet. A wipe sends you back to town and costs some coins (10% early, up to 30% late).</li>
+        <li>On <b>floor 1</b>, X menu → <b>Leave the dungeon</b> walks you back out at no cost.</li>
+        <li><b>Dungeon levels</b>: before 1200, and while your best Pokémon is at most Lv 20, each dungeon keeps its own levels. After that, foes match your strongest Pokémon, <b>from its level to +2</b>, and <b>+3 to +5 once it passes Lv 45</b> (never below the dungeon's own levels). From 1200 on, bosses also have 30% more HP.</li>
+        <li><b>Difficulty</b>: pick <b>Easy</b> (foes −2 levels, foe damage −25%, boss HP −20%), <b>Normal</b> or <b>Hard</b> (foes +2 levels, foe damage and boss HP +25%) when you start a journey, and change it any time under X menu → Settings.</li>
+        <li><b>Challenge</b>: a special mode that opens once you have seen an ending at any difficulty. Normal strength, but you must reach the ending <b>without a single wipe</b>, and <b>legendary Pokémon never join</b>. A wipe, or quitting in the middle of a dungeon, ends the challenge and the journey continues at Normal.</li>
       </ul>
 
       <h2>Boss fights: stay off the red tiles</h2>
       <ul>
         <li>Tiles that <b style="color:var(--red)">glow red</b> are about to be hit hard. Step off them before the turn count runs out.</li>
         <li>Right after a big move the boss is <b style="color:var(--green)">open</b> and takes <b>1.5x damage</b>. Dodge, then strike back.</li>
-        <li><b>Garchomp and Metagross</b> are fast, tough two-phase bosses true to their real stats; <b>Arceus</b> is the three-phase final boss at <b>Lv 80</b> with a huge HP pool. Knock it out and it rises again <b>golden (Shiny)</b> for a <b>second phase</b> with 2/3 of its HP and harsher attacks and warning patterns.</li>
+        <li>The <b>600-class</b> bosses (Garchomp, Salamence, Metagross, Tyranitar, Dragonite) fight <b>about 15% below a legend</b> (+2 levels; HP, attack and warning blasts at 85% of a legend's); <b>Arceus</b> is the three-phase final boss at <b>Lv 80</b> with a huge HP pool. Knock it out and it rises again <b>golden (Shiny)</b> for a <b>second phase</b> with 2/3 of its HP and harsher attacks and warning patterns.</li>
         <li><b>Palkia, Dialga and Giratina</b> also take their <b>Origin Forme</b> once knocked out and start a second phase (2/3 HP, harder hits, overlapping patterns). Dialga (1919) and Giratina (1940) are main-story bosses you must beat.</li>
         <li><b>Giratina</b> is Ghost/Dragon: Fighting moves don't touch it and Water or Fire moves are resisted. Bring partners with Ice, Dragon, Ghost or Dark moves, such as <b>Articuno</b>, who joins you in 1388.</li>
         <li><b>Zapdos, Moltres and Articuno</b> are the toughest bosses of their eras, with about ten times a normal boss's HP and very painful attacks. Dodge the warning attacks and bring healing items; if it's too hard, level up and try again (legendaries stop at a set level).</li>
@@ -354,7 +371,8 @@
       <h2>Companions</h2>
       <ul>
         <li>Defeated wild Pokémon want to join you <b>35%</b> of the time (Shiny ones 70%). <b>Bosses and legendary Pokémon always</b> offer to join once you win.</li>
-        <li>Up to three go into dungeons: leader, partner and one ally. The rest wait in the <b>roster</b> (X menu or the inn, up to 500) and <b>earn half the experience</b> your team gets.</li>
+        <li>Up to three go into dungeons: leader, partner and one ally. The rest wait in the <b>roster</b> (P, X menu or the inn, up to 500) and <b>earn half the experience</b> your team gets. Roster companions can't be called into a dungeon, so set your team in town or on the world map.</li>
+        <li>The roster's <b>Search</b> finds part of a name, a type (Dragon), a dex number (445) or "shiny", and <b>Sort</b> orders it by joining, level, dex number or name.</li>
         <li>Leaving a dungeon <b>restores every move's PP</b>.</li>
       </ul>
 

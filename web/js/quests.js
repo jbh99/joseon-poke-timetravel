@@ -1,6 +1,6 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
-import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref } from './core.js';
-import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS } from './game.js';
+import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText } from './core.js';
+import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, save } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
 import { tr } from './i18n.js';
@@ -9,6 +9,32 @@ import { iconPath } from './pmd.js';
 export const era = () => ERAS[S.era];
 export const mainStep = () => era().main[S.step];
 export const eraComplete = () => S.step >= era().main.length;
+// ---------------------------------------------------------------- foe levels and difficulty
+// A dungeon's foe levels as [lowest, highest, scaled]. Before 1200, and while the team's best is at most Lv 20, the band
+// is the designed one; from then on it follows the team's strongest Pokémon (its level to +2, then +3 to +5 past Lv 45),
+// never below the design. The difficulty mode shifts both ends.
+export function foeLevels(d) {
+  const top = Math.max(...(S.homeParty || S.party).map((m) => m.lv));
+  let lo = d.lv[0], hi = d.lv[1] + 1;
+  const scaled = era().year >= 1200 && top > 20;
+  if (scaled) { const [a, b] = top > 45 ? [3, 5] : [0, 2]; lo = Math.max(lo, top + a); hi = Math.max(hi, top + b); }
+  const k = mode().lv;
+  return [Math.max(2, lo + k), Math.max(2, hi + k), scaled];
+}
+export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '어려움', challenge: '챌린지' }, { easy: 'Easy', normal: 'Normal', hard: 'Hard', challenge: 'Challenge' });
+export const challenge = () => S.mode === 'challenge';
+// a challenge ends at the first wipe (or a run abandoned mid-dungeon): the journey goes on at Normal
+export function loseChallenge() {
+  if (!challenge()) return false;
+  S.mode = 'normal'; S.flags.challengeLost = true;
+  return true;
+}
+// continuing a challenge save that was left in the middle of a dungeon counts as that run's defeat
+export function checkRun() {
+  const left = S.inRun;
+  S.inRun = null;
+  if (left && loseChallenge()) { save(); say([{ who: 'narr', text: tr('챌린지 실패… 던전 도중에 여행을 멈췄다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the journey stopped in the middle of a dungeon. It now continues at Normal.') }]); }
+}
 const ahead = (dId) => era().main.some((s, i) => i >= S.step && s.do === 'dungeon' && s.d === dId); // its story run is still to come
 
 // ---------------------------------------------------------------- missed legends
@@ -19,6 +45,7 @@ const ahead = (dId) => era().main.some((s, i) => i >= S.step && s.do === 'dungeo
 const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final);
 const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);
 function wanderPlan() {
+  if (challenge()) return {}; // legends never join a challenge, so none come back either
   if (S.wander?.era === S.era) return S.wander.at;
   const e = era(), missed = [], seen = new Set();
   for (let i = 0; i < S.era; i++) for (const d of Object.values(ERAS[i].dungeons)) for (const b of legendBosses(d)) {
@@ -39,12 +66,12 @@ export function wanderAt(dId) {
   if (!sp || S.flags[`wander_${sp}_${S.era}`] || (st?.do === 'dungeon' && st.d === dId)) return null;
   return sp;
 }
-// its boss fight: the original moves, blasts and second form, at the host dungeon's top foe level
+// its boss fight: the original moves, blasts and second form, at the host dungeon's top foe level (foeLevels)
 export function wanderBoss(dId) {
   const sp = wanderAt(dId);
   if (!sp) return null;
   const b = ERAS.flatMap((e) => Object.values(e.dungeons).flatMap(legendBosses)).find((x) => x.sp === sp);
-  const lv = era().dungeons[dId].lv[1] + 1, name = DEX.species[sp].name;
+  const lv = foeLevels(era().dungeons[dId])[1], name = DEX.species[sp].name;
   return { ...b, lv, lvMin: lv, lvUp: 0, wander: true,
     say: [
       { who: 'narr', text: tr(`가장 깊은 곳에 전설의 기척이 가득하다… 지난 시대에 만나지 못했던 ${name}이(가) 시간을 건너 이곳에 나타났다!`, `A legendary presence fills the deepest floor... ${name}, the one you missed in an earlier era, has crossed time to appear here!`) },
@@ -354,29 +381,76 @@ class PartyView {
 export function partyMenu(o) { G.overlays.push(new PartyView(o)); }
 
 // recruits: one may travel with the leader and partner; the rest wait in the town roster
-export function rosterMenu() {
-  const items = [];
-  const cur = S.party[2];
-  if (cur) items.push({ label: `${cur.name} Lv.${cur.lv}${cur.shiny ? ' ★' : ''}`, right: tr('동행 중', 'With you'), desc: tr(`지금 함께 다니는 동료. ${cur.types.map((t) => DEX.types[t]).join('/')} · HP ${cur.hp}/${cur.maxhp}`, `Travelling with you. ${cur.types.map((t) => DEX.types[t]).join('/')} · HP ${cur.hp}/${cur.maxhp}`), fn: () => rosterPick(-1) });
-  S.roster.forEach((m, i) => items.push({ label: `${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`, right: m.types.map((t) => DEX.types[t]).join('/'),
-    desc: `HP ${m.hp}/${m.maxhp} · ${tr('기술', 'Moves')}: ${m.moves.map((mv) => DEX.moves[mv.id].name).join(', ')}`, fn: () => rosterPick(i) }));
-  if (!items.length) return say([{ who: 'narr', text: tr('아직 동료가 없다. 보스나 전설의 포켓몬을 이기면, 또는 야생 포켓몬이 가끔 동료가 되고 싶어 한다.', 'No companions yet. Defeated bosses and legendary Pokémon want to join you, and sometimes wild Pokémon do too.') }]);
-  openMenu(items, { title: tr(`동료 명부 (${S.roster.length}/${ROSTER_MAX}) · 골라서 세 번째 동료와 교체`, `Companions (${S.roster.length}/${ROSTER_MAX}) · pick one to swap into the third slot`), desc: true, x: 70, y: 30, w: 340, toggle: 'party' });
+// The companion roster (outside dungeons only: P in a dungeon is refused, so boxed companions never join a run).
+// The team sits on top: pick a member to swap places or send it to the roster. Below, the roster can be searched
+// (name, Korean initials such as ㄹㄱㅇ, type, dex number, or 이로치/shiny) and sorted; picking one swaps it into any slot.
+// The search and sort stay while the game runs, and every pick reopens the list on the same row.
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const initials = (s) => [...s].map((ch) => { const c = ch.charCodeAt(0) - 0xac00; return c >= 0 && c < 11172 ? CHO[Math.floor(c / 588)] : ch; }).join('');
+const SORTS = ['joined', 'level', 'dex', 'name'];
+const view = { q: '', sort: 'joined' };
+function matches(m, q) {
+  const k = q.toLowerCase().replace(/\s+/g, '');
+  if (!k) return true;
+  if (m.name.toLowerCase().replace(/\s+/g, '').includes(k)) return true;
+  if (/^[ㄱ-ㅎ]+$/.test(k) && initials(m.name).includes(k)) return true;
+  if (/^\d+$/.test(k)) return m.sp === +k;
+  if (['이로치', 'shiny', '★'].includes(k)) return m.shiny;
+  return m.types.some((t) => DEX.types[t].toLowerCase() === k);
 }
-function rosterPick(i) {
-  const m = i < 0 ? S.party[2] : S.roster[i];
-  const opts = i < 0 ? tr(['명부로 돌려보낸다', '그만두기'], ['Send to the roster', 'Cancel']) : [S.party[2] ? tr(`${S.party[2].name}와(과) 교체`, `Swap with ${S.party[2].name}`) : tr('함께 간다', 'Bring along'), tr('놓아준다', 'Release'), tr('그만두기', 'Cancel')];
-  say([{ who: m.sp, shiny: m.shiny, name: m.name, text: i < 0 ? tr('나는 지금 너희와 함께 다니고 있어. 잠깐 쉴까?', 'I\'m travelling with you right now. Should I take a break?') : tr('나도 데려가 줄 거야?', 'Will you take me along?'), choices: opts, onChoice: (k) => {
-    if (i < 0) { if (k === 0) { S.roster.unshift(S.party.pop()); sfx('confirm'); toast(tr(`${m.name}은(는) 마을에서 쉬기로 했다.`, `${m.name} will rest in town.`)); } return; }
-    if (k === 0) {
-      S.roster.splice(i, 1);
-      if (S.party[2]) S.roster.unshift(S.party.pop());
-      S.party.push(m); cry(m.sp); toast(tr(`${m.name}이(가) 함께 간다!`, `${m.name} is coming along!`), COL.blue);
-    } else if (k === 1) {
-      say([{ who: 'narr', text: tr(`정말 ${m.name}을(를) 자연으로 돌려보낼까? 다시 데려올 수 없다.`, `Really release ${m.name}? You can't bring it back.`), choices: tr(['돌려보낸다', '그만두기'], ['Release', 'Cancel']), onChoice: (j) => {
+function rosterView() {
+  const list = S.roster.filter((m) => matches(m, view.q));
+  if (view.sort === 'level') list.sort((a, b) => b.lv - a.lv);
+  else if (view.sort === 'dex') list.sort((a, b) => a.sp - b.sp);
+  else if (view.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+  return list;
+}
+const monRow = (m) => ({ label: `${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`, right: m.types.map((t) => DEX.types[t]).join('/'),
+  desc: `HP ${m.hp}/${m.maxhp} · ${tr('기술', 'Moves')}: ${m.moves.map((mv) => DEX.moves[mv.id].name).join(', ')}` });
+export function rosterMenu(sel = 0) {
+  const sortName = tr({ joined: '들어온 순', level: '레벨 높은 순', dex: '도감 번호 순', name: '이름 순' }, { joined: 'Joined', level: 'Level', dex: 'Dex no.', name: 'Name' });
+  const list = rosterView();
+  const items = [
+    { label: tr('찾기', 'Search'), right: view.q ? `"${view.q}"` : tr('이름 · 타입 · 번호', 'name · type · no.'), desc: tr('이름 일부, 초성(ㄹㄱㅇ), 타입(드래곤), 도감 번호(445), 이로치로 찾을 수 있다.', 'Search by part of a name, a type (Dragon), a dex number (445) or "shiny".'),
+      fn: async () => { const q = await askText(tr('찾을 동료 (이름 · 초성 · 타입 · 번호)', 'Find a companion (name · type · number)'), view.q, tr(['찾기', '취소'], ['Search', 'Cancel'])); if (q != null) view.q = q; rosterMenu(0); } },
+    ...(view.q ? [{ label: tr('찾기 지우기', 'Clear search'), desc: tr('명부 전체를 다시 보여 준다.', 'Show the whole roster again.'), fn: () => { view.q = ''; rosterMenu(0); } }] : []),
+    { label: tr('정렬', 'Sort'), right: sortName[view.sort], desc: tr('명부를 늘어놓는 순서를 바꾼다.', 'Change the order of the roster.'), fn: () => { view.sort = SORTS[(SORTS.indexOf(view.sort) + 1) % SORTS.length]; rosterMenu(view.q ? 2 : 1); } },
+  ];
+  const top = items.length;
+  S.party.forEach((m, i) => items.push({ ...monRow(m), label: `[${ROLE()[i]}] ${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`, fn: () => teamPick(i, top + i) }));
+  list.forEach((m, k) => items.push({ ...monRow(m), fn: () => rosterPick(m, top + S.party.length + k) }));
+  if (!list.length) items.push({ label: S.roster.length ? tr('찾는 동료가 없다', 'No match') : tr('명부가 비어 있다', 'The roster is empty'), disabled: true,
+    desc: S.roster.length ? tr('다른 말로 찾아보자.', 'Try another search.') : tr('보스나 전설의 포켓몬을 이기면, 또는 야생 포켓몬이 가끔 동료가 되고 싶어 한다.', 'Defeated bosses and legendary Pokémon want to join you, and sometimes wild Pokémon do too.') });
+  const found = view.q ? tr(` · 찾음 ${list.length}`, ` · ${list.length} found`) : '';
+  openMenu(items, { title: tr(`동료 명부 (${S.roster.length}/${ROSTER_MAX})${found}`, `Companions (${S.roster.length}/${ROSTER_MAX})${found}`), desc: true, x: 70, y: 30, w: 340, toggle: 'party', sel: Math.min(sel, items.length - 1) });
+}
+// a team member: swap places with another, or rest in the roster (the team keeps at least two)
+function teamPick(i, row) {
+  const m = S.party[i], others = S.party.map((o, j) => j).filter((j) => j !== i);
+  const opts = [...others.map((j) => tr(`${ROLE()[j]} ${S.party[j].name}와(과) 자리 바꾸기`, `Swap places with ${S.party[j].name} (${ROLE()[j]})`)),
+    ...(S.party.length > 2 ? [tr('명부로 보낸다', 'Send to the roster')] : []), tr('그만두기', 'Cancel')];
+  say([{ who: m.sp, shiny: m.shiny, name: m.name, text: tr(`지금 ${ROLE()[i]}(으)로 함께하고 있어. 어떻게 할까?`, `I'm travelling with you as ${ROLE()[i]}. What should I do?`), choices: opts, onChoice: (k) => {
+    if (k < others.length) { const j = others[k]; [S.party[i], S.party[j]] = [S.party[j], S.party[i]]; sfx('confirm'); toast(tr(`${m.name}이(가) ${ROLE()[j]} 자리로 옮겼다.`, `${m.name} moved to ${ROLE()[j]}.`), COL.blue); }
+    else if (S.party.length > 2 && k === others.length) { S.party.splice(i, 1); S.roster.unshift(m); sfx('confirm'); toast(tr(`${m.name}은(는) 마을에서 쉬기로 했다.`, `${m.name} will rest in town.`)); }
+    rosterMenu(row);
+  } }]);
+}
+// a roster companion: swap it into any team slot (or fill the empty third), or release it
+function rosterPick(m, row) {
+  const slots = S.party.map((o, j) => tr(`${ROLE()[j]} ${o.name}와(과) 교체`, `Swap with ${o.name} (${ROLE()[j]})`));
+  const free = S.party.length < 3 ? 1 : 0;
+  const opts = [...slots, ...(free ? [tr('함께 간다', 'Bring along')] : []), tr('놓아준다', 'Release'), tr('그만두기', 'Cancel')];
+  say([{ who: m.sp, shiny: m.shiny, name: m.name, text: tr('나도 데려가 줄 거야?', 'Will you take me along?'), choices: opts, onChoice: (k) => {
+    const at = S.roster.indexOf(m);
+    if (k < slots.length) { const out = S.party[k]; S.party[k] = m; S.roster.splice(at, 1, out); cry(m.sp); toast(tr(`${m.name}이(가) ${ROLE()[k]}(으)로 함께 간다!`, `${m.name} joins as ${ROLE()[k]}!`), COL.blue); }
+    else if (free && k === slots.length) { S.roster.splice(at, 1); S.party.push(m); cry(m.sp); toast(tr(`${m.name}이(가) 함께 간다!`, `${m.name} is coming along!`), COL.blue); }
+    else if (k === slots.length + free) {
+      return say([{ who: 'narr', text: tr(`정말 ${m.name}을(를) 자연으로 돌려보낼까? 다시 데려올 수 없다.`, `Really release ${m.name}? You can't bring it back.`), choices: tr(['돌려보낸다', '그만두기'], ['Release', 'Cancel']), onChoice: (j) => {
         if (j === 0) { S.roster.splice(S.roster.indexOf(m), 1); toast(tr(`${m.name}은(는) 고향으로 돌아갔다. 고마웠어!`, `${m.name} went home. Thank you!`)); }
+        rosterMenu(row);
       } }]);
     }
+    rosterMenu(row);
   } }]);
 }
 
@@ -387,13 +461,20 @@ export function settingsMenu(sel = 0) {
     { label: tr('소리', 'Sound'), right: prefs.muted ? tr('끔', 'Off') : tr('켬', 'On'), fn: () => { setMuted(!prefs.muted); again(0)(); } },
     { label: tr('조작키 안내', 'Key hints'), right: prefs.hints ? tr('보임', 'Shown') : tr('숨김', 'Hidden'), fn: () => { setPref('hints', !prefs.hints); again(1)(); } },
     { label: tr('게임 속도', 'Game speed'), right: tr(`${G.speed}배`, `${G.speed}x`), fn: () => { G.setSpeed?.(G.speed % 3 + 1); again(2)(); } },
+    // Easy / Normal / Hard can be switched any time; a challenge stays a challenge
+    { label: tr('난이도', 'Difficulty'), right: MODE_NAMES()[S.mode] || MODE_NAMES().normal, fn: () => {
+      if (challenge()) { toast(tr('챌린지는 난이도를 바꿀 수 없다.', 'A challenge can\'t change difficulty.'), COL.red); return again(3)(); }
+      const order = ['easy', 'normal', 'hard'];
+      S.mode = order[(order.indexOf(S.mode) + 1) % 3]; again(3)();
+    } },
     { label: tr('닫기', 'Close') },
   ], { title: tr('설정', 'Settings'), sel, x: 150, y: 50, w: 190 });
 }
 // quit to the title screen: towns save first; a dungeon run is not saved (the game continues from the last town visit)
 export function quitItem(inDungeon, before) {
   return { label: tr('게임 종료', 'Quit game'), fn: () => say([{ who: 'narr',
-    text: inDungeon ? tr('게임을 끝내고 타이틀로 돌아갈까? 던전 안에서 한 일은 저장되지 않고, 마지막으로 마을에 들렀을 때부터 이어진다.', 'Quit to the title screen? What you did in this dungeon is not saved; you will continue from your last visit to town.')
+    text: inDungeon && challenge() ? tr('챌린지 도중에 던전에서 게임을 끝내면 전멸한 것으로 처리된다(1층이라면 "던전에서 나가기"를 쓰자). 그래도 끝낼까?', 'Quitting a challenge in the middle of a dungeon counts as a wipe (on floor 1, use "Leave the dungeon" instead). Quit anyway?')
+      : inDungeon ? tr('게임을 끝내고 타이틀로 돌아갈까? 던전 안에서 한 일은 저장되지 않고, 마지막으로 마을에 들렀을 때부터 이어진다.', 'Quit to the title screen? What you did in this dungeon is not saved; you will continue from your last visit to town.')
       : tr('기록을 남기고 타이틀로 돌아갈까?', 'Save and return to the title screen?'),
     choices: tr(['끝낸다', '계속한다'], ['Quit', 'Keep playing']), onChoice: (i) => { if (i === 0) { before?.(); G.goTitle?.(); } } }]) };
 }

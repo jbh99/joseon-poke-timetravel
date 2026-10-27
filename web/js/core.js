@@ -121,7 +121,7 @@ const release = (k) => { input.down.delete(k); delete input.repeatAt[k]; };
 addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) release(k); });
 addEventListener('blur', () => { input.down.clear(); input.repeatAt = {}; });
 
-const press = (k) => { if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); };
+const press = (k) => { if (G.paused) return; if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); }; // the guide or search box is open
 // keeps a finger's pointer on the control it started on; capture can be refused (the pointer already ended), which is harmless
 const capture = (el, id) => { try { el.setPointerCapture(id); } catch (e) { /* pointer gone */ } };
 
@@ -414,6 +414,27 @@ export class Menu {
   }
 }
 export function openMenu(items, o) { const m = new Menu(items, o); G.overlays.push(m); return m; }
+
+// a one-line text box over the game (the roster search) for the keyboard or the phone's own keyboard; game keys pause
+// while it is open (G.paused, as for the guide) and keys typed into it never reach the game's shortcuts.
+// Resolves to the trimmed text, or null when cancelled.
+export function askText(title, value = '', [okText, noText] = ['OK', 'Cancel']) {
+  return new Promise((res) => {
+    const box = document.createElement('form');
+    box.id = 'ask';
+    box.innerHTML = '<label></label><input type="search" enterkeyhint="search" autocomplete="off" spellcheck="false"><div><button type="submit"></button><button type="button" data-close></button></div>';
+    const [label, field] = [box.querySelector('label'), box.querySelector('input')], [ok, no] = box.querySelectorAll('button');
+    label.textContent = title; field.value = value;
+    ok.textContent = okText; no.textContent = noText;
+    const done = (v) => { box.remove(); G.paused = false; input.down.clear(); input.pressed.clear(); res(v); };
+    box.addEventListener('submit', (e) => { e.preventDefault(); done(field.value.trim()); });
+    no.addEventListener('click', () => done(null));
+    field.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); done(null); } });
+    G.paused = true;
+    document.body.append(box);
+    field.focus(); field.select();
+  });
+}
 
 // toast messages (top centre)
 const toasts = [];
