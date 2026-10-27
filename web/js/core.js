@@ -82,8 +82,10 @@ addEventListener('keydown', (e) => {
   input.down.add(k);
   G.onFirstInput?.();
 });
-addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) input.down.delete(k); });
-addEventListener('blur', () => input.down.clear());
+// letting go ends the key's menu auto-repeat, so a held arrow (walking, say) never scrolls a menu that opens mid-hold
+const release = (k) => { input.down.delete(k); delete input.repeatAt[k]; };
+addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) release(k); });
+addEventListener('blur', () => { input.down.clear(); input.repeatAt = {}; });
 
 // touch pad (shown on touch devices)
 export function initTouch() {
@@ -93,7 +95,7 @@ export function initTouch() {
   pad.querySelectorAll('[data-k]').forEach((b) => {
     const k = b.dataset.k;
     const on = (e) => { e.preventDefault(); if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); G.onFirstInput?.(); };
-    const off = (e) => { e.preventDefault(); input.down.delete(k); };
+    const off = (e) => { e.preventDefault(); release(k); };
     b.addEventListener('touchstart', on); b.addEventListener('touchend', off); b.addEventListener('touchcancel', off);
   });
 }
