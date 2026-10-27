@@ -53,10 +53,31 @@ export function initCanvas() {
   addEventListener('resize', fit);
   fit();
   // mouse clicks and taps on the screen, in UI coordinates (VW x VH); read once per frame like a key press
+  const toUI = (e) => { const r = screen.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * VW, y: (e.clientY - r.top) / r.height * VH }; };
+  // a press dragged across the screen adds its movement to input.pan (the world map scrolls with it). It counts as a
+  // drag once it has travelled a few CSS pixels (more for a finger, whose taps wobble); the click a drag ends in is dropped.
+  let press = null, dragged = false;
+  screen.addEventListener('pointerdown', (e) => {
+    if (G.paused || e.button > 0) return;
+    const p = toUI(e);
+    press = { id: e.pointerId, x: p.x, y: p.y, cx: e.clientX, cy: e.clientY, far: e.pointerType === 'mouse' ? 5 : 12 }; dragged = false;
+    capture(screen, e.pointerId);
+  });
+  screen.addEventListener('pointermove', (e) => {
+    if (!press || e.pointerId !== press.id) return;
+    if (!dragged && Math.hypot(e.clientX - press.cx, e.clientY - press.cy) > press.far) dragged = true;
+    if (!dragged) return;
+    const p = toUI(e);
+    input.pan.x += p.x - press.x; input.pan.y += p.y - press.y;
+    press.x = p.x; press.y = p.y;
+  });
+  const lift = (e) => { if (press?.id === e.pointerId) press = null; };
+  screen.addEventListener('pointerup', lift); screen.addEventListener('pointercancel', lift);
+  screen.addEventListener('wheel', (e) => { e.preventDefault(); input.pan.x -= e.deltaX * 0.5; input.pan.y -= e.deltaY * 0.5; }, { passive: false });
   screen.addEventListener('click', (e) => {
     if (G.paused) return;
-    const r = screen.getBoundingClientRect();
-    input.click = { x: (e.clientX - r.left) / r.width * VW, y: (e.clientY - r.top) / r.height * VH };
+    if (dragged) { dragged = false; return; }
+    input.click = toUI(e);
     G.onFirstInput?.();
   });
 }
@@ -72,7 +93,7 @@ const KEYMAP = {
   Tab: 'tag', KeyJ: 'quest', KeyP: 'party', KeyM: 'map', KeyC: 'menu', KeyA: 'rest',
 };
 export const input = {
-  down: new Set(), pressed: new Set(), repeatAt: {}, click: null,
+  down: new Set(), pressed: new Set(), repeatAt: {}, click: null, pan: { x: 0, y: 0 },
   // the click if it landed inside the box (and consumes it)
   tap(x, y, w, h) { const c = this.click; if (c && c.x >= x && c.x < x + w && c.y >= y && c.y < y + h) { this.click = null; return c; } return null; },
   hit(k) { if (this.pressed.has(k)) { this.pressed.delete(k); return true; } return false; },

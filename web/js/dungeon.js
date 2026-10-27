@@ -1,9 +1,9 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS } from './game.js';
 import { QITEMS, TELE_TUT, ERAS } from './content.js';
-import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem } from './quests.js';
+import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss } from './quests.js';
 import { drawMon } from './town.js';
 import { tr } from './i18n.js';
 import { tileSet, paintTerrain, hasPmdSprite } from './pmd.js';
@@ -13,8 +13,6 @@ const W = 44, H = 32;
 const DIRS8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
 const faceName = (d) => (d[0] > 0 ? 'right' : d[0] < 0 ? 'left' : null);
 const RECRUIT_RATE = 0.35; // wild Pokémon asking to join after fainting (shiny: 70%; legendaries: always)
-export const LEGENDS = new Set([144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
-  480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493]);
 // difficulty along the journey: 0 in the first era, 1 in the last. Early floors are sparse and forgiving, late ones crowded and harsh.
 export const curve = () => clamp(S.era / Math.max(1, ERAS.length - 1), 0, 1);
 
@@ -40,6 +38,7 @@ export class Dungeon {
     this.dId = dId;
     this.def = era().dungeons[dId];
     this.main = mainStep()?.do === 'dungeon' && mainStep().d === dId;
+    this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting one floor below the usual last one
     this.floor = 1;
     this.msgs = [];
     this.pops = [];
@@ -84,12 +83,14 @@ export class Dungeon {
   get bossDef() {
     const d = this.def;
     if (d.legend) return d.boss && this.floor === d.floors && !S.flags['legend_' + this.dId] ? d.boss : null;
+    if (this.wander && this.floor === this.floors) return this.wander;
     if (!this.main) return null;
     if (d.mid && this.floor === d.mid.floor && !S.flags['mid_' + this.dId]) return d.mid;
     if (d.boss && this.floor === d.floors) return d.boss;
     return null;
   }
   get bossFloor() { return !!this.bossDef; }
+  get floors() { return this.def.floors + (this.wander ? 1 : 0); }
 
   // ---------------------------------------------------------------- generation
   newFloor() {
@@ -158,8 +159,8 @@ export class Dungeon {
       const avg = Math.round((S.party[0].lv + S.party[1].lv) / 2);
       // legendary bosses (birds, lake trio, Lugia, the Sinnoh legends...) are a tier above: +3 levels, 3.2x HP,
       // harder hits, bigger telegraphed blasts and shorter openings. The final boss sets its own numbers.
-      // A boss with `revive` gets back up once in a second form (see reviveBoss).
-      const legend = LEGENDS.has(b.sp) && !b.final, up = legend ? 3 : 0;
+      // A boss with `revive` gets back up once in a second form (see reviveBoss). A returning legend (b.wander) fights at its new dungeon's level.
+      const legend = LEGENDS.has(b.sp) && !b.final, up = legend && !b.wander ? 3 : 0;
       const lv = clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up);
       const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * (legend ? 3.2 : 1), atkMul: (b.atk || 0.9) * (legend ? 1.2 : 1), moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
       mon.slowT = b.slow || 0;
@@ -740,6 +741,7 @@ export class Dungeon {
     await say(lines(b.after || []));
     if (mid) S.flags['mid_' + this.dId] = true;
     if (this.def.legend) S.flags['legend_' + this.dId] = true;
+    if (b.wander) S.flags[`wander_${b.sp}_${S.era}`] = true; // met in this era; if it stays behind again, it moves on to the next
     await this.offerRecruit(e.mon, b.join);
     if (!mid) return this.cleared();
     // a mid-boss opens the way deeper into the dungeon
@@ -756,6 +758,7 @@ export class Dungeon {
       if (i) return;
       const { m, where } = recruit(mon);
       if (where === 'full') return toast(tr('동료 명부가 가득 찼다.', 'The companion roster is full.'), COL.red);
+      if (LEGENDS.has(mon.sp)) S.flags['got_' + mon.sp] = true; // a legend that joined never comes back as a missed one
       jingle('fanfa4');
       if (where === 'party' && !this.done) { const [x, y] = this.freeNear(this.player.x, this.player.y); this.mates.push(this.addEnt(m, x, y, 'ally')); }
       toast(where === 'party' ? tr(`${name}이(가) 동료가 되어 함께 간다!`, `${name} joined and travels with you!`) : tr(`${name}이(가) 동료가 되었다! (마을의 동료 명부로)`, `${name} joined! (waiting in the town roster)`), COL.blue);
@@ -810,7 +813,7 @@ export class Dungeon {
   afterItem() { this.endTurn(() => {}); }
   descend() {
     this.pendingStairs = false;
-    if (this.floor >= this.def.floors) return this.cleared();
+    if (this.floor >= this.floors) return this.cleared();
     sfx('stairs');
     fadeTo(() => {
       this.floor++;
@@ -853,7 +856,7 @@ export class Dungeon {
     }
     if (this.pendingStairs) {
       this.pendingStairs = false; this.latch = null;
-      return say([{ who: 'narr', text: this.floor >= this.def.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?') : tr('다음 층으로 가는 계단이다. 내려갈까?', 'Stairs to the next floor. Go down?'), choices: tr(['간다', '그만둔다'], ['Go', 'Stay']), onChoice: (i) => { if (i === 0) this.descend(); } }]);
+      return say([{ who: 'narr', text: this.floor >= this.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?') : tr('다음 층으로 가는 계단이다. 내려갈까?', 'Stairs to the next floor. Go down?'), choices: tr(['간다', '그만둔다'], ['Go', 'Stay']), onChoice: (i) => { if (i === 0) this.descend(); } }]);
     }
     // input
     const key = this.latch; this.latch = null;

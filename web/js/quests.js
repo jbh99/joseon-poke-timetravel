@@ -1,6 +1,6 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref } from './core.js';
-import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit } from './game.js';
+import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
 import { tr } from './i18n.js';
@@ -9,6 +9,61 @@ import { iconPath } from './pmd.js';
 export const era = () => ERAS[S.era];
 export const mainStep = () => era().main[S.step];
 export const eraComplete = () => S.step >= era().main.length;
+const ahead = (dId) => era().main.some((s, i) => i >= S.step && s.do === 'dungeon' && s.d === dId); // its story run is still to come
+
+// ---------------------------------------------------------------- missed legends
+// A legendary boss (story or optional) from an era already left behind that never joined comes back in the next era,
+// one floor below the last of one of that era's dungeons, at the dungeon's own level. Side dungeons host first, then
+// naval ones, then story dungeons (outside their story run). The plan is fixed when the era is first entered, so a
+// legend keeps its dungeon all era; one met but left behind again moves on to the era after.
+const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final);
+const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);
+function wanderPlan() {
+  if (S.wander?.era === S.era) return S.wander.at;
+  const e = era(), missed = [], seen = new Set();
+  for (let i = 0; i < S.era; i++) for (const d of Object.values(ERAS[i].dungeons)) for (const b of legendBosses(d)) {
+    if (!seen.has(b.sp) && !joined(b.sp)) missed.push(b.sp);
+    seen.add(b.sp);
+  }
+  const story = (id) => e.main.some((s) => s.do === 'dungeon' && s.d === id);
+  const rank = (id) => (story(id) ? 2 : 0) + (e.dungeons[id].water ? 1 : 0);
+  const hosts = e.nodes.filter((n) => n.d && !e.dungeons[n.d].legend).map((n) => n.d).sort((a, b) => rank(a) - rank(b));
+  const at = {};
+  hosts.forEach((id, k) => { if (missed[k]) at[id] = missed[k]; });
+  S.wander = { era: S.era, at };
+  return at;
+}
+// the missed legend waiting in this dungeon right now, if any (a story dungeon hosts one only outside its story run)
+export function wanderAt(dId) {
+  const sp = wanderPlan()[dId], st = mainStep();
+  if (!sp || S.flags[`wander_${sp}_${S.era}`] || (st?.do === 'dungeon' && st.d === dId)) return null;
+  return sp;
+}
+// its boss fight: the original moves, blasts and second form, at the host dungeon's top foe level
+export function wanderBoss(dId) {
+  const sp = wanderAt(dId);
+  if (!sp) return null;
+  const b = ERAS.flatMap((e) => Object.values(e.dungeons).flatMap(legendBosses)).find((x) => x.sp === sp);
+  const lv = era().dungeons[dId].lv[1] + 1, name = DEX.species[sp].name;
+  return { ...b, lv, lvMin: lv, lvUp: 0, wander: true,
+    say: [
+      { who: 'narr', text: tr(`가장 깊은 곳에 전설의 기척이 가득하다… 지난 시대에 만나지 못했던 ${name}이(가) 시간을 건너 이곳에 나타났다!`, `A legendary presence fills the deepest floor... ${name}, the one you missed in an earlier era, has crossed time to appear here!`) },
+      { who: sp, name, text: tr('…시간의 틈 너머에서 너희를 지켜보았다. 이번에는 너희의 마음을 보여 다오.', '...I watched you from beyond the rift in time. This time, show me your resolve.') },
+      { who: 'partner', text: tr(`그때 놓쳤던 전설의 포켓몬, ${name}! 이번에는 꼭 함께 가자!`, `It's ${name}, the one we missed! This time it comes with us!`) }],
+    after: [{ who: sp, name, text: tr('…시대를 건너서까지 다시 만났구나. 너희의 마음, 확실히 보았다.', '...So we meet again, even across the ages. I have seen your resolve.') }] };
+}
+// the legendary Pokémon a dungeon still holds, for the world map: a lair's legend, a returning one, story legends to come
+export function legendsAt(dId) {
+  const d = era().dungeons[dId], out = [];
+  if (d.legend) { if (!S.flags['legend_' + dId]) out.push(d.boss.sp); return out; }
+  const w = wanderAt(dId);
+  if (w) out.push(w);
+  if (ahead(dId)) {
+    if (d.mid && LEGENDS.has(d.mid.sp) && !S.flags['mid_' + dId]) out.push(d.mid.sp);
+    if (d.boss && LEGENDS.has(d.boss.sp)) out.push(d.boss.sp);
+  }
+  return out;
+}
 // 'partner' / 'player' lines are spoken by the real team even while a naval battle fields a water-only crew
 const home = () => S.homeParty || S.party;
 const partnerLine = (L) => (L.who === 'partner' ? { ...L, who: home()[1].sp, shiny: home()[1].shiny, name: home()[1].name } : L.who === 'player' ? { ...L, who: home()[0].sp, shiny: home()[0].shiny, name: home()[0].name } : L);

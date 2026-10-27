@@ -170,7 +170,7 @@ async function boot() {
     drawToasts(real);
     if (fade.a > 0) { s.globalAlpha = fade.a; ui.rect(0, 0, VW, VH, fade.color); s.globalAlpha = 1; }
     NET.frame();
-    input.pressed.clear(); input.click = null;
+    input.pressed.clear(); input.click = null; input.pan.x = input.pan.y = 0;
     schedule(frame);
   };
   // ?timer=1 keeps the loop running in hidden/background tabs (automated playtests)

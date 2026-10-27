@@ -202,7 +202,7 @@ const SAVE_KEY = 'joseon-poke-save-v1';
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
 const SAVE_V = 3, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null });
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner) {
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300 });
@@ -234,6 +234,8 @@ export function load() {
   } catch (e) { console.warn('save load failed', e); return false; }
 }
 
+export const LEGENDS = new Set([144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
+  480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493]);
 export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
 // a defeated Pokémon joins: straight into the party if there is room, otherwise into the town roster
 export function recruit(mon) {

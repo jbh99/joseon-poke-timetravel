@@ -208,8 +208,9 @@ export const ANCIENT = [
     ],
     dungeons: {
       maeso: { name: K('매소성', 'Maeso Fortress'), tiles: T.castle, floors: 4, lv: [9, 13], mons: [74, 95, 66, 67, 81, 100, 179, 180, 309], bgm: 'd_01',
-        boss: { sp: 145, lv: 18, lvMin: 14, lvUp: 3, hp: 4.2, atk: 1.3, cap: 0.42, relentless: true, bgm: 'ba_secret1', moves: [85, 65, 84, 86],
-          tele: { name: K('번개 폭풍', 'Thunderstorm'), every: 3, dmg: 0.38, pats: ['cross', 'x', 'target', 'rows'], type: 13 },
+        // eased after playtest feedback: HP 4.2 → 2.94 (−30%), hits, hit cap and Thunderstorm all −20%
+        boss: { sp: 145, lv: 18, lvMin: 14, lvUp: 3, hp: 2.94, atk: 1.04, cap: 0.34, relentless: true, bgm: 'ba_secret1', moves: [85, 65, 84, 86],
+          tele: { name: K('번개 폭풍', 'Thunderstorm'), every: 3, dmg: 0.3, pats: ['cross', 'x', 'target', 'rows'], type: 13 },
           say: [
             { who: 'narr', text: K('당나라 20만 대군 위로 먹구름이 몰려들었다. 하늘을 가르는 번개 속에서 거대한 새가 내려온다!', 'Storm clouds gather over the 200,000 Tang troops. A great bird descends amid splitting lightning!') },
             { who: 145, name: K('썬더', 'Zapdos'), text: K('끼아아앗!! 이 땅의 하늘을 어지럽히는 자는 누구냐!', 'Kyaaah!! Who dares disturb the skies of this land?!') },

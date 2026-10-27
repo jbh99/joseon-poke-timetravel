@@ -16,6 +16,7 @@
   html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
   body { display: flex; align-items: center; justify-content: center; }
   canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+  #screen { touch-action: none; } /* drags on the game (the world map pans) must not scroll or zoom the page */
   #status { position: absolute; color: #e8dcc0; font: 14px 'Galmuri11', sans-serif; }
   #hud { position: fixed; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); display: flex; gap: 6px; z-index: 5; }
   #hud button { font: 12px 'Galmuri11', sans-serif; color: var(--ink); background: rgba(243,232,207,0.78); border: 2px solid var(--ink);
@@ -197,14 +198,15 @@
           <span><kbd>H</kbd></span><span>이 가이드 열기·닫기</span>
         </div>
       </div>
-      <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리, 아래쪽 조작키 안내 보이기/숨기기, 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
-      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽 버튼에는 키보드와 같은 글자(Z 확인 · X 메뉴 · QWER 기술 · Tab 태그 · A 쉬기 · ⇧ 방향만 바꾸기 · J 퀘스트 · P 동료 · M 지도)가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다. 화면을 직접 눌러 장소·대화·메뉴를 고를 수도 있고, 휴대폰의 뒤로 가기 버튼은 X와 같아요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
+      <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 지도를 끌거나(드래그) 휠을 굴려 둘러볼 수 있어요. 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리, 아래쪽 조작키 안내 보이기/숨기기, 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
+      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽 버튼에는 키보드와 같은 글자(Z 확인 · X 메뉴 · QWER 기술 · Tab 태그 · A 쉬기 · ⇧ 방향만 바꾸기 · J 퀘스트 · P 동료 · M 지도)가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다. 화면을 직접 눌러 장소·대화·메뉴를 고를 수도 있고, 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
       <p>화면 옆 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
 
       <h2>진행 방법</h2>
       <ul>
         <li><b>마을</b>: 머리 위에 <b style="color:var(--red)">!</b> 표시가 있는 포켓몬이 메인 퀘스트 상대입니다. 주막(회복·저장·동료 명부), 장터(도구), 방(榜, 의뢰 게시판)이 있어요. 큰 중심 마을과 함께 <b>두 번째 마을</b>이 있는 시대도 많습니다.</li>
-        <li><b>세계 지도</b>: 마을 출구로 나가면 열립니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, <b style="color:var(--gold)">금색 표시는 전설의 포켓몬</b>이 있는 곳입니다.</li>
+        <li><b>세계 지도</b>: 마을 출구로 나가면 열립니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, <b style="color:var(--gold)">금색 테두리 안의 포켓몬</b>은 그곳에 있는 전설의 포켓몬입니다.</li>
+        <li><b>놓친 전설</b>: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 평소 마지막 층보다 한 층 더 깊은 곳에서, 그 던전의 적과 같은 레벨로 기다려요. 또 놓치면 그다음 시대로 옮겨 갑니다.</li>
         <li><b>던전</b>: 그래픽은 「포켓몬 불가사의 던전 파랑구조대」의 던전 지형과 포켓몬 스프라이트를 씁니다. 층마다 지형이 무작위로 바뀌어요.</li>
         <li>메인 퀘스트를 끝내면 광장의 <b>시간의 문</b>이 열리고 다음 시대로 넘어갑니다.</li>
       </ul>
@@ -301,14 +303,15 @@
           <span><kbd>H</kbd></span><span>Open or close this guide</span>
         </div>
       </div>
-      <p><b>Mouse</b>: click a place on the world map to go there, and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound and the on-screen key hints on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
-      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons), and the buttons on the right carry the keyboard letters (Z OK · X menu · QWER moves · Tab tag · A rest · ⇧ face only · J quests · P team · M map), so the hints at the bottom of the screen still apply. You can also tap places, dialogue and menus on the screen, and the phone's back button works like X. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
+      <p><b>Mouse</b>: click a place on the world map to go there (drag the map or roll the mouse wheel to look around), and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound and the on-screen key hints on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
+      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons), and the buttons on the right carry the keyboard letters (Z OK · X menu · QWER moves · Tab tag · A rest · ⇧ face only · J quests · P team · M map), so the hints at the bottom of the screen still apply. You can also tap places, dialogue and menus on the screen (drag the world map with a finger to look around), and the phone's back button works like X. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
       <p>The <b>English / 한국어</b> button beside the screen switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
 
       <h2>How to play</h2>
       <ul>
         <li><b>Towns</b>: the Pokémon with a <b style="color:var(--red)">!</b> above its head has your main quest. Every town has an inn (heal, save, roster), a market and a notice board. Many eras also have a <b>second town</b> next to the big main town.</li>
-        <li><b>World map</b>: red marks are the main quest, blue marks are requests you took, and <b style="color:var(--gold)">gold marks hold a legendary Pokémon</b>.</li>
+        <li><b>World map</b>: red marks are the main quest, blue marks are requests you took, and a Pokémon in a <b style="color:var(--gold)">gold ring</b> is the legendary Pokémon waiting there.</li>
+        <li><b>Missed legends</b>: a legendary Pokémon that did not join you in its era (never met, or let go) comes back in another dungeon of the next era, one floor below the usual last floor, at the level of that dungeon's foes. Miss it again and it moves on to the era after.</li>
         <li><b>Dungeons</b> use the terrain and Pokémon sprites of Pokémon Mystery Dungeon: Blue Rescue Team. Floors change every time.</li>
         <li>Finish the main quest and the <b>Time Gate</b> in the square opens to the next era.</li>
       </ul>

@@ -3,9 +3,9 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, hasSave, readSave, load, save, TYPE_COLORS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, legendsAt, wanderAt } from './quests.js';
 import { drawMon, BLD } from './town.js';
-import { tileSet, paintTerrain } from './pmd.js';
+import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
 
 // Backdrops are painted from PMD Blue Rescue Team chunk sets: a clearing ringed by the set's walls, a pond,
@@ -223,21 +223,18 @@ export class WorldMap {
     return [(n.lon - m.lon0) / (m.lon1 - m.lon0) * m.w, (m.lat1 - n.lat) / (m.lat1 - m.lat0) * m.h];
   }
   scr(n) { const [x, y] = this.pos(n); return [x * MZ - this.cx, y * MZ - this.cy]; }
-  camFor(n) {
-    const [x, y] = this.pos(n), m = this.meta || { w: 300, h: 445 };
-    return [clamp(x * MZ - MVW / 2, 0, m.w * MZ - MVW), clamp(y * MZ - VH / 2, 0, m.h * MZ - VH)];
-  }
+  camFor(n) { const [x, y] = this.pos(n); return this.clampCam(x * MZ - MVW / 2, y * MZ - VH / 2); }
+  clampCam(cx, cy) { const m = this.meta || { w: 300, h: 445 }; return [clamp(cx, 0, m.w * MZ - MVW), clamp(cy, 0, m.h * MZ - VH)]; }
   tags(n) {
     const st = mainStep(), out = [];
     if (n.d && st?.do === 'dungeon' && st.d === n.d) out.push('main');
     if ((n.id === 'town' || n.town) && ((st?.do === 'talk' && talkTown(st) === (n.town || 1)) || (eraComplete() && n.id === 'town'))) out.push('main');
     if (n.d && activeSides(n.d).length) out.push('side');
-    if (n.d && this.e.dungeons[n.d]?.legend && !S.flags['legend_' + n.d]) out.push('legend');
     return out;
   }
   update(dt) {
     if (!this.nodes || G.overlays.length) return;
-    const k = this.nodes.length;
+    const k = this.nodes.length, sel0 = this.sel;
     if (input.repeat('down') || input.repeat('right')) { this.sel = (this.sel + 1) % k; sfx('cursor'); }
     if (input.repeat('up') || input.repeat('left')) { this.sel = (this.sel + k - 1) % k; sfx('cursor'); }
     // a click on a place (its icon or name) picks it and goes there, like Z
@@ -248,16 +245,19 @@ export class WorldMap {
       this.nodes.forEach((m, i) => { const [x, y] = this.scr(m); const d = Math.hypot(x - c.x, y + 5 - c.y); if (d < bd) { bd = d; best = i; } });
       if (best >= 0) { if (best !== this.sel) sfx('cursor'); this.sel = best; go = true; }
     }
+    // dragging the map (or the mouse wheel) looks around freely; picking a place brings the camera back to it
+    if (this.sel !== sel0) this.free = false;
+    if (input.pan.x || input.pan.y) { this.free = true; [this.cx, this.cy] = this.clampCam(this.cx - input.pan.x, this.cy - input.pan.y); }
     const n = this.nodes[this.sel];
     const [x, y] = this.pos(n), [cx, cy] = this.camFor(n);
     this.tx += (x - this.tx) * Math.min(1, dt * 8); this.ty += (y - this.ty) * Math.min(1, dt * 8);
-    this.cx += (cx - this.cx) * Math.min(1, dt * 6); this.cy += (cy - this.cy) * Math.min(1, dt * 6);
+    if (!this.free) { this.cx += (cx - this.cx) * Math.min(1, dt * 6); this.cy += (cy - this.cy) * Math.min(1, dt * 6); }
     if (input.hit('ok') || go) {
       S.lastNode = n.id;
       if (n.mark) return say([{ who: 'narr', text: `【${n.name}】 ${n.text}` }]);
       if (n.id === 'town' || n.town) return fadeTo(() => G.goTown(n.town || 1));
       const d = this.e.dungeons[n.d];
-      say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층 · 적 레벨 ${d.lv[0]}~${d.lv[1] + 1})에 들어갈까?`, `Enter ${d.name}? (${d.floors} floors · foes Lv ${d.lv[0]}-${d.lv[1] + 1})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
+      say([{ who: 'narr', text: tr(`${d.name} (${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${d.lv[0]}~${d.lv[1] + 1})에 들어갈까?`, `Enter ${d.name}? (${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${d.lv[0]}-${d.lv[1] + 1})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('quest')) return questMenu();
     if (input.hit('party')) return rosterMenu(); // companions can be swapped anywhere outside dungeons
@@ -272,25 +272,32 @@ export class WorldMap {
     c.strokeStyle = 'rgba(90,40,20,0.8)'; c.setLineDash([3, 3]); c.lineWidth = 1;
     for (const n of this.nodes) if (n.d) { const [x, y] = this.scr(n); c.beginPath(); c.moveTo(tx0, ty0); c.lineTo(x, y); c.stroke(); }
     c.setLineDash([]);
+    // three passes: place markers, then legend badges above them, then names and quest tags on top so they stay readable
+    const at = this.nodes.map((n) => this.scr(n).map(Math.round));
     this.nodes.forEach((n, i) => {
-      let [x, y] = this.scr(n);
-      x = Math.round(x); y = Math.round(y);
-      const on = i === this.sel;
+      const [x, y] = at[i], on = i === this.sel;
       if (n.mark) { c.fillStyle = '#3a2a1a'; c.fillRect(x - 5, y - 5, 10, 10); c.fillStyle = on ? '#fff1b0' : '#e7d6a8'; c.fillRect(x - 4, y - 4, 8, 8); c.fillStyle = COL.red; c.fillRect(x - 4, y - 4, 2, 8); }
       else if (n.id === 'town' || n.town) { c.fillStyle = '#2a1a10'; c.fillRect(x - 8, y - 7, 16, 14); c.fillStyle = '#f0e6d0'; c.fillRect(x - 6, y - 1, 12, 7); c.fillStyle = '#3c3c48'; c.fillRect(x - 9, y - 7, 18, 6); c.fillStyle = '#b2352b'; c.fillRect(x - 1, y + 1, 3, 5); }
       else { c.fillStyle = '#2a1a10'; c.beginPath(); c.moveTo(x - 9, y + 7); c.lineTo(x, y - 9); c.lineTo(x + 9, y + 7); c.fill(); c.fillStyle = '#8a6a48'; c.beginPath(); c.moveTo(x - 7, y + 6); c.lineTo(x, y - 7); c.lineTo(x + 7, y + 6); c.fill(); c.fillStyle = '#1a1010'; c.fillRect(x - 2, y + 1, 5, 5); }
       if (on) { c.strokeStyle = '#fff'; c.lineWidth = 1; c.strokeRect(x - 11.5, y - 11.5, 23, 23); }
-      const nm = n.name;
+    });
+    // a place holding a legendary Pokémon shows it in a gold badge above the marker
+    this.nodes.forEach((n, i) => {
+      if (!n.d) return;
+      const legs = legendsAt(n.d), [x, y] = at[i];
+      legs.forEach((sp, k) => this.drawLegend(c, sp, x + Math.round((k - (legs.length - 1) / 2) * 26), y - 25, i + k));
+    });
+    this.nodes.forEach((n, i) => {
+      const [x, y] = at[i], on = i === this.sel, nm = n.name;
       c.font = '9px Galmuri9'; c.textAlign = 'center'; c.textBaseline = 'top';
       c.fillStyle = 'rgba(30,20,10,0.75)'; const tw = c.measureText(nm).width; c.fillRect(x - tw / 2 - 2, y + 10, tw + 4, 11);
       c.fillStyle = on ? '#ffe9a8' : '#fff'; c.fillText(nm, x, y + 11);
       this.tags(n).forEach((t, k) => {
         const bx = x + 9 + k * 8, by = Math.round(y - 16 + Math.sin(G.time * 5 + i) * 1.5);
         c.fillStyle = '#1a1010'; c.fillRect(bx - 1, by - 1, 8, 10);
-        c.fillStyle = t === 'main' ? '#d0352a' : t === 'legend' ? '#e0b030' : '#2f6ad0'; c.fillRect(bx, by, 6, 8);
+        c.fillStyle = t === 'main' ? '#d0352a' : '#2f6ad0'; c.fillRect(bx, by, 6, 8);
         c.fillStyle = '#fff';
         if (t === 'main') { c.fillRect(bx + 2, by + 1, 2, 4); c.fillRect(bx + 2, by + 6, 2, 1); }
-        else if (t === 'legend') { c.fillRect(bx + 2, by + 1, 2, 6); c.fillRect(bx + 1, by + 3, 4, 2); } // star-ish sparkle
         else { c.fillRect(bx + 1, by + 1, 4, 1); c.fillRect(bx + 4, by + 2, 1, 2); c.fillRect(bx + 2, by + 4, 2, 1); c.fillRect(bx + 2, by + 6, 2, 1); }
       });
     });
@@ -300,6 +307,18 @@ export class WorldMap {
     drawMon(c, b.sp, true, px - 10, py + 2, { moving: true, phase: 1 });
     drawMon(c, a.sp, true, px + 8, py + 4, { moving: true });
     c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(MVW, 0, 2, VH);
+  }
+  drawLegend(c, sp, x, y, ph) {
+    const glow = 0.35 + Math.sin(G.time * 4 + ph) * 0.2, bob = Math.round(Math.sin(G.time * 3 + ph) * 1.2);
+    c.fillStyle = `rgba(255,216,74,${glow})`; c.beginPath(); c.arc(x, y, 15, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(40,24,8,0.72)'; c.beginPath(); c.arc(x, y, 12, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#ffd84a'; c.lineWidth = 1; c.beginPath(); c.arc(x, y, 12.5, 0, Math.PI * 2); c.stroke();
+    const im = img(iconPath(sp));
+    if (ready(im)) c.drawImage(im, 0, Math.floor(G.time * 3 + ph) % 2 * 32, 32, 32, x - 16, y - 19 + bob, 32, 32);
+    // a gold star on the rim marks it as legendary
+    const sx = x + 10, sy = y - 9;
+    c.fillStyle = '#3a2408'; c.fillRect(sx - 3, sy - 1, 7, 3); c.fillRect(sx - 1, sy - 3, 3, 7);
+    c.fillStyle = '#ffe27a'; c.fillRect(sx - 2, sy, 5, 1); c.fillRect(sx, sy - 2, 1, 5);
   }
   drawUI() {
     if (!this.nodes) return;
@@ -320,11 +339,15 @@ export class WorldMap {
     else if (n.id === 'town') lines2.push(tr('마을: 주막 · 장터 · 방(榜)', 'Town: inn · market · board'), tr('시간의 문이 있는 곳', 'Home of the Time Gate'));
     else if (n.town) lines2.push(tr('마을: 주막 · 장터', 'Town: inn · market'), tr('이 시대의 또 다른 마을', 'Another town of this era'));
     else {
-      const d = this.e.dungeons[n.d];
-      lines2.push(tr(`${d.floors}층 · 적 Lv ${d.lv[0]}~${d.lv[1] + 1}`, `${d.floors} floors · foes Lv ${d.lv[0]}-${d.lv[1] + 1}`));
+      const d = this.e.dungeons[n.d], w = wanderAt(n.d), fl = d.floors + (w ? 1 : 0);
+      const legs = legendsAt(n.d).filter((sp) => sp !== w).map((sp) => DEX.species[sp].name).join(' · ');
+      lines2.push(tr(`${fl}층 · 적 Lv ${d.lv[0]}~${d.lv[1] + 1}`, `${fl} floors · foes Lv ${d.lv[0]}-${d.lv[1] + 1}`));
       if (d.water) lines2.push(tr('[해전] 물 타입 포켓몬만 출전한다', '[Naval] Only Water-type Pokémon can fight'));
-      if (d.legend) lines2.push(S.flags['legend_' + n.d] ? tr('전설의 포켓몬과 이미 만났다', 'Legend already met') : tr('★ 전설의 포켓몬의 기척이 있다!', '★ A legendary presence!'), tr('이기면 동료가 될지도…', 'Win and it may join you...'));
-      else if (d.boss && mainStep()?.d === n.d) lines2.push(tr('깊은 곳에 강한 기척이 있다…', 'Something strong lurks deep inside...'));
+      if (w) lines2.push(tr(`★ 지난 시대에 놓친 ${DEX.species[w].name}이(가) ${fl}층에서 기다린다! (Lv ${d.lv[1] + 1})`, `★ ${DEX.species[w].name}, missed in an earlier era, waits on floor ${fl}! (Lv ${d.lv[1] + 1})`));
+      if (legs) lines2.push(tr(`★ 전설의 포켓몬 ${legs}의 기척이 있다!`, `★ A legendary presence: ${legs}!`));
+      else if (d.legend) lines2.push(tr('전설의 포켓몬과 이미 만났다', 'Legend already met'));
+      else if (!w && d.boss && mainStep()?.d === n.d) lines2.push(tr('깊은 곳에 강한 기척이 있다…', 'Something strong lurks deep inside...'));
+      if (w || (d.legend && legs)) lines2.push(tr('이기면 동료가 될지도…', 'Win and it may join you...'));
     }
     const py = 14 + h1, nameL = ui.wrap(n.name, w - 16, 11), ny = py + 6 + nameL.length * 13 + 3;
     const wrapped2 = lines2.flatMap((l) => ui.wrap(l, w - 16, 9));
@@ -342,7 +365,7 @@ export class WorldMap {
     ui.panel(x, qy, w, 22 + shown.length * 11);
     ui.text(tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true });
     shown.forEach((q, i) => ui.text(q.t, x + 8, qy + 19 + i * 11, { size: 9, color: q.c }));
-    if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · J 퀘스트 · P 동료 · X 마을로', 'Tap a place to go · J quests · P team · X town') : tr('클릭·↑↓ 장소 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
+    if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · 끌어서 지도 보기 · J 퀘스트 · P 동료 · X 마을로', 'Tap a place to go · drag to look · J quests · P team · X town') : tr('클릭·↑↓ 장소 · 드래그 지도 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · drag map · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
   }
 }
 

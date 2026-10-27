@@ -85,7 +85,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
    - **장터**: 도구 사고팔기
    - **방(榜)**: 의뢰 게시판
    - 많은 시대에 큰 중심 마을과 함께 **두 번째 마을**이 있습니다.
-3. **세계 지도**: 마을 출구로 나가면 열립니다. 클릭하거나 방향키로 장소를 고릅니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, 금색 표시는 전설의 포켓몬이 있는 곳입니다.
+3. **세계 지도**: 마을 출구로 나가면 열립니다. 클릭하거나 방향키로 장소를 고르고, 마우스로 끌거나(드래그) 휠을 굴려 지도를 둘러봅니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, 금색 테두리 안의 포켓몬은 그곳에 있는 전설의 포켓몬입니다.
 4. **던전**: 층마다 지형이 무작위로 만들어지는 턴제 던전입니다. 계단을 찾아 내려가고, 마지막 층의 보스를 쓰러뜨립니다.
 5. 메인 퀘스트를 끝내면 광장의 **시간의 문**이 열리고 다음 시대로 넘어갑니다.
 6. 마을에 돌아올 때마다 **자동 저장**됩니다. 저장은 브라우저(localStorage)에 남으니 같은 브라우저에서 **이어하기**를 고르세요.
@@ -119,6 +119,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 ### 전설의 포켓몬과 보스
 - **썬더(676) · 파이어(1232) · 프리져(1388)**: 같은 시대 보스 중 가장 강합니다. 체력이 보통 보스의 약 10배이고, 예고 공격을 모으는 동안에도 계속 공격합니다. 어렵다면 레벨을 올려 다시 도전하세요. 전설의 레벨은 일정 이상 오르지 않습니다.
+- **놓친 전설**: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 평소 마지막 층보다 한 층 더 깊은 곳에서 그 던전의 적과 같은 레벨로 기다리고, 또 놓치면 그다음 시대로 옮겨 갑니다.
 - **예고 공격**: 보스가 바닥을 붉게 표시하면 몇 턴 뒤 그 칸에 큰 공격이 떨어집니다. 붉은 칸 밖으로 피하면 보스에게 **빈틈**이 생겨 받는 피해가 1.5배가 됩니다.
 - **600족 보스**: 가디안(1866), 메타그로스(1887), 한카리아스·보만다·마기라스(1950)는 실제 능력치처럼 빠르고 단단합니다.
 
@@ -227,9 +228,10 @@ docs/screenshots/       README 스크린샷
   - Arrows move; Z/Enter attacks or confirms; X/Esc opens the menu or answers "no"; Q W E R use moves.
   - Tab tags the next teammate in; A (hold) rests; J opens and closes the quest list.
   - P opens the companion roster outside dungeons; 1/2/3 set the game speed.
-  - The mouse picks places on the world map, dialogue choices and menu rows.
+  - The mouse picks places on the world map, dialogue choices and menu rows; dragging or the wheel scrolls the map.
 - **Features**:
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
+  - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
   - Arceus is the final boss and turns golden for a second phase.
   - Water-only naval battles; pick a side in the Korean War.
   - 35% recruit rate (legendaries always join) and a 500-slot roster.
