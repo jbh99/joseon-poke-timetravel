@@ -602,8 +602,8 @@ export class Dungeon {
       this.step(() => { this.msg(nv === cur ? tr(`${m.name}의 ${STAT_NAME[r.stat.k]}은(는) 더 이상 변하지 않는다!`, `${m.name}'s ${STAT_NAME[r.stat.k]} won't go any further!`) : tr(`${m.name}의 ${STAT_NAME[r.stat.k]}이(가) ${r.stat.d > 0 ? '올라갔다' : '떨어졌다'}!`, `${m.name}'s ${STAT_NAME[r.stat.k]} ${r.stat.d > 0 ? 'rose' : 'fell'}!`), r.stat.d > 0 ? COL.green : COL.red); sfx('buff'); }, 0.22);
       return;
     }
-    // bosses shrug off sleep and freeze, so they can't be locked down
-    if (r.status && D.boss && (r.status === 'slp' || r.status === 'frz')) {
+    // bosses shrug off sleep, freeze and poison, so they can't be locked down or worn away
+    if (r.status && D.boss && ['slp', 'frz', 'psn'].includes(r.status)) {
       if (r.dmg == null) { this.step(() => this.msg(tr(`${D.name}에게는 통하지 않는다!`, `It doesn't affect ${D.name}!`)), 0.2); return; }
       r.status = null;
     }
