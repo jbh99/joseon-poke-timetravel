@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, t
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc } from './game.js';
 import { QITEMS, TELE_TUT, ERAS } from './content.js';
-import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, challenge, loseChallenge, lairDone, spyTick } from './quests.js';
+import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, challenge, loseChallenge, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, Town, PEARL, objInView } from './town.js';
 import { tr } from './i18n.js';
 import { tileSet, paintTerrain, hasPmdSprite } from './pmd.js';
@@ -28,6 +28,9 @@ function bossTier(b) {
 // difficulty along the journey: 0 in the first era, 1 in the last. Early floors are sparse and forgiving, late ones crowded and harsh.
 export const curve = () => clamp(S.era / Math.max(1, ERAS.length - 1), 0, 1);
 
+// The team's moves land on any foe within SURE_REACH tiles, whichever way their user faces (skillTargets); a boss
+// reaches BOSS_REACH tiles at most, with its line moves and its telegraphed blasts alike.
+const SURE_REACH = 3, BOSS_REACH = 4;
 // Telegraphed boss attacks: tiles light up, and the blast lands after `delay` boss turns.
 // Every pattern is checked so that each ally can reach a safe tile in time (Chebyshev steps in the open arena).
 const PATTERNS = {
@@ -95,13 +98,13 @@ export class Dungeon {
   }
   exit() { G.dialogSpeaker = null; }
   relang(sw) { for (const m of this.msgs) m.text = sw(m.text); }
-  // the boss waiting on this floor: a legend's lair, a story mid-boss, or the story boss on the last floor
+  // the boss waiting on this floor: a legend's lair, a returning legend, the story boss on the last floor of the story
+  // run, or a story dungeon's mid-boss on a visit after that run (midWaiting): every run meets one boss
   get bossDef() {
     const d = this.def;
     if (d.legend) return d.boss && this.floor === d.floors && !lairDone(this.dId) ? d.boss : null;
     if (this.wander && this.floor === this.floors) return this.wander;
-    if (!this.main) return null;
-    if (d.mid && this.floor === d.mid.floor && !S.flags['mid_' + this.dId]) return d.mid;
+    if (!this.main) return d.mid && this.floor === d.mid.floor && midWaiting(this.dId) ? d.mid : null;
     if (d.boss && this.floor === d.floors) return d.boss;
     return null;
   }
@@ -162,11 +165,15 @@ export class Dungeon {
     const startRoom = this.bossFloor || lay ? rooms[0] : choice(rooms);
     const sx = lay ? lay.start[0] : this.bossFloor ? 22 : randInt(startRoom.x + 1, startRoom.x + startRoom.w - 2);
     const sy = lay ? lay.start[1] : this.bossFloor ? 17 : randInt(startRoom.y + 1, startRoom.y + startRoom.h - 2);
+    // the boss room: whoever fell on the way gets back up with half its HP (apart from the once-a-run Revive)
+    const rose = this.bossFloor ? S.party.filter((m) => m.hp <= 0) : [];
+    for (const m of rose) { m.hp = Math.max(1, Math.floor(m.maxhp / 2)); m.status = null; m.stages = {}; }
     // a tagged-in leader keeps the lead; a fallen one hands it to the first teammate still standing
     const lead = S.party.includes(this.leadMon) && this.leadMon.hp > 0 ? this.leadMon : S.party.find((m) => m.hp > 0) || S.party[0];
     this.player = this.addEnt(lead, sx, sy, 'ally', true);
     this.mates = [];
     for (const m of S.party) if (m !== lead && m.hp > 0) { const [px, py] = this.freeNear(sx, sy); this.mates.push(this.addEnt(m, px, py, 'ally', false)); }
+    if (rose.length) this.msg(tr(`쓰러졌던 ${rose.map((m) => m.name).join(', ')}이(가) 보스 앞에서 다시 일어났다!`, `${rose.map((m) => m.name).join(', ')} got back up to face the boss!`), COL.green);
     const others = rooms.filter((r) => r !== startRoom);
     const spot = (pool = others.length ? others : rooms) => {
       for (let t = 0; t < 200; t++) {
@@ -184,6 +191,7 @@ export class Dungeon {
       const t = bossTier(b), [, top, scaled] = foeLevels(this.def), up = b.wander ? 0 : t.up;
       let lv = b.wander ? b.lv : clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up) + mode().lv;
       if (scaled && !b.wander) lv = Math.max(lv, top + 2 + up);
+      if (b.lvCap) lv = Math.min(lv, b.lvCap); // Arceus follows the team up to Lv 180
       const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: this.def.battle?.foeBuff, moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
       mon.slowT = b.slow || 0;
       const e = this.boss = this.addEnt(mon, ...(lay?.bossAt ? this.nearestOpen(...lay.bossAt) : [22, 12]), 'foe');
@@ -514,7 +522,9 @@ export class Dungeon {
     });
   }
 
-  // choose a move's targets for an attacker facing a direction
+  // choose a move's targets: the team's single-target moves turn to the nearest foe within SURE_REACH tiles in any
+  // direction (useSkill makes those sure hits); otherwise a move goes where its user faces, a physical one to the front
+  // tile and the rest up to 6 tiles in a line (BOSS_REACH for a boss)
   skillTargets(att, mvId) {
     const mv = DEX.moves[mvId];
     const foeTeam = att.team === 'foe' ? 'ally' : 'foe';
@@ -522,10 +532,12 @@ export class Dungeon {
     if (mv.target === 4 || mv.target === 8) {
       return DIRS8.map(([dx, dy]) => this.entAt(att.x + dx, att.y + dy)).filter((e) => e && e.team === foeTeam && this.canStep(att.x, att.y, e.x - att.x, e.y - att.y));
     }
+    const near = att.team === 'ally' && this.nearFoe(att);
+    if (near) { att.face = [Math.sign(near.x - att.x), Math.sign(near.y - att.y)]; return [near]; }
     const [dx, dy] = att.face;
     if (mv.cat === 0) { const t = this.entAt(att.x + dx, att.y + dy); return t && t.team === foeTeam && this.canStep(att.x, att.y, dx, dy) ? [t] : []; }
     let x = att.x, y = att.y;
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < (att.isBoss ? BOSS_REACH : 6); i++) {
       if (!this.canStep(x, y, dx, dy)) break;
       x += dx; y += dy;
       const t = this.entAt(x, y);
@@ -533,23 +545,47 @@ export class Dungeon {
     }
     return [];
   }
+  // the nearest foe within SURE_REACH tiles that a path of single steps reaches (walls in between hide it); ties go
+  // to the one in front
+  nearFoe(att) {
+    let best = null, score = Infinity;
+    for (const e of this.ents) {
+      if (!e.alive || e.team !== 'foe') continue;
+      const dx = e.x - att.x, dy = e.y - att.y, d = Math.max(Math.abs(dx), Math.abs(dy));
+      const s = d * 2 + (Math.sign(dx) === att.face[0] && Math.sign(dy) === att.face[1] ? 0 : 1);
+      if (d <= SURE_REACH && s < score && this.pathTo(att, e)) { best = e; score = s; }
+    }
+    return best;
+  }
+  pathTo(a, b) {
+    let x = a.x, y = a.y;
+    while (x !== b.x || y !== b.y) {
+      const dx = Math.sign(b.x - x), dy = Math.sign(b.y - y);
+      if (!this.canStep(x, y, dx, dy)) return false;
+      x += dx; y += dy;
+    }
+    return true;
+  }
   useSkill(att, k) {
     const mvs = att.mon.moves[k];
     const mv = DEX.moves[mvs.id];
     mvs.pp--;
-    const targets = this.skillTargets(att, mvs.id);
-    const ranged = mv.cat !== 0 && !(mv.target === 4 || mv.target === 8) && targets[0] !== att;
-    this.step(() => { att.atkT = G.time; this.msg(tr(`${att.mon.name}의 ${mv.name}!`, `${att.mon.name} used ${mv.name}!`), COL.blue); this.flash = { e: att, t: 0.2, color: TYPE_COLORS[mv.type] }; if (ranged) this.beam = { from: att, dir: att.face, t: 0.25, color: TYPE_COLORS[mv.type] }; sfx(mv.cat === 2 ? 'buff' : 'confirm'); }, 0.2);
+    const targets = this.skillTargets(att, mvs.id), t0 = targets[0];
+    const dist = t0 && t0 !== att ? Math.max(Math.abs(t0.x - att.x), Math.abs(t0.y - att.y)) : 0;
+    const ranged = (mv.cat !== 0 || dist > 1) && !(mv.target === 4 || mv.target === 8) && t0 !== att;
+    // the beam flies to its target (a sure hit may stand off the eight lines), or its full reach when it finds no one
+    const beam = dist ? { dir: [(t0.x - att.x) / dist, (t0.y - att.y) / dist], len: dist } : { dir: att.face, len: att.isBoss ? BOSS_REACH : 6 };
+    this.step(() => { att.atkT = G.time; this.msg(tr(`${att.mon.name}의 ${mv.name}!`, `${att.mon.name} used ${mv.name}!`), COL.blue); this.flash = { e: att, t: 0.2, color: TYPE_COLORS[mv.type] }; if (ranged) this.beam = { from: att, ...beam, t: 0.25, color: TYPE_COLORS[mv.type] }; sfx(mv.cat === 2 ? 'buff' : 'confirm'); }, 0.2);
     if (!targets.length) { this.step(() => this.msg(tr('그러나 아무도 맞지 않았다…', 'But it hit nobody...')), 0.12); return; }
-    for (const t of targets) this.resolve(att, t, mvs.id);
+    for (const t of targets) this.resolve(att, t, mvs.id, att.team === 'ally' && t !== att && Math.max(Math.abs(t.x - att.x), Math.abs(t.y - att.y)) <= SURE_REACH);
   }
   attack(att, def, mvId) {
     const name = mvId === 'basic' ? tr('공격', 'Attack') : DEX.moves[mvId].name;
     this.step(() => { att.lunge = 0.18; att.atkT = G.time; if (mvId === 'basic') this.msg(tr(`${att.mon.name}의 ${name}!`, `${att.mon.name} attacks!`)); }, 0.12);
     this.resolve(att, def, mvId);
   }
-  resolve(att, def, mvId) {
-    const r = useMove(att.mon, def.mon, mvId);
+  resolve(att, def, mvId, sure) {
+    const r = useMove(att.mon, def.mon, mvId, sure);
     const A = att.mon, D = def.mon;
     if (r.heal != null) {
       const h = Math.min(A.maxhp - A.hp, r.heal); A.hp += h;
@@ -694,7 +730,7 @@ export class Dungeon {
     const dx = t.x - e.x, dy = t.y - e.y;
     if (!(dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy))) return false;
     const n = Math.max(Math.abs(dx), Math.abs(dy));
-    if (n > 6) return false;
+    if (n > (e.isBoss ? BOSS_REACH : 6)) return false;
     const sx = Math.sign(dx), sy = Math.sign(dy);
     let x = e.x, y = e.y;
     for (let i = 0; i < n - 1; i++) { if (!this.canStep(x, y, sx, sy)) return false; x += sx; y += sy; if (this.entAt(x, y)) return false; }
@@ -800,7 +836,7 @@ export class Dungeon {
   patternTiles(name, e, allies) {
     const R = this.rooms[0], set = new Set();
     const p = (e.teleN || 0) % 2, q = [choice([-1, 1]), choice([-1, 1])];
-    const add = (x, y) => { if (x >= R.x && y >= R.y && x < R.x + R.w && y < R.y + R.h && !(x === e.x && y === e.y)) set.add(y * W + x); };
+    const add = (x, y) => { if (x >= R.x && y >= R.y && x < R.x + R.w && y < R.y + R.h && !(x === e.x && y === e.y) && Math.max(Math.abs(x - e.x), Math.abs(y - e.y)) <= BOSS_REACH) set.add(y * W + x); };
     for (const part of name.split('|')) {
       const P = PATTERNS[part];
       for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) {
@@ -971,6 +1007,17 @@ export class Dungeon {
     });
   }
   afterItem() { this.endTurn(() => {}); }
+  // a Revive (quests.js useItem): the fallen teammate gets back up beside the leader; one a run
+  reviveMate(m, pct) {
+    m.hp = Math.max(1, Math.floor(m.maxhp * pct)); m.status = null; m.stages = {};
+    this.mates = this.mates.filter((a) => a.mon !== m);
+    this.ents = this.ents.filter((a) => a.mon !== m);
+    const [x, y] = this.freeNear(this.player.x, this.player.y);
+    this.mates.push(this.addEnt(m, x, y, 'ally'));
+    this.revived = true;
+    this.msg(tr(`${m.name}이(가) 기운을 되찾고 일어났다!`, `${m.name} got back on its feet!`), COL.green);
+    sfx('heal');
+  }
   descend() {
     this.pendingStairs = false;
     if (this.floor >= this.floors) return this.cleared();
@@ -1088,7 +1135,8 @@ export class Dungeon {
     if (this.beam) {
       const b = this.beam, f = 1 - b.t / 0.25;
       c.fillStyle = b.color;
-      for (let i = 1; i <= 6; i++) { const k = i * f * 1.2; if (k > 6) break; c.fillRect(Math.round((b.from.x + b.dir[0] * k) * TILE + 9), Math.round((b.from.y + b.dir[1] * k) * TILE + 9), 6, 6); }
+      const len = b.len ?? 6;
+      for (let i = 1; i <= len; i++) { const k = i * f * 1.2; if (k > len) break; c.fillRect(Math.round((b.from.x + b.dir[0] * k) * TILE + 9), Math.round((b.from.y + b.dir[1] * k) * TILE + 9), 6, 6); }
     }
     if (this.flash) { const e = this.flash.e; c.strokeStyle = this.flash.color; c.lineWidth = 2; c.beginPath(); c.arc(e.vx * TILE + 12, e.vy * TILE + 10, 16 * (1 - this.flash.t / 0.2) + 4, 0, Math.PI * 2); c.stroke(); }
     c.restore();

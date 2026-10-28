@@ -167,8 +167,9 @@ export class Mon {
   static from(o) { return new Mon(o.sp, o.lv, o); }
 }
 
-// Resolve one move use. Returns {dmg, eff, crit, miss, text[], status, statChange, heal, drain}
-export function useMove(att, def, moveId) {
+// Resolve one move use. Returns {dmg, eff, crit, miss, text[], status, statChange, heal, drain}.
+// sure: no accuracy roll (the team's moves on a foe within 3 tiles, Dungeon.useSkill)
+export function useMove(att, def, moveId, sure = false) {
   const mv = moveId === 'basic' ? { name: tr('공격', 'Attack'), cat: 0, power: 30, type: -1, acc: 100, effect: 0, chance: 0 } : DEX.moves[moveId];
   const out = { mv, text: [] };
   if (mv.cat === 2) {
@@ -180,17 +181,17 @@ export function useMove(att, def, moveId) {
     if (mv.effect in STAT_EFFECT) {
       const [k, d, who] = STAT_EFFECT[mv.effect];
       out.stat = { k, d, target: who };
-      if (who === 'foe' && !hits(att, def, mv)) out.miss = true;
+      if (who === 'foe' && !sure && !hits(att, def, mv)) out.miss = true;
       return out;
     }
     if (mv.effect in STATUS_MOVE) {
-      if (!def || def.status || !hits(att, def, mv)) { out.miss = true; return out; }
+      if (!def || def.status || !(sure || hits(att, def, mv))) { out.miss = true; return out; }
       out.status = STATUS_MOVE[mv.effect];
       return out;
     }
     return out;
   }
-  if (!hits(att, def, mv)) { out.miss = true; return out; }
+  if (!sure && !hits(att, def, mv)) { out.miss = true; return out; }
   const mtype = moveId === 449 && att.typeOverride ? att.typeOverride[0] : mv.type; // Judgment follows the held plate
   const eff = mtype < 0 ? 1 : typeMult(mtype, def.types);
   out.eff = eff;
@@ -228,17 +229,32 @@ export function expGain(foe) { return Math.max(4, Math.floor(foe.data.exp * foe.
 // ---------------------------------------------------------------- items
 export const ITEMS = {
   oran: withText(['오랭열매', 'Oran Berry'], ['HP를 30 회복한다.', 'Restores 30 HP.'], { price: 30, heal: 30 }),
-  sitrus: withText(['자뭉열매', 'Sitrus Berry'], ['HP를 최대치의 절반만큼 회복한다.', 'Restores half of max HP.'], { price: 120, healPct: 0.5 }),
+  sitrus: withText(['자뭉열매', 'Sitrus Berry'], ['HP를 최대치의 절반만큼 회복하고 상태 이상을 고친다.', 'Restores half of max HP and cures status problems.'], { price: 120, healPct: 0.5, cure: true }),
   rice: withText(['주먹밥', 'Rice Ball'], ['HP를 80 회복하고 상태 이상을 고친다.', 'Restores 80 HP and cures status problems.'], { price: 90, heal: 80, cure: true }),
   herb: withText(['약초', 'Herb'], ['독·화상·마비 같은 상태 이상을 고친다.', 'Cures poison, burns, paralysis and other status problems.'], { price: 40, cure: true }),
   ginseng: withText(['인삼', 'Ginseng'], ['모든 기술의 PP를 회복한다.', 'Restores the PP of every move.'], { price: 220, pp: true }),
+  // one a dungeon run, boss room included (Dungeon.revived); the boss room also stands the fallen up by itself
+  revive: withText(['기력의 조각', 'Revive'], ['쓰러진 포켓몬을 HP 절반으로 되살린다. 던전 한 번(보스방 포함)에 하나만 쓸 수 있다.', 'Revives a fainted Pokémon with half its HP. One per dungeon run, boss room included.'], { price: 1000, revive: 0.5 }),
   escape: withText(['탈출 부적', 'Escape Charm'], ['던전에서 곧바로 마을로 돌아간다.', 'Takes you straight back to town from a dungeon.'], { price: 150, escape: true }),
   stone: withText(['돌팔매', 'Sling Stone'], ['앞쪽 일직선으로 던져 적에게 20 데미지를 준다.', 'Thrown straight ahead; deals 20 damage to a foe.'], { price: 12, throw: 20 }),
   // key items (never sold, never used up): in a dungeon they wake the Primal Reversion of the legend they belong to
   redorb: withText(['주홍구슬', 'Red Orb'], ['던전에서 쓰면 그란돈이 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오르고 불꽃 타입이 더해진다.', 'Use it in a dungeon and Groudon undergoes Primal Reversion: much stronger, and part Fire type, until the dungeon ends.'], { price: 0, key: true, primal: 383, types: [4, 10] }),
   blueorb: withText(['쪽빛구슬', 'Blue Orb'], ['던전에서 쓰면 가이오가가 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오른다.', 'Use it in a dungeon and Kyogre undergoes Primal Reversion: much stronger until the dungeon ends.'], { price: 0, key: true, primal: 382, types: [11] }),
 };
-export const SHOP = ['oran', 'sitrus', 'rice', 'herb', 'stone', 'escape', 'ginseng'];
+export const SHOP = ['oran', 'sitrus', 'rice', 'herb', 'stone', 'escape', 'ginseng', 'revive'];
+// Gen 4 TM01-TM92 by move id. A villager in every town deals in them (town.js tmMenu), selling the ones the dungeons can
+// use and teaching the move on the spot: strong attacks (power 80 and up) cost 3000 nyang, the rest 1000.
+export const TMS = [264, 337, 352, 347, 46, 92, 258, 339, 331, 237, 241, 269, 58, 59, 63, 113, 182, 240, 202, 219, 218, 76, 231,
+  85, 87, 89, 216, 91, 94, 247, 280, 104, 115, 351, 53, 188, 201, 126, 317, 332, 259, 263, 290, 156, 213, 168, 211, 285, 289,
+  315, 355, 411, 412, 206, 362, 374, 451, 203, 406, 409, 261, 318, 373, 153, 421, 371, 278, 416, 397, 148, 444, 419, 86, 360,
+  14, 446, 244, 445, 399, 157, 404, 214, 363, 398, 138, 447, 207, 365, 369, 164, 430, 433];
+export const tmPrice = (move) => (DEX.moves[move].cat !== 2 && DEX.moves[move].power >= 80 ? 3000 : 1000);
+// who can use a TM: a move of its own types, of a type its level-up list already uses, or a Normal move. An
+// approximation of the games' TM table, which sits in the ROM's personal data and is not extracted (extract_data.py).
+export function tmFits(mon, move) {
+  const t = DEX.moves[move].type;
+  return t === 0 || mon.data.types.includes(t) || mon.data.learn.some(([, m]) => DEX.moves[m]?.type === t);
+}
 export function itemDef(id, questItems) { return ITEMS[id] || questItems?.[id]; }
 
 // ---------------------------------------------------------------- state

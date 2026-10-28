@@ -37,6 +37,9 @@ export function checkRun() {
 }
 const RUN = ['dungeon', 'battle']; // steps that are a dungeon run (a 'battle' is started by talking to its NPC in town)
 const ahead = (dId) => era().main.some((s, i) => i >= S.step && RUN.includes(s.do) && s.d === dId); // its story run is still to come
+// a story dungeon's mid-boss (the lake trio, Electivire, Darkrai) waits for a visit after the story run, so that run
+// meets one boss; once beaten (mid_<id>) it is gone for good
+export const midWaiting = (dId) => { const d = era().dungeons[dId]; return !!d?.mid && !S.flags['mid_' + dId] && !ahead(dId); };
 // a legend lair is done once its legend was met, or for the post-war Regi line (retry) once it joined
 export function lairDone(dId) {
   const d = era().dungeons[dId], b = d?.boss;
@@ -60,7 +63,8 @@ function wanderPlan() {
   }
   const story = (id) => e.main.some((s) => s.do === 'dungeon' && s.d === id);
   const rank = (id) => (story(id) ? 2 : 0) + (e.dungeons[id].water ? 1 : 0);
-  const hosts = e.nodes.filter((n) => n.d && !e.dungeons[n.d].legend).map((n) => n.d).sort((a, b) => rank(a) - rank(b));
+  const hosts = e.nodes.filter((n) => n.d && !e.dungeons[n.d].legend && !(e.dungeons[n.d].mid && !S.flags['mid_' + n.d])) // one boss a visit
+    .map((n) => n.d).sort((a, b) => rank(a) - rank(b));
   const at = {};
   hosts.forEach((id, k) => { if (missed[k]) at[id] = missed[k]; });
   S.wander = { era: S.era, at };
@@ -91,10 +95,8 @@ export function legendsAt(dId) {
   if (d.legend) { if (!lairDone(dId)) out.push(d.boss.sp); return out; }
   const w = wanderAt(dId);
   if (w) out.push(w);
-  if (ahead(dId)) {
-    if (d.mid && LEGENDS.has(d.mid.sp) && !S.flags['mid_' + dId]) out.push(d.mid.sp);
-    if (d.boss && LEGENDS.has(d.boss.sp)) out.push(d.boss.sp);
-  }
+  if (d.mid && LEGENDS.has(d.mid.sp) && !S.flags['mid_' + dId]) out.push(d.mid.sp); // met on a visit after the story run
+  if (ahead(dId) && d.boss && LEGENDS.has(d.boss.sp)) out.push(d.boss.sp);
   return out;
 }
 // 'partner' / 'player' lines are spoken by the real team even while a naval battle fields a water-only crew
@@ -353,23 +355,23 @@ export async function gainExpFor(mon, n, log) {
 function offerMove(mon, move, log) {
   const name = DEX.moves[move].name;
   return new Promise((res) => say([{ who: mon.sp, shiny: mon.shiny, name: mon.name, text: tr(`${mon.name}은(는) 새 기술 ${name}을(를) 배우려 한다! 하지만 기술은 4개까지만 쓸 수 있다. 다른 기술을 잊게 할까?`, `${mon.name} wants to learn ${name}! But it can't use more than four moves. Should it forget one?`), choices: tr(['기술을 잊게 한다', '배우지 않는다'], ['Forget a move', 'Skip it']), onChoice: (i) => {
-    if (!i) return forgetMenu(mon, move, log, res);
+    if (!i) return forgetMenu(mon, move, log, () => res());
     log?.(tr(`${mon.name}은(는) ${name}을(를) 배우지 않았다.`, `${mon.name} did not learn ${name}.`));
     res();
   } }]));
 }
-const moveInfo = (id) => `${moveDesc(id)} · ${tr('명중', 'Acc.')} ${DEX.moves[id].acc || '—'} · PP ${DEX.moves[id].pp}`;
-// which move gives its slot to `move` (the new one heads the list); done() runs however it ends
-function forgetMenu(mon, move, log, done) {
+export const moveInfo = (id) => `${moveDesc(id)} · ${tr('명중', 'Acc.')} ${DEX.moves[id].acc || '—'} · PP ${DEX.moves[id].pp}`;
+// which move gives its slot to `move` (the new one heads the list); done(learned) runs however it ends
+export function forgetMenu(mon, move, log, done) {
   const name = DEX.moves[move].name;
-  const skip = () => { log?.(tr(`${mon.name}은(는) ${name}을(를) 배우지 않았다.`, `${mon.name} did not learn ${name}.`)); done(); };
+  const skip = () => { log?.(tr(`${mon.name}은(는) ${name}을(를) 배우지 않았다.`, `${mon.name} did not learn ${name}.`)); done(false); };
   openMenu([
     { label: tr(`새 기술: ${name}`, `New: ${name}`), right: DEX.types[DEX.moves[move].type], desc: moveInfo(move), disabled: true },
     ...mon.moves.map((mv, k) => ({ label: `${'QWER'[k]}. ${DEX.moves[mv.id].name}`, right: DEX.types[DEX.moves[mv.id].type], desc: moveInfo(mv.id), fn: () => {
       const old = DEX.moves[mv.id].name;
       mon.learn(move, k);
       log?.(tr(`${mon.name}은(는) ${old}을(를) 잊고 ${name}을(를) 배웠다!`, `${mon.name} forgot ${old} and learned ${name}!`), COL.green);
-      done();
+      done(true);
     } })),
     { label: tr('배우지 않는다', 'Skip it'), fn: skip },
   ], { title: tr('잊을 기술 고르기', 'Forget which move?'), desc: true, sel: 1, x: 140, y: 40, w: 230, onCancel: skip });
@@ -657,6 +659,15 @@ function useItem(id, dungeon) {
     if (m.primal) return toast(tr(`${name}은(는) 이미 원시회귀했다.`, `${name} is already in its Primal form.`));
     return dungeon.primal(m, d);
   }
+  // a teammate down in a dungeon can't be fed back up: only a Revive stands it up, once a run
+  const down = (m) => !!dungeon && m.hp <= 0;
+  if (d.revive) {
+    if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.'));
+    if (dungeon.revived) return toast(tr('기력의 조각은 던전 한 번에 하나만 쓸 수 있다.', 'Only one Revive per dungeon run.'), COL.red);
+    if (!S.party.some(down)) return toast(tr('쓰러진 포켓몬이 없다.', 'No one has fainted.'));
+    return openMenu(S.party.map((m) => ({ label: m.name, right: down(m) ? tr('쓰러짐', 'Fainted') : `HP ${m.hp}/${m.maxhp}`, disabled: !down(m), fn: () => { takeItem(id); dungeon.reviveMate(m, d.revive); dungeon.afterItem(); } })),
+      { title: tr('누구를 되살릴까?', 'Revive whom?'), x: 150, y: 80, sel: S.party.findIndex(down) });
+  }
   const pick = (m) => {
     if (d.pp) m.restorePP();
     if (d.heal || d.healPct) m.hp = Math.min(m.maxhp, m.hp + (d.heal || Math.round(m.maxhp * d.healPct)));
@@ -664,7 +675,7 @@ function useItem(id, dungeon) {
     takeItem(id); sfx('heal'); toast(tr(`${m.name}에게 ${d.name}을(를) 썼다.`, `Used ${d.name} on ${m.name}.`));
     dungeon?.afterItem();
   };
-  openMenu(S.party.map((m) => ({ label: `${m.name}  HP ${m.hp}/${m.maxhp}`, fn: () => pick(m) })), { title: tr('누구에게?', 'On whom?'), x: 150, y: 80 });
+  openMenu(S.party.map((m) => ({ label: `${m.name}  HP ${m.hp}/${m.maxhp}`, right: down(m) ? tr('쓰러짐', 'Fainted') : '', disabled: down(m), fn: () => pick(m) })), { title: tr('누구에게?', 'On whom?'), x: 150, y: 80 });
 }
 
 export function questMenu() {

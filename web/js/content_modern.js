@@ -126,9 +126,10 @@ const ARCEUS_REVIVE = { hp: 2 / 3, atk: 1.35, shiny: true, cap: 0.34, aura: '#ff
       msg: K('황금빛 아르세우스가 모든 플레이트를 한꺼번에 해방했다!', 'Golden Arceus unleashes every plate at once!'),
       line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('이 빛을 견뎌 낸다면… 너희에게 이 시대의 꽃잎을 맡기겠다.', 'Endure this light... and I will entrust you with this era\'s petal.') }] },
   ] };
-// the final boss sets its own numbers (dungeon.js bossTier): Lv 95 whatever the team's level, a long fight where dodging
-// decides everything. A team that already has Arceus (it joined in the 1950 finale of older versions) gets no second one.
-const ARCEUS = { sp: 493, lv: 95, lvMin: 95, lvUp: 0, hp: 7.5, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: ARCEUS_REVIVE,
+// the final boss sets its own numbers (dungeon.js bossTier): its level follows the team's like any boss's, from Lv 70 up
+// to Lv 180, a long fight where dodging decides everything. A team that already has Arceus (it joined in the 1950
+// finale of older versions) gets no second one.
+const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 7.5, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: ARCEUS_REVIVE,
   get noJoin() { return !!S.flags.got_493; },
   say: [
     { who: 'narr', text: '눈부신 빛 속에서, 거대한 포켓몬이 천천히 고개를 들었다.' },

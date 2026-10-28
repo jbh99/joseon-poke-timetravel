@@ -230,7 +230,7 @@
 
       <h2>진행 방법</h2>
       <ul>
-        <li><b>마을</b>: 머리 위의 <b style="color:var(--red)">빨간 !</b>는 메인 퀘스트, <b style="color:var(--blue)">파란 !</b>는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), <b>엽전 표지</b>는 장사꾼, <b>국밥 표지</b>는 주막 주인입니다. 주막(회복·저장·동료 명부), 장터(도구), 방(榜, 의뢰 게시판)이 있고, 큰 중심 마을과 함께 <b>두 번째 마을</b>이 있는 시대도 많습니다.</li>
+        <li><b>마을</b>: 머리 위의 <b style="color:var(--red)">빨간 !</b>는 메인 퀘스트, <b style="color:var(--blue)">파란 !</b>는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), <b>엽전 표지</b>는 장사꾼, <b>국밥 표지</b>는 주막 주인, <b style="color:#6a3aa8">보라색 디스크 표지</b>는 기술머신 상인입니다. 주막(회복·저장·동료 명부), 장터(도구), 기술머신 상인(사는 자리에서 기술을 가르쳐 줌, 1000냥·센 기술 3000냥), 방(榜, 의뢰 게시판)이 있고, 큰 중심 마을과 함께 <b>두 번째 마을</b>이 있는 시대도 많습니다.</li>
         <li><b>펄 마을</b>: 1887 제물포(운하시티), 1905 한성(연고시티), 1940 경성(무쇠시티), 1950 흥남(선단시티)과 서울 시가전(장막시티), 1979 서울(들판시티)은 「포켓몬스터 펄」의 실제 마을 배치(길, 건물 자리, 물, 문)를 롬에서 읽어 그대로 본떠 만들었습니다.</li>
         <li><b>순사</b>: 일제 강점기(1919·1940)의 마을에 들어갈 때마다 순사가 다가와 엽전 50냥을 빼앗아 갑니다 (한 번 들어갈 때 한 번).</li>
         <li><b>세계 지도</b>: 마을 출구로 나가면 열립니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, <b style="color:var(--gold)">금색 테두리 안의 포켓몬</b>은 그곳에 있는 전설의 포켓몬입니다.</li>
@@ -243,7 +243,8 @@
       <h2>던전 전투와 난이도</h2>
       <ul>
         <li>내가 한 번 움직이면 적도 한 번 움직이는 턴제입니다. 파트너와 동료는 알아서 싸워요.</li>
-        <li><b>물리 기술</b>은 바로 앞 한 칸, <b>특수 기술</b>은 바라보는 방향 직선 6칸, "주변 전체" 기술은 둘레 8칸을 공격합니다.</li>
+        <li>우리 편 기술은 <b>3칸 안에 적</b>이 있으면 방향과 상관없이 그 적을 노려 <b>반드시 맞힙니다</b>. 더 멀면 <b>물리 기술</b>은 바로 앞 한 칸, <b>특수 기술</b>은 바라보는 방향 직선 6칸으로 나갑니다. "주변 전체" 기술은 둘레 8칸을 공격하고, 보스의 기술과 예고 공격은 보스에게서 <b>4칸</b>까지만 닿아요.</li>
+        <li><b>보스방</b>에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 그 밖에는 장터의 <b>기력의 조각</b>(1000냥)으로 던전 한 번에 한 마리를 되살릴 수 있어요.</li>
         <li><b>초반은 쉽게, 중반부터 어렵게</b>: 앞쪽 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며 회복이 느려져요.</li>
         <li><b>엽전</b>: 쓰러뜨린 적(레벨이 높을수록 많이, 보스는 10배), 바닥에 떨어진 엽전, <b>던전 클리어 보상</b>(층수 × 시대), 방(榜) 의뢰 보상으로 모읍니다.</li>
         <li><b>셋이 모두 쓰러져야</b> 실패입니다. 조종하던 포켓몬이 쓰러지면 남은 동료가 앞장서고, 던전을 클리어하면 쓰러졌던 동료도 기운을 되찾아요. 모두 쓰러지면 마을로 돌아오고 엽전을 잃습니다 (초반 10% → 후반 30%).</li>
@@ -257,7 +258,7 @@
       <ul>
         <li>바닥이 <b style="color:var(--red)">붉게 빛나는 칸</b>에는 곧 강력한 공격이 떨어집니다. 남은 턴 안에 붉은 칸 밖으로 이동하세요.</li>
         <li>큰 기술을 쓴 직후 보스에게는 <b style="color:var(--green)">빈틈</b>이 생겨 받는 피해가 <b>1.5배</b>가 됩니다. 피하고 → 반격하는 리듬이 핵심입니다.</li>
-        <li><b>600족</b>(한카리아스·보만다·메타그로스·마기라스·망나뇽) 보스는 전설의 포켓몬보다 <b>15%쯤 약한</b> 강적이고 (레벨 +2, 체력·공격·예고 공격이 전설의 85%), <b>아르세우스</b>는 1979년 12·12 뒤 <b>마지막 퀘스트</b>에서 만나는 <b>레벨 95</b>, 체력이 매우 높은 3단계 최종 보스입니다. 쓰러뜨려도 <b>황금빛 이로치</b>로 다시 일어나는 <b>2페이즈</b>가 있어요 (체력은 처음의 2/3, 공격과 예고 패턴이 더 거셈).</li>
+        <li><b>600족</b>(한카리아스·보만다·메타그로스·마기라스·망나뇽) 보스는 전설의 포켓몬보다 <b>15%쯤 약한</b> 강적이고 (레벨 +2, 체력·공격·예고 공격이 전설의 85%), <b>아르세우스</b>는 1979년 12·12 뒤 <b>마지막 퀘스트</b>에서 만나는 3단계 최종 보스로, 레벨이 <b>내 팀 레벨에 맞춰지고</b>(최대 180) 체력이 매우 높습니다. 쓰러뜨려도 <b>황금빛 이로치</b>로 다시 일어나는 <b>2페이즈</b>가 있어요 (체력은 처음의 2/3, 공격과 예고 패턴이 더 거셈).</li>
         <li><b>펄기아·디아루가·기라티나</b>도 쓰러뜨리면 <b>오리진폼</b>으로 변해 2페이즈를 시작합니다 (체력 2/3, 더 강한 공격과 겹치는 패턴). 1919년 디아루가와 1940년 기라티나는 메인 보스라 꼭 이겨야 해요.</li>
         <li><b>기라티나</b>는 고스트·드래곤 타입이라 격투 기술은 아예 안 듣고 물·불꽃 기술은 반감돼요. 1388년에 동료가 되는 <b>프리저</b>(얼음)처럼 얼음·드래곤·고스트·악 기술을 쓰는 동료를 데려가세요.</li>
         <li><b>썬더·파이어·프리져</b>는 같은 시대 보스 중 가장 강합니다. 체력이 보통 보스의 약 10배이고 공격도 매우 아파서, 예고 공격을 피하고 회복 도구를 챙겨야 합니다. 어렵다면 레벨을 올려 다시 도전하세요 (전설의 레벨은 일정 이상 오르지 않아요).</li>
@@ -268,19 +269,19 @@
         <tr><td>676 나당 전쟁</td><td>매소성 (메인) · 대왕암 (선택)</td><td>썬더 · 루기아</td></tr>
         <tr><td>1232 대몽 항쟁</td><td>황룡사 (메인)</td><td>파이어</td></tr>
         <tr><td>1388 위화도 회군</td><td>위화도 (메인)</td><td>프리져</td></tr>
-        <tr><td>1592 임진왜란</td><td>울돌목 2층 · 노량 (메인)</td><td>아그놈 · 갸라도스</td></tr>
-        <tr><td>1636 · 1794</td><td>얼음 신전 (선택) · 채석장 2층 (메인)</td><td>레지기가스 · 유크시</td></tr>
+        <tr><td>1592 임진왜란</td><td>울돌목 2층 (메인을 깬 뒤 다시 가면) · 노량 (메인)</td><td>아그놈 · 갸라도스</td></tr>
+        <tr><td>1636 · 1794</td><td>얼음 신전 (선택) · 채석장 2층 (메인을 깬 뒤)</td><td>레지기가스 · 유크시</td></tr>
         <tr><td>1866 양요</td><td>정족산성 (메인) · 달빛 섬 (선택)</td><td>가디안 · 크레세리아</td></tr>
         <tr><td>1887 대한제국</td><td>발전소 (메인) · 소원의 시계탑 (선택)</td><td><b>메타그로스</b> · 지라치</td></tr>
         <tr><td>1905 을사늑약</td><td>경운궁 중명전 (메인)</td><td><b>뮤츠</b> (쓰러뜨리면 각성해 다시 일어나는 2페이즈)</td></tr>
-        <tr><td>1919 3·1 운동</td><td>뒷골목 2층 · 뒷골목 5층 (메인)</td><td>엠라이트 · <b>디아루가</b></td></tr>
+        <tr><td>1919 3·1 운동</td><td>뒷골목 2층 (메인을 깬 뒤) · 뒷골목 5층 (메인)</td><td>엠라이트 · <b>디아루가</b></td></tr>
         <tr><td>1920 독립군</td><td>천지 화구 (선택)</td><td>히드런</td></tr>
-        <tr><td>1940 민족 말살 통치</td><td>반전세계 3층 · 5층 (메인)</td><td>다크라이 · <b>기라티나</b></td></tr>
+        <tr><td>1940 민족 말살 통치</td><td>반전세계 3층 (메인을 깬 뒤) · 5층 (메인)</td><td>다크라이 · <b>기라티나</b></td></tr>
         <tr><td>1945 광복</td><td>시간의 틈 (메인)</td><td>펄기아</td></tr>
         <tr><td>1945 이후</td><td>마을의 강철 거인 · 바위굴 2층 · 얼음굴 2층 · 선단신전 2층</td><td>레지스틸 · 레지락 · 레지아이스 · <b>레지기가스</b></td></tr>
         <tr><td>1950–53 한국 전쟁</td><td>서울 시가전 · 낙동강 · 백마고지 (선택) · 판문점</td><td>그란돈 · 가이오가 · <b>한카리아스</b> · 마기라스 · <b>보만다</b></td></tr>
         <tr><td>1950 서울 시가전 뒤</td><td>하늘기둥 2층 (선택)</td><td>레쿠쟈 → 테오키스</td></tr>
-        <tr><td>1979 10·26과 12·12</td><td>12월 12일 밤의 서울 (마을 전투) · 시작의 하늘 (마지막 퀘스트)</td><td><b>다크라이</b> · <b>아르세우스</b> (Lv 95)</td></tr>
+        <tr><td>1979 10·26과 12·12</td><td>12월 12일 밤의 서울 (마을 전투) · 시작의 하늘 (마지막 퀘스트)</td><td><b>다크라이</b> · <b>아르세우스</b> (팀 레벨)</td></tr>
       </table>
       <ul>
         <li><b>밀정 찾기 (1920)</b>: 청산리 대첩 뒤 독립군 기지에 숨은 밀정을 찾습니다. 전령이 알려 주는 <b>타입</b>과 대략의 <b>몸무게</b>를 실마리로, 그 타입의 포켓몬들을 저울에 달아 보고 밀정을 지목하세요. 잘못 지목하면 3년, 던전에 다녀올 때마다 1년이 흐르고, <b>1930년</b>이 되도록 못 잡으면 경찰이 기지를 덮쳐 포켓몬이 모두 쓰러지고 처음부터 다시 찾아야 합니다.</li>
@@ -356,7 +357,7 @@
 
       <h2>How to play</h2>
       <ul>
-        <li><b>Towns</b>: a <b style="color:var(--red)">red !</b> above someone's head means your main quest, a <b style="color:var(--blue)">blue !</b> a request (the crier with a new or finished one, or someone waiting for a delivery), a <b>coin sign</b> the merchant and a <b>soup-bowl sign</b> the innkeeper. Every town has an inn (heal, save, roster), a market and a notice board. Many eras also have a <b>second town</b> next to the big main town.</li>
+        <li><b>Towns</b>: a <b style="color:var(--red)">red !</b> above someone's head means your main quest, a <b style="color:var(--blue)">blue !</b> a request (the crier with a new or finished one, or someone waiting for a delivery), a <b>coin sign</b> the merchant, a <b>soup-bowl sign</b> the innkeeper and a <b style="color:#6a3aa8">purple disc sign</b> the TM dealer, who teaches a TM's move right where you buy it (1000 nyang, strong moves 3000). Every town has an inn (heal, save, roster), a market and a notice board. Many eras also have a <b>second town</b> next to the big main town.</li>
         <li><b>Pearl towns</b>: Jemulpo 1887 (Canalave), Hanseong 1905 (Hearthome), Gyeongseong 1940 (Oreburgh), Hungnam 1950 and the battle for Seoul (Snowpoint, Veilstone), and Seoul 1979 (Pastoria) copy the real layouts of Pokémon Pearl's towns (paths, building lots, water, doors), read from the ROM.</li>
         <li><b>Colonial police</b>: each time you enter a town under colonial rule (1919, 1940) a constable walks up and takes 50 nyang (once per visit).</li>
         <li><b>World map</b>: red marks are the main quest, blue marks are requests you took, and a Pokémon in a <b style="color:var(--gold)">gold ring</b> is the legendary Pokémon waiting there.</li>
@@ -369,7 +370,8 @@
       <h2>Dungeon battles and difficulty</h2>
       <ul>
         <li>Turn-based: every time you act, the foes act once. Your partner and ally fight on their own.</li>
-        <li><b>Physical moves</b> hit the tile in front, <b>special moves</b> travel 6 tiles in a straight line, and "all around" moves hit all 8 neighbors.</li>
+        <li>Your team's moves turn to <b>any foe within 3 tiles</b>, whichever way you face, and <b>always hit</b>; farther off, <b>physical moves</b> hit the tile in front and <b>special moves</b> travel 6 tiles in a straight line. "All around" moves hit all 8 neighbors, and a boss's moves and warning blasts reach <b>4 tiles</b> at most.</li>
+        <li>Stepping into a <b>boss room</b> brings fallen teammates back with half their HP; otherwise a <b>Revive</b> from the market (1000 nyang) gets one back up, once per dungeon run.</li>
         <li><b>Easy at first, hard from the middle on</b>: early eras field fewer, weaker foes and you heal quickly. Later eras bring more foes, harder hits and slower recovery.</li>
         <li><b>Coins</b> come from defeated foes (more for higher levels, 10x for bosses), coins on the floor, a <b>dungeon-clear reward</b> (floors × era) and notice-board requests.</li>
         <li>A run only fails once <b>all three are down</b>. When the one you control faints, the next one standing takes the lead, and clearing the dungeon gets the fallen back on their feet. A wipe sends you back to town and costs some coins (10% early, up to 30% late).</li>
@@ -383,7 +385,7 @@
       <ul>
         <li>Tiles that <b style="color:var(--red)">glow red</b> are about to be hit hard. Step off them before the turn count runs out.</li>
         <li>Right after a big move the boss is <b style="color:var(--green)">open</b> and takes <b>1.5x damage</b>. Dodge, then strike back.</li>
-        <li>The <b>600-class</b> bosses (Garchomp, Salamence, Metagross, Tyranitar, Dragonite) fight <b>about 15% below a legend</b> (+2 levels; HP, attack and warning blasts at 85% of a legend's); <b>Arceus</b> is the three-phase final boss at <b>Lv 95</b> with a huge HP pool, met in the <b>last quest</b> after December 12, 1979. Knock it out and it rises again <b>golden (Shiny)</b> for a <b>second phase</b> with 2/3 of its HP and harsher attacks and warning patterns.</li>
+        <li>The <b>600-class</b> bosses (Garchomp, Salamence, Metagross, Tyranitar, Dragonite) fight <b>about 15% below a legend</b> (+2 levels; HP, attack and warning blasts at 85% of a legend's); <b>Arceus</b> is the three-phase final boss whose level <b>follows your team's</b> (up to 180), with a huge HP pool, met in the <b>last quest</b> after December 12, 1979. Knock it out and it rises again <b>golden (Shiny)</b> for a <b>second phase</b> with 2/3 of its HP and harsher attacks and warning patterns.</li>
         <li><b>Palkia, Dialga and Giratina</b> also take their <b>Origin Forme</b> once knocked out and start a second phase (2/3 HP, harder hits, overlapping patterns). Dialga (1919) and Giratina (1940) are main-story bosses you must beat.</li>
         <li><b>Giratina</b> is Ghost/Dragon: Fighting moves don't touch it and Water or Fire moves are resisted. Bring partners with Ice, Dragon, Ghost or Dark moves, such as <b>Articuno</b>, who joins you in 1388.</li>
         <li><b>Zapdos, Moltres and Articuno</b> are the toughest bosses of their eras, with about ten times a normal boss's HP and very painful attacks. Dodge the warning attacks and bring healing items; if it's too hard, level up and try again (legendaries stop at a set level).</li>
@@ -394,19 +396,19 @@
         <tr><td>676 Silla-Tang War</td><td>Maeso Fortress (main) · Daewangam (optional)</td><td>Zapdos · Lugia</td></tr>
         <tr><td>1232 Mongol invasions</td><td>Hwangnyongsa (main)</td><td>Moltres</td></tr>
         <tr><td>1388 Wihwado</td><td>Wihwado (main)</td><td>Articuno</td></tr>
-        <tr><td>1592 Imjin War</td><td>Uldolmok F2 · Noryang (main)</td><td>Azelf · Gyarados</td></tr>
-        <tr><td>1636 · 1794</td><td>Ice Temple (optional) · Quarry F2 (main)</td><td>Regigigas · Uxie</td></tr>
+        <tr><td>1592 Imjin War</td><td>Uldolmok F2 (after the main run) · Noryang (main)</td><td>Azelf · Gyarados</td></tr>
+        <tr><td>1636 · 1794</td><td>Ice Temple (optional) · Quarry F2 (after the main run)</td><td>Regigigas · Uxie</td></tr>
         <tr><td>1866 Western incursions</td><td>Jeongjok Fortress (main) · Moonlit Isle (optional)</td><td>Gardevoir · Cresselia</td></tr>
         <tr><td>1887 Korean Empire</td><td>Power plant (main) · Wishing Clock Tower (optional)</td><td><b>Metagross</b> · Jirachi</td></tr>
         <tr><td>1905 Eulsa Treaty</td><td>Jungmyeongjeon Hall (main)</td><td><b>Mewtwo</b> (rises again Awakened for a second phase)</td></tr>
-        <tr><td>1919 March 1st Movement</td><td>Back alleys F2 · F5 (main)</td><td>Mesprit · <b>Dialga</b></td></tr>
+        <tr><td>1919 March 1st Movement</td><td>Back alleys F2 (after the main run) · F5 (main)</td><td>Mesprit · <b>Dialga</b></td></tr>
         <tr><td>1920 Independence Army</td><td>Heaven Lake crater (optional)</td><td>Heatran</td></tr>
-        <tr><td>1940 Erasing a People</td><td>Distortion World F3 · F5 (main)</td><td>Darkrai · <b>Giratina</b></td></tr>
+        <tr><td>1940 Erasing a People</td><td>Distortion World F3 (after the main run) · F5 (main)</td><td>Darkrai · <b>Giratina</b></td></tr>
         <tr><td>1945 Liberation</td><td>Rift of Time (main)</td><td>Palkia</td></tr>
         <tr><td>After 1945</td><td>The steel giant in town · rock cave F2 · ice cave F2 · Snowpoint Temple F2</td><td>Registeel · Regirock · Regice · <b>Regigigas</b></td></tr>
         <tr><td>1950–53 Korean War</td><td>Battle for Seoul · Nakdong · White Horse Hill (optional) · Panmunjom</td><td>Groudon · Kyogre · <b>Garchomp</b> · Tyranitar · <b>Salamence</b></td></tr>
         <tr><td>After the battle for Seoul</td><td>Sky Pillar F2 (optional)</td><td>Rayquaza → Deoxys</td></tr>
-        <tr><td>1979 October 26 and December 12</td><td>Seoul on the night of December 12 (town battle) · Sky of Beginnings (last quest)</td><td><b>Darkrai</b> · <b>Arceus</b> (Lv 95)</td></tr>
+        <tr><td>1979 October 26 and December 12</td><td>Seoul on the night of December 12 (town battle) · Sky of Beginnings (last quest)</td><td><b>Darkrai</b> · <b>Arceus</b> (your team's level)</td></tr>
       </table>
       <ul>
         <li><b>The spy (1920)</b>: after Cheongsan-ri, find the spy hiding in the independence army's base. The messenger tells you its <b>type</b> and roughly its <b>weight</b>; weigh the Pokémon of that type and accuse one. A wrong accusation costs three years and every dungeon trip one; miss <b>1930</b> and the police storm the base, your Pokémon go down, and the hunt starts over.</li>

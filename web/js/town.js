@@ -1,11 +1,11 @@
 // Hub town for the current era: generated tile map + Blender-rendered buildings + NPCs.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL } from './game.js';
+import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL, TMS, tmPrice, tmFits, moveUsable } from './game.js';
 import { ERAS, QITEMS, CELEBI } from './content.js';
 import { tr } from './i18n.js';
 import { hasPmdSprite, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
-import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons } from './quests.js';
+import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons, forgetMenu, moveInfo } from './quests.js';
 
 export let BLD = {};
 export function setBuildings(b) { BLD = b; }
@@ -246,6 +246,7 @@ export class Town {
     const r = this.roles();
     this.addNpc(r.inn, r.innName);
     this.addNpc(r.shop, r.shopName);
+    this.addNpc(r.tm, r.tmName);
     if (main) this.addNpc(r.crier, r.crierName);
     // a few villagers who wander and share travel tips
     r.folk.forEach((n) => this.addNpc(n));
@@ -261,7 +262,9 @@ export class Town {
       inn: { id: 'innkeeper', sp: inn, x: 6, y: 13, role: 'inn' }, innName: () => tr('주막 ', 'Innkeeper ') + DEX.species[inn].name,
       shop: { id: 'merchant', sp: shop, x: 15, y: 16, role: 'shop' }, shopName: () => tr('장사꾼 ', 'Merchant ') + DEX.species[shop].name,
       crier: { id: 'crier', sp: 441, x: 16, y: 11, role: 'board' }, crierName: () => tr('방꾼 페라페', 'Crier Chatot'),
-      folk: folk.slice(0, main ? 4 : 2).map((sp, k) => ({ id: `folk${k}`, sp, x: [4, 31, 11, 28][k], y: [19, 20, 24, 8][k], wander: 3, folk: k })),
+      // the first villager deals in TMs (tmMenu), standing by the merchant under a purple disc sign
+      tm: { id: 'tmdealer', sp: folk[0], x: 18, y: 16, role: 'tm' }, tmName: () => tr('기술머신 상인 ', 'TM Dealer ') + DEX.species[folk[0]].name,
+      folk: folk.slice(1, main ? 4 : 2).map((sp, j) => ({ id: `folk${j + 1}`, sp, x: [31, 11, 28][j], y: [20, 24, 8][j], wander: 3, folk: j + 1 })),
     };
   }
   // names are functions of the current language so a live language switch can relabel them; `at` overrides the
@@ -444,6 +447,7 @@ export class Town {
       const r = this.roles();
       this.addNpc(r.inn, r.innName, innAt);
       this.addNpc(r.shop, r.shopName, shopAt);
+      this.addNpc(r.tm, r.tmName, [shopAt[0] + 3, shopAt[1]]);
       if (main) this.addNpc(r.crier, r.crierName, this.gate ? [this.gate.tx - 2, this.gate.ty + 1] : nextSpot());
       r.folk.forEach((n) => this.addNpc(n, null, nextSpot()));
     }
@@ -585,6 +589,7 @@ export class Town {
       npc.face = this.px > npc.x ? 'right' : 'left';
       if (npc.role === 'inn') return this.innMenu(npc);
       if (npc.role === 'shop') return this.shopMenu(npc);
+      if (npc.role === 'tm') return this.tmMenu(npc);
       if (npc.role === 'board') return boardMenu(npc);
       if (npc.role === 'regi') return this.regiTalk(npc);
       if (npc.role === 'lati') return this.latiTalk();
@@ -671,6 +676,29 @@ export class Town {
       setTimeout(() => toast(ok ? tr('모두 기운을 되찾았다! 기록을 남겼다.', 'Everyone is refreshed! Game saved.') : tr('기운을 되찾았다! (기록 실패: 브라우저 저장소를 확인하세요)', 'Refreshed! (Save failed: check browser storage)'), ok ? COL.ink : COL.red), 300);
     } }]);
   }
+  // the TM dealer: a TM is bought and taught on the spot to a team member who can use it (game.js tmFits); the money
+  // goes only once the move is learned (a full set of four forgets one first, quests.js forgetMenu)
+  tmMenu(npc) {
+    const stock = TMS.map((move, i) => ({ move, no: `TM${String(i + 1).padStart(2, '0')}` }))
+      .filter(({ move }) => moveUsable(move) && (DEX.moves[move].cat === 2 || DEX.moves[move].power > 1)); // no level-based damage
+    const learns = (m, move) => tmFits(m, move) && !m.moves.some((x) => x.id === move);
+    const teach = (move, no) => {
+      const price = tmPrice(move), name = DEX.moves[move].name;
+      if (S.money < price) { toast(tr('엽전이 모자라다.', 'Not enough coins.'), COL.red); sfx('cancel'); return; }
+      openMenu(S.party.map((m) => {
+        const knows = m.moves.some((x) => x.id === move);
+        return { label: m.name, right: knows ? tr('이미 앎', 'Knows it') : learns(m, move) ? tr('배울 수 있다', 'Can learn') : tr('배울 수 없다', 'Can\'t learn'), disabled: !learns(m, move), fn: () => {
+          const pay = () => { S.money -= price; jingle('fanfa1'); toast(tr(`${price}냥을 내고 ${m.name}에게 ${name}을(를) 가르쳤다! (남은 돈 ${S.money}냥)`, `Paid ${price} nyang: ${m.name} learned ${name}! (${S.money} nyang left)`), COL.green); };
+          if (m.moves.length < 4) { m.learn(move); pay(); } else forgetMenu(m, move, toast, (ok) => ok && pay());
+        } };
+      }), { title: tr(`${no} ${name} · 누구에게?`, `${no} ${name} · Teach whom?`), x: 150, y: 70, w: 210 });
+    };
+    say([{ who: npc.sp, name: npc.name, text: tr('기술머신 보고 가세요! 사는 자리에서 바로 가르쳐 드려요. 센 기술은 3000냥, 나머지는 1000냥이에요.', 'TMs for sale! I teach the move right where you buy it. Strong moves are 3000 nyang, the rest 1000.') }], () => openMenu(stock.map(({ move, no }) => {
+      const d = DEX.moves[move], can = S.party.filter((m) => learns(m, move)).map((m) => m.name);
+      return { label: `${no} ${d.name}`, right: tr(`${tmPrice(move)}냥`, `${tmPrice(move)} ny`), fn: () => teach(move, no),
+        desc: `${moveInfo(move)} · ${can.length ? tr(`배울 수 있다: ${can.join(', ')}`, `Can learn: ${can.join(', ')}`) : tr('파티에 배울 수 있는 포켓몬이 없다', 'No one in the team can learn it')}` };
+    }), { title: tr(`기술머신 · ${S.money}냥`, `TMs · ${S.money} nyang`), desc: true, keep: true, x: 110, y: 30, w: 260 }));
+  }
   shopMenu(npc) {
     const buy = () => openMenu(SHOP.map((id) => ({ label: ITEMS[id].name, right: tr(`${ITEMS[id].price}냥`, `${ITEMS[id].price} ny`), desc: tr(`${ITEMS[id].desc} (보유 ${countItem(id)})`, `${ITEMS[id].desc} (have ${countItem(id)})`), fn: () => {
       if (S.money < ITEMS[id].price) { toast(tr('엽전이 모자라다.', 'Not enough coins.'), COL.red); sfx('cancel'); return; }
@@ -751,18 +779,28 @@ export class Town {
     return !!st && ['talk', 'battle', 'spy'].includes(st.do) && st.npc === n.id;
   }
   // what floats above an NPC: red ! for the main quest, blue ! for requests (the crier with a new or finished one,
-  // a delivery's recipient while you carry it), a coin sign over the merchant and a bowl over the innkeeper
+  // a delivery's recipient while you carry it), a coin sign over the merchant, a bowl over the innkeeper and a purple disc over the TM dealer
   markOf(n) {
     if (this.isQuestNpc(n)) return 'main';
     const side = this.era.side || [];
     if (n.role === 'board' && side.some((q) => ['open', 'ready'].includes(sideState(q)))) return 'side';
     if (side.some((q) => q.kind === 'deliver' && q.to === n.id && S.side[q.id] === 'active' && countItem(q.item))) return 'side';
     if (n.role === 'shop') return 'shop';
+    if (n.role === 'tm') return 'tm';
     if (n.role === 'inn') return 'inn';
     return null;
   }
   drawSign(c, x, y, kind) {
     const by = Math.round(y + Math.sin(G.time * 3 + x) * 1);
+    if (kind === 'tm') { // a TM disc on a bigger purple plate, unlike the parchment signs
+      c.fillStyle = COL.ink; c.fillRect(x - 9, by - 8, 18, 16);
+      c.fillStyle = '#6a3aa8'; c.fillRect(x - 8, by - 7, 16, 14);
+      c.fillStyle = '#efe8ff'; c.beginPath(); c.arc(x, by, 5.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#a77ef0'; c.beginPath(); c.arc(x, by, 4.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#fff'; c.fillRect(x - 3, by - 3, 2, 1); c.fillRect(x - 3, by - 2, 1, 1);
+      c.fillStyle = '#6a3aa8'; c.beginPath(); c.arc(x, by, 1.5, 0, Math.PI * 2); c.fill();
+      return;
+    }
     c.fillStyle = COL.ink; c.fillRect(x - 7, by - 6, 14, 12);
     c.fillStyle = '#f3e6c4'; c.fillRect(x - 6, by - 5, 12, 10);
     if (kind === 'shop') { // a brass coin with its square hole (yeopjeon)

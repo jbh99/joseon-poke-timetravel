@@ -137,7 +137,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 1940 | 민족 말살 통치 | 경성(1940) / 충칭 · 임시정부 | 반전세계 | 다크라이, **기라티나** |
 | 1945 | 광복 | 서울 | 시간의 틈 · 얄타·포츠담 회담과 분단(이야기) · 진영 선택 | **펄기아** |
 | 1950 | 한국 전쟁 | 진영에 따라 다름 | 서울 시가전, 낙동강, 해전, 장진호, 판문점, 하늘기둥(서울 시가전 뒤) | 그란돈/가이오가, **한카리아스**, **보만다**, 레쿠쟈 → 테오키스 |
-| 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **시작의 하늘(마지막 퀘스트)** | **다크라이**, **아르세우스(Lv95)** |
+| 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **시작의 하늘(마지막 퀘스트)** | **다크라이**, **아르세우스(팀 레벨)** |
 
 ## 게임 요소
 
@@ -149,7 +149,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **일반 보스**: 1200년부터 체력이 30% 늘어나고, 우리 팀이 성장하면 보스 레벨도 함께 오릅니다.
 
 ### 2페이즈
-- **아르세우스**(최종 보스, **Lv95**): 1979년 12·12 뒤 **마지막 퀘스트**인 「시작의 하늘」 5층에서 기다립니다. 쓰러뜨리면 **황금빛 이로치**로 다시 일어납니다. 체력은 처음의 2/3이고, 공격과 예고 패턴이 훨씬 거세집니다.
+- **아르세우스**(최종 보스): 1979년 12·12 뒤 **마지막 퀘스트**인 「시작의 하늘」 5층에서 기다립니다. 레벨은 고정이 아니라 **내 팀의 레벨에 맞춰** 정해집니다(최소 70, 최대 180). 쓰러뜨리면 **황금빛 이로치**로 다시 일어납니다. 체력은 처음의 2/3이고, 공격과 예고 패턴이 훨씬 거세집니다.
 - **레쿠쟈**: 쓰러뜨리면 **메가레쿠쟈**로 다시 일어나 유성을 불러냅니다.
 - **테오키스**: 노말폼으로 싸우다 체력이 반 아래로 내려가면 **어택폼**으로, 쓰러뜨리면 **스피드폼**으로 다시 일어납니다 (공격이 잘 맞지 않음).
 - **디아루가(1919) · 기라티나(1940) · 펄기아(1945)**: 쓰러뜨리면 **오리진폼**으로 변해 2페이즈를 시작합니다.
@@ -159,7 +159,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 파티와 동료 명부의 물 타입이 자동으로 타고, 모자라면 수군이 빌려줍니다. 첫 시대에 리아코와 물짱이를 받습니다.
 
 ### 새로 생긴 이야기와 장치
-- **마을 표시**: 빨간 `!`는 메인 퀘스트, 파란 `!`는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), 엽전 표지는 장사꾼, 국밥 표지는 주막 주인입니다.
+- **마을 표시**: 빨간 `!`는 메인 퀘스트, 파란 `!`는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), 엽전 표지는 장사꾼, 국밥 표지는 주막 주인, 보라색 디스크 표지는 기술머신 상인입니다.
 - **펄 마을**: 1887 제물포(운하시티), 1905 한성(연고시티), 1940 경성(무쇠시티), 1950 흥남(선단시티)과 서울 시가전(장막시티), 1979 서울(들판시티)은 「포켓몬스터 펄」 롬의 실제 마을 배치(이동 가능한 칸, 건물 자리, 물, 문, NPC 자리)를 읽어 본떠 만들었습니다 (`tools/pearl_maps.py`).
 - **순사 (1919·1940)**: 일제 강점기 마을에 들어갈 때마다 순사가 다가와 엽전 50냥을 빼앗아 갑니다.
 - **밀정 찾기 (1920)**: 전령이 알려 주는 타입과 대략의 몸무게로, 그 타입 포켓몬들을 저울에 달아 밀정을 지목합니다. 잘못 지목하면 3년, 던전에 다녀오면 1년이 흐르고, 1930년까지 못 잡으면 경찰이 기지를 덮쳐 포켓몬이 모두 쓰러지고 처음부터 다시 찾습니다.
@@ -189,13 +189,17 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
 - **기술 배우기**: 레벨이 올라 새 기술을 배울 때 기술이 이미 4개면, 본편 포켓몬처럼 **잊을 기술을 고르거나 배우지 않을** 수 있습니다. 마을에서 X 메뉴 → **포켓몬** → Z → **기술 배우기**를 고르면 지금 레벨까지 배우는 기술을 언제든 배웁니다. 잊었거나 건너뛴 기술도 여기서 다시 배우고, 앞으로 배울 기술과 그 레벨도 볼 수 있습니다.
 - **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다. 독·화상·마비 같은 **상태 이상**은 마을에 돌아오면 모두 낫습니다.
+- **기술 조준**: 우리 편 기술은 3칸 안에 적이 있으면 방향과 상관없이 그 적을 노려 **반드시 맞힙니다**. 더 멀면 바라보는 방향으로 나갑니다.
+- **보스방 부활**: 보스가 있는 층에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 보스의 기술과 예고 공격은 보스에게서 4칸까지만 닿습니다.
+- **중간 보스**: 울돌목(아그놈)·채석장(유크시)·발전소(에레키블)·뒷골목(엠라이트)·반전세계(다크라이)는 메인 퀘스트 때 마지막 보스만 나옵니다. 중간 보스는 메인을 깬 뒤 그 맵에 다시 가면 만나는 선택 전투이고, 한 번 이기면 다시 나오지 않습니다.
 - **태그(Tab)**: 던전에서 조종하는 포켓몬을 다음 동료로 바꿉니다. 턴을 쓰지 않습니다. 조종하던 포켓몬이 쓰러지면 남은 동료가 앞장서고, **셋이 모두 쓰러져야** 탐험이 실패합니다. 던전을 클리어하면 쓰러졌던 동료도 기운을 되찾습니다.
 - **1층에서 나가기**: 아직 1층이라면 X 메뉴 → **던전에서 나가기**로 대가 없이 되돌아 나올 수 있습니다.
 
 ### 엽전과 상점
 - 엽전은 쓰러뜨린 적(레벨이 높을수록 많이, 보스는 10배), 바닥에 떨어진 엽전, **던전 클리어 보상**(층수 × 시대), 방(榜) 의뢰 보상으로 모읍니다.
 - 셋이 모두 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다.
-- 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 절반), 주먹밥(HP 80 + 상태 이상 회복), 약초(상태 이상), 인삼(PP 회복), 탈출 부적, 돌팔매.
+- 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 절반 + 상태 이상 회복), 주먹밥(HP 80 + 상태 이상 회복), 약초(상태 이상), 인삼(PP 회복), 탈출 부적, 돌팔매, 기력의 조각(1000냥: 쓰러진 포켓몬을 HP 절반으로 되살림, 던전 한 번에 하나).
+- **기술머신**: 마을마다 보라색 디스크 표지를 단 **기술머신 상인**이 있습니다. 4세대 기술머신 가운데 이 게임에서 쓸 수 있는 55개를 팔고, 사는 자리에서 바로 가르쳐 줍니다(기술이 4개면 하나를 잊음). 센 기술(위력 80 이상)은 3000냥, 나머지는 1000냥입니다. 포켓몬 자신의 타입, 레벨업으로 배우는 기술의 타입, 노말 타입 기술머신을 쓸 수 있습니다.
 
 ### 난이도
 초반 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며, 회복도 느려집니다. 보스는 시대가 갈수록 더 강해지고, 후반 전설은 회복 도구와 타입 상성을 챙겨야 이길 수 있습니다.
@@ -293,7 +297,7 @@ docs/screenshots/       README 스크린샷
 - **Features**:
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
-  - Arceus (Lv 95) is the last quest, after December 12, 1979, and turns golden for a second phase; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
+  - Arceus (its level follows the team's, up to Lv 180) is the last quest, after December 12, 1979, and turns golden for a second phase; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
   - After the battle for Seoul (1950) the Sky Pillar appears: Rayquaza on floor 2 (Mega Rayquaza for its second phase), then Deoxys, who fights in its Normal, Attack and Speed Formes. With Deoxys, a red meteorite in town changes its Forme (Normal, Attack, Defense, or Speed, which dodges); the Formes use the PMD ROM's own sprites.
   - Regirock, Regice, Registeel and Regigigas have portraits cut from their Pearl battle sprites in the PMD style (`tools/make_portraits.py`).
   - Twenty eras now: Goguryeo's last battle at Pyongyang (668), the Eulsa Treaty (1905, Mewtwo with a second phase, the Hague envoys in the story) and October 26 / December 12, 1979 (a town battle against Darkrai, with the Hanahoe side at +15%).
@@ -303,6 +307,9 @@ docs/screenshots/       README 스크린샷
   - A run fails only when all three are down; clearing revives the fallen, and floor 1 can be left from the menu.
   - Moves work as in the main games: a level-up move that finds four moves asks which one to forget (or skips it), and in town X menu → Pokémon → Z → Learn moves teaches any move of the species' level-up list up to its level, forgotten ones too.
   - Ordinary foes (not bosses) have 80% of their HP and stats; poison takes 1/64 of max HP a turn, and every status problem is cured back in town.
+  - Your team's moves turn to any foe within 3 tiles and always hit; a boss reaches 4 tiles at most. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries also cure status problems.
+  - A story dungeon's mid-boss (Azelf, Uxie, Electivire, Mesprit, Darkrai) waits for a visit after the story run, so every run meets one boss.
+  - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 3000 nyang for strong attacks (power 80+), 1000 for the rest; a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
   - From 1200 on, foes follow your strongest Pokémon (its level to +2, +3 to +5 past Lv 45) and bosses have 30% more HP.
   - Easy, Normal and Hard difficulty; Challenge (after any ending) means no wipes and no legendary recruits.
   - Water-only naval battles; pick a side in the Korean War.
