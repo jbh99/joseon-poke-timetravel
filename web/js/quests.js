@@ -1,6 +1,6 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText, fadeTo, shuffle } from './core.js';
-import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, save, moveDesc } from './game.js';
+import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, save, moveDesc, MAX_LV } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
 import { tr } from './i18n.js';
@@ -519,8 +519,9 @@ class PartyView {
     ui.bar(x + 84, y + 71, 140, 6, m.hp, m.maxhp);
     if (m.status) ui.text(STATUS_NAME[m.status], x + 230, y + 60, { size: 9, color: COL.red });
     const lo = m.expFor(m.lv), hi = m.expNext;
-    ui.text(tr(`경험치 ${m.exp - lo}/${hi - lo}`, `Exp. ${m.exp - lo}/${hi - lo}`), x + 84, y + 82, { size: 9, color: COL.ink2 });
-    ui.bar(x + 84, y + 93, 140, 4, m.exp - lo, hi - lo);
+    const top = m.lv >= MAX_LV;
+    ui.text(top ? tr(`최대 레벨 (Lv.${MAX_LV})`, `Max level (Lv.${MAX_LV})`) : tr(`경험치 ${m.exp - lo}/${hi - lo}`, `Exp. ${m.exp - lo}/${hi - lo}`), x + 84, y + 82, { size: 9, color: COL.ink2 });
+    ui.bar(x + 84, y + 93, 140, 4, top ? 1 : m.exp - lo, top ? 1 : hi - lo);
     const evo = m.data.evo;
     if (evo) ui.text(tr(`Lv.${evo[1]}에 ${DEX.species[evo[2]].name}(으)로 진화`, `Evolves into ${DEX.species[evo[2]].name} at Lv.${evo[1]}`), x + w - 10, y + 14, { size: 9, align: 'right', color: COL.green });
     const st = tr([['공격', 'atk'], ['방어', 'def'], ['특공', 'spa'], ['특방', 'spd'], ['스피드', 'spe']], [['Atk', 'atk'], ['Def', 'def'], ['SpA', 'spa'], ['SpD', 'spd'], ['Spe', 'spe']]);

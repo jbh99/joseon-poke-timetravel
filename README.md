@@ -187,6 +187,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 명부 위쪽의 팀에서 하나를 고르면 서로 자리를 바꾸고, 명부의 포켓몬을 고르면 리더·파트너·동료 중 원하는 자리와 교체합니다. 명부의 동료는 던전에서 불러올 수 없습니다.
 - **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 · 도감 번호 · 이름 순입니다.
 - **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
+- **최대 레벨 180**: 포켓몬은 본편의 100에서 멈추지 않고 Lv 180까지 오릅니다. 아르세우스도 팀 레벨을 따라 최대 Lv 180이 됩니다.
 - **기술 배우기**: 레벨이 올라 새 기술을 배울 때 기술이 이미 4개면, 본편 포켓몬처럼 **잊을 기술을 고르거나 배우지 않을** 수 있습니다. 마을에서 X 메뉴 → **포켓몬** → Z → **기술 배우기**를 고르면 지금 레벨까지 배우는 기술을 언제든 배웁니다. 잊었거나 건너뛴 기술도 여기서 다시 배우고, 앞으로 배울 기술과 그 레벨도 볼 수 있습니다.
 - **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다. 독·화상·마비 같은 **상태 이상**은 마을에 돌아오면 모두 낫습니다.
 - **기술 조준**: 우리 편 기술은 3칸 안에 적이 있으면 방향과 상관없이 그 적을 노려 **반드시 맞힙니다**. 더 멀면 바라보는 방향으로 나갑니다.
@@ -305,6 +306,7 @@ docs/screenshots/       README 스크린샷
   - Colonial police take 50 nyang each time you enter an occupied town; in 1920 a spy must be found by type and weight before 1930.
   - After 1945: Registeel in town opens Regirock's and Regice's caves, and all three open Snowpoint Temple (Regigigas); pick one of Latias or Latios. The side is chosen in 1945; in 1950 Groudon (North) or Kyogre (South) joins with its orb for Primal Reversion.
   - A run fails only when all three are down; clearing revives the fallen, and floor 1 can be left from the menu.
+  - Pokémon grow past 100, up to Lv 180, and Arceus follows the team up to Lv 180.
   - Moves work as in the main games: a level-up move that finds four moves asks which one to forget (or skips it), and in town X menu → Pokémon → Z → Learn moves teaches any move of the species' level-up list up to its level, forgotten ones too.
   - Ordinary foes (not bosses) have 80% of their HP and stats; poison takes 1/64 of max HP a turn, and every status problem is cured back in town.
   - Your team's moves turn to any foe within 3 tiles and always hit; a boss reaches 4 tiles at most and can't be put to sleep, frozen or poisoned. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries also cure status problems.

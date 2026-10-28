@@ -68,6 +68,8 @@ export function moveDesc(id) {
 
 const STAGE = (s) => (s >= 0 ? (2 + s) / 2 : 2 / (2 - s));
 export const PRIMAL_MUL = 1.3;
+// the highest level a Pokémon reaches: the main games stop at 100, this journey goes on to 180 (Arceus follows to 180)
+export const MAX_LV = 180;
 // ordinary foes (every wild, summoned or soldier Pokémon that is not a boss) fight with 80% of their HP and every stat
 export const FOE_MUL = 0.8;
 // Deoxys' Formes, changed at the red meteorite in town (town.js meteorTalk): base stats and PMD sprite (pmd/spr/386a.png...).
@@ -129,9 +131,9 @@ export class Mon {
   // (gainExpFor asks which move to forget; a move let go stays learnable from the team screen, see learnable())
   gainExp(n) {
     const ev = [];
-    if (this.lv >= 100) return ev;
+    if (this.lv >= MAX_LV) return ev;
     this.exp += n;
-    while (this.lv < 100 && this.exp >= this.expNext) {
+    while (this.lv < MAX_LV && this.exp >= this.expNext) {
       const oldMax = this.maxhp;
       this.lv++;
       this.hp += this.maxhp - oldMax;
