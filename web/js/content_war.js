@@ -3,34 +3,16 @@
 // quest come from the chosen side (S.faction); dungeons and the finale are shared.
 import { K, T, CELEBI } from './content_k.js';
 import { S } from './game.js';
-
-const ARCEUS_TELE = [
-  { name: '심판의 뭉치', every: 2, dmg: 0.5, stagger: 1, pats: ['cross', 'x', 'target', 'near', 'ring'], type: 0, first: 2 },
-  { at: 0.66, name: '심판의 뭉치', every: 2, dmg: 0.56, stagger: 1, pats: ['star', 'rows', 'cols', 'checker', 'ring', 'quad'], type: 16, typeTo: 16, summon: 2, summonSp: [436, 343],
-    msg: '아르세우스가 용의 플레이트를 해방했다! 타입이 드래곤으로 바뀌었다!',
-    line: [{ who: 493, name: '아르세우스', text: '…아직이다. 너희가 지켜 온 마음을, 끝까지 보여 다오.' }] },
-  { at: 0.33, name: '창세의 빛', every: 1, dmg: 0.65, stagger: 1, pats: ['quad', 'random', 'checker|cross', 'ring|x', 'target|rows', 'far'], type: 17, typeTo: 17,
-    msg: '아르세우스가 어둠의 플레이트를 꺼내 들었다! 공격이 한층 거세진다!',
-    line: [{ who: 493, name: '아르세우스', text: '시간이 시작되기 전의 빛이다. 피할 수 있겠느냐!' }] },
-];
-// second page: Arceus gets back up golden (its shiny colours) with 2/3 of its HP, harder hits and double patterns
-const ARCEUS_REVIVE = { hp: 2 / 3, atk: 1.35, shiny: true, cap: 0.34, aura: '#ffd84a',
-  msg: K('아르세우스가 쓰러지지 않는다! 온몸이 황금빛으로 물들었다!', 'Arceus refuses to fall! Its whole body turns to gold!'),
-  line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('…좋다. 이것이 창조의 진짜 모습이다. 마지막까지 버텨 보아라!', '...Very well. This is the true face of creation. Hold out to the very end!') }],
-  tele: [
-    { name: K('황금 심판', 'Golden Judgment'), every: 2, dmg: 0.55, stagger: 1, pats: ['star|ring', 'checker|cross', 'quad', 'rows|x', 'cols|near', 'target|far'], type: 0, first: 2 },
-    { at: 0.5, name: K('황금 창세', 'Golden Genesis'), every: 1, dmg: 0.68, stagger: 1, pats: ['quad|target', 'random|cross', 'checker|x', 'ring|rows', 'star|far', 'cols|near'], type: 17, summon: 2, summonSp: [436, 343],
-      msg: K('황금빛 아르세우스가 모든 플레이트를 한꺼번에 해방했다!', 'Golden Arceus unleashes every plate at once!'),
-      line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('이 빛을 견뎌 낸다면… 너희에게 마지막 꽃잎을 맡기겠다.', 'Endure this light... and I will entrust you with the last petal.') }] },
-  ] };
+import { tr } from './i18n.js'; // runtime lines (they read a name) must follow the language live; K() is for fixed story text
 
 // faction companions offered when the side is chosen
 export const FACTIONS = {
-  south: { name: K('남쪽 · 대한민국', 'The South · Republic of Korea'), mons: [59, 230, 18] },
-  north: { name: K('북쪽 · 조선민주주의인민공화국', 'The North · DPRK'), mons: [217, 227, 232] },
+  south: { name: K('민주주의 남한 · 대한민국', 'Democratic South · Republic of Korea'), mons: [59, 230, 18] },
+  north: { name: K('공산주의 북한 · 조선민주주의인민공화국', 'Communist North · DPRK'), mons: [217, 227, 232] },
 };
 export const FACTION_TALK = [
-  { who: CELEBI, name: '세레비', text: K('…전쟁이야. 어느 쪽에 서든, 사람과 포켓몬 모두에게 아픈 시간이야.', '...It\'s war. Whichever side you stand on, it\'s a painful time for people and Pokémon alike.') },
+  { who: CELEBI, name: '세레비', text: K('…나라가 38도선을 사이에 두고 남과 북으로 갈라지고 있어. 남쪽은 민주주의, 북쪽은 공산주의 정부를 세우려 해.', '...The country is being split at the 38th parallel. The south means to build a democratic government, the north a communist one.') },
+  { who: CELEBI, name: '세레비', text: K('이 갈라짐은 5년 뒤 전쟁으로 이어져. 어느 쪽에 서든, 사람과 포켓몬 모두에게 아픈 시간이 될 거야.', 'This split leads to war five years from now. Whichever side you stand on, it will be a painful time for people and Pokémon alike.') },
   { who: CELEBI, name: '세레비', text: K('어느 쪽 사람들 곁에 있을지 골라 줘. 역사는 바뀌지 않지만, 우리가 지킬 수 있는 사람과 포켓몬은 분명히 있을 거야.', 'Choose whose side you\'ll stay beside. History won\'t change, but there will surely be people and Pokémon we can protect.') },
 ];
 export const FACTION_PICK = { text: K('함께할 포켓몬을 골라 줘. 그 땅에서 너희를 도와줄 거야.', 'Pick a Pokémon to travel with. It will help you in that land.') };
@@ -75,7 +57,7 @@ const SOUTH = {
       { who: 'narr', text: K('1951년 1월 4일, 서울을 다시 내주었다. 그 뒤로 전선은 38도선 근처에서 멈춘 채 2년 넘게 이어졌다.', 'On January 4, 1951, Seoul was lost again. After that the front stalled near the 38th parallel for more than two years.') }] },
     { do: 'talk', npc: 'reporter1950', log: K('네이티오에게 판문점 소식을 듣자', 'Hear Xatu\'s news from Panmunjom'), say: [
       { who: 178, name: K('종군기자 네이티오', 'War Correspondent Xatu'), text: K('판문점에서 정전 회담이 2년째 이어지고 있소. 그런데… 그 하늘에 커다란 틈이 열렸다는 소문이 돌고 있소.', 'The armistice talks at Panmunjom have gone on for two years. And now... rumor says a great rift has opened in the sky there.') },
-      { who: CELEBI, name: '세레비', text: K('마지막 꽃잎이 거기 있어! 모든 시대의 시간이 그곳으로 빨려 들어가고 있어. 가자!', 'The last petal is there! The time of every era is being pulled into it. Let\'s go!') }] },
+      { who: CELEBI, name: '세레비', text: K('이 시대의 꽃잎이 거기 있어! 모든 시대의 시간이 그곳으로 빨려 들어가고 있어. 가자!', 'The petal of this era is there! The time of every era is being pulled into it. Let\'s go!') }] },
     { do: 'dungeon', d: 'panmun', log: K('판문점 하늘의 시간의 틈 가장 깊은 곳으로!', 'Into the depths of the rift over Panmunjom!') },
   ],
 };
@@ -86,7 +68,7 @@ const NORTH = {
     houses: ['choga', 'western', 'tent', 'hanok', 'choga', 'tent', 'hanok', 'tent'], props: ['crates', 'pole', 'jars', 'logs', 'campfire', 'lamp'],
   },
   town2: {
-    name: K('흥남 부두', 'Hungnam Docks'), bgm: 'city02_d', bgmN: 'city02_n', biome: 'coast',
+    name: K('흥남 부두', 'Hungnam Docks'), bgm: 'city02_d', bgmN: 'city02_n', biome: 'snow', pearl: 'C09', // Snowpoint's snowy harbour: the December evacuation
     houses: ['choga', 'tent', 'choga', 'western'], props: ['crates', 'logs', 'jars', 'campfire'], ships: ['boat'],
     npcs: [
       { id: 'lapras1950', sp: 131, name: K('라프라스', 'Lapras'), x: 22, y: 15, say: [{ text: K('부두에 사람들이 잔뜩 모였어. 남쪽으로 가는 배를 기다린대. 다시 돌아올 수 있을까…', 'The docks are packed with people waiting for ships south. Will they ever come back...') }] },
@@ -120,10 +102,41 @@ const NORTH = {
       { who: 'narr', text: K('1951년부터 전선은 38도선 근처에서 멈췄고, 고지를 차지하려는 싸움이 2년 넘게 이어졌다.', 'From 1951 the front stalled near the 38th parallel, and battles for the hills went on for more than two years.') }] },
     { do: 'talk', npc: 'doctor1950', log: K('럭키에게 판문점 소식을 듣자', 'Hear Chansey\'s news from Panmunjom'), say: [
       { who: 113, name: K('의사 럭키', 'Doctor Chansey'), text: K('판문점에서 정전 회담이 계속되고 있대. 그런데 그 하늘에 이상한 틈이 열렸다는구나.', 'The armistice talks at Panmunjom are still going. And they say a strange rift has opened in the sky there.') },
-      { who: CELEBI, name: '세레비', text: K('마지막 꽃잎이 거기 있어! 모든 시대의 시간이 그곳으로 빨려 들어가고 있어. 가자!', 'The last petal is there! The time of every era is being pulled into it. Let\'s go!') }] },
+      { who: CELEBI, name: '세레비', text: K('이 시대의 꽃잎이 거기 있어! 모든 시대의 시간이 그곳으로 빨려 들어가고 있어. 가자!', 'The petal of this era is there! The time of every era is being pulled into it. Let\'s go!') }] },
     { do: 'dungeon', d: 'panmun', log: K('판문점 하늘의 시간의 틈 가장 깊은 곳으로!', 'Into the depths of the rift over Panmunjom!') },
   ],
 };
+// June 1950: Seoul's streets as a battlefield, built on Veilstone's layout (data/pearl.json C07). Each side brings its
+// legend: Groudon marches with the North, Kyogre comes in with the South. Yours fights beside you and joins (with its
+// orb) when the battle is won; the other leads the enemy and cannot be caught. Neither can be met again after.
+const BATTLE_TOWN = { name: K('서울 · 1950년 6월', 'Seoul, June 1950'), pearl: 'C07', biome: 'war', landmark: null,
+  houses: ['western', 'choga', 'hanok', 'western', 'choga', 'hanok'], props: ['crates', 'logs', 'jars', 'pole', 'campfire'] };
+const SOUTH_ARMY = [59, 230, 18, 67, 58], NORTH_ARMY = [217, 227, 232, 67, 75];
+const GROUDON_JOIN = { sp: 383, item: 'redorb', text: K('그란돈이 땅을 울리며 다가왔다. 주홍구슬이 그 손에서 빛난다. 함께 가고 싶어 한다!', 'Groudon comes over, shaking the ground. The Red Orb glows in its hand. It wants to come along!') };
+const KYOGRE_JOIN = { sp: 382, item: 'blueorb', text: K('가이오가가 물보라를 일으키며 다가왔다. 쪽빛구슬이 그 곁에서 빛난다. 함께 가고 싶어 한다!', 'Kyogre comes over in a spray of water. The Blue Orb glows beside it. It wants to come along!') };
+const COMMANDER = { lv: 60, lvMin: 54, lvUp: 3, hp: 1.5, atk: 0.85, cap: 0.32, noJoin: true, noWander: true, bgm: 'ba_dpoke1' };
+const GROUDON_CMD = { ...COMMANDER, sp: 383, moves: [89, 53, 157, 444],
+  tele: { name: K('단애의 칼', 'Precipice Blades'), every: 3, dmg: 0.32, pats: ['near', 'rows', 'cross', 'ring'], type: 4 },
+  say: [
+    { who: 'narr', text: K('1950년 6월 28일. 전쟁이 시작된 지 사흘 만에 서울 거리가 싸움터가 되었다. 땅이 갈라지며 붉은 거인이 북쪽 군대 앞에 섰다!', 'June 28, 1950. Three days into the war, Seoul\'s streets have become a battlefield. The ground splits, and a red giant stands before the northern army!') },
+    { who: 383, name: K('그란돈', 'Groudon'), text: K('그오오오…!! 땅을 넓히는 것이 나의 뜻이다. 막아서는 자는 모두 밀어내겠다!', 'Groooh...!! To widen the land is my will. Whoever stands in the way will be pushed aside!') },
+    { who: 'partner', text: K('그란돈이 북쪽 군대를 이끌고 있어! 가이오가와 아군이 함께 싸워 줄 거야. 시민들을 지키자!', 'Groudon leads the northern army! Kyogre and our troops will fight with us. Let\'s protect the people!') }],
+  after: [{ who: 383, name: K('그란돈', 'Groudon'), text: K('…그르르. 이 땅을 지키려는 마음, 단단하구나. 오늘은 물러나겠다.', '...Grrr. Your will to defend this land is firm. Today I will fall back.') }] };
+const KYOGRE_CMD = { ...COMMANDER, sp: 382, moves: [57, 58, 87, 56],
+  tele: { name: K('근원의 파동', 'Origin Pulse'), every: 3, dmg: 0.32, pats: ['far', 'ring', 'cols', 'x'], type: 11 },
+  say: [
+    { who: 'narr', text: K('1950년 6월 28일. 북쪽 군대가 서울로 들어서자, 한강 쪽에서 거대한 파도가 거리를 덮치며 푸른 거인이 남쪽 군대 앞에 섰다!', 'June 28, 1950. As the northern army enters Seoul, a huge wave sweeps the streets from the Han River, and a blue giant stands before the southern army!') },
+    { who: 382, name: K('가이오가', 'Kyogre'), text: K('부오오오…!! 바다를 넓히는 것이 나의 뜻이다. 모두 물결 아래로 가라앉아라!', 'Booooh...!! To widen the sea is my will. Sink beneath the waves, all of you!') },
+    { who: 'partner', text: K('가이오가가 남쪽 군대를 이끌고 있어! 그란돈과 아군이 함께 싸워 줄 거야. 사람들을 지키자!', 'Kyogre leads the southern army! Groudon and our troops will fight with us. Let\'s protect the people!') }],
+  after: [{ who: 382, name: K('가이오가', 'Kyogre'), text: K('…부우. 물러서지 않는구나. 오늘은 바다로 돌아가겠다.', '...Booh. You will not give way. Today I return to the sea.') }] };
+const SEOUL_S = { town: BATTLE_TOWN, allies: SOUTH_ARMY, foes: NORTH_ARMY.concat([66, 262]), join: KYOGRE_JOIN };
+const SEOUL_N = { town: BATTLE_TOWN, allies: NORTH_ARMY, foes: SOUTH_ARMY.concat([66, 237]), join: GROUDON_JOIN };
+const BATTLE_STEPS = [
+  { do: 'scene', say: [
+    { who: 'narr', text: K('전쟁이 시작된 지 사흘. 서울은 남과 북의 군대가 맞부딪치는 싸움터가 되었다.', 'Three days into the war, Seoul has become the place where the two armies collide.') },
+    { who: CELEBI, name: '세레비', text: K('거리 한가운데서 전설의 포켓몬들이 깨어났어! 세계 지도의 "서울 · 1950년 6월"로 가자!', 'Legendary Pokémon have woken in the middle of the streets! Go to "Seoul, June 1950" on the world map!') }] },
+  { do: 'dungeon', d: 'seoul1950', log: K('서울 시가전에서 시민들을 지키자 (전투)', 'Protect the people in the battle for Seoul (battle)') },
+];
 const BASE_NODES = [
   { id: 'nakdong', name: K('낙동강 전선', 'Nakdong Front'), lon: 128.4, lat: 35.85, d: 'nakdong' },
   { id: 'chosin', name: K('장진호', 'Chosin Reservoir'), lon: 127.25, lat: 40.45, d: 'chosin' },
@@ -132,10 +145,13 @@ const BASE_NODES = [
   { mark: true, name: K('38도선', '38th Parallel'), lon: 127.8, lat: 38.0, text: K('1945년 미국과 소련이 나누어 맡기로 한 경계선. 1953년 정전 뒤에는 군사분계선이 되었다.', 'The line the US and USSR agreed to divide at in 1945. After the 1953 armistice the Military Demarcation Line replaced it.') },
 ];
 // built once (not per call) so the translation binder sees the same objects the world map draws
+const SEOUL_NODE = { id: 'seoul1950', name: BATTLE_TOWN.name, lon: 127.12, lat: 37.62, d: 'seoul1950' };
 const NODES_S = [{ id: 'town', name: SOUTH.town.name, lon: 129.04, lat: 35.1 }, { id: 'town2', name: SOUTH.town2.name, lon: 128.6, lat: 35.87, town: 2 },
-  { id: 'incheon', name: K('인천 앞바다', 'Off Incheon'), lon: 126.4, lat: 37.45, d: 'incheon' }, ...BASE_NODES];
+  { id: 'incheon', name: K('인천 앞바다', 'Off Incheon'), lon: 126.4, lat: 37.45, d: 'incheon' }, SEOUL_NODE, ...BASE_NODES];
 const NODES_N = [{ id: 'town', name: NORTH.town.name, lon: 125.75, lat: 39.02 }, { id: 'town2', name: NORTH.town2.name, lon: 127.62, lat: 39.83, town: 2 },
-  { id: 'taedong', name: K('대동강 철교', 'Taedong River Bridge'), lon: 125.95, lat: 38.82, d: 'taedong' }, ...BASE_NODES];
+  { id: 'taedong', name: K('대동강 철교', 'Taedong River Bridge'), lon: 125.95, lat: 38.82, d: 'taedong' }, SEOUL_NODE, ...BASE_NODES];
+SOUTH.main.unshift(...BATTLE_STEPS);
+NORTH.main.unshift(...BATTLE_STEPS);
 const side = () => (S.faction === 'north' ? NORTH : SOUTH);
 
 export const WAR = [
@@ -154,7 +170,12 @@ export const WAR = [
     ],
     get nodes() { return S.faction === 'north' ? NODES_N : NODES_S; },
     dungeons: {
+      seoul1950: { name: BATTLE_TOWN.name, tiles: T.flat, floors: 1, lv: [54, 58], mons: [...SOUTH_ARMY, ...NORTH_ARMY], bgm: 'ba_ginga',
+        get battle() { return S.faction === 'north' ? SEOUL_N : SEOUL_S; },
+        get boss() { return S.faction === 'north' ? KYOGRE_CMD : GROUDON_CMD; },
+        sides: [SEOUL_S, SEOUL_N, GROUDON_CMD, KYOGRE_CMD] }, // the getters return one side: this lets the translation binder see both
       nakdong: { name: K('낙동강 전선', 'Nakdong Front'), tiles: T.flat, floors: 4, lv: [56, 60], mons: [262, 229, 112, 76, 26, 82, 135, 335, 336, 357], bgm: 'd_agito',
+        field: [{ sp: 383, mul: 1.2, msg: (n) => tr(`낙동강 전선의 뜨거운 여름 볕에 ${n}의 힘이 끓어오른다! (능력 +20%)`, `The blazing summer sun over the Nakdong front makes ${n}'s power boil over! (stats +20%)`) }],
         boss: { sp: 445, lv: 64, lvMin: 58, lvUp: 4, hp: 2.2, atk: 0.95, cap: 0.35, bgm: 'ba_chanp', moves: [407, 89, 242, 337], // 600-class tier (dungeon.js bossTier) scales these
           tele: [
             { name: K('지진', 'Earthquake'), every: 3, dmg: 0.38, stagger: 1, pats: ['near', 'ring', 'rows', 'cols'], type: 4, first: 2 },
@@ -169,6 +190,7 @@ export const WAR = [
           after: [{ who: 445, name: K('한카리아스', 'Garchomp'), text: K('…헉, 헉. 그 소리가 무서웠을 뿐이야. 너희는… 다친 사람들을 지키러 왔구나.', '...Huff, huff. I was only scared of the noise. You... came to protect the wounded.') }],
           join: K('한카리아스가 지느러미를 접고 고개를 숙였다. 함께 가고 싶어 한다!', 'Garchomp folds its fins and lowers its head. It wants to come along!') } },
       incheon: { name: K('인천 앞바다', 'Off Incheon'), tiles: T.deepsea, floors: 3, lv: [57, 61], water: true, mons: [73, 91, 99, 117, 119, 121, 130, 131, 224, 226, 319, 365], bgm: 'naminori',
+        field: [{ sp: 382, mul: 1.2, msg: (n) => tr(`인천 앞바다의 큰 밀물을 타고 ${n}의 힘이 거세진다! (능력 +20%)`, `Riding Incheon's great tide, ${n} grows mightier! (stats +20%)`) }],
         boss: { sp: 365, lv: 62, bgm: 'ba_tenno', say: [
           { who: 365, text: K('우오오오! 물이 빠졌다 밀려오기를 거듭하는 바다에서 씨카이저가 날뛴다!', 'Wooooh! In the sea that drains and floods again and again, Walrein is on a rampage!') },
           { who: 'partner', text: K('밀물 시간이 짧아! 서두르자!', 'High tide won\'t last long! Hurry!') }],
@@ -195,26 +217,16 @@ export const WAR = [
           after: [{ who: 248, name: K('마기라스', 'Tyranitar'), text: K('…산은 다시 풀이 자라겠지. 너희가 그렇게 믿는다면.', '...Grass will grow on the mountain again. If you believe so.') }],
           join: K('마기라스가 묵직한 발걸음으로 다가왔다. 함께 가고 싶어 한다!', 'Tyranitar comes closer with heavy steps. It wants to come along!') } },
       panmun: { name: K('판문점 · 시간의 틈', 'Panmunjom · Rift'), tiles: T.rift, floors: 5, lv: [60, 64], mons: [443, 444, 359, 197, 229, 247, 281, 429, 477, 356], bgm: 'd_mount2',
-        mid: { floor: 2, sp: 373, lv: 66, lvUp: 3, hp: 2.0, atk: 0.9, cap: 0.33, bgm: 'ba_dpoke1', moves: [337, 53, 242, 89], // 600-class tier (dungeon.js bossTier) scales these
+        // the rift's keeper: Salamence, stirred up by the torn sky (Arceus waits at the very end of the journey, in 1979)
+        boss: { sp: 373, lv: 66, lvUp: 3, hp: 2.2, atk: 0.95, cap: 0.33, bgm: 'ba_dpoke1', moves: [337, 53, 242, 89], // 600-class tier (dungeon.js bossTier) scales these
           tele: { name: K('용성군', 'Draco Meteor'), every: 3, dmg: 0.38, stagger: 1, pats: ['random', 'star', 'quad', 'far'], type: 16 },
           say: [
             { who: 373, name: K('보만다', 'Salamence'), text: K('크오오오! 하늘을 나는 것이 꿈이었던 나다. 이 갈라진 하늘을 날게 두지 않겠다면, 힘으로 증명해 봐라!', 'Kroooh! I who dreamed of flight! If you would keep me from this torn sky, prove it with strength!') },
             { who: CELEBI, name: '세레비', text: K('시간의 틈 때문에 보만다가 흥분했어! 별이 떨어지는 칸을 피해!', 'The rift has Salamence riled up! Dodge where the stars fall!') }],
-          after: [{ who: 373, name: K('보만다', 'Salamence'), text: K('…좋다. 이 하늘 끝에 무엇이 있는지, 함께 보러 가자.', '...Good. Let\'s go and see what lies at the end of this sky, together.') }],
-          join: K('보만다가 날개를 낮추었다. 함께 날아가고 싶어 한다!', 'Salamence lowers its wings. It wants to fly with you!') },
-        // final boss: three phases; every blast is telegraphed and must be dodged
-        // Lv 80 whatever the team's level, with a huge HP pool: a long fight where dodging decides everything
-        boss: { sp: 493, lv: 80, lvMin: 80, lvUp: 0, hp: 10, atk: 0.85, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: ARCEUS_REVIVE,
-          say: [
-            { who: 'narr', text: '눈부신 빛 속에서, 거대한 포켓몬이 천천히 고개를 들었다.' },
-            { who: 493, name: '아르세우스', text: '…나는 아르세우스. 시간과 공간을 낳은 자. 꽃잎을 좇아 시대를 건너온 작은 것들이여.' },
-            { who: 493, name: '아르세우스', text: K('갈라지고 싸우고 슬퍼하는 시간… 이 땅의 천삼백 년을 처음으로 되돌리겠다.', 'Ages of splitting, fighting and grieving... I will return this land\'s thirteen hundred years to the beginning.') },
-            { who: 'partner', text: K('안 돼! 고구려에서 여기까지, 사람들은 아파도 다시 일어나 서로를 지켜 왔어!', 'No! From Goguryeo until now, people got hurt and still stood up and protected each other!') },
-            { who: CELEBI, name: '세레비', text: '아르세우스의 심판은 붉게 빛나는 곳에 떨어져! 잘 보고 피한 다음, 빈틈을 노려!' }],
           after: [
-            { who: 493, name: '아르세우스', text: '……보았다. 너희가 걸어온 길에 깃든 마음을. 잊지 않는 한, 그 시간은 사라지지 않겠지.' },
-            { who: 493, name: '아르세우스', text: K('이 땅의 시간은 이대로 흐르게 두겠다. 갈라진 길도 언젠가 다시 이어질 수 있으리라.', 'I will let this land\'s time flow on. Even divided roads may one day be joined again.') }],
-          join: '아르세우스가 조용히 너희 곁에 내려섰다. 함께 가겠다는 듯하다…!' } },
+            { who: 373, name: K('보만다', 'Salamence'), text: K('…좋다. 이 하늘 끝에 무엇이 있는지, 함께 보러 가자.', '...Good. Let\'s go and see what lies at the end of this sky, together.') },
+            { who: CELEBI, name: '세레비', text: K('틈이 닫히고 있어… 그런데 그 너머에서 누군가 우리를 지켜보고 있었어. 모든 것을 만든 그 포켓몬일까?', 'The rift is closing... but someone was watching us from beyond it. Could it be the one who made everything?') }],
+          join: K('보만다가 날개를 낮추었다. 함께 날아가고 싶어 한다!', 'Salamence lowers its wings. It wants to fly with you!') } },
     },
     outro: [
       { who: 'narr', text: K('1953년 7월 27일, 판문점에서 정전 협정이 맺어졌다. 총성은 멎었지만 전쟁은 끝나지 않은 채 멈추었다.', 'On July 27, 1953, the armistice was signed at Panmunjom. The guns fell silent, but the war was halted, not ended.') },

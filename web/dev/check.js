@@ -28,8 +28,8 @@ export async function checkAll(opts = {}) {
     const npcIds = new Set(towns.flat().map((n) => n.id));
     // story references
     for (const [k, st] of e.main.entries()) {
-      if (st.do === 'talk' && !npcIds.has(st.npc)) bad(tag, `main ${k} talks to missing npc ${st.npc}`);
-      if (st.do === 'dungeon' && !e.dungeons[st.d]) bad(tag, `main ${k} uses missing dungeon ${st.d}`);
+      if (['talk', 'battle', 'spy'].includes(st.do) && !npcIds.has(st.npc)) bad(tag, `main ${k} talks to missing npc ${st.npc}`);
+      if (['dungeon', 'battle'].includes(st.do) && !e.dungeons[st.d]) bad(tag, `main ${k} uses missing dungeon ${st.d}`);
       for (const sp of st.gift || []) await spOk(`${tag} gift`, sp);
     }
     for (const q of e.side) {
@@ -51,7 +51,7 @@ export async function checkAll(opts = {}) {
     }
     // dungeons
     for (const [id, d] of Object.entries(e.dungeons)) {
-      if (!nodeD.has(id)) bad(tag, `dungeon ${id} has no map node`);
+      if (!nodeD.has(id) && !d.fromTown) bad(tag, `dungeon ${id} has no map node`); // fromTown: entered from an NPC in town
       const set = pmd.tileSet(d.tiles); try { await set.ready; } catch (err) { /* reported below */ }
       if (!set.meta || !set.im.naturalWidth) bad(tag, `dungeon ${id} tileset ${d.tiles} failed to load`);
       for (const sp of d.mons) await spOk(`${tag} ${id}`, sp);
@@ -94,7 +94,7 @@ export async function checkAll(opts = {}) {
     const e = g.ERAS[i];
     S.era = i;
     for (const [id, d] of Object.entries(e.dungeons)) {
-      const main = e.main.findIndex((st) => st.do === 'dungeon' && st.d === id);
+      const main = e.main.findIndex((st) => ['dungeon', 'battle'].includes(st.do) && st.d === id);
       S.step = main >= 0 ? main : 0; S.flags = {}; S.side = {};
       S.party = party.slice(); S.roster = roster.slice(); S.homeParty = null;
       let dg;

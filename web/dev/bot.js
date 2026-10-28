@@ -34,7 +34,8 @@ export async function runBoss(o) {
 }
 // Arceus balance probe; results accumulate in window.R so long fights can be polled
 export async function arc(label, party, opts, items) {
-  const res = await runBoss({ party, opts, era: 17, step: 9, d: 'panmun', floor: 5, items: items || { oran: 4, sitrus: 5, rice: 3 }, turns: 900 });
+  const { ERAS } = window.__game, era = ERAS.findIndex((e) => e.dungeons.origin), step = ERAS[era].main.findIndex((s) => s.d === 'origin');
+  const res = await runBoss({ party, opts, era, step, d: 'origin', floor: 5, items: items || { oran: 4, sitrus: 5, rice: 3 }, turns: 1200 });
   const out = { label, t: res.r.t, won: res.won, bossHp: res.bossHp, teles: res.log.filter((t) => t.includes('벗어나라')).length,
     hit: res.log.filter((t) => t.includes('휘말렸다')).length, shield: res.log.filter((t) => t.includes('장막')).length, party: res.r.party };
   (window.R ||= []).push(out);

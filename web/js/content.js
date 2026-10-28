@@ -5,6 +5,8 @@
 import { K, EN_EXTRA, CELEBI, T } from './content_k.js';
 import { ANCIENT, ANCIENT_QITEMS } from './content_ancient.js';
 import { WAR, WAR_QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK } from './content_war.js';
+import { ERA_1905, ERA_1979, MODERN_QITEMS, addPostWar, addSkyLine, spyLog } from './content_modern.js';
+import { S } from './game.js';
 export { FACTIONS, FACTION_TALK, FACTION_PICK };
 export { EN_EXTRA, CELEBI, T };
 
@@ -503,7 +505,7 @@ const JOSEON = [
   {
     id: 8, year: 1919, years: '1910 – 1919', title: '3 · 1 운동', sub: '대한 독립 만세',
     art: 'e8', artProps: ['pavilion8'], town: {
-      name: '경성', bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: 'pavilion8',
+      name: '경성', bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: 'pavilion8', police: true,
       houses: ['western', 'hanok', 'western', 'hanok', 'western', 'hanok', 'choga', 'western'], props: ['pole', 'lamp', 'lamp', 'baretree', 'cherry', 'rickshaw'],
     },
     world: 'road_a_n',
@@ -621,6 +623,13 @@ const JOSEON = [
       { do: 'dungeon', d: 'cheongsan', log: '청산리 골짜기에서 보급품을 모으며 숲 끝까지 가자' },
       { do: 'talk', npc: 'arcanine', log: '윈디에게 돌아가자', say: [
         { who: 59, name: '독립군 기병 윈디', text: '보급품이 무사히 닿았다! 엿새에 걸친 싸움이었지만, 우리는 이겼다!' }] },
+      { do: 'scene', say: [
+        { who: 'narr', text: K('청산리에서 크게 진 일본군은 그해 겨울 간도의 조선인 마을들을 덮쳐 수많은 사람을 해쳤다(간도 참변).', 'Badly beaten at Cheongsan-ri, the Japanese army fell on the Korean villages of Jiandao that winter and killed a great many people (the Gando Massacre).') },
+        { who: 'narr', text: K('그 뒤로 독립군의 작전이 번번이 새어 나갔다. 기지 안에 밀정이 숨어 있다는 소문이 돌았다.', 'After that, the independence army\'s plans kept leaking out. Word spread that a spy was hiding in the base.') }] },
+      // the spy hunt (quests.js spy*): the informant gives a type and a weight, suspects are weighed and one accused
+      { do: 'spy', npc: 'staravia', get log() { return spyLog(); } },
+      { do: 'talk', npc: 'arcanine', log: K('윈디에게 밀정 소식을 전하자', 'Tell Arcanine about the spy'), say: [
+        { who: 59, name: '독립군 기병 윈디', text: K('밀정을 잡았다고? 장하다! 이제 우리 작전이 새어 나가지 않을 것이다.', 'You caught the spy? Well done! Now our plans won\'t leak anymore.') }] },
     ],
     outro: [
       { who: 'narr', text: '1920년 10월, 청산리 대첩. 김좌진과 홍범도의 독립군은 백운평, 어랑촌 등지에서 큰 승리를 거두었다.' },
@@ -639,7 +648,7 @@ const JOSEON = [
   {
     id: 10, year: 1940, years: '1938 – 1943', title: K('민족 말살 통치', 'Erasing a People'), sub: K('빼앗긴 이름, 지켜 낸 말', 'Stolen names, words kept safe'),
     card: { set: T.rift, mons: [487, 164, 448, 427] }, artProps: [], town: {
-      name: K('경성 (1940)', 'Gyeongseong (1940)'), bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: null,
+      name: K('경성 (1940)', 'Gyeongseong (1940)'), bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: null, pearl: 'C03', police: true, // Oreburgh: the mines and factories of the war years
       houses: ['western', 'hanok', 'western', 'hanok', 'western', 'choga', 'hanok', 'western'], props: ['pole', 'lamp', 'baretree', 'baretree', 'rickshaw', 'jars'],
     },
     world: 'road_a_n',
@@ -697,6 +706,7 @@ const JOSEON = [
     outro: [
       { who: 'narr', text: K('1940년 9월 17일, 충칭의 대한민국 임시정부는 한국광복군을 창설했다. 총사령관은 지청천이었다.', 'On September 17, 1940, the Provisional Government in Chongqing founded the Korean Liberation Army, with Ji Cheong-cheon as commander.') },
       { who: 'narr', text: K('1942년 10월, 조선어학회 사건으로 많은 학자가 붙잡혔다. 그러나 사전 원고는 끝내 살아남았다.', 'In October 1942 the Korean Language Society incident put many scholars in prison. But the dictionary manuscript survived.') },
+      { who: 'narr', text: K('1943년 11월 카이로 회담에서 미국·영국·중국은 "적절한 절차를 거쳐 한국을 자유롭고 독립된 나라로 만들겠다"고 처음으로 약속했다.', 'At the Cairo Conference in November 1943, the US, Britain and China promised for the first time that "in due course Korea shall become free and independent".') },
       { who: 'narr', text: K('어둠이 가장 깊을 때, 새벽은 이미 가까이 와 있었다.', 'When the darkness was deepest, the dawn was already close.') },
     ],
     side: [
@@ -717,9 +727,9 @@ const JOSEON = [
     },
     world: 'city10_d',
     intro: [
-      '1945년 8월. 35년에 걸친 일제 강점기의 끝이 다가오고 있다.',
-      '그런데 마지막 시간의 꽃잎을 앞에 두고, 시간과 공간이 뒤틀리기 시작했다.',
-      '서울 하늘 위로 커다란 "시간의 틈"이 열렸다…!',
+      K('1945년 2월 얄타 회담에서 미국·영국·소련은 소련이 일본과의 전쟁에 뛰어들기로 약속했다.', 'At the Yalta Conference in February 1945, the US, Britain and the USSR agreed that the Soviets would join the war against Japan.'),
+      K('7월 포츠담 선언은 일본에 항복을 요구하며, 카이로 선언대로 한국을 독립시키겠다는 약속을 다시 확인했다.', 'In July the Potsdam Declaration called on Japan to surrender and reaffirmed the Cairo promise of Korean independence.'),
+      K('1945년 8월. 35년에 걸친 일제 강점기의 끝이 다가오고 있다. 그런데 서울 하늘 위로 커다란 "시간의 틈"이 열렸다…!', 'August 1945. The end of thirty-five years of colonial rule is near. But a huge "rift in time" has opened over Seoul...!'),
     ],
     nodes: [
       { id: 'town', name: '서울', lon: 126.98, lat: 37.57 },
@@ -764,7 +774,7 @@ const JOSEON = [
       warehouse: { name: '서울역 창고', tiles: T.warehouse, floors: 3, lv: [40, 44], mons: [52, 53, 19, 20, 434, 435, 92, 93], bgm: 'road_a' },
     },
     npcs: [
-      { id: 'celebi10', sp: CELEBI, name: '세레비', x: 22, y: 15, say: [{ text: '마지막 꽃잎이야. 함께 가자!' }] },
+      { id: 'celebi10', sp: CELEBI, name: '세레비', x: 22, y: 15, say: [{ text: K('이 시대의 꽃잎이야. 함께 가자!', 'This era\'s petal. Let\'s go together!') }] },
       { id: 'togekiss10', sp: 468, name: '토게키스', x: 10, y: 16, wander: 2, say: [{ text: '라디오에서 중대 발표가 있을 거래. 다들 숨죽이고 있어.' }] },
       { id: 'pikachu10', sp: 26, name: '라이츄 할아버지', x: 29, y: 12, say: [{ text: '내가 어릴 적 만세를 외치던 그 봄을 아직도 기억한다네.' }] },
       { id: 'sunflora', sp: 192, name: '해루미', x: 15, y: 21, wander: 3, say: [{ text: '해바라기처럼 빛을 향해 고개를 들자!' }] },
@@ -772,13 +782,18 @@ const JOSEON = [
     main: [
       { do: 'talk', npc: 'celebi10', log: '세레비와 이야기하자', say: [
         { who: CELEBI, name: '세레비', text: '시간의 틈 너머에서 펄기아가 날뛰고 있어. 이대로면 모든 시대가 뒤섞여 버릴 거야!' },
-        { who: CELEBI, name: '세레비', text: '세계 지도의 "시간의 틈"으로 가 줘. 이게 마지막 여행이야!' }] },
+        { who: CELEBI, name: '세레비', text: K('세계 지도의 "시간의 틈"으로 가 줘. 빛을 되찾을 날이 바로 앞이야!', 'Go to the "rift in time" on the world map. The day the light comes back is right ahead!') }] },
       { do: 'dungeon', d: 'rift', log: '시간의 틈(6층) 가장 깊은 곳으로! 무언가가 기다리고 있다' },
+      { do: 'scene', say: [
+        { who: 'narr', text: '1945년 8월 15일 정오. 라디오에서 일본의 항복 소식이 흘러나왔다.' },
+        { who: 'narr', text: '35년의 일제 강점기가 끝났다. 사람들은 거리로 쏟아져 나와 태극기를 흔들었다. "대한 독립 만세!"' }] },
+      { do: 'scene', say: [
+        { who: 'narr', text: K('그러나 기쁨도 잠시. 9월, 38도선 남쪽에는 미군이, 북쪽에는 소련군이 들어왔다. 나라는 둘로 나뉘어 다스려지기 시작했다.', 'But the joy was brief. In September US troops came in south of the 38th parallel and Soviet troops in the north. The land began to be governed in two halves.') },
+        { who: 'narr', text: K('1948년, 남쪽에는 대한민국 정부가, 북쪽에는 조선민주주의인민공화국 정부가 따로 들어섰다.', 'In 1948 the Republic of Korea was founded in the south and the Democratic People\'s Republic of Korea in the north.') }] },
+      { do: 'faction', log: K('어느 쪽 사람들 곁에 설지 고르자', 'Choose whose side to stand by') },
     ],
     outro: [
-      { who: 'narr', text: '1945년 8월 15일 정오. 라디오에서 일본의 항복 소식이 흘러나왔다.' },
-      { who: 'narr', text: '35년의 일제 강점기가 끝났다. 사람들은 거리로 쏟아져 나와 태극기를 흔들었다. "대한 독립 만세!"' },
-      { who: 'narr', text: '빛을 되찾았다는 뜻의 "광복". 1392년에서 시작된 긴 여행이 마침내 이 날에 닿았다.' },
+      { who: 'narr', text: K('빛을 되찾았다는 뜻의 "광복". 그러나 갈라진 땅에서, 남은 꽃잎들은 아직 더 먼 시간 속에서 흔들리고 있었다.', '"Gwangbok": the light regained. Yet on the divided land, the remaining petals still flickered further ahead in time.') },
     ],
     side: [
       { id: 'e10a', title: '서울역 창고의 원고', kind: 'collect', item: 'malmoi', n: 3, d: 'warehouse', reward: { money: 2000, exp: 2000 },
@@ -838,9 +853,9 @@ const J = (y) => JOSEON.find((e) => e.year === y);
   const e = J(1945), d = e.dungeons.rift;
   d.boss = { ...d.mid, after: [
     { who: 484, text: K('…공간을 비튼 것은 내가 아니다. 더 먼 시간 속에서, 모든 것을 만든 자가 너희를 지켜보고 있다.', '...It was not I who twisted space. Further along in time, the one who made everything is watching you.') },
-    { who: CELEBI, name: '세레비', text: K('모든 것을 만든… 아르세우스? 마지막 꽃잎이 있는 곳에서 만나게 될지도 몰라.', 'The one who made everything... Arceus? We might meet it where the last petal is.') }] };
+    { who: CELEBI, name: '세레비', text: K('모든 것을 만든… 아르세우스? 더 먼 시대의 꽃잎이 있는 곳에서 만나게 될지도 몰라.', 'The one who made everything... Arceus? We might meet it where the last petal is.') }] };
   delete d.mid;
-  e.outro[2] = { who: 'narr', text: K('그러나 기쁨도 잠시. 마지막 꽃잎은 아직 더 먼 시간 속에서 흔들리고 있었다.', 'But the joy was brief. The last petal still flickered somewhere further ahead in time.') };
+
 }
 
 // second towns for the Joseon-era chapters (each era's world map shows both)
@@ -863,13 +878,13 @@ const TOWN2 = {
       { id: 'gh1636a', sp: 80, name: K('피란 온 야도란', 'Refugee Slowbro'), x: 22, y: 15, say: [{ text: K('왕실 가족은 이곳 강화도로 피했지. 바다가 지켜 줄 거라 믿었는데…', 'The royal family fled here to Ganghwa. We believed the sea would protect us...') }] },
       { id: 'gh1636b', sp: 220, name: K('꾸꾸리', 'Swinub'), x: 14, y: 19, wander: 2, say: [{ text: K('꾸꾸… 바닷물까지 얼 것 같은 추위야.', 'Oink... It\'s so cold even the sea might freeze.') }] },
     ] } },
-  1887: { node: [126.52, 37.42], town: { name: K('제물포 항구', 'Jemulpo Port'), bgm: 'city02_d', bgmN: 'city02_n', biome: 'coast',
+  1887: { node: [126.52, 37.42], town: { name: K('제물포 항구', 'Jemulpo Port'), bgm: 'city02_d', bgmN: 'city02_n', biome: 'coast', pearl: 'C02', // Canalave's harbour and canal
     houses: ['western', 'hanok', 'western', 'choga'], props: ['crates', 'lamp', 'pole', 'jars'], ships: ['boat'],
     npcs: [
       { id: 'jm1887a', sp: 52, name: K('무역상 나옹', 'Trader Meowth'), x: 22, y: 15, say: [{ text: K('1883년에 항구가 열린 뒤로 서양 배가 끊이질 않아. 성냥, 석유, 옷감… 별게 다 들어온다냥.', 'Since the port opened in 1883, Western ships never stop coming. Matches, kerosene, cloth... everything comes in, meow.') }] },
       { id: 'jm1887b', sp: 81, name: K('코일', 'Magnemite'), x: 14, y: 19, wander: 2, say: [{ text: K('삐빗. 이곳에서 서울까지 기찻길을 놓을 계획이 있다. 삐빗.', 'Beep. There are plans to lay a railway from here to Seoul. Beep.') }] },
     ] } },
-  1919: { node: [127.3, 36.75], town: { name: K('아우내 장터', 'Aunae Market'), bgm: 'town01_d', bgmN: 'town01_n', biome: 'spring',
+  1919: { node: [127.3, 36.75], town: { name: K('아우내 장터', 'Aunae Market'), bgm: 'town01_d', bgmN: 'town01_n', biome: 'spring', police: true,
     houses: ['choga', 'hanok', 'choga', 'choga'], props: ['jars', 'logs', 'cherry', 'bamboo'],
     npcs: [
       { id: 'au1919a', sp: 39, name: K('장터 푸린', 'Market Jigglypuff'), x: 22, y: 15, say: [{ text: K('4월 1일 장날, 유관순 언니와 마을 사람들이 태극기를 나눠 주며 만세를 불렀어.', 'On market day, April 1, Yu Gwan-sun and the villagers handed out flags and shouted "Manse!"') }] },
@@ -907,9 +922,14 @@ function lift(e, j) {
 }
 JOSEON.forEach(lift);
 
-export const ERAS = [...ANCIENT, ...JOSEON, ...WAR];
+const J1919 = JOSEON.findIndex((e) => e.year === 1919);
+export const ERAS = [...ANCIENT, ...JOSEON.slice(0, J1919), ERA_1905, ...JOSEON.slice(J1919), ...WAR, ERA_1979];
 ERAS.forEach((e, i) => { e.id = i + 1; });
-Object.assign(QITEMS, ANCIENT_QITEMS, WAR_QITEMS);
+addPostWar(ERAS.filter((e) => e.year >= 1945));
+// the battle for Seoul is behind the team once 1950's story has gone past it (and in every later era)
+const seoulWon = () => { const e = ERAS[S.era]; return e.year > 1950 || (e.year === 1950 && S.step > e.main.findIndex((s) => s.d === 'seoul1950')); };
+addSkyLine(ERAS.filter((e) => e.year >= 1950), seoulWon);
+Object.assign(QITEMS, ANCIENT_QITEMS, WAR_QITEMS, MODERN_QITEMS);
 
 // shown the first time a boss with telegraphed attacks appears
 export const TELE_TUT = [
@@ -920,7 +940,7 @@ export const TELE_TUT = [
 export const CELEBI_INTRO = [
   { who: 'narr', text: '……어디선가 맑은 방울 소리가 들린다.' },
   { who: CELEBI, name: '???', text: '깨어났구나! 다행이다. 나는 시간을 여행하는 포켓몬, 세레비야.' },
-  { who: CELEBI, name: '세레비', text: K('시간의 꽃이 부서져서, 꽃잎 열여덟 장이 한반도의 역사 곳곳으로 흩어져 버렸어.', 'The Flower of Time shattered, and its eighteen petals scattered across the history of the Korean peninsula.') },
-  { who: CELEBI, name: '세레비', text: K('꽃잎은 그 시대 사람들과 포켓몬의 소원이 이루어질 때 다시 빛나. 고구려의 612년부터 1953년까지, 함께 여행해 줄래?', 'A petal shines again when the wishes of that era\'s people and Pokémon come true. From Goguryeo in 612 to 1953, will you travel with me?') },
+  { who: CELEBI, name: '세레비', text: K('시간의 꽃이 부서져서, 꽃잎 스무 장이 한반도의 역사 곳곳으로 흩어져 버렸어.', 'The Flower of Time shattered, and its twenty petals scattered across the history of the Korean peninsula.') },
+  { who: CELEBI, name: '세레비', text: K('꽃잎은 그 시대 사람들과 포켓몬의 소원이 이루어질 때 다시 빛나. 고구려의 612년부터 1980년까지, 함께 여행해 줄래?', 'A petal shines again when the wishes of that era\'s people and Pokémon come true. From Goguryeo in 612 to 1980, will you travel with me?') },
   { who: CELEBI, name: '세레비', text: '시간을 건너온 탓인지 너희 몸 색이 조금 달라 보이네. 반짝반짝 예쁜걸!' },
 ];

@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, hasSave, readSave, load, save, TYPE_COLORS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun, resumeSteps } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
@@ -52,7 +52,7 @@ export class Title {
       if (sv) {
         const pt = Math.floor((sv.playtime || 0) / 60);
         items.unshift({ label: tr('이어하기', 'Continue'), right: `${ERAS[sv.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}`, fn: () => {
-          if (load()) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); });
+          if (load()) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); resumeSteps(); });
           else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
         } });
       }
@@ -99,7 +99,7 @@ export class Title {
     ui.c.save(); ui.c.scale(2, 2);
     ui.text(tr('조선 시간여행', 'Joseon Time Travel'), VW / 4, y / 2, { align: 'center', size: 11, bold: true, color: '#fff7e6', shadow: '#3a1a10' });
     ui.c.restore();
-    ui.text(tr('612 → 1953 · 시간의 꽃과 아르세우스', '612 → 1953 · The Flower of Time and Arceus'), VW / 2, y + 32, { align: 'center', size: 9, color: '#fff', shadow: true });
+    ui.text(tr('612 → 1980 · 시간의 꽃과 아르세우스', '612 → 1980 · The Flower of Time and Arceus'), VW / 2, y + 32, { align: 'center', size: 9, color: '#fff', shadow: true });
     if (!this.started && Math.floor(this.t * 2) % 2) ui.text(touchUI ? tr('화면을 누르거나 Z를 누르세요', 'Tap the screen or press Z') : tr('Z 키 또는 Enter를 누르세요', 'Press Z or Enter'), VW / 2, 206, { align: 'center', color: '#fff', shadow: true });
     ui.text(tr('팬메이드 비공식 게임 · 원작 © Nintendo / Creatures / GAME FREAK', 'Unofficial fan game · Pokémon © Nintendo / Creatures / GAME FREAK'), VW / 2, VH - 11, { align: 'center', size: 9, color: '#ddd', shadow: true });
   }
@@ -203,7 +203,7 @@ export class EraCard {
       c.drawImage(im, Math.round(x), Math.round(VH - 92 - im.height * s), Math.round(im.width * s), Math.round(im.height * s));
       x -= 4;
     }
-    S.party.forEach((m, i) => drawMon(c, m.sp, true, 40 + i * 30 + Math.min(this.t, 3) * 20, VH - 86, { moving: true, facing: 'right', phase: i }));
+    S.party.forEach((m, i) => drawMon(c, m.spr, m.shiny, 40 + i * 30 + Math.min(this.t, 3) * 20, VH - 86, { moving: true, facing: 'right', phase: i }));
     if (this.t < 0.6) { c.fillStyle = `rgba(255,255,255,${1 - this.t / 0.6})`; c.fillRect(0, 0, VW, VH); }
   }
   drawUI() {
@@ -228,7 +228,7 @@ export class WorldMap {
     this.e = era();
     this.meta = await loadJSON('data/worldmap.json');
     playBgm(this.e.world);
-    this.nodes = this.e.nodes;
+    this.nodes = this.e.nodes.filter((n) => !n.when || n.when());
     this.sel = Math.max(0, this.nodes.findIndex((n) => n.id === (S.lastNode || 'town')));
     const n = this.nodes[this.sel];
     [this.cx, this.cy] = this.camFor(n);
@@ -244,7 +244,7 @@ export class WorldMap {
   tags(n) {
     const st = mainStep(), out = [];
     if (n.d && st?.do === 'dungeon' && st.d === n.d) out.push('main');
-    if ((n.id === 'town' || n.town) && ((st?.do === 'talk' && talkTown(st) === (n.town || 1)) || (eraComplete() && n.id === 'town'))) out.push('main');
+    if ((n.id === 'town' || n.town) && ((['talk', 'battle', 'spy'].includes(st?.do) && talkTown(st) === (n.town || 1)) || (eraComplete() && n.id === 'town'))) out.push('main');
     if (n.d && activeSides(n.d).length) out.push('side');
     return out;
   }
@@ -273,6 +273,7 @@ export class WorldMap {
       if (n.mark) return say([{ who: 'narr', text: `【${n.name}】 ${n.text}` }]);
       if (n.id === 'town' || n.town) return fadeTo(() => G.goTown(n.town || 1));
       const d = this.e.dungeons[n.d], [lo, hi] = foeLevels(d);
+      if (d.needs && !d.needs.every((sp) => S.party.some((m) => m.sp === sp))) return say([{ who: 'narr', text: d.needsText }]);
       say([{ who: 'narr', text: tr(`${d.name} (${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${lo}~${hi})에 들어갈까?`, `Enter ${d.name}? (${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${lo}-${hi})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('quest')) return questMenu();
@@ -319,9 +320,9 @@ export class WorldMap {
     });
     const [a, b, m3] = S.party;
     const px = this.tx * MZ - this.cx, py = this.ty * MZ - this.cy;
-    if (m3) drawMon(c, m3.sp, m3.shiny, px - 26, py, { moving: true, phase: 2 });
-    drawMon(c, b.sp, true, px - 10, py + 2, { moving: true, phase: 1 });
-    drawMon(c, a.sp, true, px + 8, py + 4, { moving: true });
+    if (m3) drawMon(c, m3.spr, m3.shiny, px - 26, py, { moving: true, phase: 2 });
+    drawMon(c, b.spr, b.shiny, px - 10, py + 2, { moving: true, phase: 1 });
+    drawMon(c, a.spr, a.shiny, px + 8, py + 4, { moving: true });
     c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(MVW, 0, 2, VH);
   }
   drawLegend(c, sp, x, y, ph) {
@@ -396,12 +397,12 @@ export class Ending {
     tileSet(41); tileSet(33);
     this.t = 0; this.phase = 0;
     this.credits = [
-      ...tr(['— 포켓몬스터 조선 시간여행 —', '', '612 살수대첩 · 660 황산벌 · 676 기벌포 해전', '1019 귀주대첩 · 1232 처인성 · 1251 팔만대장경', '1380 진포 대첩 · 1388 위화도 회군',
+      ...tr(['— 포켓몬스터 조선 시간여행 —', '', '612 살수대첩 · 660 황산벌 · 668 평양성 · 676 기벌포 해전', '1019 귀주대첩 · 1232 처인성 · 1251 팔만대장경', '1380 진포 대첩 · 1388 위화도 회군',
         '1392 조선 건국 · 1446 훈민정음 반포', '1592 임진왜란 · 1598 노량 해전 · 1636 병자호란', '1796 수원 화성 완공 · 1866 병인양요 · 1871 신미양요',
-        '1897 대한제국 선포 · 1919 3·1 운동', '1920 청산리 대첩 · 1940 한국광복군 창설', '1945년 8월 15일 광복', '1950 – 1953 한국 전쟁 · 정전', '', '', '함께한 포켓몬'],
-      ['— Pokémon Joseon Time Travel —', '', '612 Salsu · 660 Hwangsanbeol · 676 Gibeolpo', '1019 Gwiju · 1232 Cheoin Fortress · 1251 Tripitaka Koreana', '1380 Jinpo · 1388 Wihwado retreat',
+        '1897 대한제국 선포 · 1905 을사늑약 · 1907 헤이그 특사', '1919 3·1 운동 · 1920 청산리 대첩 · 1940 한국광복군 창설', '1945년 8월 15일 광복', '1950 – 1953 한국 전쟁 · 정전', '1979 10·26 · 12·12 · 1980 서울의 봄', '', '', '함께한 포켓몬'],
+      ['— Pokémon Joseon Time Travel —', '', '612 Salsu · 660 Hwangsanbeol · 668 Pyongyang · 676 Gibeolpo', '1019 Gwiju · 1232 Cheoin Fortress · 1251 Tripitaka Koreana', '1380 Jinpo · 1388 Wihwado retreat',
         '1392 Joseon founded · 1446 Hunminjeongeum proclaimed', '1592 Imjin War · 1598 Noryang · 1636 Qing invasion', '1796 Hwaseong Fortress · 1866 French and 1871 U.S. expeditions',
-        '1897 Korean Empire proclaimed · 1919 March 1st Movement', '1920 Battle of Cheongsanri · 1940 Korean Liberation Army', 'Liberation, August 15, 1945', '1950 – 1953 Korean War · armistice', '', '', 'Your team']),
+        '1897 Korean Empire proclaimed · 1905 Eulsa Treaty · 1907 Hague envoys', '1919 March 1st Movement · 1920 Battle of Cheongsanri · 1940 Korean Liberation Army', 'Liberation, August 15, 1945', '1950 – 1953 Korean War · armistice', '1979 October 26 · December 12 · 1980 Seoul Spring', '', '', 'Your team']),
       ...S.party.map((m) => `${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`), ...(S.roster.length ? [tr(`그리고 동료 ${S.roster.length}마리`, `and ${S.roster.length} more companions`)] : []), '', '',
       ...tr(['원작 그래픽 · 음악', '포켓몬스터 펄 (ROM에서 추출, 직접 렌더링)', '포켓몬 불가사의 던전 파랑구조대 (던전 · 스프라이트 · 초상화)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
         '건물 · 거북선 · 판옥선', 'Blender 5.2 절차적 모델링', '', '글꼴', 'Galmuri (OFL)', '', '',
@@ -427,7 +428,7 @@ export class Ending {
       this.credits.forEach((l, i) => ui.text(l, VW / 2, y0 + i * 22, { align: 'center', bold: i === 0, color: i === 0 ? '#ffe9a8' : '#fff', shadow: '#000' }));
     } else {
       ui.text(tr('명예의 전당', 'Hall of Fame'), VW / 2, 24, { align: 'center', bold: true, color: '#ffe9a8', shadow: '#000' });
-      ui.text(tr('612 → 1953 시간여행 완주!', 'Journey from 612 to 1953 complete!'), VW / 2, 42, { align: 'center', color: '#fff', shadow: '#000' });
+      ui.text(tr('612 → 1980 시간여행 완주!', 'Journey from 612 to 1980 complete!'), VW / 2, 42, { align: 'center', color: '#fff', shadow: '#000' });
       ui.text(S.mode === 'challenge' ? tr('챌린지 달성! 한 번도 전멸하지 않고 완주했다', 'Challenge complete! Not a single wipe all the way') : tr(`난이도: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`, `Difficulty: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`), VW / 2, 56, { align: 'center', size: 9, color: S.mode === 'challenge' ? '#ffe27a' : '#ddd', shadow: '#000' });
       S.party.forEach((m, i) => { ui.text(`${m.name}  Lv.${m.lv}`, hofX(i), 176, { align: 'center', bold: true, color: '#fff', shadow: '#000' }); });
       const pt = Math.floor(S.playtime / 60);

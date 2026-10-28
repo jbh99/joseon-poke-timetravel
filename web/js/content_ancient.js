@@ -125,6 +125,7 @@ export const ANCIENT = [
       { id: 'hwangsan', name: K('황산벌', 'Hwangsanbeol'), lon: 127.25, lat: 36.12, d: 'hwangsan' },
       { id: 'busosan', name: K('부소산성', 'Busosan Fortress'), lon: 126.75, lat: 36.42, d: 'busosan' },
       { id: 'baekgang', name: K('백강 어귀', 'Mouth of the Baekgang'), lon: 126.5, lat: 35.98, d: 'baekgang' },
+      { id: 'pyongyang', name: K('평양성', 'Pyongyang Fortress'), lon: 125.75, lat: 39.02, d: 'pyongyang' },
       { mark: true, name: K('서라벌', 'Seorabeol'), lon: 129.22, lat: 35.84, text: K('신라의 도읍. 이곳에서 김춘추와 김유신이 삼국 통일을 꿈꾸었다.', 'Silla\'s capital, where Kim Chun-chu and Kim Yu-sin dreamed of uniting the three kingdoms.') },
     ],
     dungeons: {
@@ -139,6 +140,15 @@ export const ANCIENT = [
           { who: 'partner', text: K('나인테일, 슬픔에 갇히지 마. 백제 사람들의 이야기는 사라지지 않아!', 'Ninetales, don\'t drown in grief. The story of Baekje\'s people won\'t vanish!') }],
           after: [{ who: 38, text: K('…그래. 백제의 기와와 탑, 향로는 오래오래 남아 사람들을 놀라게 하겠지.', '...Yes. Baekje\'s roof tiles, pagodas and censers will amaze people for ages to come.') }] } },
       baekgang: { name: K('백강 어귀', 'Mouth of the Baekgang'), tiles: T.sea, floors: 3, lv: [8, 12], water: true, mons: [72, 98, 90, 116, 170, 222, 278], bgm: 'd_lake' },
+      // 668: Goguryeo's last battle. The siege of its capital, the gate opened from inside, the walls' last guardian
+      pyongyang: { name: K('평양성', 'Pyongyang Fortress'), tiles: T.castle, floors: 4, lv: [9, 13], mons: [74, 66, 56, 304, 95, 75, 67, 57], bgm: 'd_01',
+        boss: { sp: 306, lv: 17, lvMin: 13, lvUp: 3, hp: 1.4, atk: 0.95, bgm: 'ba_gym', moves: [232, 36, 157, 231],
+          tele: { name: K('성벽 무너뜨리기', 'Toppling Wall'), every: 4, dmg: 0.3, pats: ['near', 'cross', 'rows'], type: 5 },
+          say: [
+            { who: 'narr', text: K('668년 9월. 한 달 넘게 버틴 평양성의 성문이, 끝내 안에서 열렸다.', 'September 668. After holding out for more than a month, the gate of Pyongyang was at last opened from within.') },
+            { who: 306, name: K('보스로라', 'Aggron'), text: K('그롸아아…! 칠백 년을 지킨 성벽이다… 누구도 넘어오지 못한다…!', 'Grraaah...! These walls have stood for seven hundred years... No one gets past them...!') },
+            { who: 'partner', text: K('성벽을 지키던 보스로라가 너무 지쳐서 아군과 적도 못 알아봐! 사람들이 빠져나갈 수 있게 진정시키자!', 'The Aggron that guarded the walls is so worn out it can\'t tell friend from foe! Calm it so the people can get out!') }],
+          after: [{ who: 306, name: K('보스로라', 'Aggron'), text: K('…그래. 성은 무너져도, 이 성을 지킨 사람들의 이야기는 남겠지. 북쪽으로 가는 사람들을 지켜 주마.', '...Yes. The fortress may fall, but the story of those who defended it will remain. I\'ll guard the people heading north.') }] } },
     },
     npcs: [
       { id: 'heracross660', sp: 214, name: K('결사대 헤라크로스', 'Vanguard Heracross'), x: 22, y: 15, say: [{ text: K('우리는 다섯 번 싸워 네 번을 이겼다. 그래도 적은 끝이 없구나.', 'We fought five times and won four. Still the enemy never ends.') }] },
@@ -161,11 +171,18 @@ export const ANCIENT = [
       { do: 'dungeon', d: 'busosan', log: K('부소산성 꼭대기까지 피란길을 열자', 'Clear the refugee path to the top of Busosan Fortress') },
       { do: 'talk', npc: 'kanga660', log: K('캥카에게 돌아가자', 'Return to Kangaskhan'), say: [
         { who: 115, name: K('사비성 아낙 캥카', 'Sabi Mother Kangaskhan'), text: K('고마워요. 나라는 무너져도… 우리가 만든 것들과 이야기는 남을 거예요.', 'Thank you. Even if the kingdom falls... the things we made and our stories will live on.') }] },
+      { do: 'scene', say: [
+        { who: 'narr', text: K('663년, 백제를 되살리려던 부흥군이 백강 전투에서 꺾였다. 665년에는 고구려를 이끌던 연개소문이 세상을 떠났고, 그의 아들들이 권력을 두고 다투었다.', 'In 663 the army trying to revive Baekje was crushed at the Baekgang. In 665 Yeon Gaesomun, who had led Goguryeo, died, and his sons fought over power.') },
+        { who: 'narr', text: K('668년, 신라와 당의 연합군이 고구려의 도읍 평양성을 에워쌌다. 칠백 년 고구려의 마지막 싸움이었다.', 'In 668 the Silla-Tang alliance surrounded Pyongyang, Goguryeo\'s capital. It was the last battle of seven-hundred-year Goguryeo.') }] },
+      { do: 'talk', npc: 'pelipper660', log: K('펠리퍼에게 평양성 소식을 듣자', 'Hear the news from Pyongyang from Pelipper'), say: [
+        { who: 279, name: K('펠리퍼', 'Pelipper'), text: K('펠리! 북쪽 평양성에서 날아왔어! 한 달 넘게 포위된 성 안에 사람들이 갇혀 있어.', 'Peli! I flew down from Pyongyang in the north! People are trapped in the city after more than a month of siege.') },
+        { who: 279, name: K('펠리퍼', 'Pelipper'), text: K('성벽을 지키던 보스로라가 지쳐서 정신을 잃어 가고 있대. 사람들이 빠져나갈 길을 열어 줘!', 'The Aggron guarding the walls is so exhausted it is losing its mind. Open a way out for the people!') }] },
+      { do: 'dungeon', d: 'pyongyang', log: K('평양성으로! 고구려의 마지막 싸움', 'To Pyongyang! Goguryeo\'s last battle') },
     ],
     outro: [
       { who: 'narr', text: K('660년 7월, 사비성이 함락되고 의자왕이 항복했다. 700년 가까이 이어진 백제가 막을 내렸다.', 'In July 660 Sabi fell and King Uija surrendered. Baekje, nearly 700 years old, came to an end.') },
       { who: 'narr', text: K('백제를 되살리려는 부흥 운동은 663년 백강 전투에서 끝내 꺾였다.', 'The movement to revive Baekje was finally crushed at the Battle of Baekgang in 663.') },
-      { who: 'narr', text: K('그리고 668년, 고구려마저 나당 연합군에게 평양성을 잃었다.', 'Then in 668, Goguryeo too lost Pyongyang to the Silla-Tang alliance.') },
+      { who: 'narr', text: K('668년 9월, 평양성이 함락되며 칠백 년 고구려도 막을 내렸다. 고구려 사람들의 꿈은 훗날 발해로 이어진다.', 'In September 668 Pyongyang fell, and seven-hundred-year Goguryeo came to an end too. The dream of its people would live on later in Balhae.') },
     ],
     side: [
       { id: 'a2a', title: K('연꽃 수막새 찾기', 'Find the Lotus Tiles'), kind: 'collect', item: 'rooftile', n: 3, d: 'busosan', reward: { money: 220, exp: 150 },
@@ -383,8 +400,9 @@ export const ANCIENT = [
           { who: 'partner', text: K('작은 성이지만 백성들이 끝까지 지키고 있어. 우리도 힘을 보태자!', 'It\'s a small fort, but the people are holding it to the end. Let\'s lend a hand!') }],
           after: [{ who: 142, text: K('…크르. 이 작은 성의 사람들은 겁을 모르는구나.', '...Krr. The people of this little fort know no fear.') }] } },
       hwangnyong: { name: K('황룡사', 'Hwangnyongsa'), tiles: T.temple, floors: 4, lv: [16, 20], mons: [37, 58, 77, 126, 218, 228, 322], bgm: 'd_06',
-        boss: { sp: 146, lv: 23, lvMin: 18, lvUp: 3, hp: 5.6, atk: 1.3, cap: 0.5, relentless: true, bgm: 'ba_secret1', moves: [53, 403, 246, 17],
-          tele: { name: K('불꽃 소용돌이', 'Fire Vortex'), every: 3, dmg: 0.4, pats: ['near', 'ring', 'cross', 'far'], type: 10 },
+        // eased after playtest feedback: HP 5.6 → 4.48 (−20%), hits, hit cap and Fire Vortex all −20%
+        boss: { sp: 146, lv: 23, lvMin: 18, lvUp: 3, hp: 4.48, atk: 1.04, cap: 0.4, relentless: true, bgm: 'ba_secret1', moves: [53, 403, 246, 17],
+          tele: { name: K('불꽃 소용돌이', 'Fire Vortex'), every: 3, dmg: 0.32, pats: ['near', 'ring', 'cross', 'far'], type: 10 },
           say: [
             { who: 'narr', text: K('1238년, 몽골군이 지른 불이 황룡사 구층목탑을 집어삼켰다. 불길 한가운데서 붉은 날개가 펼쳐진다!', '1238. The fire the Mongols set engulfs the nine-story wooden pagoda of Hwangnyongsa. Crimson wings spread from the heart of the blaze!') },
             { who: 146, name: K('파이어', 'Moltres'), text: K('끼오오오!! 이 불길은 나의 것이 아니다… 그런데도 멈출 수가 없구나!', 'Kyoooh!! This fire is not mine... and yet I cannot stop it!') },
@@ -471,8 +489,9 @@ export const ANCIENT = [
           after: [{ who: 275, text: K('…허허. 너희는 산을 지키러 왔구나. 길을 열어 주마.', '...Heh. You came to protect the mountain. I\'ll open the path.') }] } },
       wihwa: { name: K('위화도', 'Wihwado'), tiles: T.fortsnow, floors: 4, lv: [20, 24], mons: [86, 87, 124, 215, 220, 225, 238, 363], bgm: 'd_ice',
         tint: 'rgba(140,170,220,0.10)',
-        boss: { sp: 144, lv: 26, lvMin: 21, lvUp: 3, hp: 4.6, atk: 1.3, cap: 0.5, relentless: true, bgm: 'ba_secret1', moves: [58, 246, 59, 16],
-          tele: { name: K('눈보라', 'Blizzard'), every: 3, dmg: 0.4, pats: ['rows', 'cols', 'checker', 'near'], type: 15 },
+        // eased after playtest feedback: HP 4.6 → 3.68 (−20%), hits, hit cap and Blizzard all −20%
+        boss: { sp: 144, lv: 26, lvMin: 21, lvUp: 3, hp: 3.68, atk: 1.04, cap: 0.4, relentless: true, bgm: 'ba_secret1', moves: [58, 246, 59, 16],
+          tele: { name: K('눈보라', 'Blizzard'), every: 3, dmg: 0.32, pats: ['rows', 'cols', 'checker', 'near'], type: 15 },
           say: [
             { who: 'narr', text: K('장맛비로 불어난 압록강 한가운데, 위화도에 때아닌 얼음 바람이 몰아친다!', 'In the middle of the rain-swollen Yalu, an out-of-season icy wind howls across Wihwado!') },
             { who: 144, name: K('프리져', 'Articuno'), text: K('삐요오오… 이 물을 건너는 자, 돌아갈 길을 잃으리라.', 'Pyooo... Those who cross this water shall lose their way home.') },

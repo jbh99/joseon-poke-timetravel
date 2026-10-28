@@ -4,7 +4,7 @@ import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted } from '
 import { initData, S, save, load, newGame } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
-import { Town, setBuildings, townSets } from './town.js';
+import { Town, setBuildings, setPearl, townSets } from './town.js';
 import { initPmd, tileSet, portraitImage } from './pmd.js';
 import { Dungeon } from './dungeon.js';
 import { Title, EraCard, WorldMap, Ending } from './scenes.js';
@@ -128,7 +128,7 @@ async function boot() {
   try {
     await Promise.all([
       document.fonts.load('11px Galmuri11'), document.fonts.load('11px Galmuri11B'), document.fonts.load('9px Galmuri9'),
-      initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings),
+      initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings), loadJSON('data/pearl.json').then(setPearl),
       loadImages(['poke/front/251.png', ...STARTERS.flatMap((s) => [`poke/front/${s}s.png`, `poke/icon/${s}s.png`])]),
       loadJSON('data/content_en.json').then((t) => {
         const missing = new Set();

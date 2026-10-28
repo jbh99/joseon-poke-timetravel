@@ -17,7 +17,7 @@ export async function playEra(opts = {}) {
       const p = q.onTalk(npc, town);
       await drain(); await p; await sleep(200); await drain();
       out.steps.push(`talk:${st.npc}`);
-    } else if (st.do === 'dungeon') {
+    } else if (st.do === 'dungeon' || st.do === 'battle') { // a town battle is a one-floor run started in town
       [...S.party, ...S.roster].forEach((m) => m.heal(true));
       S.items.oran = Math.max(S.items.oran || 0, opts.oran ?? 4);
       // shop like a player would: spend coins on Sitrus Berries and Rice Balls before each dungeon

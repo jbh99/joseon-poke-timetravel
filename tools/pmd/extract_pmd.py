@@ -1,8 +1,9 @@
 """Export PMD Blue Rescue Team graphics for the web game.
 
-  python extract_pmd.py <rom.nds> <web/assets dir> [sprites|portraits|tiles|preview|all]
+  python extract_pmd.py <rom.nds> <web/assets dir> [sprites|forms|portraits|tiles|preview|all]
 
 sprites   -> pmd/spr/<dex>.png + .json  (walk / attack / hurt / sleep, 8 directions, shiny colour map)
+             and Deoxys' Formes as pmd/spr/386a|386d|386s.* ('forms' exports only those into the existing index)
 portraits -> pmd/kao/<dex>.png          (13 expressions, 40x40 each, in a row)
 tiles     -> pmd/tiles/<id>.png + .json (24x24 chunks + 8-neighbour lookup for wall / water / floor)
 """
@@ -64,70 +65,80 @@ def shiny_map(front_dir, dex, pmd_cols):
     return out
 
 
-def export_sprites(fs, out_dir, front_dir):
+# records past 386 that the game uses: Deoxys' Attack, Defense and Speed Formes (record 414 is the Normal Forme)
+FORMS = {417: '386a', 418: '386d', 419: '386s'}
+
+
+def export_sprites(fs, out_dir, front_dir, forms_only=False):
     mon = fs['monster']
     recs = species_records(fs['system'])
     pals = [pal_rgba(mon['palet'], i * 64) for i in range(len(mon['palet']) // 64)]
     os.makedirs(os.path.join(out_dir, 'pmd', 'spr'), exist_ok=True)
+    pal_of = lambda pi: pals[pi] if pi < len(pals) else pals[0]
     done = set()
-    index = {}
     for ri, (dex, pi) in sorted(recs.items()):
-        if not (1 <= dex <= 386) or dex in done:
+        if forms_only or not (1 <= dex <= 386) or dex in done:
             continue
         key = 'ax%03d' % ri
         if key not in mon:
             continue
         done.add(dex)
-        ax = AxSprite(mon[key])
-        pal = pals[pi] if pi < len(pals) else pals[0]
-        used, anims = [], {}
-        for name, g in ANIMS.items():
-            dirs = ax.groups[g] if g < len(ax.groups) else []
-            if not dirs:
-                dirs = ax.groups[0]
-            seqs = []
-            for d in range(8):
-                seq = []
-                for f in dirs[d]:
-                    if f['mf'] not in used:
-                        used.append(f['mf'])
-                    seq.append([used.index(f['mf']), f['dur'], f['ox'], f['oy']])
-                seqs.append(seq)
-            anims[name] = seqs
-        big = 128
-        frames = [render_mf(ax, mfi, pal, big) for mfi in used]
-        boxes = [f.getbbox() for f in frames if f.getbbox()]
-        if not boxes:
-            continue
-        x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
-        x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
-        w, h = x1 - x0, y1 - y0
-        cols = min(len(frames), 12)
-        rows = (len(frames) + cols - 1) // cols
-        sheet = Image.new('RGBA', (cols * w, rows * h), (0, 0, 0, 0))
-        for k, f in enumerate(frames):
-            sheet.paste(f.crop((x0, y0, x1, y1)), ((k % cols) * w, (k // cols) * h))
-        # palette PNG: transparent + the species palette
-        q = Image.new('P', sheet.size, 0)
-        flat = [0, 0, 0]
-        for c in pal[1:]:
-            flat += list(c)
-        q.putpalette(flat + [0] * (768 - len(flat)))
-        lut = {tuple(c): i + 1 for i, c in enumerate(pal[1:])}
-        src, dst = sheet.load(), q.load()
-        for y in range(sheet.height):
-            for x in range(sheet.width):
-                p = src[x, y]
-                if p[3]:
-                    dst[x, y] = lut.get(p[:3], 1)
-        q.save(os.path.join(out_dir, 'pmd', 'spr', f'{dex}.png'), transparency=0, optimize=True)
-        meta = {'w': w, 'h': h, 'ax': big // 2 - x0, 'ay': big // 2 - y0, 'cols': cols, 'anims': anims,
-                'shiny': shiny_map(front_dir, dex, [tuple(c) for c in pal[1:]])}
-        with open(os.path.join(out_dir, 'pmd', 'spr', f'{dex}.json'), 'w') as fp:
-            json.dump(meta, fp, separators=(',', ':'))
-        index[dex] = 1
-    print('sprites', len(done))
-    return sorted(done)
+        export_sprite(mon[key], pal_of(pi), dex, dex, out_dir, front_dir)
+    forms = [name for ri, name in FORMS.items()
+             if 'ax%03d' % ri in mon and export_sprite(mon['ax%03d' % ri], pal_of(recs[ri][1]), name, recs[ri][0], out_dir, front_dir)]
+    print('sprites', len(done), 'forms', len(forms))
+    return sorted(done) + forms
+
+
+def export_sprite(data, pal, name, dex, out_dir, front_dir):
+    """One record -> pmd/spr/<name>.png (palette sheet) + .json (frames, anchor; shiny colours from dex's Pearl sprites)."""
+    ax = AxSprite(data)
+    used, anims = [], {}
+    for anim, g in ANIMS.items():
+        dirs = ax.groups[g] if g < len(ax.groups) else []
+        if not dirs:
+            dirs = ax.groups[0]
+        seqs = []
+        for d in range(8):
+            seq = []
+            for f in dirs[d]:
+                if f['mf'] not in used:
+                    used.append(f['mf'])
+                seq.append([used.index(f['mf']), f['dur'], f['ox'], f['oy']])
+            seqs.append(seq)
+        anims[anim] = seqs
+    big = 128
+    frames = [render_mf(ax, mfi, pal, big) for mfi in used]
+    boxes = [f.getbbox() for f in frames if f.getbbox()]
+    if not boxes:
+        return False
+    x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
+    x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
+    w, h = x1 - x0, y1 - y0
+    cols = min(len(frames), 12)
+    rows = (len(frames) + cols - 1) // cols
+    sheet = Image.new('RGBA', (cols * w, rows * h), (0, 0, 0, 0))
+    for k, f in enumerate(frames):
+        sheet.paste(f.crop((x0, y0, x1, y1)), ((k % cols) * w, (k // cols) * h))
+    # palette PNG: transparent + the species palette
+    q = Image.new('P', sheet.size, 0)
+    flat = [0, 0, 0]
+    for c in pal[1:]:
+        flat += list(c)
+    q.putpalette(flat + [0] * (768 - len(flat)))
+    lut = {tuple(c): i + 1 for i, c in enumerate(pal[1:])}
+    src, dst = sheet.load(), q.load()
+    for y in range(sheet.height):
+        for x in range(sheet.width):
+            p = src[x, y]
+            if p[3]:
+                dst[x, y] = lut.get(p[:3], 1)
+    q.save(os.path.join(out_dir, 'pmd', 'spr', f'{name}.png'), transparency=0, optimize=True)
+    meta = {'w': w, 'h': h, 'ax': big // 2 - x0, 'ay': big // 2 - y0, 'cols': cols, 'anims': anims,
+            'shiny': shiny_map(front_dir, dex, [tuple(c) for c in pal[1:]])}
+    with open(os.path.join(out_dir, 'pmd', 'spr', f'{name}.json'), 'w') as fp:
+        json.dump(meta, fp, separators=(',', ':'))
+    return True
 
 
 def export_portraits(fs, out_dir):
@@ -274,6 +285,14 @@ if __name__ == '__main__':
         result['tiles'] = export_tiles(fs, out)
     if what == 'preview':
         preview(fs, sys.argv[4])
+    index_path = os.path.join(out, 'data', 'pmd.json')
+    old = json.load(open(index_path)) if os.path.exists(index_path) else {}
+    if what == 'forms':
+        forms = export_sprites(fs, out, front, forms_only=True)
+        result = {**old, 'spr': [k for k in old.get('spr', []) if k not in forms] + forms}
     if what == 'all':
-        with open(os.path.join(out, 'data', 'pmd.json'), 'w') as fp:
+        # portraits drawn by tools/make_portraits.py (this ROM has no Regi faces) stay listed
+        result['kao'] += [k for k in old.get('kao', []) if k not in result['kao'] and os.path.exists(os.path.join(out, 'pmd', 'kao', f'{k}.png'))]
+    if what in ('forms', 'all'):
+        with open(index_path, 'w') as fp:
             json.dump(result, fp, separators=(',', ':'))

@@ -93,21 +93,41 @@ export function tileSet(id) {
 }
 // neighbour bits: S, SE, E, NE, N, NW, W, SW
 const NB = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]];
+// a chunk set's pixels, read once, for paintTerrain's whole-canvas path
+function chunkPixels(set) {
+  if (!set.px) {
+    const cv = document.createElement('canvas');
+    cv.width = set.im.naturalWidth; cv.height = set.im.naturalHeight;
+    const c = cv.getContext('2d', { willReadFrequently: true });
+    c.drawImage(set.im, 0, 0);
+    set.px = new Uint32Array(c.getImageData(0, 0, cv.width, cv.height).data.buffer);
+  }
+  return set.px;
+}
 // Paint a terrain grid (0 wall, 1 floor, 2 water) into ctx with 24px PMD chunks. same(x, y, t) decides connectivity.
+// A canvas exactly the grid's size (every caller paints a fresh one) is composed in memory and put once instead of
+// one drawImage per tile (a 64x64 Pearl town took 80-200 ms that way); the chunk sets are fully opaque, so the
+// pixels are the same.
 export function paintTerrain(ctx, set, W, H, at, ox = 0, oy = 0, seed = 1) {
   const m = set.meta;
   if (!m) return;
   let s = seed >>> 0;
   const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s >>> 24; };
+  const whole = !ox && !oy && ctx.canvas?.width === W * 24 && ctx.canvas.height === H * 24;
+  const src = whole ? chunkPixels(set) : null, sw = set.im.naturalWidth, dw = W * 24;
+  const out = whole ? ctx.createImageData(dw, H * 24) : null, dst = out && new Uint32Array(out.data.buffer);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = at(x, y);
     let mask = 0;
-    NB.forEach(([dx, dy], b) => { const n = at(x + dx, y + dy); if (n === t || (n == null && t === 0)) mask |= 1 << b; });
+    for (let b = 0; b < 8; b++) { const n = at(x + NB[b][0], y + NB[b][1]); if (n === t || (n == null && t === 0)) mask |= 1 << b; }
     const table = t === 2 ? m.water : t === 1 ? m.floor : m.wall;
     const v = rnd();
     const k = table[mask][v < 200 ? 0 : v < 228 ? 1 : 2];
-    ctx.drawImage(set.im, (k % m.cols) * 24, Math.floor(k / m.cols) * 24, 24, 24, ox + x * 24, oy + y * 24, 24, 24);
+    const sx = (k % m.cols) * 24, sy = Math.floor(k / m.cols) * 24;
+    if (!whole) { ctx.drawImage(set.im, sx, sy, 24, 24, ox + x * 24, oy + y * 24, 24, 24); continue; }
+    for (let r = 0, i = sy * sw + sx, o = y * 24 * dw + x * 24; r < 24; r++, i += sw, o += dw) dst.set(src.subarray(i, i + 24), o);
   }
+  if (whole) ctx.putImageData(out, 0, 0);
 }
 
 // Pearl box icons have no shiny palette; every species' shiny icon was derived from its shiny battle sprite (tools/extract_sprites.py)

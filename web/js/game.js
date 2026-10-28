@@ -61,12 +61,26 @@ export function moveUsable(m) {
 }
 
 const STAGE = (s) => (s >= 0 ? (2 + s) / 2 : 2 / (2 - s));
+export const PRIMAL_MUL = 1.3;
+// Deoxys' Formes, changed at the red meteorite in town (town.js meteorTalk): base stats and PMD sprite (pmd/spr/386a.png...).
+// Speed counts for nothing in these turn-based dungeons, so the Speed Forme dodges instead (eva: a lasting evasion stage).
+export const FORMES = {
+  386: {
+    a: { name: ['어택폼', 'Attack Forme'], base: [50, 180, 20, 180, 20, 150], desc: ['공격과 특수공격이 크게 오르는 대신 방어가 아주 약해진다.', 'Attack and Sp. Atk soar, but its defenses become paper-thin.'] },
+    d: { name: ['디펜스폼', 'Defense Forme'], base: [50, 70, 160, 70, 160, 90], desc: ['방어와 특수방어가 크게 오르는 대신 공격이 약해진다.', 'Defense and Sp. Def soar, but its attacks weaken.'] },
+    s: { name: ['스피드폼', 'Speed Forme'], base: [50, 95, 90, 95, 90, 180], eva: 1, desc: ['몸이 가벼워져 상대의 공격을 잘 피한다. (회피 +1)', 'Its light body dodges attacks well. (evasion +1)'] },
+  },
+};
+export const FORME_NORMAL = { name: ['노말폼', 'Normal Forme'], desc: ['공격과 특수공격이 높은 원래 모습.', 'Its original form, strong on offense.'] };
 
 export class Mon {
   constructor(sp, lv, o = {}) {
     this.sp = sp; this.lv = lv; this.shiny = !!o.shiny;
-    // boss multipliers must be set before hp, which reads maxhp
+    this.forme = o.forme || null; // a FORMES key (Deoxys); null for the usual form
+    // the Forme and the boss multipliers must be set before hp, which reads maxhp
     this.boss = !!o.boss; this.hpMul = o.hpMul || 1.3; this.atkMul = o.atkMul || 0.9;
+    // a side's edge in a town battle (the Hanahoe's +15%) lifts every stat and HP; set before hp like the boss multipliers
+    this.buff = o.buff || 1;
     this.exp = o.exp ?? lv * lv * lv;
     this.moves = o.moves || this.defaultMoves().map((id) => ({ id, pp: DEX.moves[id].pp }));
     this.hp = o.hp ?? this.maxhp;
@@ -76,16 +90,22 @@ export class Mon {
     this.slowT = 0; // Regigigas' Slow Start
   }
   get data() { return DEX.species[this.sp]; }
-  get name() { return this.data.name; }
+  get formeDef() { return FORMES[this.sp]?.[this.forme] || null; }
+  // form: a temporary prefix such as "원시 " (Primal Reversion); a Forme follows the species name
+  get name() { const f = this.formeDef; return (this.form || '') + this.data.name + (f ? ` (${tr(...f.name)})` : ''); }
+  get spr() { return this.formeDef ? `${this.sp}${this.forme}` : this.sp; } // sprite key: pmd/spr/386a.png is Attack Forme Deoxys
+  get base() { return this.formeDef?.base || this.data.base; }
   get types() { return this.typeOverride || this.data.types; }
-  baseStat(i) { return Math.floor((2 * this.data.base[i] + 15) * this.lv / 100) + 5; }
-  get maxhp() { const v = Math.floor((2 * this.data.base[0] + 15) * this.lv / 100) + this.lv + 10; return this.boss ? Math.round(v * this.hpMul) : v; }
+  baseStat(i) { return Math.floor((2 * this.base[i] + 15) * this.lv / 100) + 5; }
+  get maxhp() { const v = Math.floor((2 * this.base[0] + 15) * this.lv / 100) + this.lv + 10; return Math.round((this.boss ? v * this.hpMul : v) * this.buff); }
   stat(k) {
     const i = { atk: 1, def: 2, spa: 3, spd: 4, spe: 5 }[k];
     let v = this.baseStat(i) * STAGE(this.stages[k] || 0);
     if (this.boss) v *= k === 'atk' || k === 'spa' ? this.atkMul : 1.1;
     if (this.slowT > 0 && (k === 'atk' || k === 'spe')) v *= 0.5;
-    return v;
+    // field: a legend at home on this battlefield (Groudon on the Nakdong, Kyogre off Incheon); primal: Primal Reversion.
+    // Both last one dungeon run (Dungeon.result clears them) and are never saved.
+    return v * this.buff * (this.field || 1) * (this.primal ? PRIMAL_MUL : 1);
   }
   defaultMoves() {
     const learned = this.data.learn.filter(([l, m]) => l <= this.lv && moveUsable(m)).map(([, m]) => m);
@@ -121,7 +141,7 @@ export class Mon {
   evolve(to) { const r = this.hp / this.maxhp; this.sp = to; this.hp = Math.max(1, Math.round(this.maxhp * r)); }
   heal(full = true) { this.hp = this.maxhp; this.status = null; if (full) this.restorePP(); }
   restorePP() { this.moves.forEach((m) => { m.pp = DEX.moves[m.id].pp; }); }
-  toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves }; }
+  toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined }; }
   static from(o) { return new Mon(o.sp, o.lv, o); }
 }
 
@@ -177,7 +197,7 @@ export function useMove(att, def, moveId) {
 }
 function hits(att, def, mv) {
   if (!mv.acc || mv.acc > 100) return true;
-  const s = clamp((att.stages.acc || 0) - (def?.stages.eva || 0), -6, 6);
+  const s = clamp((att.stages.acc || 0) - (def?.stages.eva || 0) - (def?.formeDef?.eva || 0), -6, 6);
   const m = s >= 0 ? (3 + s) / 3 : 3 / (3 - s);
   return Math.random() * 100 < mv.acc * m;
 }
@@ -192,6 +212,9 @@ export const ITEMS = {
   ginseng: withText(['인삼', 'Ginseng'], ['모든 기술의 PP를 회복한다.', 'Restores the PP of every move.'], { price: 220, pp: true }),
   escape: withText(['탈출 부적', 'Escape Charm'], ['던전에서 곧바로 마을로 돌아간다.', 'Takes you straight back to town from a dungeon.'], { price: 150, escape: true }),
   stone: withText(['돌팔매', 'Sling Stone'], ['앞쪽 일직선으로 던져 적에게 20 데미지를 준다.', 'Thrown straight ahead; deals 20 damage to a foe.'], { price: 12, throw: 20 }),
+  // key items (never sold, never used up): in a dungeon they wake the Primal Reversion of the legend they belong to
+  redorb: withText(['주홍구슬', 'Red Orb'], ['던전에서 쓰면 그란돈이 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오르고 불꽃 타입이 더해진다.', 'Use it in a dungeon and Groudon undergoes Primal Reversion: much stronger, and part Fire type, until the dungeon ends.'], { price: 0, key: true, primal: 383, types: [4, 10] }),
+  blueorb: withText(['쪽빛구슬', 'Blue Orb'], ['던전에서 쓰면 가이오가가 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오른다.', 'Use it in a dungeon and Kyogre undergoes Primal Reversion: much stronger until the dungeon ends.'], { price: 0, key: true, primal: 382, types: [11] }),
 };
 export const SHOP = ['oran', 'sitrus', 'rice', 'herb', 'stone', 'escape', 'ginseng'];
 export function itemDef(id, questItems) { return ITEMS[id] || questItems?.[id]; }
@@ -200,9 +223,20 @@ export function itemDef(id, questItems) { return ITEMS[id] || questItems?.[id]; 
 const SAVE_KEY = 'joseon-poke-save-v1';
 // v2 added six eras before 1392: older saves move forward by that many eras (levels are lifted on load, see quests.liftLevels);
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
-const SAVE_V = 3, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
+const SAVE_V = 4, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
+// v4 put 1905 between 1887 and 1919 (index 13), and opened the Korean War (v3 index 17) with the battle for Seoul
+const ERA_1905 = 13, WAR_V3 = 17, WAR_NEW_STEPS = 2;
+function migrateV4(o) {
+  if (o.era === WAR_V3 && o.step > 0) o.step += WAR_NEW_STEPS; // already past the war's first talk: the new opening is skipped
+  if (o.era >= ERA_1905) o.era++;
+  for (const k of Object.keys(o.flags || {})) { // per-era flags (a missed legend met in era N) follow their era
+    const m = /^(wander_\d+_)(\d+)$/.exec(k);
+    if (m && +m[2] >= ERA_1905) { o.flags[m[1] + (+m[2] + 1)] = o.flags[k]; delete o.flags[k]; }
+  }
+  o.wander = null; // the missed-legend plan is made again for the new list of eras
+}
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', inRun: null });
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', inRun: null, spy: null });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode });
@@ -228,6 +262,7 @@ export function load() {
     const v = o.v || 1;
     if (v < 2) { o.era = (o.era || 0) + OLD_ERA_SHIFT; o.migrated = true; }
     if (v < 3 && o.era >= ERA_1940) o.era++;
+    if (v < 4) migrateV4(o);
     Object.assign(S, FRESH(), o, { party, roster });
     delete S.savedAt;
     return true;

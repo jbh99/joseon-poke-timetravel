@@ -216,6 +216,13 @@ export async function loadJSON(path) {
   return jsons.get(path);
 }
 export const ready = (im) => im && im.complete && im.naturalWidth > 0;
+// the part of a big prerendered map (a town is up to ~2300x1900 px) inside the view at (vx, vy), drawn at its own place:
+// the same pixels as drawing it whole, without the browser handling the off-screen rest every frame
+export function drawSeen(c, im, vx, vy) {
+  const x0 = Math.max(0, Math.floor(vx)), y0 = Math.max(0, Math.floor(vy));
+  const x1 = Math.min(im.width, Math.ceil(vx + VW)), y1 = Math.min(im.height, Math.ceil(vy + VH));
+  if (x1 > x0 && y1 > y0) c.drawImage(im, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+}
 
 // ---------------------------------------------------------------- UI (drawn on the full-resolution screen)
 export const COL = {

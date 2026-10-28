@@ -1,5 +1,5 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
-import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText } from './core.js';
+import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText, fadeTo, shuffle } from './core.js';
 import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, save } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
@@ -35,14 +35,20 @@ export function checkRun() {
   S.inRun = null;
   if (left && loseChallenge()) { save(); say([{ who: 'narr', text: tr('챌린지 실패… 던전 도중에 여행을 멈췄다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the journey stopped in the middle of a dungeon. It now continues at Normal.') }]); }
 }
-const ahead = (dId) => era().main.some((s, i) => i >= S.step && s.do === 'dungeon' && s.d === dId); // its story run is still to come
+const RUN = ['dungeon', 'battle']; // steps that are a dungeon run (a 'battle' is started by talking to its NPC in town)
+const ahead = (dId) => era().main.some((s, i) => i >= S.step && RUN.includes(s.do) && s.d === dId); // its story run is still to come
+// a legend lair is done once its legend was met, or for the post-war Regi line (retry) once it joined
+export function lairDone(dId) {
+  const d = era().dungeons[dId], b = d?.boss;
+  return !b || (b.retry ? !!S.flags['got_' + b.sp] : !!S.flags['legend_' + dId]);
+}
 
 // ---------------------------------------------------------------- missed legends
 // A legendary boss (story or optional) from an era already left behind that never joined comes back in the next era,
 // one floor below the last of one of that era's dungeons, at the dungeon's own level. Side dungeons host first, then
 // naval ones, then story dungeons (outside their story run). The plan is fixed when the era is first entered, so a
 // legend keeps its dungeon all era; one met but left behind again moves on to the era after.
-const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final);
+const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final && !b.noWander);
 const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);
 function wanderPlan() {
   if (challenge()) return {}; // legends never join a challenge, so none come back either
@@ -82,7 +88,7 @@ export function wanderBoss(dId) {
 // the legendary Pokémon a dungeon still holds, for the world map: a lair's legend, a returning one, story legends to come
 export function legendsAt(dId) {
   const d = era().dungeons[dId], out = [];
-  if (d.legend) { if (!S.flags['legend_' + dId]) out.push(d.boss.sp); return out; }
+  if (d.legend) { if (!lairDone(dId)) out.push(d.boss.sp); return out; }
   const w = wanderAt(dId);
   if (w) out.push(w);
   if (ahead(dId)) {
@@ -100,6 +106,7 @@ export async function advanceMain() {
   S.step++;
   const st = mainStep();
   if (st?.do === 'scene') { await say(lines(st.say)); return advanceMain(); }
+  if (st?.do === 'faction') { if (!S.faction) await chooseFaction(); return advanceMain(); }
   if (!st) {
     await say(lines(era().outro));
     S.eraClear = true;
@@ -109,6 +116,12 @@ export async function advanceMain() {
   } else toast(tr('새 목표: ', 'New goal: ') + st.log, COL.blue);
 }
 
+// a save that stopped on a step which runs by itself (a scene or the choice of a side, e.g. one added later to an era
+// it had finished) plays it on arrival in town
+export async function resumeSteps() {
+  const st = mainStep();
+  if (st?.do === 'scene' || st?.do === 'faction') { S.step--; await advanceMain(); }
+}
 // an old save moved into a later era: bring the team up to that era's foes
 export function liftLevels() {
   if (!S.migrated) return;
@@ -140,16 +153,117 @@ export async function chooseFaction() {
   giveMons([pick]);
 }
 // which town holds the NPC of a 'talk' step (1 main, 2 second town)
-export const talkTown = (st) => (st?.do === 'talk' && era().town2?.npcs?.some((n) => n.id === st.npc) ? 2 : 1);
+export const talkTown = (st) => (st?.npc && era().town2?.npcs?.some((n) => n.id === st.npc) ? 2 : 1);
 
 export function onDungeonClear(dId) {
   const st = mainStep();
-  if (st?.do === 'dungeon' && st.d === dId) return advanceMain();
+  if (RUN.includes(st?.do) && st.d === dId) return advanceMain();
+}
+
+// ---------------------------------------------------------------- the 1920 spy hunt
+// A spy (Ditto) hides in the independence army's base disguised as one of its Pokémon. The informant knows the
+// disguise's type and, from its footprints, roughly how heavy it is (within 8%); the suspects all share that type,
+// each at least 30% heavier than the next, so the nearest weight is the spy. Suspects can be weighed (Pokédex
+// weight) and one accused: a wrong accusation costs three years, every dungeon trip one. Reaching 1930 brings the
+// police down on the base: the team is knocked out, coins are lost, and the hunt starts over with a new disguise.
+export const SPY_END = 1930;
+const SPY_POOLS = {
+  10: [4, 37, 58, 77, 126, 219, 155, 228, 322, 324],
+  11: [183, 60, 54, 418, 79, 55, 7, 116, 222, 120],
+  0: [19, 52, 133, 216, 399, 20, 241, 217, 143, 161],
+  12: [43, 69, 187, 152, 191, 315, 2, 114, 3, 460],
+};
+export const spyActive = () => mainStep()?.do === 'spy';
+function spyState() {
+  if (S.spy && S.spy.era === S.era) return S.spy;
+  const types = Object.keys(SPY_POOLS), type = +types[Math.floor(Math.random() * types.length)];
+  const pool = shuffle(SPY_POOLS[type].slice()).map((sp) => [sp, DEX.species[sp].kg]).sort((a, b) => a[1] - b[1]);
+  const picks = [];
+  for (const p of pool) if (!picks.length || p[1] >= picks[picks.length - 1][1] * 1.3) picks.push(p);
+  const suspects = shuffle(picks).slice(0, 6);
+  const spy = suspects[Math.floor(Math.random() * suspects.length)];
+  S.spy = { era: S.era, year: 1921, type, kg: Math.round(spy[1] * (0.92 + Math.random() * 0.16) * 2) / 2, spy: spy[0], suspects: suspects.map((s) => s[0]) };
+  return S.spy;
+}
+// the suspects standing around the base while the hunt is on
+export function spySuspects() {
+  if (!spyActive()) return [];
+  return spyState().suspects.map((sp, k) => ({ id: `suspect${k}`, sp, role: 'suspect', x: [6, 13, 18, 26, 31, 35][k], y: [9, 20, 24, 9, 22, 25][k], wander: 2, say: [] }));
+}
+// a dungeon trip while the hunt is on lets a year go by
+export function spyTick() {
+  if (!spyActive()) return null;
+  const s = spyState();
+  s.year++;
+  return tr(`그사이 1년이 흘렀다. 지금은 ${s.year}년. (${SPY_END}년이 되기 전에 밀정을 찾자!)`, `A year went by meanwhile. It is now ${s.year}. (Find the spy before ${SPY_END}!)`);
+}
+export const spyDue = () => spyActive() && spyState().year >= SPY_END;
+async function spyInformant(npc) {
+  const s = spyState(), tn = DEX.types[s.type];
+  await say([
+    { who: npc.sp, name: npc.name, text: tr('기지 안에 밀정이 숨어 있어! 다른 포켓몬으로 변신해서 우리 작전을 일본군에게 넘기고 있대.', 'There\'s a spy in the base! It transforms into other Pokémon and passes our plans to the Japanese army.') },
+    { who: npc.sp, name: npc.name, text: tr(`내가 알아낸 건 두 가지야. 밀정은 ${tn} 타입 포켓몬으로 변신했어. 그리고 몰래 드나든 자리의 발자국을 보면 몸무게는 대략 ${s.kg}kg이야.`, `I found out two things. The spy is disguised as a ${tn}-type Pokémon. And from the footprints where it sneaks in and out, it weighs about ${s.kg} kg.`) },
+    { who: npc.sp, name: npc.name, text: tr(`기지의 ${tn} 타입 포켓몬들을 저울에 달아 보고 밀정을 찾아 줘. 지금은 ${s.year}년, ${SPY_END}년이 되기 전에! 엉뚱한 포켓몬을 붙잡으면 그사이 시간이 흘러 버려.`, `Weigh the base's ${tn}-type Pokémon and find the spy. It's ${s.year} now: before ${SPY_END}! Grab the wrong one and time slips away.`) }]);
+}
+function spySuspect(npc, town) {
+  const kg = DEX.species[npc.sp].kg;
+  say([{ who: npc.sp, name: npc.name, text: tr('…무슨 일이오? (눈길을 슬쩍 피한다)', '...What is it? (It glances away)'),
+    choices: tr(['저울에 달아 본다', '밀정으로 지목한다', '그만둔다'], ['Weigh it', 'Accuse it of spying', 'Leave it']), onChoice: (i) => {
+      if (i === 0) return say([{ who: 'narr', text: tr(`${npc.name}의 몸무게: ${kg}kg`, `${npc.name} weighs ${kg} kg.`) }]);
+      if (i === 1) spyAccuse(npc, town);
+    } }]);
+}
+async function spyAccuse(npc, town) {
+  const s = spyState();
+  if (npc.sp === s.spy) {
+    const was = npc.name;
+    npc.sp = 132; npc.nameFn = () => tr('밀정 메타몽', 'Spy Ditto'); npc.name = npc.nameFn(); npc.wander = 0; npc.role = 'caught';
+    jingle('fanfa4');
+    await say([
+      { who: 'narr', text: tr(`${was}의 모습이 흐물흐물 녹아내리더니… 메타몽이 나타났다! 밀정이다!`, `${was}'s shape melts away... and a Ditto appears! It's the spy!`) },
+      { who: 132, name: npc.name, text: tr('…들켰군. 넘긴 정보는 이미 늦었다만, 더는 못 하겠어.', '...Caught. What I passed on is already gone, but I\'m finished now.') },
+      { who: 'partner', text: tr('독립군에게 알리자! 이제 작전이 새어 나가지 않을 거야.', 'Let\'s tell the independence army! Our plans won\'t leak anymore.') }]);
+    S.spy = null;
+    return advanceMain();
+  }
+  s.year += 3;
+  await say([
+    { who: npc.sp, name: npc.name, text: tr('억울하오! 나는 밀정이 아니오!', 'This is unjust! I am no spy!') },
+    { who: 'narr', text: tr(`헛소동이 벌어진 사이 진짜 밀정이 또 정보를 빼돌렸다… 어느새 ${s.year}년이 되었다.`, `While the commotion went on, the real spy slipped out more secrets... It is already ${s.year}.`) }]);
+  if (s.year >= SPY_END) spyRaid(town);
+}
+// 1930: the police come for the base
+export async function spyRaid(town) {
+  if (spyRaid.busy) return;
+  spyRaid.busy = true;
+  sfx('super');
+  await say([
+    { who: 'narr', text: tr(`${SPY_END}년. 밀정이 넘긴 정보를 따라 일본 경찰이 기지를 덮쳤다!`, `${SPY_END}. Following the spy's secrets, the Japanese police storm the base!`) },
+    { who: 262, name: tr('순사 그라에나', 'Constable Mightyena'), text: tr('독립군은 하나도 남김없이 잡아들여라!', 'Round up every last one of the independence army!') },
+    { who: 'narr', text: tr('포켓몬들이 하나둘 쓰러졌다…', 'One by one, your Pokémon went down...') }]);
+  const lost = Math.floor(S.money * 0.3);
+  S.money -= lost;
+  for (const m of [...S.party, ...S.roster]) { m.hp = 1; m.status = null; }
+  const ch = loseChallenge();
+  S.spy = null; // the hunt starts over: a new disguise, back to 1921
+  await say([{ who: 'narr', text: tr(`…정신을 차려 보니 기지 구석이었다. 엽전 ${lost}냥을 잃었다. 밀정 찾기를 처음부터 다시 시작한다.`, `...You came to in a corner of the base, ${lost} nyang poorer. The spy hunt starts over from the beginning.`) },
+    ...(ch ? [{ who: 'narr', text: tr('챌린지 실패… 모두 쓰러지고 말았다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the whole team went down. The journey now continues at Normal.') }] : [])]);
+  spyRaid.busy = false;
+  save();
+  fadeTo(() => G.goTown(1));
 }
 
 export async function onTalk(npc, town) {
   const st = mainStep();
   if (st?.do === 'talk' && st.npc === npc.id) { await say(lines(st.say)); if (st.gift) giveMons(st.gift); return advanceMain(); }
+  if (st?.do === 'battle' && st.npc === npc.id) { // the town itself turns into the battlefield
+    await say(lines(st.say));
+    return say([{ who: 'narr', text: tr('전투에 나설까? (마을이 그대로 싸움터가 된다)', 'Join the battle? (The town itself becomes the battlefield.)'), choices: tr(['나선다', '아직'], ['Go', 'Not yet']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(st.d)); } }]);
+  }
+  if (st?.do === 'spy') {
+    if (st.npc === npc.id) return spyInformant(npc);
+    if (npc.role === 'suspect') return spySuspect(npc, town);
+  }
   for (const q of era().side) {
     if (q.kind === 'deliver' && q.to === npc.id && S.side[q.id] === 'active' && countItem(q.item)) {
       takeItem(q.item); S.flags['delivered_' + q.id] = true; sfx('pick');
@@ -492,6 +606,13 @@ function useItem(id, dungeon) {
   if (!d) return toast(tr('지금은 쓸 수 없다.', 'You can\'t use that now.'));
   if (d.escape) { if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.')); takeItem(id); return dungeon.escape(); }
   if (d.throw) { if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.')); takeItem(id); return dungeon.throwStone(d.throw); }
+  if (d.primal) { // an orb is never used up: it wakes its legend's Primal Reversion for one dungeon run
+    if (!dungeon) return toast(tr('던전에서 써야 구슬의 힘이 깨어난다.', 'The orb\'s power only wakes in a dungeon.'));
+    const name = DEX.species[d.primal].name, m = S.party.find((p) => p.sp === d.primal && p.hp > 0);
+    if (!m || !dungeon.ents.some((e) => e.mon === m && e.alive)) return toast(tr(`함께 싸우는 ${name}이(가) 있어야 쓸 수 있다.`, `${name} has to be fighting with you.`), COL.red);
+    if (m.primal) return toast(tr(`${name}은(는) 이미 원시회귀했다.`, `${name} is already in its Primal form.`));
+    return dungeon.primal(m, d);
+  }
   const pick = (m) => {
     if (d.pp) m.restorePP();
     if (d.heal || d.healPct) m.hp = Math.min(m.maxhp, m.hp + (d.heal || Math.round(m.maxhp * d.healPct)));

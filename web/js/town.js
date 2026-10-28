@@ -1,14 +1,17 @@
 // Hub town for the current era: generated tile map + Blender-rendered buildings + NPCs.
-import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI } from './core.js';
+import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef } from './game.js';
+import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL } from './game.js';
 import { ERAS, QITEMS, CELEBI } from './content.js';
 import { tr } from './i18n.js';
 import { hasPmdSprite, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
-import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem } from './quests.js';
+import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons } from './quests.js';
 
 export let BLD = {};
 export function setBuildings(b) { BLD = b; }
+// town and floor layouts rebuilt from Pearl's field data (tools/pearl_maps.py → data/pearl.json)
+export let PEARL = { towns: {}, floors: {} };
+export function setPearl(p) { PEARL = p; }
 // wandering villagers per town (rotates by era) and the travel tips they share
 const TOWNFOLK = [[16, 19, 133, 175], [52, 25, 39, 183], [104, 54, 133, 216], [300, 263, 175, 39], [177, 194, 25, 52]];
 const FOLK_TIPS = () => tr([
@@ -24,6 +27,10 @@ const FOLK_TIPS = () => tr([
 ]);
 
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+const BG_CACHE = new Map(); // painted town grounds, most recently used last (Town.prerender)
+// whether a building or prop can show in the view at (vx, vy) (pixels, town coordinates). Images reach at most about
+// eight tiles beside and above their footprint (the palace is 199x185), so the rest is skipped instead of drawn off-screen.
+export const objInView = (o, vx, vy) => (o.tx + o.fw + 9) * TILE >= vx && (o.tx - 9) * TILE <= vx + VW && (o.ty + o.fd + 1) * TILE >= vy && (o.ty + o.fd - 9) * TILE <= vy + VH;
 
 export function drawMon(c, sp, shiny, x, y, o = {}) {
   // x, y = tile-centre bottom in pixels
@@ -73,33 +80,84 @@ export const townSets = () => [...new Set(Object.values(BIOME).flatMap((b) => [b
 
 export class Town {
   // kind 1: the era's main town (time gate, notice board, a bigger map); kind 2: its second town, if any
-  constructor(kind = S.townKind || 1) {
+  // o.def / o.battle: a town built as a battlefield for Dungeon (no people, no Time Gate, not the town you stand in)
+  constructor(kind = S.townKind || 1, o = {}) {
     this.era = ERAS[S.era];
     this.kind = kind === 2 && this.era.town2 ? 2 : 1;
-    this.def = this.kind === 2 ? this.era.town2 : this.era.town;
-    S.townKind = this.kind;
-    this.W = this.kind === 1 ? 52 : 40; this.H = this.kind === 1 ? 32 : 28;
-    this.OX = this.kind === 1 ? 6 : 0; // content coordinates were laid out for the 40-wide map
+    this.def = o.def || (this.kind === 2 ? this.era.town2 : this.era.town);
+    this.battle = !!o.battle;
+    if (!this.battle) S.townKind = this.kind;
+    this.layout = (this.def.pearl && PEARL.towns[this.def.pearl]) || null;
+    if (this.layout) { this.W = this.layout.w; this.H = this.layout.h; this.OX = 0; }
+    else {
+      this.W = this.kind === 1 ? 52 : 40; this.H = this.kind === 1 ? 32 : 28;
+      this.OX = this.kind === 1 ? 6 : 0; // content coordinates were laid out for the 40-wide map
+    }
     this.build();
     const coast = this.def.biome === 'coast';
-    [this.px, this.py] = coast ? [this.W - 3, 17] : [this.OX + 19, this.H - 3];
-    this.face = coast ? 'left' : 'up';
+    if (this.layout) { [this.px, this.py] = this.start; this.face = this.startFace; }
+    else { [this.px, this.py] = coast ? [this.W - 3, 17] : [this.OX + 19, this.H - 3]; this.face = coast ? 'left' : 'up'; }
+    const restored = !!S.townPos;
     if (S.townPos) { [this.px, this.py] = S.townPos; S.townPos = null; }
     this.vx = this.px; this.vy = this.py; this.moving = false; this.moveT = 0;
     this.trail = [[this.px, this.py + 1]];
-    const py = Math.min(this.H - 1, this.py + 1);
-    this.partner = { x: this.px, y: py, fx: this.px, fy: py, vx: this.px, vy: py, face: 'up' };
+    const [qx, qy] = this.layout && !restored ? this.behind : [this.px, Math.min(this.H - 1, this.py + 1)];
+    this.partner = { x: qx, y: qy, fx: qx, fy: qy, vx: qx, vy: qy, face: 'up' };
     this.mate = null; // third follower (recruit), created on demand in update()
+    if (this.def.police && !this.battle) this.posting();
+  }
+  // Occupied towns (1910-1945): a constable walks up to you once each time you come in and takes 50 nyang
+  // (whatever is left if you have less). It gives up chasing after a while and calls out from where it stands.
+  posting() {
+    const [x, y] = this.layout ? [Math.round((this.px + (this.gate?.tx ?? this.W / 2)) / 2), Math.round((this.py + (this.gate?.ty ?? this.H / 2)) / 2)] : [this.px, this.py - 6];
+    const npc = this.addNpc({ id: 'police', sp: 262, role: 'police', x: 0, y: 0 }, () => tr('순사 그라에나', 'Constable Mightyena'), [x, y]);
+    this.police = { npc, t: 1.2, steps: 0, done: false };
+  }
+  policeStep() {
+    const P = this.police, n = P.npc;
+    if (Math.abs(n.x - this.px) + Math.abs(n.y - this.py) <= 1 || ++P.steps > 30) return this.policeToll();
+    // one tile along the shortest way to the player (around people and the followers)
+    const busy = (x, y) => this.blocked(x, y) || (x === this.partner.x && y === this.partner.y) || (this.mate && x === this.mate.x && y === this.mate.y);
+    const prev = new Map([[n.y * this.W + n.x, null]]), q = [[n.x, n.y]];
+    let goal = null;
+    for (let k = 0; k < q.length && k < 3000 && !goal; k++) {
+      const [x, y] = q[k];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const a = x + dx, b = y + dy, key = b * this.W + a;
+        if (prev.has(key)) continue;
+        if (a === this.px && b === this.py) { goal = [x, y]; break; }
+        if (busy(a, b)) continue;
+        prev.set(key, [x, y]); q.push([a, b]);
+      }
+    }
+    if (!goal || (goal[0] === n.x && goal[1] === n.y)) return;
+    let s = goal;
+    while (prev.get(s[1] * this.W + s[0]) && !(prev.get(s[1] * this.W + s[0])[0] === n.x && prev.get(s[1] * this.W + s[0])[1] === n.y)) s = prev.get(s[1] * this.W + s[0]);
+    n.face = s[0] > n.x ? 'right' : s[0] < n.x ? 'left' : n.face;
+    n.x = s[0]; n.y = s[1];
+  }
+  policeToll() {
+    const P = this.police, n = P.npc;
+    P.done = true;
+    n.face = this.px > n.x ? 'right' : 'left';
+    n.wander = 3; n.hx = n.x; n.hy = n.y;
+    const take = Math.min(50, S.money);
+    S.money -= take;
+    sfx(take ? 'cancel' : 'bump');
+    say([{ who: 262, name: n.name, text: take ? tr(`거기 서! 검문이다. …세금이 밀렸군. ${take}냥 내놔.`, `Halt! Inspection. ...Your taxes are overdue. Hand over ${take} nyang.`) : tr('거기 서! 검문이다. …빈털터리로군. 쳇, 가 봐.', 'Halt! Inspection. ...Flat broke, are you. Tch, get lost.') },
+      ...(take ? [{ who: 'narr', text: tr(`순사가 엽전 ${take}냥을 빼앗아 갔다…`, `The constable took ${take} nyang...`) }] : [])]);
   }
   enter() {
     const t = this.def;
     playBgm(S.night ? t.bgmN : t.bgm);
+    setTimeout(() => { if (G.scene === this && spyDue()) spyRaid(this); }, 600);
     G.dialogSpeaker = (L) => { if (typeof L?.who === 'number' && L.who !== this._lastCry) { cry(L.who); this._lastCry = L.who; } };
   }
   exit() { G.dialogSpeaker = null; }
   relang() { for (const n of this.npcs) n.name = n.nameFn(); }
 
   build() {
+    if (this.layout) return this.buildPearl();
     const era = this.era, t = this.def, B = BIOME[t.biome] || BIOME.spring;
     const MW = this.W, MH = this.H, OX = this.OX, main = this.kind === 1;
     this.B = B;
@@ -129,30 +187,11 @@ export class Town {
     }
     this.ground = ground; this.solid = solid;
     this.objs = []; this.inter = new Map();
-    const key = (x, y) => y * MW + x;
     const free = (x, y, w, h) => {
       for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (i < 2 || j < 2 || i >= MW - 2 || j >= MH - 1 || solid[j][i] || ground[j][i] === B.road || ground[j][i] === B.plaza) return false;
       return true;
     };
-    const place = (name, tx, ty, kind = 'house') => {
-      const m = BLD[name];
-      if (m) {
-        const fw = Math.ceil(m.fw), fd = Math.ceil(m.fd);
-        for (let j = ty; j < ty + fd; j++) for (let i = tx; i < tx + fw; i++) if (j < MH && i < MW) solid[j][i] = true;
-        const o = { kind, name, tx, ty, fw, fd, img: `bld/${name}.png`, x: tx * TILE - m.ax, y: (ty + m.fd) * TILE - m.ay, base: (ty + fd) * TILE };
-        this.objs.push(o);
-        if (kind !== 'deco') this.inter.set(key(tx + Math.floor(fw / 2), ty + fd), o);
-        return o;
-      }
-      return this.placeProp(name, tx, ty, 2, 2, kind);
-    };
-    this.placeProp = (name, tx, ty, w = 1, h = 1, kind = 'deco') => {
-      for (let j = ty; j < ty + h; j++) for (let i = tx; i < tx + w; i++) solid[j][i] = true;
-      const o = { kind, name, tx, ty, fw: w, fd: h, img: `prop/${name}.png`, prop: true, base: (ty + h) * TILE };
-      this.objs.push(o);
-      if (kind !== 'deco') this.inter.set(key(tx + Math.floor(w / 2), ty + h), o);
-      return o;
-    };
+    const place = (name, tx, ty, kind = 'house') => this.place(name, tx, ty, kind);
     // landmark
     if (t.landmark && BLD[t.landmark]) {
       const m = BLD[t.landmark];
@@ -202,23 +241,214 @@ export class Town {
     this.gate = main ? { tx: OX + 23, ty: 10 } : null;
     // NPCs (+ fixed role NPCs)
     this.npcs = [];
-    // names are functions of the current language so a live language switch can relabel them
-    const addNpc = (n, nameFn) => {
-      const [x, y] = this.nearestFree(n.x + OX, n.y);
-      const npc = { ...n, x, y, vx: x, vy: y, hx: x, hy: y, face: 'left', t: Math.random() * 3, phase: Math.random() * 3 };
-      npc.nameFn = nameFn || (() => (/\s/.test(n.name || '') ? n.name : DEX.species[n.sp].name));
-      npc.name = npc.nameFn();
-      this.npcs.push(npc);
-    };
-    (main ? era.npcs : t.npcs || []).forEach((n) => addNpc(n));
+    (main ? era.npcs : t.npcs || []).forEach((n) => this.addNpc(n));
+    if (main) spySuspects().forEach((n) => this.addNpc(n));
+    const r = this.roles();
+    this.addNpc(r.inn, r.innName);
+    this.addNpc(r.shop, r.shopName);
+    if (main) this.addNpc(r.crier, r.crierName);
+    // a few villagers who wander and share travel tips
+    r.folk.forEach((n) => this.addNpc(n));
+    this.prerender();
+  }
+  // the innkeeper, merchant, notice-board crier and wandering villagers every town has (by era)
+  roles() {
+    const era = this.era, main = this.kind === 1;
     const j = S.era - 6; // Joseon-era chapters keep their old innkeepers and merchants
     const inn = era.inn ?? (j < 4 ? 113 : j < 8 ? 440 : 242), shop = era.shop ?? (j < 3 ? 52 : j < 6 ? 431 : 53);
-    addNpc({ id: 'innkeeper', sp: inn, x: 6, y: 13, role: 'inn' }, () => tr('주막 ', 'Innkeeper ') + DEX.species[inn].name);
-    addNpc({ id: 'merchant', sp: shop, x: 15, y: 16, role: 'shop' }, () => tr('장사꾼 ', 'Merchant ') + DEX.species[shop].name);
-    if (main) addNpc({ id: 'crier', sp: 441, x: 16, y: 11, role: 'board' }, () => tr('방꾼 페라페', 'Crier Chatot'));
-    // a few villagers who wander and share travel tips
     const folk = TOWNFOLK[(era.id + this.kind) % TOWNFOLK.length];
-    folk.slice(0, main ? 4 : 2).forEach((sp, k) => addNpc({ id: `folk${k}`, sp, x: [4, 31, 11, 28][k], y: [19, 20, 24, 8][k], wander: 3, folk: k }));
+    return {
+      inn: { id: 'innkeeper', sp: inn, x: 6, y: 13, role: 'inn' }, innName: () => tr('주막 ', 'Innkeeper ') + DEX.species[inn].name,
+      shop: { id: 'merchant', sp: shop, x: 15, y: 16, role: 'shop' }, shopName: () => tr('장사꾼 ', 'Merchant ') + DEX.species[shop].name,
+      crier: { id: 'crier', sp: 441, x: 16, y: 11, role: 'board' }, crierName: () => tr('방꾼 페라페', 'Crier Chatot'),
+      folk: folk.slice(0, main ? 4 : 2).map((sp, k) => ({ id: `folk${k}`, sp, x: [4, 31, 11, 28][k], y: [19, 20, 24, 8][k], wander: 3, folk: k })),
+    };
+  }
+  // names are functions of the current language so a live language switch can relabel them; `at` overrides the
+  // content position (Pearl towns stand their people where Pearl's own NPCs stood)
+  addNpc(n, nameFn, at) {
+    if (n.when && !n.when()) return null;
+    const [x, y] = at ? this.nearestFree(...at) : this.nearestFree(n.x + this.OX, n.y);
+    const npc = { ...n, x, y, vx: x, vy: y, hx: x, hy: y, face: 'left', t: Math.random() * 3, phase: Math.random() * 3 };
+    npc.nameFn = nameFn || (() => (/\s/.test(n.name || '') ? n.name : DEX.species[n.sp].name));
+    npc.name = npc.nameFn();
+    this.npcs.push(npc);
+    return npc;
+  }
+  // a Blender building: its footprint turns solid, and the tile in front of its middle is where it is talked to
+  place(name, tx, ty, kind = 'house') {
+    const m = BLD[name];
+    if (!m) return this.placeProp(name, tx, ty, 2, 2, kind);
+    const fw = Math.ceil(m.fw), fd = Math.ceil(m.fd);
+    for (let j = ty; j < ty + fd; j++) for (let i = tx; i < tx + fw; i++) if (j >= 0 && i >= 0 && j < this.H && i < this.W) this.solid[j][i] = true;
+    const o = { kind, name, tx, ty, fw, fd, img: `bld/${name}.png`, x: tx * TILE - m.ax, y: (ty + m.fd) * TILE - m.ay, base: (ty + fd) * TILE };
+    this.objs.push(o);
+    if (kind !== 'deco') this.inter.set((ty + fd) * this.W + tx + Math.floor(fw / 2), o);
+    return o;
+  }
+  placeProp(name, tx, ty, w = 1, h = 1, kind = 'deco') {
+    for (let j = ty; j < ty + h; j++) for (let i = tx; i < tx + w; i++) if (j >= 0 && i >= 0 && j < this.H && i < this.W) this.solid[j][i] = true;
+    const o = { kind, name, tx, ty, fw: w, fd: h, img: `prop/${name}.png`, prop: true, base: (ty + h) * TILE };
+    this.objs.push(o);
+    if (kind !== 'deco') this.inter.set((ty + h) * this.W + tx + Math.floor(w / 2), o);
+    return o;
+  }
+
+  // A town rebuilt from a Pearl map (data/pearl.json): its walkable shape, water and blocked masses come from the
+  // ROM's movement grid. Our buildings stand on its building lots (Pokémon Center → inn, Mart → merchant's house,
+  // Gym → landmark, the rest by size), its route-gate doors are the ways out, roads run from every door to the main
+  // exit, a plaza rings the Time Gate, and the era's people stand where Pearl's own NPCs stood.
+  buildPearl() {
+    const L = this.layout, era = this.era, t = this.def, B = BIOME[t.biome] || BIOME.spring, main = this.kind === 1;
+    const MW = this.W, MH = this.H, R = rng(era.id * 7919 + this.kind * 131);
+    this.B = B;
+    const WALK = '.,*i=';
+    this.ground = L.rows.map((row) => [...row].map((ch) => (ch === '~' ? 'water' : ch === '=' ? B.road : WALK.includes(ch) ? B.ground : B.border)));
+    this.solid = L.rows.map((row) => [...row].map((ch) => !WALK.includes(ch)));
+    this.objs = []; this.inter = new Map(); this.npcs = [];
+    const ground = this.ground, solid = this.solid;
+    const walk = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH && !solid[y][x];
+    const inBox = (x, y, b, m = 0) => x >= b[0] - m && x < b[0] + b[2] + m && y >= b[1] - m && y < b[1] + b[3] + m;
+    const front = (x, y) => [[0, 1], [0, -1], [-1, 0], [1, 0]].map(([dx, dy]) => [x + dx, y + dy]).find(([a, b]) => walk(a, b)) || [x, y];
+    // ways out: route-gate doors (or the tile in front of a blocked one); the southernmost is where you arrive
+    const isGate = (d) => d[2] === 'gate' || L.blds.some((b) => b[4] === 'gate' && inBox(d[0], d[1], b, 1));
+    this.exitTiles = L.doors.filter(isGate).map(([x, y]) => (walk(x, y) ? [x, y] : front(x, y)));
+    if (!this.exitTiles.length) { // no gate: the walkable edge tiles
+      for (let x = 0; x < MW; x++) for (const y of [0, MH - 1]) if (walk(x, y)) this.exitTiles.push([x, y]);
+      for (let y = 0; y < MH; y++) for (const x of [0, MW - 1]) if (walk(x, y)) this.exitTiles.push([x, y]);
+    }
+    const isExit = (x, y) => this.exitTiles.some(([a, b]) => a === x && b === y);
+    const mainExit = this.exitTiles.slice().sort((p, q) => q[1] - p[1] || p[0] - q[0])[0];
+    const inside = (x, y) => [[0, -1], [-1, 0], [1, 0], [0, 1]].map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => walk(a, b) && !isExit(a, b));
+    const [sx, sy] = inside(...mainExit)[0] || mainExit;
+    this.start = [sx, sy];
+    this.startFace = sy < mainExit[1] ? 'up' : sy > mainExit[1] ? 'down' : sx < mainExit[0] ? 'left' : 'right';
+    this.behind = inside(sx, sy).find(([a, b]) => !(a === sx && b === sy)) || [sx, sy];
+    // buildings: the biggest of ours that fits each lot, bottom-aligned on it; the rest of a lot stays a hedge
+    const modern = ['modern', 'war', 'camp'].includes(t.biome);
+    const houses = t.houses.length ? t.houses : ['hanok'];
+    const innModel = t.biome === 'camp' || t.biome === 'war' ? 'tent' : t.biome === 'snow' ? 'hanok_snow' : 'choga';
+    const fits = (names, w, d) => {
+      const c = [...new Set(names)].filter((n) => BLD[n]).map((n) => [n, Math.ceil(BLD[n].fw), Math.ceil(BLD[n].fd)]);
+      const ok = c.filter(([, fw, fd]) => fw <= w && fd <= d).sort((p, q) => q[1] * q[2] - p[1] * p[2]);
+      return ok[0]?.[0] ?? c.sort((p, q) => p[1] * p[2] - q[1] * q[2])[0]?.[0];
+    };
+    const deco = t.props.filter((p) => p !== 'tram' && p !== 'board');
+    let hk = 0, dk = 0;
+    this.lots = {};
+    for (const b of L.blds) {
+      const [x, y, w, d, kind] = b;
+      if (kind === 'object' || kind === 'sign') { // decorations: one prop in the middle, the rest of the box walkable again
+        for (let j = y; j < y + d; j++) for (let i = x; i < x + w; i++) if (ground[j]?.[i] === B.border && L.rows[j][i] === 'B') { ground[j][i] = B.ground; solid[j][i] = false; }
+        const px = x + Math.floor((w - 1) / 2), py = y + d - 1;
+        if (walk(px, py) && deco.length && !isExit(px, py)) this.placeProp(deco[dk++ % deco.length], px, py);
+        continue;
+      }
+      let name, role = 'house';
+      if (kind === 'pc') { name = innModel; role = 'inn'; }
+      else if (kind === 'gym') { name = fits([t.landmark, ...(modern ? ['western', 'hanok_hall'] : ['palace', 'hanok_hall', 'pavilion8'])].filter(Boolean), w, d); role = 'landmark'; }
+      else if (kind === 'special' || kind === 'big') name = fits(modern ? ['western', 'hanok_hall', ...houses] : ['hanok_hall', 'palace', ...houses], w, d);
+      else if (kind === 'gate') { name = fits(['gate', 'fortgate'], w, d); role = 'deco'; }
+      else name = fits([houses[hk++ % houses.length], ...houses], w, d);
+      if (!name) continue;
+      const m = BLD[name], fw = m ? Math.ceil(m.fw) : 2, fd = m ? Math.ceil(m.fd) : 2;
+      const tx = x + Math.floor((w - fw) / 2), ty = y + d - fd;
+      for (let j = ty; j < ty + fd; j++) for (let i = tx; i < tx + fw; i++) if (ground[j]?.[i] === B.border) ground[j][i] = B.ground;
+      const o = this.place(name, tx, ty, role);
+      if (kind === 'pc') this.inn = o;
+      this.lots[kind] = this.lots[kind] || b;
+    }
+    // doors: the tile in front of each one (where people stand and the roads end)
+    const doorAt = (kind) => { const d = L.doors.find((q) => q[2] === kind); return d ? front(d[0], d[1]) : null; };
+    const fronts = L.doors.filter((d) => !isGate(d)).map(([x, y]) => front(x, y)).filter(([x, y]) => walk(x, y));
+    // roads: from every door back to the main exit, preferring to keep going straight (a distance field from the exit)
+    const dist = Array.from({ length: MH }, () => new Array(MW).fill(1e9));
+    const q = [[sx, sy]]; dist[sy][sx] = 0;
+    for (let k = 0; k < q.length; k++) {
+      const [x, y] = q[k];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy; if (walk(a, b) && dist[b][a] > dist[y][x] + 1) { dist[b][a] = dist[y][x] + 1; q.push([a, b]); } }
+    }
+    for (const [fx0, fy0] of fronts.concat(this.exitTiles.map(([x, y]) => front(x, y)))) {
+      let x = fx0, y = fy0, dir = null;
+      for (let n = 0; n < 400 && dist[y]?.[x] > 0 && dist[y][x] < 1e9; n++) {
+        if (ground[y][x] === B.ground) ground[y][x] = B.road;
+        const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => (dist[y + dy]?.[x + dx] ?? 1e9) < dist[y][x]);
+        const s = steps.find(([dx, dy]) => dir && dx === dir[0] && dy === dir[1]) || steps[0];
+        if (!s) break;
+        dir = s; x += s[0]; y += s[1];
+      }
+      if (ground[y]?.[x] === B.ground) ground[y][x] = B.road;
+    }
+    // everything people use must be reachable from the way in (Pearl maps have walkable pockets you can't get to)
+    const reach = new Set([sy * MW + sx]), rq = [[sx, sy]];
+    for (let k = 0; k < rq.length; k++) {
+      const [x, y] = rq[k];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy; if (walk(a, b) && !reach.has(b * MW + a)) { reach.add(b * MW + a); rq.push([a, b]); } }
+    }
+    const reachable = (x, y) => reach.has(y * MW + x);
+    // the Time Gate (main town): the open 2x2 spot nearest the middle of the town's doors, ringed by a plaza
+    this.gate = null;
+    const people = !this.battle;
+    const mid = fronts.length ? fronts.reduce((a, [x, y]) => [a[0] + x / fronts.length, a[1] + y / fronts.length], [0, 0]) : [MW / 2, MH / 2];
+    const open = (x, y, w, h) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!walk(i, j) || isExit(i, j) || ground[j][i] === B.road) return false; return true; };
+    if (main && people) {
+      let best = null, bd = 1e9;
+      for (let y = 2; y < MH - 3; y++) for (let x = 2; x < MW - 3; x++) {
+        if (!open(x - 1, y - 1, 4, 4) || !reachable(x, y)) continue;
+        const dd = Math.hypot(x + 1 - mid[0], y + 1 - mid[1]);
+        if (dd < bd) { bd = dd; best = [x, y]; }
+      }
+      if (best) {
+        this.gate = { tx: best[0], ty: best[1] };
+        for (let j = best[1] - 2; j <= best[1] + 3; j++) for (let i = best[0] - 3; i <= best[0] + 4; i++) if (walk(i, j) && ground[j][i] !== B.road) ground[j][i] = B.plaza;
+        const bx = best[0] - 2, by = best[1];
+        if (walk(bx, by) && !isExit(bx, by)) this.placeProp('board', bx, by, 1, 1, 'board');
+      }
+    }
+    // ships on open water, a market stall beside the merchant, lanterns by the inn and scattered props
+    if (t.ships) {
+      let n = 0;
+      for (const sname of t.ships) {
+        const m = BLD[sname]; if (!m) continue;
+        const fw = Math.ceil(m.fw), fd = Math.ceil(m.fd);
+        const spots = [];
+        for (let y = 1; y < MH - fd - 1; y += 2) for (let x = 1; x < MW - fw - 1; x += 2) {
+          let ok = true;
+          for (let j = y - 1; j <= y + fd && ok; j++) for (let i = x - 1; i <= x + fw && ok; i++) if (ground[j]?.[i] !== 'water' || this.objs.some((o) => inBox(i, j, [o.tx, o.ty, o.fw, o.fd]))) ok = false;
+          if (ok) spots.push([x, y]);
+        }
+        const s = spots[Math.floor(R() * spots.length)];
+        if (s) { const o = this.place(sname, s[0], s[1], 'ship'); o.bob = n++; }
+      }
+    }
+    const shopAt = doorAt('mart') || fronts[1] || this.start;
+    const innAt = doorAt('pc') || fronts[0] || this.start;
+    for (const [x, y] of [[shopAt[0] + 2, shopAt[1]], [shopAt[0] - 3, shopAt[1]]]) if (open(x, y, 2, 2) && BLD.stall) { this.place('stall', x, y, 'deco'); break; }
+    for (const [x, y] of [[innAt[0] - 2, innAt[1]], [innAt[0] + 2, innAt[1]]]) if (open(x, y, 1, 1)) { this.placeProp('lantern', x, y); break; }
+    let tries = 0, placed = 0;
+    while (deco.length && placed < (main ? 26 : 16) && tries++ < 2000) {
+      const x = 2 + Math.floor(R() * (MW - 4)), y = 2 + Math.floor(R() * (MH - 4));
+      if (!open(x - 1, y - 1, 3, 3) || fronts.some(([a, b]) => Math.abs(a - x) + Math.abs(b - y) < 3)) continue;
+      this.placeProp(deco[placed % deco.length], x, y);
+      placed++;
+    }
+    // people: the era's NPCs on Pearl's NPC spots nearest the plaza first, the innkeeper and merchant at their doors
+    const center = this.gate ? [this.gate.tx + 1, this.gate.ty + 1] : mid;
+    const spots = L.npcs.filter(([x, y]) => walk(x, y) && reachable(x, y) && !isExit(x, y)).sort((p, q2) => Math.hypot(p[0] - center[0], p[1] - center[1]) - Math.hypot(q2[0] - center[0], q2[1] - center[1]));
+    let si = 0;
+    const pool = [...reach].map((k) => [k % MW, Math.floor(k / MW)]).filter(([x, y]) => !isExit(x, y) && Math.hypot(x - center[0], y - center[1]) < 14);
+    const nextSpot = () => spots[si++] || pool[Math.floor(R() * pool.length)] || center;
+    if (people) {
+      (main ? era.npcs : t.npcs || []).forEach((n) => this.addNpc(n, null, nextSpot()));
+      if (main) spySuspects().forEach((n) => this.addNpc(n, null, nextSpot()));
+      const r = this.roles();
+      this.addNpc(r.inn, r.innName, innAt);
+      this.addNpc(r.shop, r.shopName, shopAt);
+      if (main) this.addNpc(r.crier, r.crierName, this.gate ? [this.gate.tx - 2, this.gate.ty + 1] : nextSpot());
+      r.folk.forEach((n) => this.addNpc(n, null, nextSpot()));
+    }
+    this.waterTiles = [];
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (ground[y][x] === 'water') this.waterTiles.push(y * MW + x);
     this.prerender();
   }
   nearestFree(x, y) {
@@ -228,7 +458,7 @@ export class Town {
       const k = cy * this.W + cx;
       if (seen.has(k) || cx < 2 || cy < 2 || cx >= this.W - 2 || cy >= this.H - 1) continue;
       seen.add(k);
-      if (!this.solid[cy][cx] && !this.npcs?.some((n) => n.x === cx && n.y === cy) && !this.onGate(cx, cy)) return [cx, cy];
+      if (!this.solid[cy][cx] && !this.npcs?.some((n) => n.x === cx && n.y === cy) && !this.onGate(cx, cy) && !(this.layout && this.exitTiles.some(([a, b]) => a === cx && b === cy))) return [cx, cy];
       q.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
     }
     return [x, y];
@@ -238,6 +468,11 @@ export class Town {
     const B = this.B;
     const sets = [tileSet(B.set), tileSet(B.road0), tileSet(B.plaza0)];
     if (sets.some((t) => !t.meta || !ready(t.im))) return; // chunk sets still loading; draw() retries
+    // a town is built the same on every visit: the painted ground of the last few towns is kept (BG_CACHE), so coming
+    // back from a dungeon does not paint it again. The key covers everything the painting reads.
+    const key = [B.set, B.road0, B.plaza0, this.era.id, this.W, this.H, this.ground.map((r) => r.join()).join('|')].join(';');
+    const kept = BG_CACHE.get(key);
+    if (kept) { BG_CACHE.delete(key); BG_CACHE.set(key, kept); this.bg = kept; return; }
     const cv = document.createElement('canvas');
     cv.width = this.W * TILE; cv.height = this.H * TILE;
     const c = cv.getContext('2d');
@@ -265,6 +500,8 @@ export class Town {
       }
     }
     this.bg = cv;
+    BG_CACHE.set(key, cv);
+    if (BG_CACHE.size > 3) BG_CACHE.delete(BG_CACHE.keys().next().value); // up to ~9 MB each (a 64x64 Pearl town)
   }
 
   blocked(x, y, ignorePartner = true) {
@@ -276,6 +513,8 @@ export class Town {
   }
   update(dt) {
     if (G.overlays.length) return;
+    const pol = this.police;
+    if (pol && !pol.done && !fade.cb && (pol.t -= dt) <= 0) { pol.t = 0.3; this.policeStep(); }
     // NPC wandering
     for (const n of this.npcs) {
       n.vx += (n.x - n.vx) * Math.min(1, dt * 8); n.vy += (n.y - n.vy) * Math.min(1, dt * 8);
@@ -315,7 +554,8 @@ export class Town {
       if (input.isDown('left')) { dx = -1; this.face = 'left'; } else if (input.isDown('right')) { dx = 1; this.face = 'right'; } else if (input.isDown('up')) { dy = -1; this.face = 'up'; } else if (input.isDown('down')) { dy = 1; this.face = 'down'; }
       if (dx || dy) {
         const nx = this.px + dx, ny = this.py + dy;
-        const exit = this.exitTiles.some(([ex, ey]) => ex === this.px && ey === this.py) && (ny >= this.H || nx >= this.W);
+        const exit = this.layout ? this.exitTiles.some(([ex, ey]) => ex === nx && ey === ny) // a Pearl town: walking into a gate door
+          : this.exitTiles.some(([ex, ey]) => ex === this.px && ey === this.py) && (ny >= this.H || nx >= this.W);
         if (exit) return this.leave();
         const swap = nx === P.x && ny === P.y; // walking into the partner swaps the two; the third member stays put
         if (!this.blocked(nx, ny) || swap) {
@@ -346,6 +586,11 @@ export class Town {
       if (npc.role === 'inn') return this.innMenu(npc);
       if (npc.role === 'shop') return this.shopMenu(npc);
       if (npc.role === 'board') return boardMenu(npc);
+      if (npc.role === 'regi') return this.regiTalk(npc);
+      if (npc.role === 'lati') return this.latiTalk();
+      if (npc.role === 'meteor') return this.meteorTalk();
+      if (npc.role === 'police') return say([{ who: npc.sp, name: npc.name, text: tr('…뭘 보나? 어서 지나가.', '...What are you looking at? Move along.') }]);
+      if (npc.role === 'caught') return say([{ who: npc.sp, name: npc.name, text: tr('…밀정 노릇도 이제 끝이다.', '...My days as a spy are over.') }]);
       if (npc.folk != null) return say([{ who: npc.sp, name: npc.name, text: choice(FOLK_TIPS()) }]);
       return onTalk(npc, this);
     }
@@ -358,6 +603,56 @@ export class Town {
       if (o.kind === 'house') return say([{ who: 'narr', text: choice(tr(['문이 굳게 닫혀 있다. 안에서 밥 짓는 냄새가 난다.', '창호지 너머로 두런두런 이야기 소리가 들린다.', '"지금은 바쁘니 나중에 오시오!"', '문 앞에 짚신 두 켤레가 가지런히 놓여 있다.'], ['The door is shut tight. Rice is cooking inside.', 'Murmured voices drift through the paper window.', '"We\'re busy right now, come back later!"', 'Two pairs of straw sandals sit neatly by the door.'])) }]);
       if (o.kind === 'ship') return say([{ who: 'narr', text: o.name === 'geobukseon' ? tr('거북선이다. 등판의 쇠못이 번뜩인다.', 'A turtle ship. The iron spikes on its back glint.') : o.name === 'panokseon' ? tr('판옥선이다. 2층 갑판 위로 깃발이 나부낀다.', 'A panokseon. Flags flutter above its two decks.') : tr('작은 나룻배가 물결에 흔들린다.', 'A little ferry boat bobs on the waves.') }]);
     }
+  }
+  // the post-war Regi line starts here: Registeel stands asleep in town (data in content_modern.js)
+  regiTalk(npc) {
+    say([{ who: 'narr', text: tr('점자가 새겨진 강철 거인이 우뚝 서 있다. 몸속 깊은 곳에서 희미하게 삐빗거리는 소리가 들린다… 깨워 볼까?', 'A steel giant carved with braille stands tall. A faint beeping comes from deep inside it... Wake it up?'),
+      choices: tr(['깨운다', '그만둔다'], ['Wake it', 'Leave it']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(npc.d)); } }]);
+  }
+  // Latias and Latios: only one of the pair comes along
+  latiTalk() {
+    const pair = [380, 381];
+    say([{ who: 380, name: tr('라티아스 · 라티오스', 'Latias · Latios'), text: tr('라티아스와 라티오스가 나란히 너희를 바라본다. 둘 중 하나만 함께 갈 수 있을 것 같다…', 'Latias and Latios look at you side by side. It seems only one of them can come along...'),
+      choices: [...pair.map((sp) => DEX.species[sp].name), tr('그만둔다', 'Not now')], onChoice: (i) => {
+        if (i > 1) return;
+        S.flags.lati = pair[i];
+        giveMons([pair[i]]);
+        this.npcs = this.npcs.filter((n) => n.role !== 'lati');
+        setTimeout(() => say([{ who: 'narr', text: tr(`${DEX.species[pair[1 - i]].name}은(는) 하늘 높이 날아올라 사라졌다.`, `${DEX.species[pair[1 - i]].name} soared high into the sky and vanished.`) }]), 400);
+      } }]);
+  }
+  // Deoxys changes Forme by touching the red meteorite, as at Veilstone (game.js FORMES); its share of HP is kept
+  meteorTalk() {
+    const m = S.party.find((p) => FORMES[p.sp]), F = m && FORMES[m.sp];
+    if (!m) return say([{ who: 'narr', text: S.roster.some((p) => FORMES[p.sp])
+      ? tr('붉은 운석이 희미하게 맥박친다. 동료 명부에서 테오키스를 데려오면 반응할 것 같다.', 'The red meteorite pulses faintly. It may react if you bring Deoxys from the roster.')
+      : tr('붉은 운석이 희미하게 맥박친다. 우주에서 온 무언가와 공명하는 것 같다.', 'The red meteorite pulses faintly, as if resonating with something from space.') }]);
+    const keys = [null, ...Object.keys(F)], def = (k) => (k ? F[k] : FORME_NORMAL), sp = DEX.species[m.sp].name;
+    say([{ who: m.sp, name: m.name, text: tr(`${sp}이(가) 운석에 손을 대자 몸이 빛나기 시작했다! 어떤 모습으로 바꿀까?`, `${sp} touches the meteorite and begins to glow! Which Forme should it take?`) }], () => openMenu(keys.map((k) => ({
+      label: tr(...def(k).name), right: k === m.forme ? tr('지금', 'now') : '', desc: tr(...def(k).desc),
+      fn: () => {
+        if (k === m.forme) return;
+        const r = m.hp / m.maxhp;
+        m.forme = k; m.hp = Math.max(1, Math.round(m.maxhp * r));
+        sfx('super'); cry(m.sp);
+        say([{ who: 'narr', text: tr(`${sp}의 몸이 빛에 휩싸이더니 ${tr(...def(k).name)}으로 모습을 바꿨다!`, `${sp} is wrapped in light and changes into its ${tr(...def(k).name)}!`) }]);
+      },
+    })), { title: tr(`${sp}의 폼`, `${sp}'s Forme`), desc: true, x: 150, y: 30, w: 200, sel: Math.max(0, keys.indexOf(m.forme)) }));
+  }
+  // the red meteorite (no sprite exists for it): a dark rock with cracks that glow in a slow pulse
+  drawMeteor(c, x, y) {
+    const glow = 0.55 + Math.sin(G.time * 2.5) * 0.3;
+    c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(x, y - 4, 12, 4, 0, 0, Math.PI * 2); c.fill();
+    const g = c.createRadialGradient(x, y - 11, 2, x, y - 11, 20);
+    g.addColorStop(0, `rgba(255,110,70,${0.35 * glow})`); g.addColorStop(1, 'rgba(255,110,70,0)');
+    c.fillStyle = g; c.fillRect(x - 20, y - 31, 40, 40);
+    const rock = (pts, col) => { c.fillStyle = col; c.beginPath(); pts.forEach(([dx, dy], i) => c[i ? 'lineTo' : 'moveTo'](x + dx, y + dy)); c.closePath(); c.fill(); };
+    rock([[-12, -4], [-10, -13], [-4, -19], [5, -18], [12, -11], [11, -3]], '#24161a');
+    rock([[-10, -5], [-8, -12], [-3, -17], [4, -16], [10, -10], [9, -4]], '#5e3236');
+    rock([[-7, -12], [-3, -16], [3, -15], [-1, -12]], '#8a4c48');
+    c.strokeStyle = `rgba(255,150,100,${glow})`; c.lineWidth = 1; c.beginPath();
+    c.moveTo(x - 6, y - 6); c.lineTo(x - 2, y - 10); c.lineTo(x + 3, y - 8); c.moveTo(x - 2, y - 10); c.lineTo(x - 1, y - 14); c.moveTo(x + 3, y - 8); c.lineTo(x + 7, y - 11);
+    c.stroke();
   }
   gateTalk() {
     if (!eraComplete()) return say([{ who: 'narr', text: tr('희미하게 빛나는 시간의 문이다. 이 시대의 소원을 이루면 열릴 것 같다.', 'A faintly glowing Time Gate. It should open once this era\'s wish comes true.') }]);
@@ -382,7 +677,7 @@ export class Town {
       S.money -= ITEMS[id].price; addItem(id); sfx('pick'); toast(tr(`${ITEMS[id].name}을(를) 샀다! (남은 돈 ${S.money}냥)`, `Bought ${ITEMS[id].name}! (${S.money} nyang left)`));
     } })), { title: tr(`장터 · ${S.money}냥`, `Market · ${S.money} nyang`), desc: true, keep: true, x: 150, y: 30, w: 200 });
     const sell = () => {
-      const ids = Object.keys(S.items).filter((id) => ITEMS[id]);
+      const ids = Object.keys(S.items).filter((id) => ITEMS[id] && !ITEMS[id].key); // key items (the orbs) are never sold
       if (!ids.length) return toast(tr('팔 물건이 없다.', 'Nothing to sell.'));
       openMenu(ids.map((id) => ({ label: `${ITEMS[id].name} ×${countItem(id)}`, right: tr(`${Math.floor(ITEMS[id].price / 2)}냥`, `${Math.floor(ITEMS[id].price / 2)} ny`), fn: () => { takeItem(id); S.money += Math.floor(ITEMS[id].price / 2); sfx('pick'); toast(tr(`팔았다. (${S.money}냥)`, `Sold. (${S.money} nyang)`)); } })), { title: tr('팔기', 'Sell'), x: 150, y: 30, w: 200 });
     };
@@ -406,29 +701,36 @@ export class Town {
     if (!this.bg) this.prerender();
     c.fillStyle = '#20301c'; c.fillRect(0, 0, VW, VH);
     c.save(); c.translate(-Math.round(camX), -Math.round(camY));
-    if (this.bg) c.drawImage(this.bg, 0, 0);
+    if (this.bg) drawSeen(c, this.bg, Math.round(camX), Math.round(camY));
     // water shimmer
-    if (this.def.biome === 'coast') {
+    if (this.layout) {
+      c.fillStyle = 'rgba(255,255,255,0.3)';
+      const f = Math.floor(G.time * 2);
+      for (const k of this.waterTiles) if ((k * 7 + f) % 11 === 0) { const x = (k % this.W) * TILE, y = Math.floor(k / this.W) * TILE; if (x > camX - TILE && x < camX + VW && y > camY - TILE && y < camY + VH) c.fillRect(x + ((k * 5 + f * 3) % 16), y + ((k * 3) % 18) + 3, 6, 1); }
+    } else if (this.def.biome === 'coast') {
       c.fillStyle = 'rgba(255,255,255,0.35)';
       for (let i = 0; i < 40; i++) { const x = (i * 97 + Math.floor(G.time * 12) * 3) % (this.W * TILE), y = (this.H - 6) * TILE + (i * 53) % (5 * TILE); c.fillRect(x, y, 6, 1); }
     }
     if (this.gate) this.drawGate(c);
     const list = [];
-    for (const o of this.objs) list.push({ base: o.base, draw: () => {
+    for (const o of this.objs) if (objInView(o, camX, camY)) list.push({ base: o.base, draw: () => {
       const im = img(o.img);
       if (!ready(im)) return;
       if (o.prop) c.drawImage(im, Math.round(o.tx * TILE + (o.fw * TILE - im.width) / 2), Math.round((o.ty + o.fd) * TILE - im.height + 2));
       else c.drawImage(im, o.x, o.y + (o.bob != null ? Math.round(Math.sin(G.time * 1.5 + o.bob) * 1.5) : 0));
     } });
     for (const n of this.npcs) list.push({ base: n.vy * TILE + TILE, draw: () => {
-      drawMon(c, n.sp, false, n.vx * TILE + 12, n.vy * TILE + TILE, { facing: n.face, phase: n.phase });
-      if (this.isQuestNpc(n)) this.drawMark(c, n.vx * TILE + 12, n.vy * TILE - 12, '!', COL.red);
+      if (n.role === 'meteor') this.drawMeteor(c, n.vx * TILE + 12, n.vy * TILE + TILE);
+      else drawMon(c, n.sp, false, n.vx * TILE + 12, n.vy * TILE + TILE, { facing: n.face, phase: n.phase });
+      const mark = this.markOf(n), mx = n.vx * TILE + 12, my = n.vy * TILE - 12;
+      if (mark === 'main' || mark === 'side') this.drawMark(c, mx, my, '!', mark === 'main' ? COL.red : COL.blue);
+      else if (mark) this.drawSign(c, mx, my, mark);
     } });
     const [a, b, m3] = S.party;
     const Q = this.mate;
-    if (Q && m3) list.push({ base: Q.vy * TILE + TILE - 2, draw: () => drawMon(c, m3.sp, m3.shiny, Q.vx * TILE + 12, Q.vy * TILE + TILE, { face: Q.dir, facing: Q.face === 'right' ? 'right' : 'left', moving: this.moving, phase: 2 }) });
-    list.push({ base: this.partner.vy * TILE + TILE - 1, draw: () => drawMon(c, b.sp, b.shiny, this.partner.vx * TILE + 12, this.partner.vy * TILE + TILE, { face: this.partner.dir, facing: this.partner.face === 'right' ? 'right' : 'left', moving: this.moving, phase: 1 }) });
-    list.push({ base: this.vy * TILE + TILE, draw: () => drawMon(c, a.sp, a.shiny, this.vx * TILE + 12, this.vy * TILE + TILE, { face: this.face, facing: this.face === 'right' ? 'right' : this.face === 'left' ? 'left' : this.lastH || 'left', moving: this.moving }) });
+    if (Q && m3) list.push({ base: Q.vy * TILE + TILE - 2, draw: () => drawMon(c, m3.spr, m3.shiny, Q.vx * TILE + 12, Q.vy * TILE + TILE, { face: Q.dir, facing: Q.face === 'right' ? 'right' : 'left', moving: this.moving, phase: 2 }) });
+    list.push({ base: this.partner.vy * TILE + TILE - 1, draw: () => drawMon(c, b.spr, b.shiny, this.partner.vx * TILE + 12, this.partner.vy * TILE + TILE, { face: this.partner.dir, facing: this.partner.face === 'right' ? 'right' : 'left', moving: this.moving, phase: 1 }) });
+    list.push({ base: this.vy * TILE + TILE, draw: () => drawMon(c, a.spr, a.shiny, this.vx * TILE + 12, this.vy * TILE + TILE, { face: this.face, facing: this.face === 'right' ? 'right' : this.face === 'left' ? 'left' : this.lastH || 'left', moving: this.moving }) });
     if (this.face === 'left' || this.face === 'right') this.lastH = this.face;
     list.sort((p, q) => p.base - q.base).forEach((d) => d.draw());
     c.restore();
@@ -446,7 +748,32 @@ export class Town {
   }
   isQuestNpc(n) {
     const st = mainStep();
-    return st && st.do === 'talk' && st.npc === n.id;
+    return !!st && ['talk', 'battle', 'spy'].includes(st.do) && st.npc === n.id;
+  }
+  // what floats above an NPC: red ! for the main quest, blue ! for requests (the crier with a new or finished one,
+  // a delivery's recipient while you carry it), a coin sign over the merchant and a bowl over the innkeeper
+  markOf(n) {
+    if (this.isQuestNpc(n)) return 'main';
+    const side = this.era.side || [];
+    if (n.role === 'board' && side.some((q) => ['open', 'ready'].includes(sideState(q)))) return 'side';
+    if (side.some((q) => q.kind === 'deliver' && q.to === n.id && S.side[q.id] === 'active' && countItem(q.item))) return 'side';
+    if (n.role === 'shop') return 'shop';
+    if (n.role === 'inn') return 'inn';
+    return null;
+  }
+  drawSign(c, x, y, kind) {
+    const by = Math.round(y + Math.sin(G.time * 3 + x) * 1);
+    c.fillStyle = COL.ink; c.fillRect(x - 7, by - 6, 14, 12);
+    c.fillStyle = '#f3e6c4'; c.fillRect(x - 6, by - 5, 12, 10);
+    if (kind === 'shop') { // a brass coin with its square hole (yeopjeon)
+      c.fillStyle = '#7a5a10'; c.beginPath(); c.arc(x, by, 4.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#e8b83a'; c.beginPath(); c.arc(x, by, 3.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#7a5a10'; c.fillRect(x - 1, by - 1, 2, 2);
+    } else { // a steaming bowl of gukbap
+      c.fillStyle = '#b04030'; c.fillRect(x - 4, by + 1, 8, 2); c.fillRect(x - 3, by + 3, 6, 1);
+      c.fillStyle = '#fff'; c.fillRect(x - 3, by, 6, 1);
+      c.fillStyle = '#9aa0a8'; c.fillRect(x - 2, by - 4, 1, 3); c.fillRect(x + 1, by - 3, 1, 2);
+    }
   }
   drawMark(c, x, y, ch, color) {
     const by = y + Math.sin(G.time * 5) * 2;
