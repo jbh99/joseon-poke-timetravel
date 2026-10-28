@@ -1,6 +1,8 @@
 # Build the Android app: copy web/ (minus the dev playtest helpers and the retired AI paintings) into
 # mobile/www, sync it into the Capacitor project and assemble a debug APK. Everything the game needs
 # ships inside the APK, so it plays offline; only co-op multiplayer goes online (PeerJS signalling).
+# -Release builds the public APK and leaves it in mobile\release as joseon-poke.apk plus a zip of it,
+# the two files a GitHub release carries (README "배포").
 param([switch]$NoGradle, [switch]$Release)
 # native tools report through exit codes (checked below); Gradle's SDK warnings on stderr must not abort the build
 $ErrorActionPreference = 'Continue'
@@ -34,4 +36,12 @@ try {
   } finally { Pop-Location }
   $kind = if ($Release) { 'release' } else { 'debug' }
   Get-ChildItem (Join-Path $mobile "android\app\build\outputs\apk\$kind") -Filter *.apk | ForEach-Object { "apk: {0} ({1:N1} MB)" -f $_.FullName, ($_.Length / 1MB) }
+  if ($Release) {
+    $out = Join-Path $mobile 'release'
+    New-Item -ItemType Directory -Force $out | Out-Null
+    $apk = Join-Path $out 'joseon-poke.apk'
+    Copy-Item (Join-Path $mobile 'android\app\build\outputs\apk\release\app-release.apk') $apk -Force
+    Compress-Archive -LiteralPath $apk -DestinationPath (Join-Path $out 'joseon-poke-apk.zip') -Force
+    Get-ChildItem $out | ForEach-Object { "release: {0} ({1:N1} MB)" -f $_.FullName, ($_.Length / 1MB) }
+  }
 } finally { Pop-Location }

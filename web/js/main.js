@@ -117,6 +117,7 @@ window.onAndroidBack = () => {
   setTimeout(() => dispatchEvent(new KeyboardEvent('keyup', { code: 'Escape' })), 60);
 };
 if (APP) document.addEventListener('visibilitychange', () => { if (NET.role !== 'host') pauseAudio(document.hidden); if (!document.hidden) checkVolume(); });
+if (APP) for (const p of document.querySelectorAll('.get-app')) p.hidden = true; // the guide's download link, needless in the app
 // the game's sound follows the phone's media volume, which is easily left at 0 or near it (a player who never hears the
 // music has no reason to raise it): the app says so instead of staying silent, at launch already when it is low.
 // MainActivity reports the volume in percent.

@@ -15,6 +15,7 @@
 
 - 설치 없이 브라우저에서 바로 실행됩니다. PC의 크롬·엣지·파이어폭스를 권장하고, 스마트폰은 화면 버튼으로 조작합니다.
 - 처음 접속하면 게임 가이드가 열립니다. 게임 중에도 **H** 키나 오른쪽 위 **가이드** 버튼으로 다시 볼 수 있습니다.
+- 안드로이드 폰에는 **[앱(APK)을 받아](#내려받아-설치하기)** 설치할 수도 있습니다.
 
 | 타이틀 | 세계 지도 |
 |---|---|
@@ -25,6 +26,24 @@
 ## 안드로이드 앱
 
 웹 게임 전체를 앱 안에 담은 안드로이드 버전입니다. **인터넷 없이 플레이**되고, 멀티플레이(함께 하기)만 인터넷이 필요합니다.
+
+### 내려받아 설치하기
+
+**[📱 APK 내려받기 (joseon-poke.apk)](https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk)** · [릴리스 페이지](https://github.com/jbh99/joseon-poke-timetravel/releases/latest) (같은 파일을 zip으로 묶은 것도 있습니다)
+
+플레이 스토어 밖에서 받는 앱이라 설치할 때 안드로이드가 경고를 몇 번 띄웁니다. 순서대로 누르면 설치됩니다.
+
+1. 휴대폰 **크롬**에서 위 링크를 누릅니다. 기기에 해로울 수 있는 파일이라는 경고가 나오면 **다운로드**를 누릅니다.
+2. 다운로드가 끝나면 **열기**를 누릅니다 (또는 내 파일 → 다운로드에서 `joseon-poke.apk`를 누릅니다).
+3. 이 출처의 알 수 없는 앱은 설치할 수 없다는 창이 뜨면 **설정** → **이 출처 허용**을 켜고 뒤로 돌아옵니다.
+4. **설치**를 누릅니다.
+5. Play 프로텍트 창이 뜨면 **앱 검사**를 하거나 **검사 없이 설치**를 누릅니다. '차단됨'으로 나오면 **자세히** → **무시하고 설치**를 누릅니다.
+
+- 삼성 갤럭시에서 **자동 차단**이 켜져 있으면 설치 자체가 막힙니다. 설정 → 보안 및 개인정보 보호 → 자동 차단을 잠시 끄고 설치한 뒤 다시 켜면 됩니다.
+- 새 버전이 나오면 같은 방법으로 설치합니다. 기록은 그대로 두고 업데이트됩니다.
+- 안드로이드 7.0 이상에서 설치됩니다.
+
+### 앱 화면과 조작
 
 - **화면**: 가로 화면 고정 · 전체 화면. 가운데에 게임, 왼쪽에 이동 패드, 오른쪽에 버튼이 놓여 게임 화면을 가리지 않습니다.
 - **이동 패드**(왼쪽 아래 원): 손가락을 대고 밀면 그쪽으로 움직입니다. 던전에서는 대각선까지 8방향입니다.
@@ -42,16 +61,19 @@
 - 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수도 있습니다.
 - 휴대폰의 **뒤로 가기**는 X와 같습니다. 가이드나 멀티 창은 닫고, 타이틀 화면에서 누르면 앱을 끝냅니다.
 - 블루투스·USB 게임패드: A 확인 · B 메뉴 · X/Y/LB/RB 기술 1~4 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트 · 십자키나 왼쪽 스틱 이동.
-- 앱을 내려 두면 음악이 멈춥니다. 기록은 휴대폰 안에 따로 저장되며, PC 웹 버전과는 이어지지 않습니다.
+- 앱을 내려 두면 음악이 멈춥니다. 기록은 휴대폰 안에 저장되고, **구글 로그인**을 하면 내 구글 드라이브의 앱 전용 숨김 폴더를 거쳐 PC 웹 버전과 같은 세이브로 이어집니다.
 - 멀티플레이는 웹 버전과 서로 연결됩니다. 앱에서 방을 열면 초대 링크는 GitHub Pages 주소로 만들어집니다.
 
 ### 앱 빌드
 
 `mobile/`이 [Capacitor](https://capacitorjs.com) 안드로이드 프로젝트이고, `tools/build_mobile.ps1`이 `web/`을 `mobile/www`로 복사한 뒤 디버그 APK를 만듭니다. JDK 21과 Android SDK가 필요합니다 (스크립트 안의 경로를 자기 PC에 맞게 바꾸세요).
 
+`-Release`는 배포용 APK를 만듭니다. 디버그 빌드와 같은 키(`~/.android/debug.keystore`)로 서명하는데, 구글 로그인이 그 인증서의 SHA-1에 등록되어 있고 이미 설치한 폰에서 그대로 업데이트되기 때문입니다. 이 키를 잃어버리면 기존 설치본을 업데이트할 수 없으니 따로 백업해 두세요.
+
 ```powershell
 cd mobile; npm install; cd ..
 .\tools\build_mobile.ps1          # mobile\android\app\build\outputs\apk\debug\app-debug.apk
+.\tools\build_mobile.ps1 -Release # 배포용: mobile\release\joseon-poke.apk, joseon-poke-apk.zip
 adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
@@ -242,7 +264,7 @@ docs/screenshots/       README 스크린샷
 
 - **GitHub Pages**: `main` 브랜치에 push하면 `.github/workflows/pages.yml`이 `web/`(dev 제외)를 배포합니다.
 - **Netlify**: `tools/build_dist.ps1`로 `dist/`를 만든 뒤 `netlify deploy --prod --dir dist`로 올립니다.
-- **안드로이드**: `tools/build_mobile.ps1`로 APK를 만듭니다 (위의 [앱 빌드](#앱-빌드)).
+- **안드로이드**: `mobile/android/app/build.gradle`의 versionCode·versionName을 올리고 `tools/build_mobile.ps1 -Release`로 만든 두 파일을 GitHub 릴리스에 올립니다: `gh release create v1.1 mobile\release\joseon-poke.apk mobile\release\joseon-poke-apk.zip`. 파일 이름을 그대로 두어야 `releases/latest/download/joseon-poke.apk` 링크가 늘 최신 버전을 가리킵니다.
 
 ## 저작권 고지
 
@@ -281,7 +303,7 @@ docs/screenshots/       README 스크린샷
   - Water-only naval battles; pick a side in the Korean War.
   - 35% recruit rate (legendaries always join) and a 500-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.
-- **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left and buttons on the right that carry the keyboard letters, so the on-screen hints still apply. The back button works like X, and Bluetooth gamepads are supported. Build the debug APK with `tools/build_mobile.ps1` (JDK 21 and the Android SDK required).
+- **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left and buttons on the right that carry the keyboard letters, so the on-screen hints still apply. The back button works like X, and Bluetooth gamepads are supported. **[Download the APK](https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk)** and open it on the phone: allow installs from Chrome when Android asks, let Play Protect scan it or install without a scan, then install. **Google login** keeps one save in a hidden app folder of your own Google Drive, shared with the web version. Build it with `tools/build_mobile.ps1` (`-Release` for the public APK; JDK 21 and the Android SDK required).
 - **Run locally**: `python -m http.server 8000 --directory web`, then open http://localhost:8000.
 - **Notice**:
   - Pokémon © Nintendo / Creatures Inc. / GAME FREAK inc.; Pokémon Mystery Dungeon © Spike Chunsoft.
