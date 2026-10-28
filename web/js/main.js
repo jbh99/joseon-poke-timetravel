@@ -13,8 +13,9 @@ import { NET } from './net.js';
 import { initNetUI } from './netui.js';
 import { initCloud } from './cloud.js';
 
-// coming back to town autosaves (after any quest progress the dungeon unlocked)
+// coming back to town autosaves (after any quest progress the dungeon unlocked) and cures every status problem
 G.goTown = (kind) => {
+  for (const m of [...S.party, ...S.roster]) m.status = null;
   setScene(new Town(kind));
   const d = G.pendingClear;
   G.pendingClear = null;

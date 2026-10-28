@@ -1,6 +1,6 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText, fadeTo, shuffle } from './core.js';
-import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, save } from './game.js';
+import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, save, moveDesc } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
 import { tr } from './i18n.js';
@@ -343,9 +343,50 @@ export async function gainExpFor(mon, n, log) {
   for (const e of ev) {
     if (e.t === 'level') { log?.(tr(`${mon.name}의 레벨이 ${e.lv}(으)로 올랐다!`, `${mon.name} grew to Lv. ${e.lv}!`), COL.blue); jingle('fanfa1'); }
     if (e.t === 'learn') log?.(tr(`${mon.name}은(는) ${DEX.moves[e.move].name}을(를) 배웠다!`, `${mon.name} learned ${DEX.moves[e.move].name}!`), COL.green);
+    if (e.t === 'want' && !mon.loan) await offerMove(mon, e.move, log); // a loaned naval crew member leaves after the run
   }
   const evo = ev.find((e) => e.t === 'evolve');
   if (evo) await evolveScene(mon, evo.to);
+}
+// a level-up move that finds four moves already: forget one for it, as in the main games, or let it go
+// (a move let go stays learnable from the team screen in town)
+function offerMove(mon, move, log) {
+  const name = DEX.moves[move].name;
+  return new Promise((res) => say([{ who: mon.sp, shiny: mon.shiny, name: mon.name, text: tr(`${mon.name}은(는) 새 기술 ${name}을(를) 배우려 한다! 하지만 기술은 4개까지만 쓸 수 있다. 다른 기술을 잊게 할까?`, `${mon.name} wants to learn ${name}! But it can't use more than four moves. Should it forget one?`), choices: tr(['기술을 잊게 한다', '배우지 않는다'], ['Forget a move', 'Skip it']), onChoice: (i) => {
+    if (!i) return forgetMenu(mon, move, log, res);
+    log?.(tr(`${mon.name}은(는) ${name}을(를) 배우지 않았다.`, `${mon.name} did not learn ${name}.`));
+    res();
+  } }]));
+}
+const moveInfo = (id) => `${moveDesc(id)} · ${tr('명중', 'Acc.')} ${DEX.moves[id].acc || '—'} · PP ${DEX.moves[id].pp}`;
+// which move gives its slot to `move` (the new one heads the list); done() runs however it ends
+function forgetMenu(mon, move, log, done) {
+  const name = DEX.moves[move].name;
+  const skip = () => { log?.(tr(`${mon.name}은(는) ${name}을(를) 배우지 않았다.`, `${mon.name} did not learn ${name}.`)); done(); };
+  openMenu([
+    { label: tr(`새 기술: ${name}`, `New: ${name}`), right: DEX.types[DEX.moves[move].type], desc: moveInfo(move), disabled: true },
+    ...mon.moves.map((mv, k) => ({ label: `${'QWER'[k]}. ${DEX.moves[mv.id].name}`, right: DEX.types[DEX.moves[mv.id].type], desc: moveInfo(mv.id), fn: () => {
+      const old = DEX.moves[mv.id].name;
+      mon.learn(move, k);
+      log?.(tr(`${mon.name}은(는) ${old}을(를) 잊고 ${name}을(를) 배웠다!`, `${mon.name} forgot ${old} and learned ${name}!`), COL.green);
+      done();
+    } })),
+    { label: tr('배우지 않는다', 'Skip it'), fn: skip },
+  ], { title: tr('잊을 기술 고르기', 'Forget which move?'), desc: true, sel: 1, x: 140, y: 40, w: 230, onCancel: skip });
+}
+// the team screen's "learn moves" (town only): any move of the species' level-up list up to its level, forgotten or
+// skipped ones too; the moves still to come are listed greyed out at their level
+function learnMenu(mon) {
+  const list = mon.learnable();
+  if (!list.length) return toast(tr(`${mon.name}은(는) 레벨로 배우는 기술을 모두 알고 있다.`, `${mon.name} already knows every move it learns by level.`));
+  openMenu(list.map(({ move, lv }) => {
+    const later = lv > mon.lv, d = DEX.moves[move];
+    return { label: d.name, right: later ? `Lv.${lv}` : DEX.types[d.type], disabled: later, desc: moveInfo(move) + (later ? tr(` · Lv.${lv}에 배운다`, ` · learned at Lv.${lv}`) : ''), fn: () => {
+      if (mon.moves.length >= 4) return forgetMenu(mon, move, toast, () => {});
+      mon.learn(move);
+      toast(tr(`${mon.name}은(는) ${d.name}을(를) 배웠다!`, `${mon.name} learned ${d.name}!`), COL.green);
+    } };
+  }), { title: tr(`${mon.name} · 기술 배우기`, `${mon.name} · Learn moves`), desc: true, x: 140, y: 40, w: 230 });
 }
 G.gainAll = async (n, why) => {
   if (!n) return;
@@ -408,10 +449,9 @@ class PartyView {
       const i = Math.floor((c.y - 32) / 56), j = Math.floor((c.y - MOVE_ROW.y) / MOVE_ROW.h);
       if (c.x >= 14 && c.x < 144 && i >= 0 && i < S.party.length && (team || this.held < 0)) { // a member
         if (!team) { this.mode = 'team'; this.held = -1; }
-        if (i === this.sel && team) ok = true; else { this.sel = i; sfx('cursor'); }
-        return;
-      }
-      if (c.x >= MOVE_ROW.x && c.x < MOVE_ROW.x + MOVE_ROW.w && j >= 0 && j < S.party[this.sel].moves.length && (!team || this.held < 0)) { // a move
+        if (i !== this.sel || !team) { this.sel = i; sfx('cursor'); return; }
+        ok = true; // a second tap on the chosen member works like Z
+      } else if (c.x >= MOVE_ROW.x && c.x < MOVE_ROW.x + MOVE_ROW.w && j >= 0 && j < S.party[this.sel].moves.length && (!team || this.held < 0)) { // a move
         if (team) { this.mode = 'moves'; this.held = -1; this.mv = j; sfx('cursor'); return; }
         if (j === cur) ok = true; else { cur = j; sfx('cursor'); }
       }
@@ -434,6 +474,10 @@ class PartyView {
     const m = S.party[this.sel];
     openMenu([
       { label: tr('기술 순서 바꾸기', 'Reorder moves'), fn: () => { this.mode = 'moves'; this.mv = 0; } },
+      // learning waits for town: in a dungeon, swapping a spent move out and back in would refill its PP
+      this.dungeon
+        ? { label: tr('기술 배우기', 'Learn moves'), right: tr('마을에서', 'in town'), disabled: true }
+        : { label: tr('기술 배우기', 'Learn moves'), fn: () => learnMenu(m) },
       ...(S.party.length > 1 ? [this.dungeon
         ? { label: tr('파티 순서 바꾸기', 'Reorder team'), right: tr('마을에서', 'in town'), disabled: true }
         : { label: tr('파티 순서 바꾸기', 'Reorder team'), fn: () => { this.held = this.sel; } }] : []),
@@ -442,7 +486,7 @@ class PartyView {
   }
   hint() {
     if (this.held >= 0) return tr('바꿀 자리 고르고 Z · X 취소', 'Pick the spot, Z swaps · X cancel');
-    return this.mode === 'moves' ? tr('↑↓ 기술 · Z 골라서 바꾸기 · X 돌아가기', '↑↓ move · Z pick to swap · X back') : tr('↑↓ 선택 · Z 순서 바꾸기 · X 닫기', '↑↓ select · Z reorder · X close');
+    return this.mode === 'moves' ? tr('↑↓ 기술 · Z 골라서 바꾸기 · X 돌아가기', '↑↓ move · Z pick to swap · X back') : tr('↑↓ 선택 · Z 기술 배우기·순서 바꾸기 · X 닫기', '↑↓ select · Z learn or reorder · X close');
   }
   drawUI() {
     ui.rect(0, 0, VW, VH, COL.dim);

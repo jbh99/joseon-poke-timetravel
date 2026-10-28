@@ -1,7 +1,7 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc } from './game.js';
 import { QITEMS, TELE_TUT, ERAS } from './content.js';
 import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, challenge, loseChallenge, lairDone, spyTick } from './quests.js';
 import { drawMon, Town, PEARL, objInView } from './town.js';
@@ -240,7 +240,7 @@ export class Dungeon {
     let lv = clamp(randInt(a, b - 1) + Math.floor((this.floor - 1) / 2), a, b);
     // the first eras never field foes above the team's average level (shifted by the difficulty)
     if (!scaled && curve() < 0.3) lv = Math.min(lv, Math.max(a, Math.round(S.party.reduce((s, m) => s + m.lv, 0) / S.party.length) + mode().lv));
-    const mon = new Mon(choice(this.def.mons), lv);
+    const mon = new Mon(choice(this.def.mons), lv, { foe: true });
     const e = this.addEnt(mon, p[0], p[1], 'foe');
     if (Math.random() < 1 / 48) { mon.shiny = true; e.shiny = true; }
     return e;
@@ -338,7 +338,7 @@ export class Dungeon {
     for (const sp of B.allies || []) join(new Mon(sp, randInt(lo, hi), { buff: B.allyBuff }), lay.start);
     for (const sp of B.foes || []) {
       const [x, y] = this.nearestOpen(...lay.enemyAt);
-      const e = this.addEnt(new Mon(sp, randInt(lo, hi), { buff: B.foeBuff }), x, y, 'foe');
+      const e = this.addEnt(new Mon(sp, randInt(lo, hi), { buff: B.foeBuff, foe: true }), x, y, 'foe');
       e.alert = true; e.summoned = true; // soldiers don't offer to join
     }
   }
@@ -618,7 +618,7 @@ export class Dungeon {
       // every foe drops coins: more for higher levels, shinies triple, bosses ten times; summoned minions drop none
       const coin = e.summoned ? 0 : Math.round((4 + e.mon.lv * 0.9) * (e.shiny ? 3 : 1) * (e.isBoss ? 10 : 1));
       S.money += coin; this.found.money += coin;
-      this.step(() => { this.msg(coin ? tr(`경험치 ${xp} · 엽전 ${coin}냥을 얻었다.`, `Gained ${xp} Exp. Points and ${coin} nyang.`) : tr(`경험치 ${xp}을(를) 얻었다.`, `Gained ${xp} Exp. Points.`), COL.green); for (const a of allies) gainExpFor(a.mon, xp, (t, c) => this.msg(t, c)); shareExp(xp); }, 0.15);
+      this.step(() => { this.msg(coin ? tr(`경험치 ${xp} · 엽전 ${coin}냥을 얻었다.`, `Gained ${xp} Exp. Points and ${coin} nyang.`) : tr(`경험치 ${xp}을(를) 얻었다.`, `Gained ${xp} Exp. Points.`), COL.green); (async () => { for (const a of allies) await gainExpFor(a.mon, xp, (t, c) => this.msg(t, c)); })(); shareExp(xp); }, 0.15); // one ally at a time: a move question or an evolution ends before the next begins
       if (e.isBoss) this.step(() => this.bossDefeated(e), 0.4);
       else if (this.def.battle && !this.ents.some((f) => f.team === 'foe' && f.alive)) this.step(() => this.cleared(), 0.4);
       else if (!e.summoned && (LEGENDS.has(e.mon.sp) || Math.random() < (e.shiny ? 0.7 : RECRUIT_RATE))) this.step(() => this.offerRecruit(e.mon), 0.1);
@@ -632,7 +632,7 @@ export class Dungeon {
       if (!e.alive) continue;
       const m = e.mon;
       if (m.status === 'psn' || m.status === 'brn') {
-        const d = Math.max(1, Math.floor(m.maxhp / (m.status === 'psn' ? 32 : 16))); m.hp = Math.max(this.phaseFloor(e), m.hp - d); // poison bites half as hard as a burn
+        const d = Math.max(1, Math.floor(m.maxhp / (m.status === 'psn' ? 64 : 16))); m.hp = Math.max(this.phaseFloor(e), m.hp - d); // poison bites a quarter as hard as a burn
         this.step(() => { this.pop(e, String(d), '#c07ad0'); }, 0.08);
         if (m.hp <= 0) this.faint(e);
       }
@@ -791,7 +791,7 @@ export class Dungeon {
     for (let i = 0; i < (c.summon || 0); i++) { // minions are weaker than the floor's regular foes
       const [x, y] = this.freeNear(e.x, e.y);
       if (this.entAt(x, y)) continue;
-      const f = this.addEnt(new Mon(choice(c.summonSp || this.def.mons), Math.max(5, e.mon.lv - 22)), x, y, 'foe');
+      const f = this.addEnt(new Mon(choice(c.summonSp || this.def.mons), Math.max(5, e.mon.lv - 22), { foe: true }), x, y, 'foe');
       f.summoned = true; f.alert = true;
       this.step(() => this.msg(tr(`${f.mon.name}이(가) 나타났다!`, `${f.mon.name} appeared!`), COL.red), 0.15);
     }
@@ -949,7 +949,7 @@ export class Dungeon {
     this.restoreCrew();
     const items = Object.entries(this.found.items).map(([id, n]) => `${(ITEMS[id] || QITEMS[id]).name}×${n}`).join(', ');
     S.party.forEach((m) => m.restorePP()); // leaving a dungeon, however it ends, refills every move's PP
-    const pp = tr('던전을 나오니 기술의 PP가 모두 회복되었다.', 'Back outside, every move\'s PP is restored.');
+    const pp = tr('던전을 나오니 기술의 PP와 상태 이상이 모두 회복되었다.', 'Back outside, every move\'s PP is restored and status problems are cured.');
     say([{ who: 'narr', text: `${title}\n${tr(`얻은 엽전 ${this.found.money}냥`, `Coins earned: ${this.found.money} nyang`)}${items ? ' · ' + items : ''}\n${pp}` }, ...extra.map((text) => ({ who: 'narr', text }))], () => {
       S.party.forEach((m) => { m.stages = {}; if (m.hp <= 0) m.hp = 1; });
       S.night = !S.night;
@@ -1040,7 +1040,7 @@ export class Dungeon {
   }
   menu() {
     openMenu([
-      { label: tr('기술', 'Moves'), fn: () => openMenu(this.player.mon.moves.map((mv, k) => { const d = DEX.moves[mv.id]; return { label: `${'QWER'[k]}. ${d.name}`, right: `PP ${mv.pp}/${d.pp}`, desc: `${DEX.types[d.type]} · ${d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리(바로 앞)', 'Physical (front tile)') : tr('특수(직선 6칸)', 'Special (6-tile line)')) + tr(' 위력 ', ' power ') + d.power}${d.target === 4 || d.target === 8 ? tr(' · 주변 전체', ' · all around') : ''}`, fn: () => this.playerAct('move-skill', k) }; }), { title: tr('기술', 'Moves'), desc: true, x: 140, y: 40, w: 220 }) },
+      { label: tr('기술', 'Moves'), fn: () => openMenu(this.player.mon.moves.map((mv, k) => { const d = DEX.moves[mv.id]; return { label: `${'QWER'[k]}. ${d.name}`, right: `PP ${mv.pp}/${d.pp}`, desc: moveDesc(mv.id), fn: () => this.playerAct('move-skill', k) }; }), { title: tr('기술', 'Moves'), desc: true, x: 140, y: 40, w: 220 }) },
       { label: tr('도구', 'Items'), fn: () => itemMenu(this) },
       { label: tr('포켓몬', 'Pokémon'), fn: () => partyMenu({ dungeon: true }) },
       { label: tr('퀘스트', 'Quests'), fn: questMenu },

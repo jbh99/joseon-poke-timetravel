@@ -59,9 +59,17 @@ export function moveUsable(m) {
   if (mv.cat !== 2) return mv.power > 0 && ![38, 7, 26, 8].includes(mv.effect);
   return mv.effect in STAT_EFFECT || mv.effect in STATUS_MOVE || mv.effect in HEAL_MOVE;
 }
+// one line about a move for menus: type, category with its reach in the dungeons, power, and whether it hits all around
+export function moveDesc(id) {
+  const d = DEX.moves[id];
+  const kind = d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리(바로 앞)', 'Physical (front tile)') : tr('특수(직선 6칸)', 'Special (6-tile line)')) + tr(' 위력 ', ' power ') + d.power;
+  return `${DEX.types[d.type]} · ${kind}${d.target === 4 || d.target === 8 ? tr(' · 주변 전체', ' · all around') : ''}`;
+}
 
 const STAGE = (s) => (s >= 0 ? (2 + s) / 2 : 2 / (2 - s));
 export const PRIMAL_MUL = 1.3;
+// ordinary foes (every wild, summoned or soldier Pokémon that is not a boss) fight with 80% of their HP and every stat
+export const FOE_MUL = 0.8;
 // Deoxys' Formes, changed at the red meteorite in town (town.js meteorTalk): base stats and PMD sprite (pmd/spr/386a.png...).
 // Speed counts for nothing in these turn-based dungeons, so the Speed Forme dodges instead (eva: a lasting evasion stage).
 export const FORMES = {
@@ -79,8 +87,9 @@ export class Mon {
     this.forme = o.forme || null; // a FORMES key (Deoxys); null for the usual form
     // the Forme and the boss multipliers must be set before hp, which reads maxhp
     this.boss = !!o.boss; this.hpMul = o.hpMul || 1.3; this.atkMul = o.atkMul || 0.9;
-    // a side's edge in a town battle (the Hanahoe's +15%) lifts every stat and HP; set before hp like the boss multipliers
-    this.buff = o.buff || 1;
+    // a side's edge in a town battle (the Hanahoe's +15%) lifts every stat and HP; set before hp like the boss multipliers.
+    // Ordinary foes (o.foe) take FOE_MUL on top; a recruit is a fresh Mon (recruit()), so it joins at full strength.
+    this.buff = (o.buff || 1) * (o.foe ? FOE_MUL : 1);
     this.exp = o.exp ?? lv * lv * lv;
     this.moves = o.moves || this.defaultMoves().map((id) => ({ id, pp: DEX.moves[id].pp }));
     this.hp = o.hp ?? this.maxhp;
@@ -116,7 +125,8 @@ export class Mon {
   }
   expFor(lv) { return lv * lv * lv; }
   get expNext() { return this.expFor(this.lv + 1); }
-  // returns event list: {t:'level'|'learn'|'evolve', ...}
+  // returns event list: {t:'level'|'learn'|'want'|'evolve', ...}; 'want' is a new move that found all four slots taken
+  // (gainExpFor asks which move to forget; a move let go stays learnable from the team screen, see learnable())
   gainExp(n) {
     const ev = [];
     if (this.lv >= 100) return ev;
@@ -128,7 +138,7 @@ export class Mon {
       ev.push({ t: 'level', lv: this.lv });
       for (const [l, m] of this.data.learn) {
         if (l === this.lv && moveUsable(m) && !this.moves.some((x) => x.id === m)) {
-          if (this.moves.length >= 4) this.moves.shift();
+          if (this.moves.length >= 4) { ev.push({ t: 'want', move: m }); continue; }
           this.moves.push({ id: m, pp: DEX.moves[m].pp });
           ev.push({ t: 'learn', move: m });
         }
@@ -141,6 +151,18 @@ export class Mon {
   evolve(to) { const r = this.hp / this.maxhp; this.sp = to; this.hp = Math.max(1, Math.round(this.maxhp * r)); }
   heal(full = true) { this.hp = this.maxhp; this.status = null; if (full) this.restorePP(); }
   restorePP() { this.moves.forEach((m) => { m.pp = DEX.moves[m.id].pp; }); }
+  // the moves this species learns by level (ROM learnset), each at its lowest level, that this one doesn't know now
+  learnable() {
+    const at = new Map();
+    for (const [l, m] of this.data.learn) if (moveUsable(m) && !(at.has(m) && at.get(m) <= l)) at.set(m, l);
+    for (const x of this.moves) at.delete(x.id);
+    return [...at].map(([move, lv]) => ({ move, lv })).sort((a, b) => a.lv - b.lv);
+  }
+  // a new move takes a free slot, or the place of the move in `slot`
+  learn(move, slot) {
+    const mv = { id: move, pp: DEX.moves[move].pp };
+    if (this.moves.length < 4) this.moves.push(mv); else this.moves[slot] = mv;
+  }
   toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined }; }
   static from(o) { return new Mon(o.sp, o.lv, o); }
 }
