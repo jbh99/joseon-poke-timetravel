@@ -1,6 +1,6 @@
 // Boot and main loop.
 import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
-import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted } from './audio.js';
+import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
 import { initData, S, save, load, newGame } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
@@ -11,6 +11,7 @@ import { Title, EraCard, WorldMap, Ending } from './scenes.js';
 import { onDungeonClear } from './quests.js';
 import { NET } from './net.js';
 import { initNetUI } from './netui.js';
+import { initCloud } from './cloud.js';
 
 // coming back to town autosaves (after any quest progress the dungeon unlocked)
 G.goTown = (kind) => {
@@ -29,9 +30,9 @@ G.nextEra = () => fadeTo(() => {
 }, '#fff', 1.2);
 G.goEnding = () => fadeTo(() => setScene(new Ending()), '#fff', 0.8);
 G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; setScene(new Title()); });
-G.onFirstInput = () => unlockAudio();
+G.onFirstInput = () => unlockAudio(); // a gamepad button is no page gesture, but it sets the sound up (audio.js)
 G.kao = portraitImage;
-window.__game = { G, S, newGame, setScene, EraCard, Dungeon, Town, ERAS, save, load, NET }; // handle for automated playtests
+window.__game = { G, S, newGame, setScene, EraCard, Dungeon, Town, ERAS, save, load, NET, audio: audioState }; // handle for automated playtests
 
 // HTML guide overlay: pauses game input while open, opens by itself on the first visit
 function htmlLang() {
@@ -109,13 +110,22 @@ function initGuide() {
 window.onAndroidBack = () => {
   const ask = document.getElementById('ask'); // the search box closes first
   if (ask) return ask.querySelector('[data-close]').click();
-  const open = ['guide', 'mp'].map((id) => document.getElementById(id)).find((el) => !el.hidden);
+  const open = ['guide', 'mp', 'cloud'].map((id) => document.getElementById(id)).find((el) => !el.hidden);
   if (open) return open.querySelector('[data-close]').click();
   if (G.scene instanceof Title && !G.overlays.length && !G.paused) return window.AndroidHost?.exit();
   dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
   setTimeout(() => dispatchEvent(new KeyboardEvent('keyup', { code: 'Escape' })), 60);
 };
-if (APP) document.addEventListener('visibilitychange', () => { if (NET.role !== 'host') pauseAudio(document.hidden); });
+if (APP) document.addEventListener('visibilitychange', () => { if (NET.role !== 'host') pauseAudio(document.hidden); if (!document.hidden) checkVolume(); });
+// the game's sound follows the phone's media volume, which is easily left at 0 or near it (a player who never hears the
+// music has no reason to raise it): the app says so instead of staying silent, at launch already when it is low.
+// MainActivity reports the volume in percent.
+function checkVolume(launch) {
+  const v = window.AndroidHost?.mediaVolume?.();
+  if (prefs.muted || v == null || v > (launch ? 20 : 0)) return;
+  toast(v ? tr(`휴대폰 미디어 볼륨이 낮아요 (${v}%) · 볼륨 키로 올려 주세요`, `The phone's media volume is low (${v}%) · turn it up with the volume keys`)
+    : tr('휴대폰 미디어 볼륨이 0이에요 · 볼륨 키로 올려 주세요', "The phone's media volume is 0 · turn it up with the volume keys"), COL.red, 6);
+}
 
 async function boot() {
   initCanvas();
@@ -124,6 +134,7 @@ async function boot() {
   initSpeed();
   initSound();
   initNetUI();
+  initCloud();
   const status = document.getElementById('status');
   try {
     await Promise.all([
@@ -141,7 +152,9 @@ async function boot() {
   const man = await loadJSON('data/manifest.json');
   await Promise.all([loadImages(['bld', 'prop'].flatMap((k) => man[k].map((n) => `${k}/${n}.png`))), ...townSets().map((id) => tileSet(id).ready)]);
   status.remove();
+  if (APP) unlockAudio(); // the app may start sound without a tap, so the title music plays at once
   setScene(new Title());
+  if (APP) checkVolume(true);
   let gamepads = false; // polled only once a controller has shown up
   addEventListener('gamepadconnected', () => { gamepads = true; });
   let last = performance.now();

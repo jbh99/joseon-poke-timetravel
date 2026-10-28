@@ -8,11 +8,12 @@ $skipFiles = @('e1.png','e2.png','e3.png','e4.png','e5.png','e6.png','e7.png','e
 if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
 robocopy (Join-Path $root 'web') $dist /MIR /XD $skipDirs /XF $skipFiles /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed ($LASTEXITCODE)" }
+# the referrer policy keeps the page's origin on cross-origin requests: Google sign-in (js/cloud.js) checks it
 @'
 /*
   X-Robots-Tag: noindex, nofollow
   X-Content-Type-Options: nosniff
-  Referrer-Policy: same-origin
+  Referrer-Policy: strict-origin-when-cross-origin
 
 /assets/pmd/*
   Cache-Control: public, max-age=86400

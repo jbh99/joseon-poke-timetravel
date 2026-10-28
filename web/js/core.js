@@ -78,7 +78,6 @@ export function initCanvas() {
     if (G.paused) return;
     if (dragged) { dragged = false; return; }
     input.click = toUI(e);
-    G.onFirstInput?.();
   });
 }
 
@@ -114,7 +113,6 @@ addEventListener('keydown', (e) => {
   e.preventDefault();
   if (!input.down.has(k)) input.pressed.add(k);
   input.down.add(k);
-  G.onFirstInput?.();
 });
 // letting go ends the key's menu auto-repeat, so a held arrow (walking, say) never scrolls a menu that opens mid-hold
 const release = (k) => { input.down.delete(k); delete input.repeatAt[k]; };
@@ -127,7 +125,7 @@ const capture = (el, id) => { try { el.setPointerCapture(id); } catch (e) { /* p
 
 // touch pad: each button holds its action like the key with the same letter. Pointer events give every finger
 // its own pointer, so the pad and a button work together (⇧ + direction). A co-op guest's G.onPadKey / G.onPadDir
-// take the input instead (netui.js). pointerup also unlocks audio: browsers only count the end of a touch as a user gesture.
+// take the input instead (netui.js).
 export function initTouch() {
   if (!touchUI) return;
   document.querySelectorAll('#touch button[data-k]').forEach((b) => {
@@ -135,9 +133,8 @@ export function initTouch() {
     b.addEventListener('pointerdown', (e) => {
       e.preventDefault(); capture(b, e.pointerId); b.classList.add('on');
       if (!G.onPadKey?.(k)) press(k);
-      G.onFirstInput?.();
     });
-    const up = () => { b.classList.remove('on'); release(k); G.onFirstInput?.(); };
+    const up = () => { b.classList.remove('on'); release(k); };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
   });
   initDpad();
@@ -168,7 +165,7 @@ function initDpad() {
     e.preventDefault(); id = e.pointerId; capture(pad, id); pad.classList.add('on'); move(e);
   });
   pad.addEventListener('pointermove', (e) => { if (e.pointerId === id) move(e); });
-  const end = (e) => { if (e.pointerId !== id) return; id = null; pad.classList.remove('on'); knob.style.transform = ''; set([]); G.onFirstInput?.(); };
+  const end = (e) => { if (e.pointerId !== id) return; id = null; pad.classList.remove('on'); knob.style.transform = ''; set([]); };
   pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
 }
 
@@ -445,7 +442,7 @@ export function askText(title, value = '', [okText, noText] = ['OK', 'Cancel']) 
 
 // toast messages (top centre)
 const toasts = [];
-export function toast(text, color = COL.ink) { toasts.push({ text, color, t: 2.4 }); }
+export function toast(text, color = COL.ink, secs = 2.4) { toasts.push({ text, color, t: secs }); }
 export function relangToasts(sw) { for (const t of toasts) t.text = sw(t.text); }
 export function drawToasts(dt) {
   let y = 10;

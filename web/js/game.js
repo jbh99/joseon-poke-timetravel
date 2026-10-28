@@ -1,5 +1,5 @@
 // Game rules: Pokémon instances (ROM base stats / learnsets / moves), damage, items, save state.
-import { loadJSON, randInt, rand, clamp } from './core.js';
+import { G, loadJSON, randInt, rand, clamp } from './core.js';
 import { EN, tr, onLang, setNames } from './i18n.js';
 
 export let DEX = null;
@@ -247,8 +247,16 @@ export function save() {
   try {
     const party = (S.homeParty || S.party).filter((m) => !m.loan); // never save a naval crew or loaned Pokémon as the team
     localStorage.setItem(SAVE_KEY, JSON.stringify({ ...S, homeParty: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt: Date.now() }));
+    G.onSaved?.(); // the cloud copy follows (cloud.js)
     return true;
   } catch (e) { return false; }
+}
+// the save as stored, and a whole save from elsewhere (the cloud copy), checked like readSave before it replaces this one
+export function saveText() { try { return localStorage.getItem(SAVE_KEY); } catch (e) { return null; } }
+export function replaceSave(text) {
+  const o = JSON.parse(text);
+  if (!o || !Array.isArray(o.party) || o.party.length < 2) throw new Error('not a save');
+  localStorage.setItem(SAVE_KEY, text);
 }
 export function readSave() {
   try { const o = JSON.parse(localStorage.getItem(SAVE_KEY)); return o && Array.isArray(o.party) && o.party.length >= 2 ? o : null; } catch (e) { return null; }

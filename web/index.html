@@ -61,7 +61,9 @@
     background: rgba(243,232,207,0.85); border: 2px solid var(--ink); pointer-events: none; transition: transform 0.05s; }
   #dpad.on i { background: var(--gold); }
   /* the HUD buttons pack into the top of the left column */
-  #hud.inpad { left: calc(env(safe-area-inset-left, 0px) + 7px); right: auto; top: 8px; width: calc(var(--pad, 140px) - 14px); flex-wrap: wrap; gap: 4px; }
+  /* on touch screens the HUD sits in the free top of the left pad column, so it stacks above that column (which would
+     otherwise take its taps); the pad itself keeps to the bottom */
+  #hud.inpad { left: calc(env(safe-area-inset-left, 0px) + 7px); right: auto; top: 8px; width: calc(var(--pad, 140px) - 14px); flex-wrap: wrap; gap: 4px; z-index: 7; }
   #hud.inpad button { flex: 1 1 calc(50% - 4px); font-size: 10px; padding: 5px 2px; }
   body.app #btn-full { display: none; }
   body.touch #mp-video { inset: 0 calc(var(--pad, 140px) + env(safe-area-inset-right, 0px)) 0 calc(var(--pad, 140px) + env(safe-area-inset-left, 0px)); width: auto; height: auto; }
@@ -81,20 +83,24 @@
 
 
   /* co-op panel and the guest's streamed screen */
-  #mp { position: fixed; z-index: 9; right: max(8px, env(safe-area-inset-right)); top: calc(max(8px, env(safe-area-inset-top)) + 34px); width: min(380px, calc(100vw - 16px));
+  /* the co-op and Google account panels share one look */
+  :is(#mp, #cloud) { position: fixed; z-index: 9; right: max(8px, env(safe-area-inset-right)); top: calc(max(8px, env(safe-area-inset-top)) + 34px); width: min(380px, calc(100vw - 16px));
     background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 4px 4px 0 rgba(0,0,0,0.45); font: 14px/1.55 system-ui, 'Malgun Gothic', sans-serif; }
-  #mp[hidden], #mp [hidden] { display: none !important; }
-  #mp header { border-top: 4px solid var(--red); box-shadow: inset 0 3px 0 var(--green), inset 0 5px 0 var(--blue); padding: 10px 14px 4px; display: flex; justify-content: space-between; align-items: center; }
-  #mp h2 { font: 15px 'Galmuri11B', sans-serif; margin: 0; }
-  #mp .in { padding: 4px 14px 12px; }
-  #mp p { margin: 6px 0; font-size: 13px; color: var(--ink2); }
-  #mp button { font: 13px 'Galmuri11B', sans-serif; background: var(--paper2); color: var(--ink); border: 2px solid var(--ink); padding: 6px 12px; cursor: pointer; }
-  #mp button.primary { background: var(--red); color: #fff4dc; }
+  :is(#mp, #cloud)[hidden], :is(#mp, #cloud) [hidden] { display: none !important; }
+  :is(#mp, #cloud) header { border-top: 4px solid var(--red); box-shadow: inset 0 3px 0 var(--green), inset 0 5px 0 var(--blue); padding: 10px 14px 4px; display: flex; justify-content: space-between; align-items: center; }
+  :is(#mp, #cloud) h2 { font: 15px 'Galmuri11B', sans-serif; margin: 0; }
+  :is(#mp, #cloud) .in { padding: 4px 14px 12px; }
+  :is(#mp, #cloud) p { margin: 6px 0; font-size: 13px; color: var(--ink2); }
+  :is(#mp, #cloud) button { font: 13px 'Galmuri11B', sans-serif; background: var(--paper2); color: var(--ink); border: 2px solid var(--ink); padding: 6px 12px; cursor: pointer; }
+  :is(#mp, #cloud) button.primary { background: var(--red); color: #fff4dc; }
   #mp input { font: 14px 'Galmuri11', monospace; border: 2px solid var(--ink); padding: 5px 8px; width: 9em; text-transform: uppercase; background: #fffaf0; }
-  #mp .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  :is(#mp, #cloud) .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
   #mp .code { font: 26px 'Galmuri11B', monospace; letter-spacing: 4px; color: var(--red); }
   #mp ul { margin: 6px 0; padding-left: 18px; font-size: 13px; }
-  #mp-status { color: var(--blue); font-size: 13px; min-height: 1em; }
+  #mp-status, #cloud-status { color: var(--blue); font-size: 13px; min-height: 1em; }
+  #cloud-buttons { flex-direction: column; align-items: stretch; }
+  #cloud button:disabled { opacity: 0.5; cursor: default; }
+  #cloud .fine { font-size: 12px; margin: 2px 0 0; } #cloud .fine a { color: var(--ink2); }
   #mp-chat { width: 100% !important; box-sizing: border-box; text-transform: none !important; }
   #mp-video { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; background: #000; z-index: 1; }
   #mp-play { position: fixed; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 16px 'Galmuri11B', sans-serif; padding: 12px 22px;
@@ -130,7 +136,7 @@
 <body>
 <canvas id="screen"></canvas>
 <div id="status">불러오는 중…</div>
-<div id="hud"><button id="btn-sound" type="button">소리 켬</button><button id="btn-speed" type="button">속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-lang" type="button">English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-full" type="button">전체화면</button></div>
+<div id="hud"><button id="btn-sound" type="button">소리 켬</button><button id="btn-speed" type="button">속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-cloud" type="button">구글 로그인</button><button id="btn-lang" type="button">English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-full" type="button">전체화면</button></div>
 <video id="mp-video" playsinline autoplay muted hidden></video>
 <button id="mp-play" type="button" hidden>▶</button>
 <div id="mp" hidden role="dialog" aria-labelledby="mp-title">
@@ -151,6 +157,16 @@
     </div>
     <p id="mp-status"></p>
     <div class="row"><button id="mp-leave" type="button" hidden>나가기</button></div>
+  </div>
+</div>
+<div id="cloud" hidden role="dialog" aria-labelledby="cloud-title">
+  <header><h2 id="cloud-title">구글 계정</h2><button type="button" data-close>✕</button></header>
+  <div class="in">
+    <p id="cloud-intro"></p>
+    <p id="cloud-who"></p>
+    <div class="row" id="cloud-buttons"></div>
+    <p id="cloud-status"></p>
+    <p class="fine"><a href="https://joseon-poke-timetravel.netlify.app/privacy.html" target="_blank" rel="noopener"><span data-lang="ko">개인정보처리방침</span><span data-lang="en" hidden>Privacy policy</span></a></p>
   </div>
 </div>
 <div id="touch">
@@ -207,7 +223,7 @@
         </div>
       </div>
       <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 지도를 끌거나(드래그) 휠을 굴려 둘러볼 수 있어요. 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리, 아래쪽 조작키 안내 보이기/숨기기, 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
-      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽 버튼에는 키보드와 같은 글자(Z 확인 · X 메뉴 · QWER 기술 · Tab 태그 · A 쉬기 · ⇧ 방향만 바꾸기 · J 퀘스트 · P 동료 · M 지도)가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다. 화면을 직접 눌러 장소·대화·메뉴를 고를 수도 있고, 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
+      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽 버튼에는 키보드와 같은 글자(Z 확인 · X 메뉴 · QWER 기술 · Tab 태그 · A 쉬기 · ⇧ 방향만 바꾸기 · J 퀘스트 · P 동료 · M 지도)가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다. 화면을 직접 눌러 장소·대화·메뉴를 고를 수도 있고, 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). <b>구글 로그인</b> 버튼으로 로그인하면 세이브가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
       <p>화면 옆 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
 
       <h2>진행 방법</h2>
@@ -332,7 +348,7 @@
         </div>
       </div>
       <p><b>Mouse</b>: click a place on the world map to go there (drag the map or roll the mouse wheel to look around), and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound and the on-screen key hints on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
-      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons), and the buttons on the right carry the keyboard letters (Z OK · X menu · QWER moves · Tab tag · A rest · ⇧ face only · J quests · P team · M map), so the hints at the bottom of the screen still apply. You can also tap places, dialogue and menus on the screen (drag the world map with a finger to look around), and the phone's back button works like X. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
+      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons), and the buttons on the right carry the keyboard letters (Z OK · X menu · QWER moves · Tab tag · A rest · ⇧ face only · J quests · P team · M map), so the hints at the bottom of the screen still apply. You can also tap places, dialogue and menus on the screen (drag the world map with a finger to look around), and the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> to keep your save in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
       <p>The <b>English / 한국어</b> button beside the screen switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
 
       <h2>How to play</h2>
