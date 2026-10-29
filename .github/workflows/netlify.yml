@@ -1,0 +1,68 @@
+# Publishes the game to Netlify on every push to main, like pages.yml does for GitHub Pages: web/ without the dev
+# playtest helpers, plus the headers and robots.txt that tools/build_dist.ps1 adds. It needs two repository secrets
+# (Settings → Secrets and variables → Actions): NETLIFY_AUTH_TOKEN (Netlify → User settings → Applications →
+# Personal access tokens) and NETLIFY_SITE_ID (the site's Site configuration → Site ID). Without them it only says so.
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - name: Check the Netlify secrets
+        id: secrets
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ] || [ -z "$NETLIFY_SITE_ID" ]; then
+            echo "::warning::NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID are not set, so nothing was deployed to Netlify."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ok == 'true'
+      - name: Assemble the site
+        if: steps.secrets.outputs.ok == 'true'
+        run: |
+          mkdir -p dist
+          cp -r web/. dist/
+          rm -rf dist/dev
+          # the referrer policy keeps the page's origin on cross-origin requests: Google sign-in (js/cloud.js) checks it
+          cat > dist/_headers <<'EOF'
+          /*
+            X-Robots-Tag: noindex, nofollow
+            X-Content-Type-Options: nosniff
+            Referrer-Policy: strict-origin-when-cross-origin
+
+          /assets/pmd/*
+            Cache-Control: public, max-age=86400
+          /assets/poke/*
+            Cache-Control: public, max-age=86400
+          /assets/bgm/*
+            Cache-Control: public, max-age=86400
+          /assets/cry/*
+            Cache-Control: public, max-age=86400
+          /assets/fonts/*
+            Cache-Control: public, max-age=86400
+          EOF
+          printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ok == 'true'
+        with:
+          node-version: 22
+      - name: Deploy
+        if: steps.secrets.outputs.ok == 'true'
+        run: npx --yes netlify-cli@17 deploy --prod --dir dist --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --message "deploy ${GITHUB_SHA::7}"

@@ -316,26 +316,36 @@ export const ui = {
 
 // ---------------------------------------------------------------- dialogue
 // lines: [{who, name, text, shiny, choices:[..], onChoice(i)}]; who = species id or 'narr'
+// The box shows three rows; a longer line (a dungeon's results with many items found) goes on over more pages.
+const ROWS = 3;
 export class Dialog {
   constructor(lines, onDone) {
     this.lines = lines.filter(Boolean);
-    this.i = 0; this.chars = 0; this.onDone = onDone; this.sel = 0; this.done = false;
+    this.i = 0; this.page = 0; this.chars = 0; this.onDone = onDone; this.sel = 0; this.done = false;
     G.dialogSpeaker?.(this.lines[0]);
   }
   get line() { return this.lines[this.i]; }
   relang(sw) { for (const L of this.lines) { L.text = sw(L.text); if (L.name) L.name = sw(L.name); if (L.choices) L.choices = L.choices.map(sw); } }
+  // the line's text wrapped to the box (beside the portrait when there is one), and the rows of the page on show
+  rows(L) {
+    const w = VW - 12 - (typeof L.who === 'number' ? 66 : 10) - 14;
+    if (L.wrapped?.text !== L.text) L.wrapped = { text: L.text, rows: ui.wrap(L.text, w) };
+    return L.wrapped.rows;
+  }
+  pageRows(L) { const r = this.rows(L); this.page = Math.min(this.page, Math.ceil(r.length / ROWS) - 1); return r.slice(this.page * ROWS, this.page * ROWS + ROWS); }
+  lastPage(L) { return (this.page + 1) * ROWS >= this.rows(L).length; }
   update(dt) {
     const L = this.line;
     if (!L) return;
-    const full = L.text.length;
+    const full = this.pageRows(L).join('').length;
     this.chars = Math.min(full, this.chars + dt * 48 * (input.isDown('ok') ? 3 : 1));
-    if (L.choices && this.chars >= full) {
+    if (L.choices && this.chars >= full && this.lastPage(L)) {
       if (input.repeat('up') || input.repeat('left')) { this.sel = (this.sel + L.choices.length - 1) % L.choices.length; G.sfx?.('cursor'); }
       if (input.repeat('down') || input.repeat('right')) { this.sel = (this.sel + 1) % L.choices.length; G.sfx?.('cursor'); }
     }
     if (input.click) {
       const b = this.choiceBox;
-      if (L.choices && this.chars >= full && b) { // only a click on a choice picks it
+      if (L.choices && this.chars >= full && this.lastPage(L) && b) { // only a click on a choice picks it
         const k = Math.floor((input.click.y - b.y - 7) / 16);
         if (input.tap(b.x, b.y, b.w, b.h) && k >= 0 && k < L.choices.length) { this.sel = k; this.advance(); }
         input.click = null;
@@ -347,16 +357,17 @@ export class Dialog {
     if (input.hit('ok')) this.advance();
     else if (input.hit('cancel')) {
       // X on a question picks its last answer (no / not now / cancel); questions marked cancel:false must be answered with Z
-      if (!L.choices || this.chars < full) this.advance();
+      if (!L.choices || this.chars < full || !this.lastPage(L)) this.advance();
       else if (L.cancel !== false) { this.sel = L.choices.length - 1; this.advance(); }
     }
   }
   advance() {
-    const L = this.line;
-    if (this.chars < L.text.length) { this.chars = L.text.length; return; }
+    const L = this.line, full = this.pageRows(L).join('').length;
+    if (this.chars < full) { this.chars = full; return; }
     G.sfx?.('confirm');
+    if (!this.lastPage(L)) { this.page++; this.chars = 0; return; }
     if (L.choices) { const s = this.sel; this.sel = 0; L.onChoice?.(s); }
-    this.i++; this.chars = 0;
+    this.i++; this.chars = 0; this.page = 0;
     if (this.i >= this.lines.length) { this.done = true; this.onDone?.(); }
     else G.dialogSpeaker?.(this.line);
   }
@@ -373,15 +384,16 @@ export class Dialog {
       ui.panel(tx - 4, y - 13, nw, 16, { accent: false, fill: COL.ink2 });
       ui.text(L.name, tx + 3, y - 10, { color: '#fff4dc', bold: true });
     }
-    const shown = L.text.slice(0, Math.floor(this.chars));
-    const lines = ui.wrap(shown, w - (tx - x) - 14);
-    lines.slice(0, 3).forEach((ln, k) => ui.text(ln, tx, y + 11 + k * 15, { color: L.who === 'narr' ? COL.ink2 : COL.ink }));
-    if (L.choices && this.chars >= L.text.length) {
+    // the page's rows, typed out a character at a time (wrapped whole first, so words never jump between rows)
+    const rows = this.pageRows(L), full = rows.join('').length;
+    let left = Math.floor(this.chars);
+    rows.forEach((row, k) => { if (left > 0) ui.text(row.slice(0, left), tx, y + 11 + k * 15, { color: L.who === 'narr' ? COL.ink2 : COL.ink }); left -= row.length; });
+    if (L.choices && this.chars >= full && this.lastPage(L)) {
       const cw = Math.max(...L.choices.map((c) => ui.measure(c))) + 30, ch = L.choices.length * 16 + 10;
       ui.panel(VW - cw - 10, y - ch - 6, cw, ch);
       this.choiceBox = { x: VW - cw - 10, y: y - ch - 6, w: cw, h: ch };
       L.choices.forEach((c, k) => ui.text((k === this.sel ? '▶ ' : '   ') + c, VW - cw, y - ch + 4 + k * 16));
-    } else if (this.chars >= L.text.length && Math.floor(G.time * 3) % 2) ui.text('▼', x + w - 16, y + h - 15, { color: COL.red });
+    } else if (this.chars >= full && Math.floor(G.time * 3) % 2) ui.text('▼', x + w - 16, y + h - 15, { color: COL.red });
   }
 }
 

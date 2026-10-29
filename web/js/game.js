@@ -112,7 +112,7 @@ export class Mon {
   stat(k) {
     const i = { atk: 1, def: 2, spa: 3, spd: 4, spe: 5 }[k];
     let v = this.baseStat(i) * STAGE(this.stages[k] || 0);
-    if (this.boss) v *= k === 'atk' || k === 'spa' ? this.atkMul : 1.1;
+    if (this.boss) v *= k === 'atk' || k === 'spa' ? this.atkMul : 1.1 * (k === 'def' || k === 'spd' ? this.defMul || 1 : 1); // defMul: a boss's last form
     if (this.slowT > 0 && (k === 'atk' || k === 'spe')) v *= 0.5;
     // field: a legend at home on this battlefield (Groudon on the Nakdong, Kyogre off Incheon); primal: Primal Reversion.
     // Both last one dungeon run (Dungeon.result clears them) and are never saved.

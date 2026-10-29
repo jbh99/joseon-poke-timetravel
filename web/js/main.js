@@ -8,29 +8,30 @@ import { Town, setBuildings, setPearl, townSets } from './town.js';
 import { initPmd, tileSet, portraitImage } from './pmd.js';
 import { Dungeon } from './dungeon.js';
 import { Title, EraCard, WorldMap, Ending } from './scenes.js';
-import { onDungeonClear } from './quests.js';
+import { onDungeonClear, resumeSteps } from './quests.js';
 import { NET } from './net.js';
 import { initNetUI } from './netui.js';
 import { initCloud } from './cloud.js';
 
-// coming back to town autosaves (after any quest progress the dungeon unlocked) and cures every status problem
+// coming back to town autosaves (after any quest progress the dungeon unlocked) and cures every status problem; a
+// story step that plays by itself and has not played yet (1950 opens with a scene, a save made just before one) plays
 G.goTown = (kind) => {
   for (const m of [...S.party, ...S.roster]) m.status = null;
   setScene(new Town(kind));
   const d = G.pendingClear;
   G.pendingClear = null;
   if (d) setTimeout(async () => { await onDungeonClear(d); save(); }, 450);
-  else save();
+  else { save(); setTimeout(resumeSteps, 450); }
 };
 G.goWorld = () => setScene(new WorldMap());
-G.goDungeon = (d) => setScene(new Dungeon(d));
+G.goDungeon = (d, def) => setScene(new Dungeon(d, def)); // def: a fight no era lists (Town.policeDef)
 G.nextEra = () => fadeTo(() => {
   S.era++; S.step = 0; S.eraClear = false; S.night = false; S.lastNode = 'town'; S.townKind = 1;
   save();
   setScene(new EraCard());
 }, '#fff', 1.2);
 G.goEnding = () => fadeTo(() => setScene(new Ending()), '#fff', 0.8);
-G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; setScene(new Title()); });
+G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; G.policeBack = null; setScene(new Title()); }); // a fight in town left for the title has no town to go back to
 G.onFirstInput = () => unlockAudio(); // a gamepad button is no page gesture, but it sets the sound up (audio.js)
 G.kao = portraitImage;
 window.__game = { G, S, newGame, setScene, EraCard, Dungeon, Town, ERAS, save, load, NET, audio: audioState }; // handle for automated playtests

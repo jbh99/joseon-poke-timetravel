@@ -2,7 +2,7 @@
 // The Joseon-era chapters (1392-1945) live here; earlier eras are in content_ancient.js, the war in content_war.js.
 // NPC species ids come from the ROM's national dex; names are read from dex.json at runtime.
 
-import { K, EN_EXTRA, CELEBI, T } from './content_k.js';
+import { K, EN_EXTRA, CELEBI, T, SIG, SIG_AT1, SIG_AT2, DARKRAI_SIG, DARKRAI_REVIVE } from './content_k.js';
 import { ANCIENT, ANCIENT_QITEMS } from './content_ancient.js';
 import { WAR, WAR_QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK } from './content_war.js';
 import { ERA_1905, ERA_1979, MODERN_QITEMS, addPostWar, addSkyLine, spyLog } from './content_modern.js';
@@ -14,8 +14,9 @@ export const STARTERS = [387, 390, 393];
 
 // second page for Dialga / Palkia / Giratina: back up in Origin Forme with 2/3 HP, harder hits, faster double patterns
 // (no Origin Forme sprites exist in Pearl or PMD Blue, so the dungeon draws it bigger inside an aura of `aura`)
-function origin(aura, msg, name, type, pats) {
-  return { hp: 2 / 3, atk: 1.3, cap: 0.42, form: K('오리진폼', 'Origin Forme'), aura, msg,
+// an Origin Forme second phase; `use`: its signature moves, two or three this time
+function origin(aura, msg, name, type, pats, use) {
+  return { hp: 2 / 3, atk: 1.3, cap: 0.42, form: K('오리진폼', 'Origin Forme'), aura, msg, sig: use && { use, at: SIG_AT2 },
     tele: [
       { name, every: 3, dmg: 0.42, stagger: 1, pats, type, first: 2 },
       { at: 0.5, name, every: 2, dmg: 0.5, stagger: 1, pats: [...pats, 'quad|target', 'random|cross'], type, summon: 1,
@@ -516,7 +517,7 @@ const JOSEON = [
   {
     id: 8, year: 1919, years: '1910 – 1919', title: '3 · 1 운동', sub: '대한 독립 만세',
     art: 'e8', artProps: ['pavilion8'], town: {
-      name: '경성', bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: 'pavilion8', police: true,
+      name: '경성', bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: 'pavilion8',
       houses: ['western', 'hanok', 'western', 'hanok', 'western', 'hanok', 'choga', 'western'], props: ['pole', 'lamp', 'lamp', 'baretree', 'cherry', 'rickshaw'],
     },
     world: 'road_a_n',
@@ -537,9 +538,10 @@ const JOSEON = [
       alley: { name: '경성 뒷골목', tiles: T.alley, floors: 5, lv: [34, 38], mons: [198, 92, 93, 353, 355, 434, 435, 228, 200], bgm: 'd_agito',
         quest: { item: 'declaration', lastFloor: true },
         boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 1.87, atk: 0.85, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // main-path legend: a bit less HP than the optional ones
-          tele: { name: '시간의 포효', every: 4, dmg: 0.36, pats: ['cols', 'rows', 'cross', 'quad'], type: 16 },
+          tele: { name: K('러스터캐논', 'Flash Cannon'), every: 4, dmg: 0.36, pats: ['cols', 'rows', 'cross', 'quad'], type: 8 },
+          sig: { use: [SIG.roar], at: SIG_AT1 },
           revive: origin('#6a9cff', K('디아루가가 쓰러지지 않는다! 시간이 거꾸로 흐르며 오리진폼으로 모습을 바꿨다!', "Dialga won't go down! Time flows backwards as it takes its Origin Forme!"),
-            K('시간 붕괴', 'Time Collapse'), 8, ['cols|cross', 'rows|x', 'quad', 'checker', 'star|near']),
+            K('시간 붕괴', 'Time Collapse'), 8, ['cols|cross', 'rows|x', 'quad', 'checker', 'star|near'], [SIG.roar]),
           say: [
             { who: 'narr', text: K('1919년 3월 1일 오후 2시를 앞두고, 인쇄소 앞의 시계가 멈춰 섰다.', 'Just before 2 p.m. on March 1, 1919, the clock in front of the print shop stopped.') },
             { who: 483, text: K('그라아아아…! (시간의 신 디아루가가 경성의 시간을 붙잡고 있다!)', 'Grahhh...! (Dialga, lord of time, is holding Gyeongseong\'s time still!)') },
@@ -591,7 +593,7 @@ const JOSEON = [
   {
     id: 9, year: 1920, years: '1920 – 1932', title: '독립군', sub: '청산리의 가을',
     art: 'e9', artProps: [], town: {
-      name: '독립군 기지 (만주)', bgm: 'city11_d', bgmN: 'city11_n', biome: 'camp', landmark: null,
+      name: '독립군 기지 (만주)', bgm: 'city11_d', bgmN: 'city11_n', biome: 'camp', landmark: null, police: false, // no constables patrol the army's own base
       houses: ['tent', 'tent', 'tent', 'tent', 'tent', 'tent'], props: ['campfire', 'crates', 'crates', 'tower', 'baretree', 'maple', 'logs'],
     },
     world: 'road_bza',
@@ -663,7 +665,7 @@ const JOSEON = [
   {
     id: 10, year: 1940, years: '1938 – 1943', title: K('민족 말살 통치', 'Erasing a People'), sub: K('빼앗긴 이름, 지켜 낸 말', 'Stolen names, words kept safe'),
     card: { set: T.rift, mons: [487, 164, 448, 427] }, artProps: [], town: {
-      name: K('경성 (1940)', 'Gyeongseong (1940)'), bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: null, pearl: 'C03', police: true, // Oreburgh: the mines and factories of the war years
+      name: K('경성 (1940)', 'Gyeongseong (1940)'), bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: null, pearl: 'C03', // Oreburgh: the mines and factories of the war years
       houses: ['western', 'hanok', 'western', 'hanok', 'western', 'choga', 'hanok', 'western'], props: ['pole', 'lamp', 'baretree', 'baretree', 'rickshaw', 'jars'],
     },
     world: 'road_a_n',
@@ -682,10 +684,12 @@ const JOSEON = [
     dungeons: {
       distortion: { name: K('반전세계', 'Distortion World'), tiles: T.rift, floors: 5, lv: [40, 44], mons: [92, 93, 200, 429, 425, 426, 302, 355, 356], bgm: 'd_agito',
         tint: 'rgba(70,0,90,0.22)', quest: { item: 'names', perFloor: 1 },
-        boss: { sp: 487, lv: 46, lvMin: 38, lvUp: 4, hp: 2.31, atk: 0.85, bgm: 'ba_secret2', moves: [247, 337, 466, 414],
-          tele: { name: '섀도다이브', every: 4, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'], type: 7 },
+        // Aura Sphere answers the Dark types brought against a Ghost
+        boss: { sp: 487, lv: 46, lvMin: 38, lvUp: 4, hp: 2.31, atk: 0.85, bgm: 'ba_secret2', moves: [247, 337, 396, 414],
+          tele: { name: K('그림자 폭풍', 'Shadow Storm'), every: 4, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'], type: 7 },
+          sig: { use: [SIG.shadow], at: SIG_AT1 },
           revive: origin('#ff4a3a', K('기라티나가 쓰러지지 않는다! 그림자 날개를 펼치며 오리진폼으로 모습을 바꿨다!', "Giratina won't go down! It spreads its shadow wings and takes its Origin Forme!"),
-            K('반전의 그림자', 'Reverse Shadow'), 7, ['x|random', 'quad', 'checker|ring', 'far|target', 'star']),
+            K('반전의 그림자', 'Reverse Shadow'), 7, ['x|random', 'quad', 'checker|ring', 'far|target', 'star'], [SIG.shadow]),
           say: [
             { who: 'narr', text: K('위와 아래가 뒤집힌 세계. 빼앗긴 이름들이 그림자가 되어 떠다닌다.', 'A world turned upside down. Stolen names drift about as shadows.') },
             { who: 487, text: '그오오…! (반전세계의 주인 기라티나가 그림자 속에서 모습을 드러냈다!)' },
@@ -698,7 +702,8 @@ const JOSEON = [
       newmoon: { name: K('그믐달 섬', 'Newmoon Island'), tiles: T.forest, floors: 3, lv: [38, 42], mons: [96, 97, 198, 200, 355, 302], bgm: 'd_agito', legend: true,
         tint: 'rgba(20,10,50,0.28)',
         boss: { sp: 491, lv: 44, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
-          tele: { name: K('다크홀', 'Dark Void'), every: 4, dmg: 0.32, pats: ['ring', 'target', 'checker', 'x'], type: 17 },
+          tele: { name: K('나이트메어', 'Bad Dreams'), every: 4, dmg: 0.32, pats: ['ring', 'target', 'checker', 'x'], type: 17 },
+          sig: DARKRAI_SIG, revive: DARKRAI_REVIVE,
           say: [
             { who: 'narr', text: K('달이 뜨지 않는 그믐밤의 섬. 경성에서 흘러온 악몽이 검은 안개가 되어 숲을 덮고 있다.', 'An island on a moonless night. Nightmares drifting over from Gyeongseong cover its woods in black mist.') },
             { who: 491, name: K('다크라이', 'Darkrai'), text: K('…이곳에는 악몽이 가득하다. 이름을 빼앗긴 자들의 꿈은 모두 검게 물들었지.', '...This place is full of nightmares. The dreams of those robbed of their names have all turned black.') },
@@ -759,9 +764,10 @@ const JOSEON = [
     dungeons: {
       rift: { name: '시간의 틈', tiles: T.rift, floors: 6, lv: [42, 47], mons: [444, 148, 247, 359, 197, 196, 356, 281, 429, 477], bgm: 'd_mount2', // 600-total lines stay boss-only (Garchomp, Tyranitar lead 1950)
         mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.2, atk: 0.85, bgm: 'ba_dpoke1', moves: [352, 337, 414, 246],
-          tele: { name: '공간절단', every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 16 },
+          tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 11 },
+          sig: { use: [SIG.rend], at: SIG_AT1 },
           revive: origin('#ff9ad8', K('펄기아가 쓰러지지 않는다! 공간이 일그러지며 오리진폼으로 모습을 바꿨다!', "Palkia won't go down! Space warps as it takes its Origin Forme!"),
-            K('아공절단', 'Spacial Rend'), 11, ['cross|ring', 'quad', 'star', 'rows|x', 'checker|near']),
+            K('아공절단', 'Subspace Rend'), 11, ['cross|ring', 'quad', 'star', 'rows|x', 'checker|near'], [SIG.rend]),
           say: [
             { who: 484, text: '그오오오오…!! 뒤틀린 공간 한가운데, 펄기아가 포효한다!' },
             { who: CELEBI, name: '세레비', text: '시대를 넘나든 시간이 공간까지 비틀어 버렸어! 펄기아를 진정시켜 줘!' },
@@ -904,7 +910,7 @@ const TOWN2 = {
       { id: 'jm1887a', sp: 52, name: K('무역상 나옹', 'Trader Meowth'), x: 22, y: 15, say: [{ text: K('1883년에 항구가 열린 뒤로 서양 배가 끊이질 않아. 성냥, 석유, 옷감… 별게 다 들어온다냥.', 'Since the port opened in 1883, Western ships never stop coming. Matches, kerosene, cloth... everything comes in, meow.') }] },
       { id: 'jm1887b', sp: 81, name: K('코일', 'Magnemite'), x: 14, y: 19, wander: 2, say: [{ text: K('삐빗. 이곳에서 서울까지 기찻길을 놓을 계획이 있다. 삐빗.', 'Beep. There are plans to lay a railway from here to Seoul. Beep.') }] },
     ] } },
-  1919: { node: [127.3, 36.75], town: { name: K('아우내 장터', 'Aunae Market'), bgm: 'town01_d', bgmN: 'town01_n', biome: 'spring', police: true,
+  1919: { node: [127.3, 36.75], town: { name: K('아우내 장터', 'Aunae Market'), bgm: 'town01_d', bgmN: 'town01_n', biome: 'spring',
     houses: ['choga', 'hanok', 'choga', 'choga'], props: ['jars', 'logs', 'cherry', 'bamboo'],
     npcs: [
       { id: 'au1919a', sp: 39, name: K('장터 푸린', 'Market Jigglypuff'), x: 22, y: 15, say: [{ text: K('4월 1일 장날, 유관순 언니와 마을 사람들이 태극기를 나눠 주며 만세를 불렀어.', 'On market day, April 1, Yu Gwan-sun and the villagers handed out flags and shouted "Manse!"') }] },
@@ -916,7 +922,7 @@ const TOWN2 = {
       { id: 'yj1920a', sp: 64, name: K('학교 선생님 윤겔라', 'Teacher Kadabra'), x: 22, y: 15, say: [{ text: K('간도 용정에는 우리 학교가 여럿 있지. 아이들에게 우리말과 역사를 가르친다네.', 'Yongjeong in Jiandao has several Korean schools. We teach the children our language and history.') }] },
       { id: 'yj1920b', sp: 163, name: K('부우부', 'Hoothoot'), x: 14, y: 19, wander: 2, say: [{ text: K('부우! 멀리 고향을 떠나온 사람들이 서로 기대어 살고 있어.', 'Hoo! People far from home lean on each other here.') }] },
     ] } },
-  1940: { node: [124.45, 34.1], town: { name: K('충칭 · 임시정부', 'Chongqing · Provisional Government'), bgm: 'city11_d', bgmN: 'city11_n', biome: 'modern',
+  1940: { node: [124.45, 34.1], town: { name: K('충칭 · 임시정부', 'Chongqing · Provisional Government'), bgm: 'city11_d', bgmN: 'city11_n', biome: 'modern', police: false, // free China
     houses: ['western', 'hanok', 'western', 'western'], props: ['lamp', 'crates', 'pole', 'bamboo'],
     npcs: [
       { id: 'kla40', sp: 448, name: K('광복군 대원 루카리오', 'Liberation Army Lucario'), x: 22, y: 15, say: [{ text: K('우리는 이곳 충칭에서 나라를 되찾을 군대를 기르고 있다.', 'Here in Chongqing we are raising an army to win our country back.') }] },

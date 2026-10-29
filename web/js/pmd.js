@@ -72,6 +72,8 @@ export function drawPmd(c, sp, shiny, x, y, o = {}) {
   c.restore();
   return true;
 }
+// how far a sprite's frame reaches above its feet (pixels at scale 1); null until its sheet has loaded
+export const pmdHeadroom = (sp) => sprites.get(sp)?.meta?.ay ?? null;
 export function pmdAnimLength(sp, anim, dir = 0) {
   const m = sprites.get(sp)?.meta;
   const seq = m?.anims[anim]?.[dir];
