@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, hasSave, readSave, load, save, TYPE_COLORS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun, resumeSteps } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun, resumeSteps } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
@@ -116,13 +116,17 @@ export class Intro {
   }
   exit() { G.dialogSpeaker = null; }
   get choices() { return this.phase === 'partner' ? STARTERS.filter((s) => s !== this.starter) : STARTERS; }
+  card(i) { const w = 130; return { x: VW / 2 - (this.choices.length * (w + 10)) / 2 + i * (w + 10) + 5, y: 34, w, h: 150 }; }
   update(dt) {
     this.t += dt;
     if (G.overlays.length || (this.phase !== 'pick' && this.phase !== 'partner')) return;
     const n = this.choices.length;
     if (input.repeat('left')) { this.sel = (this.sel + n - 1) % n; sfx('cursor'); cry(this.choices[this.sel]); }
     if (input.repeat('right')) { this.sel = (this.sel + 1) % n; sfx('cursor'); cry(this.choices[this.sel]); }
-    if (input.hit('ok')) {
+    // a tap on a card picks it, like ← → and Z
+    const tap = this.choices.findIndex((sp, i) => { const b = this.card(i); return input.tap(b.x, b.y, b.w, b.h); });
+    if (tap >= 0 && tap !== this.sel) { this.sel = tap; cry(this.choices[tap]); }
+    if (input.hit('ok') || tap >= 0) {
       const sp = this.choices[this.sel];
       say([{ who: sp, shiny: true, name: DEX.species[sp].name, text: this.phase === 'pick' ? tr(`반짝이는 ${DEX.species[sp].name}! 이 모습이 맞아?`, `A sparkling ${DEX.species[sp].name}! Is this you?`) : tr(`${DEX.species[sp].name}와(과) 함께 여행할까?`, `Travel together with ${DEX.species[sp].name}?`), choices: tr(['응!', '다시 고를래'], ['Yes!', 'Let me choose again']), onChoice: (i) => {
         if (i) return;
@@ -151,7 +155,7 @@ export class Intro {
     const ch = this.choices;
     ui.text(this.phase === 'pick' ? tr('나는 누구였을까?', 'Who were you?') : tr('함께 갈 친구는?', 'Who comes with you?'), VW / 2, 14, { align: 'center', bold: true, color: '#fff', shadow: true });
     ch.forEach((sp, i) => {
-      const w = 130, x = VW / 2 - (ch.length * (w + 10)) / 2 + i * (w + 10) + 5, y = 34;
+      const { x, y, w } = this.card(i);
       ui.panel(x, y, w, 150, { fill: i === this.sel ? '#fff6dc' : COL.paper2 });
       const im = img(`poke/front/${sp}s.png`);
       ui.image(im, Math.floor(this.t * 3) % 2 && i === this.sel ? 80 : 0, 0, 80, 80, x + 25, y + 12, 80, 80);
@@ -184,7 +188,7 @@ export class EraCard {
         fadeTo(() => { save(); G.goTown(1); }, '#000', 2);
       });
     }
-    if (!this.talked && this.t > 0.6 && input.hit('ok')) this.t = 2.6;
+    if (!this.talked && this.t > 0.6 && (input.hit('ok') || input.tap(0, 0, VW, VH))) this.t = 2.6;
   }
   draw(c) {
     const card = cardOf(this.e);
@@ -241,6 +245,7 @@ export class WorldMap {
   scr(n) { const [x, y] = this.pos(n); return [x * MZ - this.cx, y * MZ - this.cy]; }
   camFor(n) { const [x, y] = this.pos(n); return this.clampCam(x * MZ - MVW / 2, y * MZ - VH / 2); }
   clampCam(cx, cy) { const m = this.meta || { w: 300, h: 445 }; return [clamp(cx, 0, m.w * MZ - MVW), clamp(cy, 0, m.h * MZ - VH)]; }
+  get padKeys() { return ['menu', 'quest', 'party']; } // what the touch menu panel offers here (core.js initMenu)
   tags(n) {
     const st = mainStep(), out = [];
     if (n.d && st?.do === 'dungeon' && st.d === n.d) out.push('main');
@@ -276,6 +281,13 @@ export class WorldMap {
       if (d.needs && !d.needs.every((sp) => S.party.some((m) => m.sp === sp))) return say([{ who: 'narr', text: d.needsText }]);
       say([{ who: 'narr', text: tr(`${d.name} (${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${lo}~${hi})에 들어갈까?`, `Enter ${d.name}? (${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${lo}-${hi})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
+    if (input.hit('menu')) return openMenu([
+      { label: tr('퀘스트', 'Quests'), fn: questMenu },
+      { label: tr('동료 명부', 'Companions'), fn: rosterMenu },
+      { label: tr('마을로 돌아가기', 'Back to town'), fn: () => fadeTo(() => G.goTown()) },
+      { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
+      { label: tr('닫기', 'Close') },
+    ], { title: tr(`${this.e.year}년 세계 지도`, `World map, ${this.e.year}`) });
     if (input.hit('quest')) return questMenu();
     if (input.hit('party')) return rosterMenu(); // companions can be swapped anywhere outside dungeons
     if (input.hit('cancel')) fadeTo(() => G.goTown());
@@ -383,7 +395,7 @@ export class WorldMap {
     ui.panel(x, qy, w, 22 + shown.length * 11);
     ui.text(tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true });
     shown.forEach((q, i) => ui.text(q.t, x + 8, qy + 19 + i * 11, { size: 9, color: q.c }));
-    if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · 끌어서 지도 보기 · J 퀘스트 · P 동료 · X 마을로', 'Tap a place to go · drag to look · J quests · P team · X town') : tr('클릭·↑↓ 장소 · 드래그 지도 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · drag map · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
+    if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · 끌어서 지도 보기 · 메뉴: 퀘스트 · 동료 · X 마을로', 'Tap a place to go · drag to look · Menu: quests · team · X town') : tr('클릭·↑↓ 장소 · 드래그 지도 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · drag map · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
   }
 }
 
@@ -414,8 +426,9 @@ export class Ending {
   }
   update(dt) {
     this.t += dt;
-    if (this.phase === 0 && (this.t > this.credits.length * 2.2 + 8 || input.hit('ok'))) { this.phase = 1; this.t = 0; playBgm('halloffame'); S.party.forEach((m) => cry(m.sp)); }
-    else if (this.phase === 1 && this.t > 2 && input.hit('ok')) fadeTo(() => setScene(new Title()));
+    const go = input.hit('ok') || !!input.tap(0, 0, VW, VH);
+    if (this.phase === 0 && (this.t > this.credits.length * 2.2 + 8 || go)) { this.phase = 1; this.t = 0; playBgm('halloffame'); S.party.forEach((m) => cry(m.sp)); }
+    else if (this.phase === 1 && this.t > 2 && go) fadeTo(() => setScene(new Title()));
   }
   draw(c) {
     drawBackdrop(c, this.phase === 0 ? 41 : 33, this.phase === 0 ? 5 : 9, 1.05 + this.t * 0.002);

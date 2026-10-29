@@ -1,7 +1,8 @@
 // Eras added after the eighteen: 1905 (the Eulsa Treaty, ending with the Hague envoys) between 1887 and 1919, and
 // 1979 (October 26 and the December 12 coup) after the Korean War, which now ends the journey with Arceus. Also the
 // post-1945 side line shared by the last eras: Registeel in town, then Regirock, Regice and Regigigas in Snowpoint
-// Temple, and the Latias / Latios choice; and after the battle for Seoul, the Sky Pillar (Rayquaza, then Deoxys).
+// Temple, and the Latias / Latios choice; and after the battle for Seoul, the Sky Pillar (Rayquaza), then the Duwon
+// meteorite site (Deoxys).
 // Their levels are set directly (the Joseon chapters' lift() curve is not applied to them).
 import { K, T, CELEBI } from './content_k.js';
 import { S } from './game.js';
@@ -129,7 +130,7 @@ const ARCEUS_REVIVE = { hp: 2 / 3, atk: 1.35, shiny: true, cap: 0.34, aura: '#ff
 // the final boss sets its own numbers (dungeon.js bossTier): its level follows the team's like any boss's, from Lv 70 up
 // to Lv 180, a long fight where dodging decides everything. A team that already has Arceus (it joined in the 1950
 // finale of older versions) gets no second one.
-const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 7.5, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: ARCEUS_REVIVE,
+const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.25, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: ARCEUS_REVIVE,
   get noJoin() { return !!S.flags.got_493; },
   say: [
     { who: 'narr', text: '눈부신 빛 속에서, 거대한 포켓몬이 천천히 고개를 들었다.' },
@@ -277,11 +278,12 @@ export function addPostWar(eras) {
   }
 }
 
-// ---------------------------------------------------------------- after the battle for Seoul: the Sky Pillar
+// ---------------------------------------------------------------- after the battle for Seoul: the Sky Pillar and Duwon
 // Once Groudon and Kyogre have clashed in Seoul (1950), the Sky Pillar appears on the world map with its keeper on
-// floor 2: Rayquaza, come down to calm the land and the sea; once Rayquaza joins, a meteor brings Deoxys to the same
-// floor. Both can be fought again until they join and never move on to later eras; in a challenge the pillar stays
-// closed. A red meteorite then stands in town, where Deoxys changes Forme (town.js meteorTalk, game.js FORMES).
+// floor 2: Rayquaza, come down to calm the land and the sea. Once Rayquaza joins, a meteor brings Deoxys to Duwon in
+// Goheung, where the first meteorite on record in Korea fell in 1943: a place of its own, as no map holds two legends.
+// Both can be fought again until they join and never move on to later eras; in a challenge neither place opens. A red
+// meteorite then stands in town, where Deoxys changes Forme (town.js meteorTalk, game.js FORMES).
 // second page: Mega Rayquaza (no sprite exists for it: aura + name, as for Mewtwo)
 const RAYQUAZA = { sp: 384, lv: 66, lvMin: 60, lvUp: 4, hp: 2.0, atk: 0.8, cap: 0.34, retry: true, noWander: true, bgm: 'ba_secret2', moves: [200, 406, 245, 89],
   tele: { name: K('화룡점정', 'Dragon Ascent'), every: 3, dmg: 0.36, pats: ['x', 'star', 'cols', 'far'], type: 2 },
@@ -297,7 +299,7 @@ const RAYQUAZA = { sp: 384, lv: 66, lvMin: 60, lvUp: 4, hp: 2.0, atk: 0.8, cap: 
     { who: 'narr', text: K('구름보다 높은 하늘기둥 꼭대기. 땅과 바다의 거인이 서울에서 맞부딪친 날부터, 초록빛 용이 하늘을 맴돌고 있었다.', 'The top of the Sky Pillar, above the clouds. Ever since the giants of land and sea clashed in Seoul, a green dragon has been circling the sky.') },
     { who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('……땅과 바다가 다투면 하늘이 내려온다. 그것이 나의 일이다. 너희는 무엇을 위해 싸웠느냐!', '......When land and sea quarrel, the sky comes down. That is my task. What did you fight for?') },
     { who: 'partner', text: K('레쿠쟈야! 그란돈과 가이오가의 싸움을 멈추러 하늘에서 내려왔대. 우리 마음을 보여 주자!', 'It\'s Rayquaza! It came down from the sky to stop Groudon and Kyogre fighting. Let\'s show it our hearts!') }],
-  after: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('…좋다. 너희는 빼앗으려고 싸운 것이 아니구나. …하늘 너머에서 무언가가 나를 쫓아온다. 내가 너희와 가면, 그것도 이 기둥으로 내려오겠지.', '...Good. You did not fight to take. ...Something from beyond the sky is chasing me. If I go with you, it too will come down to this pillar.') }],
+  after: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('…좋다. 너희는 빼앗으려고 싸운 것이 아니구나. …하늘 너머에서 무언가가 나를 쫓아온다. 내가 너희와 가면, 그것도 이 땅 어딘가로 내려오겠지.', '...Good. You did not fight to take. ...Something from beyond the sky is chasing me. If I go with you, it too will come down somewhere on this land.') }],
   join: K('레쿠쟈가 긴 몸을 낮추었다. 함께 하늘을 날고 싶어 한다!', 'Rayquaza lowers its long body. It wants to fly with you!') };
 // Deoxys shows all its Formes in one fight: Normal, the Attack Forme at half HP (dungeon.js bossPhase: forme), and on
 // its second page the Speed Forme, which dodges (game.js FORMES eva)
@@ -313,24 +315,28 @@ const DEOXYS = { sp: 386, lv: 68, lvMin: 62, lvUp: 4, hp: 2.3, atk: 0.9, cap: 0.
       { name: K('사이코부스트', 'Psycho Boost'), every: 2, dmg: 0.4, stagger: 1, pats: ['ring|x', 'random', 'checker|cross', 'target|far'], type: 14, first: 2 },
     ] },
   say: [
-    { who: 'narr', text: K('레쿠쟈가 함께한 뒤, 붉은 별똥별이 하늘기둥 꼭대기에 떨어졌다. 깨진 운석 속에서 무언가가 일어선다!', 'After Rayquaza joined you, a red shooting star fell on top of the Sky Pillar. Something rises from the broken meteorite!') },
+    { who: 'narr', text: K('1943년, 우리 땅에서 처음 기록된 운석이 떨어진 고흥 두원. 레쿠쟈가 함께한 뒤, 그 들판에 붉은 별똥별이 또 하나 떨어졌다. 깨진 운석 속에서 무언가가 일어선다!', 'Duwon in Goheung, where the first meteorite on record in Korea fell in 1943. After Rayquaza joined you, another red shooting star fell on its fields. Something rises from the broken meteorite!') },
     { who: 386, name: K('테오키스', 'Deoxys'), text: K('……(우주에서 온 DNA 포켓몬이 레쿠쟈를 노려보며 몸을 바꾸기 시작한다!)', '......(The DNA Pokémon from space glares at Rayquaza and begins to change its body!)') },
     { who: 'partner', text: K('운석에서 나타난 테오키스야! 싸우는 도중에 모습을 바꾼대. 조심해!', 'It\'s Deoxys, out of the meteorite! It changes form in the middle of a fight. Careful!') }],
   after: [{ who: 386, name: K('테오키스', 'Deoxys'), text: K('……(테오키스의 몸에서 빛이 잦아들었다. 레쿠쟈를 바라보더니 조용히 고개를 끄덕인다.)', '......(The light in Deoxys\'s body fades. It looks at Rayquaza and quietly nods.)') }],
   join: K('테오키스가 너희 곁으로 내려왔다. 함께 가고 싶어 한다! (마을의 붉은 운석에서 모습을 바꿀 수 있다)', 'Deoxys comes down beside you. It wants to come along! (It can change Forme at the red meteorite in town)') };
 const SKY = {
   skypillar: { name: K('하늘기둥', 'Sky Pillar'), tiles: T.crystal, floors: 2, lv: [58, 62], legend: true, mons: [333, 334, 357, 227, 22, 279, 337, 338, 343, 344], bgm: 'd_lake',
-    tint: 'rgba(120,170,255,0.10)', keepers: [RAYQUAZA, DEOXYS], // the getter returns one: this lets the translation binder see both
-    get boss() { return got(384) ? DEOXYS : RAYQUAZA; } },
+    tint: 'rgba(120,170,255,0.10)', boss: RAYQUAZA },
+  duwon: { name: K('두원 운석터', 'Duwon Meteorite Site'), tiles: T.cliff, floors: 2, lv: [60, 64], legend: true, mons: [35, 36, 337, 338, 343, 344, 374, 375], bgm: 'd_mount2',
+    tint: 'rgba(255,90,60,0.10)', boss: DEOXYS },
 };
-const SKY_NODE = { id: 'skypillar', name: SKY.skypillar.name, lon: 127.73, lat: 35.34, d: 'skypillar' };
+const SKY_NODES = [
+  { id: 'skypillar', name: SKY.skypillar.name, lon: 127.73, lat: 35.34, d: 'skypillar' },
+  { id: 'duwon', name: SKY.duwon.name, lon: 127.3, lat: 34.6, d: 'duwon', when: () => !challenge() && got(384) },
+];
 const METEOR = { id: 'meteor', sp: 386, name: K('붉은 운석', 'Red Meteorite'), x: 30, y: 9, role: 'meteor', when: () => got(386) };
 // eras from 1950 on; seoulWon() tells whether 1950's battle for Seoul is behind the team (content.js)
 export function addSkyLine(eras, seoulWon) {
-  SKY_NODE.when = () => !challenge() && seoulWon();
+  SKY_NODES[0].when = () => !challenge() && seoulWon();
   for (const e of eras) {
     Object.assign(e.dungeons, SKY);
-    for (const nodes of e.nodesS ? [e.nodesS, e.nodesN] : [e.nodes]) nodes.push(SKY_NODE);
+    for (const nodes of e.nodesS ? [e.nodesS, e.nodesN] : [e.nodes]) nodes.push(...SKY_NODES);
     for (const npcs of e.south ? [e.south.npcs, e.north.npcs] : [e.npcs]) npcs.push(METEOR);
   }
 }

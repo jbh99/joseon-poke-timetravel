@@ -106,12 +106,13 @@ function initGuide() {
   if (!seen) open();
 }
 
-// Android app: the back button (MainActivity) closes the guide or the co-op panel, works as X everywhere else,
-// and leaves the app from the bare title screen; music stops while the app is in the background (unless hosting co-op)
+// Android app: the back button (MainActivity) closes the menu panel, the guide or the co-op panel, works as X
+// everywhere else, and leaves the app from the bare title screen; music stops while the app is in the background
+// (unless hosting co-op)
 window.onAndroidBack = () => {
   const ask = document.getElementById('ask'); // the search box closes first
   if (ask) return ask.querySelector('[data-close]').click();
-  const open = ['guide', 'mp', 'cloud'].map((id) => document.getElementById(id)).find((el) => !el.hidden);
+  const open = ['tmenu', 'guide', 'mp', 'cloud'].map((id) => document.getElementById(id)).find((el) => !el.hidden);
   if (open) return open.querySelector('[data-close]').click();
   if (G.scene instanceof Title && !G.overlays.length && !G.paused) return window.AndroidHost?.exit();
   dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));

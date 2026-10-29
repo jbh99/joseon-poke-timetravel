@@ -172,6 +172,7 @@ const JOSEON = [
       { id: 'town', name: '여수 · 전라좌수영', lon: 127.66, lat: 34.78 },
       { id: 'hansan', name: '한산도 앞바다', lon: 128.48, lat: 34.6, d: 'hansan' },
       { id: 'uldol', name: '울돌목', lon: 126.28, lat: 34.62, d: 'uldol' },
+      { id: 'usuyeong', name: K('전라 우수영', 'Jeolla Right Naval Base'), lon: 126.45, lat: 35.05, d: 'usuyeong' },
       { id: 'seacave', name: '여수 해안 동굴', lon: 127.75, lat: 34.36, d: 'seacave' },
       { mark: true, name: '부산', lon: 129.08, lat: 35.18, text: '1592년 4월 13일, 일본군이 부산에 상륙했다.' },
       { mark: true, name: '행주산성', lon: 126.82, lat: 37.6, text: '1593년, 권율 장군과 백성들이 행주산성에서 크게 이겼다.' },
@@ -183,18 +184,22 @@ const JOSEON = [
           { who: 'partner', text: '수군의 배가 지나갈 수 있게 길을 열어야 해!' }],
         after: [{ who: 130, text: '…크르르. 바다가 조용해지면… 다시 깊은 곳으로 돌아가겠다.' }] } },
       uldol: { name: '울돌목', tiles: T.strait, floors: 4, lv: [16, 20], mons: [73, 99, 319, 117, 171, 223], bgm: 'd_04',
-        mid: { floor: 2, sp: 482, lv: 23, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [93, 326],
-          tele: { name: '의지의 섬광', every: 4, dmg: 0.3, pats: ['cross', 'x', 'target'], type: 14 },
-          say: [
-            { who: 482, name: '아그놈', text: '…멈춰라. 열세 척의 배로 백서른 척에 맞서겠다고? 그 의지가 진짜인지 시험하겠다.' },
-            { who: 'partner', text: '의지의 신 아그놈이야! 물러서지 않는 마음을 보여 주자!' }],
-          after: [{ who: 482, name: '아그놈', text: '…꺾이지 않는 의지, 확인했다. "죽고자 하면 살 것이다"… 그 말을 잊지 마라.' }],
-          join: '아그놈이 너희의 의지에 끌린 듯 곁으로 다가왔다. 함께 가고 싶어 한다!' },
         boss: { sp: 73, lv: 24, bgm: 'ba_tenno', say: [
           { who: 73, text: '소용돌이치는 물살 속에서 독파리가 촉수를 휘두른다!' },
           { who: 'partner', text: '울돌목의 물살은 거세지만, 이 길을 알면 이길 수 있어!' }],
         after: [{ who: 73, text: '…물살이 바뀌었다. 이제 길을 비켜 주마.' }] } },
       seacave: { name: '여수 해안 동굴', tiles: T.cave, floors: 3, lv: [12, 16], mons: [41, 74, 98, 72, 90], bgm: 'd_03' },
+      // Azelf keeps the Right Naval Base, where Yi Sun-sin told his men "seek death and you will live" the day before
+      // Myeongnyang. Each legend has a place of its own: no map holds two.
+      usuyeong: { name: K('전라 우수영', 'Jeolla Right Naval Base'), tiles: T.fort, floors: 3, lv: [15, 19], mons: [72, 98, 278, 307, 308, 66], bgm: 'd_lake', legend: true,
+        tint: 'rgba(90,150,255,0.08)',
+        boss: { sp: 482, lv: 23, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [93, 326],
+          tele: { name: '의지의 섬광', every: 4, dmg: 0.3, pats: ['cross', 'x', 'target'], type: 14 },
+          say: [
+            { who: 482, name: '아그놈', text: '…멈춰라. 열세 척의 배로 백서른 척에 맞서겠다고? 그 의지가 진짜인지 시험하겠다.' },
+            { who: 'partner', text: '의지의 신 아그놈이야! 물러서지 않는 마음을 보여 주자!' }],
+          after: [{ who: 482, name: '아그놈', text: '…꺾이지 않는 의지, 확인했다. "죽고자 하면 살 것이다"… 그 말을 잊지 마라.' }],
+          join: '아그놈이 너희의 의지에 끌린 듯 곁으로 다가왔다. 함께 가고 싶어 한다!' } },
     },
     npcs: [
       { id: 'kingdra', sp: 230, name: '수군 군관 킹드라', x: 22, y: 15, say: [{ text: '장군께서는 바다의 물길과 물때를 누구보다 잘 아시지.' }] },
@@ -260,13 +265,15 @@ const JOSEON = [
       outer: { name: '산성 외곽', tiles: T.fortsnow, floors: 3, lv: [17, 21], mons: [220, 459, 215, 41, 42, 361], bgm: 'd_lake' },
       icetemple: { name: '얼음 신전', tiles: T.fortsnow, floors: 3, lv: [19, 23], mons: [220, 361, 215, 459, 225, 124], bgm: 'd_ice', legend: true,
         tint: 'rgba(120,170,255,0.10)',
-        boss: { sp: 486, lv: 32, lvMin: 24, lvUp: 4, hp: 2.2, atk: 0.9, slow: 5, bgm: 'ba_secret2', moves: [276, 5, 8, 9],
-          tele: { name: '대지 진동', every: 4, dmg: 0.33, pats: ['near', 'rows', 'cols', 'ring'], type: 0, first: 6 },
+        // Suicune, the north wind's incarnation, over a frozen spring (Regigigas waits for the Regi line after 1945)
+        boss: { sp: 245, lv: 32, lvMin: 24, lvUp: 4, hp: 2.2, atk: 0.9, bgm: 'ba_secret2', moves: [62, 61, 326, 59],
+          tele: { name: K('오로라빔', 'Aurora Beam'), every: 4, dmg: 0.33, pats: ['near', 'rows', 'cols', 'ring'], type: 15 },
           say: [
-            { who: 'narr', text: '얼음 신전 가장 깊은 곳, 거대한 석상이 눈을 번쩍 떴다!' },
-            { who: 486, text: '……………… (레지기가스가 천천히 몸을 일으킨다)' },
-            { who: 'partner', text: '대륙을 끌어당겼다는 전설의 레지기가스야! 아직 힘을 다 못 내는 지금이 기회야!' }],
-          after: [{ who: 486, text: '……………… (레지기가스가 고개를 숙였다. 너희를 인정한 것 같다)' }] } },
+            { who: 'narr', text: K('얼음 신전 가장 깊은 곳, 얼어붙은 샘 위로 차가운 북풍이 모여들었다!', 'In the deepest hall of the Ice Temple, a cold north wind gathers over a frozen spring!') },
+            { who: 245, name: K('스이쿤', 'Suicune'), text: K('……(북풍을 두른 푸른 짐승이 샘 위에 조용히 내려섰다. 맑은 눈이 너희를 꿰뚫어 본다)', '......(A blue beast cloaked in the north wind alights on the spring. Its clear eyes see right through you)') },
+            { who: 'partner', text: K('북풍의 화신 스이쿤이야! 이 혹독한 겨울을 견디는 우리 마음을 보여 주자!', 'It\'s Suicune, the incarnation of the north wind! Let\'s show it the hearts that endure this bitter winter!') }],
+          after: [{ who: 245, name: K('스이쿤', 'Suicune'), text: K('……(스이쿤이 북풍을 거두었다. 얼어붙었던 샘에서 맑은 물이 다시 흐르기 시작한다)', '......(Suicune calls back the north wind. Clear water begins to flow from the frozen spring again)') }],
+          join: K('스이쿤이 북풍처럼 가볍게 곁으로 다가왔다. 함께 가고 싶어 한다!', 'Suicune comes to your side, light as the north wind. It wants to come along!') } },
     },
     npcs: [
       { id: 'lucario', sp: 448, name: '수비대장 루카리오', x: 22, y: 15, say: [{ text: '산성의 성벽은 험한 산세를 따라 쌓여 있다. 쉽게 무너지지 않아.' }] },
@@ -314,23 +321,27 @@ const JOSEON = [
       { id: 'town', name: '수원 화성', lon: 127.01, lat: 37.28 },
       { id: 'quarry', name: '숙지산 채석장', lon: 126.62, lat: 37.08, d: 'quarry' },
       { id: 'gwanggyo', name: '광교산', lon: 127.42, lat: 37.12, d: 'gwanggyo' },
+      { id: 'kyujanggak', name: K('규장각', 'Kyujanggak'), lon: 127.45, lat: 37.82, d: 'kyujanggak' },
       { mark: true, name: '한양', lon: 126.98, lat: 37.62, text: '1795년 윤2월, 정조는 어머니 혜경궁 홍씨를 모시고 화성으로 행차했다(을묘원행).' },
     ],
     dungeons: {
       quarry: { name: '숙지산 채석장', tiles: T.quarry, floors: 4, lv: [23, 27], mons: [74, 75, 95, 111, 246, 304, 66, 67], bgm: 'd_06',
-        mid: { floor: 2, sp: 480, lv: 30, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [326, 93, 248],
-          tele: { name: '지식의 봉인', every: 4, dmg: 0.3, pats: ['checker', 'rows', 'near', 'cols'], type: 14 },
-          say: [
-            { who: 480, name: '유크시', text: '…거중기, 도르래, 성의 설계도. 사람은 지식으로 무거운 돌을 들어 올리는구나.' },
-            { who: 480, name: '유크시', text: '그 지식이 바르게 쓰이는지, 내가 시험하겠다.' },
-            { who: 'partner', text: '지식의 신 유크시! 백성을 위한 학문이라는 걸 보여 주자!' }],
-          after: [{ who: 480, name: '유크시', text: '…백성의 삶을 위한 지식이었군. 기록하고 기억하라. 그 기록이 훗날 이 성을 다시 세울 것이다.' }],
-          join: '유크시가 눈을 감은 채 조용히 곁에 내려앉았다. 함께 배우고 싶은 듯하다!' },
         boss: { sp: 464, lv: 31, bgm: 'ba_gym', say: [
           { who: 464, text: '쿠웅! 돌 깨는 소리에 화가 난 거대코뿌리가 채석장을 막아섰다!' },
           { who: 'partner', text: '필요한 만큼만 캐고, 산은 소중히 할게! 그러니 길을 비켜 줘!' }],
         after: [{ who: 464, text: '…약속을 지킨다면, 돌을 가져가도 좋다.' }] } },
       gwanggyo: { name: '광교산', tiles: T.autumn, floors: 3, lv: [22, 26], mons: [163, 164, 37, 190, 285, 286, 203], bgm: 'road_f' },
+      // Uxie keeps King Jeongjo's royal library: a book from it taught Jeong Yak-yong to build the crane
+      kyujanggak: { name: K('규장각', 'Kyujanggak'), tiles: T.library, floors: 3, lv: [22, 26], mons: [63, 64, 201, 177, 178, 436], bgm: 'd_lake', legend: true,
+        tint: 'rgba(240,210,120,0.08)',
+        boss: { sp: 480, lv: 30, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [326, 93, 248],
+          tele: { name: '지식의 봉인', every: 4, dmg: 0.3, pats: ['checker', 'rows', 'near', 'cols'], type: 14 },
+          say: [
+            { who: 480, name: '유크시', text: K('…규장각의 책 한 권이 거중기가 되어 무거운 돌을 들어 올렸지. 사람은 지식으로 산도 옮기는구나.', '...A single book from this library became the crane that lifts the heavy stones. With knowledge, people even move mountains.') },
+            { who: 480, name: '유크시', text: '그 지식이 바르게 쓰이는지, 내가 시험하겠다.' },
+            { who: 'partner', text: '지식의 신 유크시! 백성을 위한 학문이라는 걸 보여 주자!' }],
+          after: [{ who: 480, name: '유크시', text: K('…백성의 삶을 위한 지식이었군. 기록하고 기억하라. 그 기록이 훗날 화성을 다시 세울 것이다.', '...So it was knowledge for the people\'s lives. Record it and remember. One day those records will rebuild Hwaseong.') }],
+          join: '유크시가 눈을 감은 채 조용히 곁에 내려앉았다. 함께 배우고 싶은 듯하다!' } },
     },
     npcs: [
       { id: 'machamp5', sp: 68, name: '석수 괴력몬', x: 22, y: 15, say: [{ text: '거중기 하나면 장정 수십 명이 할 일을 해낸다네!' }] },
@@ -518,21 +529,14 @@ const JOSEON = [
       { id: 'town', name: '경성', lon: 126.98, lat: 37.57 },
       { id: 'alley', name: '경성 뒷골목', lon: 127.34, lat: 37.86, d: 'alley' },
       { id: 'namsan', name: '남산 숲', lon: 126.66, lat: 37.32, d: 'namsan' },
+      { id: 'tapgol', name: K('탑골 공원', 'Tapgol Park'), lon: 127.5, lat: 37.3, d: 'tapgol' },
       { mark: true, name: '아우내 장터', lon: 127.3, lat: 36.77, text: '1919년 4월 1일, 유관순 열사가 아우내 장터에서 만세 운동을 이끌었다.' },
       { mark: true, name: '→ 상하이', lon: 124.2, lat: 33.6, text: '1919년 4월 11일, 중국 상하이에서 대한민국 임시정부가 수립되었다.' },
     ],
     dungeons: {
       alley: { name: '경성 뒷골목', tiles: T.alley, floors: 5, lv: [34, 38], mons: [198, 92, 93, 353, 355, 434, 435, 228, 200], bgm: 'd_agito',
         quest: { item: 'declaration', lastFloor: true },
-        mid: { floor: 2, sp: 481, lv: 40, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [326, 94, 248],
-          tele: { name: '감정의 파동', every: 4, dmg: 0.32, pats: ['ring', 'target', 'x', 'checker'], type: 14 },
-          say: [
-            { who: 481, name: '엠라이트', text: '두려움, 분노, 슬픔… 그리고 희망. 이 골목에는 사람들의 마음이 소용돌이치고 있어.' },
-            { who: 481, name: '엠라이트', text: '너희 마음은 어느 쪽이지? 부딪혀 보면 알 수 있겠지!' },
-            { who: 'partner', text: '감정의 신 엠라이트! 우리 마음은 희망 쪽이야!' }],
-          after: [{ who: 481, name: '엠라이트', text: '…따뜻해. 혼자가 아니라는 마음이 두려움을 이기는구나. 그 목소리를 모두에게 전해 줘.' }],
-          join: '엠라이트가 웃으며 주위를 맴돈다. 너희와 함께 있고 싶은 것 같다!' },
-        boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 1.7, atk: 0.85, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // main-path legend: a bit less HP than the optional ones
+        boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 1.87, atk: 0.85, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // main-path legend: a bit less HP than the optional ones
           tele: { name: '시간의 포효', every: 4, dmg: 0.36, pats: ['cols', 'rows', 'cross', 'quad'], type: 16 },
           revive: origin('#6a9cff', K('디아루가가 쓰러지지 않는다! 시간이 거꾸로 흐르며 오리진폼으로 모습을 바꿨다!', "Dialga won't go down! Time flows backwards as it takes its Origin Forme!"),
             K('시간 붕괴', 'Time Collapse'), 8, ['cols|cross', 'rows|x', 'quad', 'checker', 'star|near']),
@@ -544,6 +548,17 @@ const JOSEON = [
           after: [{ who: 483, text: K('…두려움 속에서도 앞으로 나아가려는 마음이 보인다. 시간을 다시 흐르게 하마. 가거라, 너희의 목소리가 닿도록.', '...Even in fear, I see hearts that want to move forward. I will let time flow again. Go, so your voices may be heard.') }],
           join: K('디아루가가 거대한 몸을 낮추었다. 앞으로 흐르는 시간을 함께 지켜보고 싶어 한다!', 'Dialga lowers its great body. It wants to watch time flow forward with you!') } },
       namsan: { name: '남산 숲', tiles: T.autumn, floors: 3, lv: [33, 37], mons: [163, 164, 198, 425, 187, 188, 315], bgm: 'road_a_n' },
+      // Mesprit waits in the park where the declaration was read aloud on March 1
+      tapgol: { name: K('탑골 공원', 'Tapgol Park'), tiles: T.street, floors: 3, lv: [33, 37], mons: [280, 281, 311, 312, 183, 39], bgm: 'd_lake', legend: true,
+        tint: 'rgba(255,140,200,0.08)',
+        boss: { sp: 481, lv: 40, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [326, 94, 248],
+          tele: { name: '감정의 파동', every: 4, dmg: 0.32, pats: ['ring', 'target', 'x', 'checker'], type: 14 },
+          say: [
+            { who: 481, name: '엠라이트', text: K('두려움, 분노, 슬픔… 그리고 희망. 이 공원에는 사람들의 마음이 소용돌이치고 있어.', 'Fear, anger, sorrow... and hope. People\'s hearts are swirling in this park.') },
+            { who: 481, name: '엠라이트', text: '너희 마음은 어느 쪽이지? 부딪혀 보면 알 수 있겠지!' },
+            { who: 'partner', text: '감정의 신 엠라이트! 우리 마음은 희망 쪽이야!' }],
+          after: [{ who: 481, name: '엠라이트', text: '…따뜻해. 혼자가 아니라는 마음이 두려움을 이기는구나. 그 목소리를 모두에게 전해 줘.' }],
+          join: '엠라이트가 웃으며 주위를 맴돈다. 너희와 함께 있고 싶은 것 같다!' } },
     },
     npcs: [
       { id: 'togekiss', sp: 468, name: '학생 대표 토게키스', x: 22, y: 15, say: [{ text: '총칼 대신 맨손과 목소리로. 우리는 평화롭게 외칠 거야.' }] },
@@ -661,19 +676,13 @@ const JOSEON = [
       { id: 'town', name: K('경성', 'Gyeongseong'), lon: 126.98, lat: 37.57 },
       { id: 'distortion', name: K('반전세계', 'Distortion World'), lon: 127.78, lat: 37.3, d: 'distortion' },
       { id: 'inwang', name: K('인왕산', 'Mount Inwang'), lon: 126.62, lat: 37.86, d: 'inwang' },
+      { id: 'newmoon', name: K('그믐달 섬', 'Newmoon Island'), lon: 126.1, lat: 37.25, d: 'newmoon' },
       { mark: true, name: K('신문 폐간', 'Papers shut down'), lon: 126.7, lat: 37.2, text: K('1940년 8월, 동아일보와 조선일보가 강제로 문을 닫았다.', 'In August 1940 the Dong-A Ilbo and the Chosun Ilbo were forced to close.') },
     ],
     dungeons: {
       distortion: { name: K('반전세계', 'Distortion World'), tiles: T.rift, floors: 5, lv: [40, 44], mons: [92, 93, 200, 429, 425, 426, 302, 355, 356], bgm: 'd_agito',
         tint: 'rgba(70,0,90,0.22)', quest: { item: 'names', perFloor: 1 },
-        mid: { floor: 3, sp: 491, lv: 44, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
-          tele: { name: K('다크홀', 'Dark Void'), every: 4, dmg: 0.32, pats: ['ring', 'target', 'checker', 'x'], type: 17 },
-          say: [
-            { who: 491, name: K('다크라이', 'Darkrai'), text: K('…이곳에는 악몽이 가득하다. 이름을 빼앗긴 자들의 꿈은 모두 검게 물들었지.', '...This place is full of nightmares. The dreams of those robbed of their names have all turned black.') },
-            { who: 'partner', text: K('악몽을 보여 주는 다크라이야! 그래도 우리는 깨어 있을 거야!', 'It\'s Darkrai, bringer of nightmares! But we\'ll stay awake!') }],
-          after: [{ who: 491, name: K('다크라이', 'Darkrai'), text: K('…악몽 속에서도 제 이름을 놓지 않는구나. 더 깊은 곳에서 세계를 뒤집은 자가 기다린다.', '...Even inside a nightmare you hold on to your names. Deeper in, the one who turned this world over is waiting.') }],
-          join: K('다크라이가 그림자에서 걸어 나왔다. 너희를 따라가고 싶은 듯하다…', 'Darkrai steps out of the shadows. It seems to want to follow you...') },
-        boss: { sp: 487, lv: 46, lvMin: 38, lvUp: 4, hp: 2.1, atk: 0.85, bgm: 'ba_secret2', moves: [247, 337, 466, 414],
+        boss: { sp: 487, lv: 46, lvMin: 38, lvUp: 4, hp: 2.31, atk: 0.85, bgm: 'ba_secret2', moves: [247, 337, 466, 414],
           tele: { name: '섀도다이브', every: 4, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'], type: 7 },
           revive: origin('#ff4a3a', K('기라티나가 쓰러지지 않는다! 그림자 날개를 펼치며 오리진폼으로 모습을 바꿨다!', "Giratina won't go down! It spreads its shadow wings and takes its Origin Forme!"),
             K('반전의 그림자', 'Reverse Shadow'), 7, ['x|random', 'quad', 'checker|ring', 'far|target', 'star']),
@@ -685,6 +694,17 @@ const JOSEON = [
           after: [{ who: 487, text: '……………… (기라티나가 그림자를 거두었다. 뒤집혔던 세계가 천천히 제자리를 찾는다)' }],
           join: K('기라티나가 그림자 날개를 접고 고개를 숙였다. 함께 가고 싶어 한다!', 'Giratina folds its shadow wings and bows its head. It wants to come along!') } },
       inwang: { name: K('인왕산', 'Mount Inwang'), tiles: T.mountain, floors: 3, lv: [38, 42], mons: [163, 164, 198, 430, 215, 461, 447, 302], bgm: 'road_a_n' },
+      // Darkrai's own island (Cresselia keeps the moonlit one in 1866), where the nightmares of the stolen names drift
+      newmoon: { name: K('그믐달 섬', 'Newmoon Island'), tiles: T.forest, floors: 3, lv: [38, 42], mons: [96, 97, 198, 200, 355, 302], bgm: 'd_agito', legend: true,
+        tint: 'rgba(20,10,50,0.28)',
+        boss: { sp: 491, lv: 44, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
+          tele: { name: K('다크홀', 'Dark Void'), every: 4, dmg: 0.32, pats: ['ring', 'target', 'checker', 'x'], type: 17 },
+          say: [
+            { who: 'narr', text: K('달이 뜨지 않는 그믐밤의 섬. 경성에서 흘러온 악몽이 검은 안개가 되어 숲을 덮고 있다.', 'An island on a moonless night. Nightmares drifting over from Gyeongseong cover its woods in black mist.') },
+            { who: 491, name: K('다크라이', 'Darkrai'), text: K('…이곳에는 악몽이 가득하다. 이름을 빼앗긴 자들의 꿈은 모두 검게 물들었지.', '...This place is full of nightmares. The dreams of those robbed of their names have all turned black.') },
+            { who: 'partner', text: K('악몽을 보여 주는 다크라이야! 그래도 우리는 깨어 있을 거야!', 'It\'s Darkrai, bringer of nightmares! But we\'ll stay awake!') }],
+          after: [{ who: 491, name: K('다크라이', 'Darkrai'), text: K('…악몽 속에서도 제 이름을 놓지 않는구나. 이름을 지키는 마음은 어떤 어둠에도 물들지 않는다.', '...Even inside a nightmare you hold on to your names. A heart that keeps its name is stained by no darkness.') }],
+          join: K('다크라이가 그림자에서 걸어 나왔다. 너희를 따라가고 싶은 듯하다…', 'Darkrai steps out of the shadows. It seems to want to follow you...') } },
     },
     npcs: [
       { id: 'scholar40', sp: 164, name: K('조선어학회 야부엉', 'Language Society Noctowl'), x: 22, y: 15, say: [{ text: K('말은 겨레의 얼이라네. 말을 잃으면 겨레도 잃는 것이지.', 'Language is the soul of a people. Lose the words and you lose the people.') }] },
@@ -738,7 +758,7 @@ const JOSEON = [
     ],
     dungeons: {
       rift: { name: '시간의 틈', tiles: T.rift, floors: 6, lv: [42, 47], mons: [444, 148, 247, 359, 197, 196, 356, 281, 429, 477], bgm: 'd_mount2', // 600-total lines stay boss-only (Garchomp, Tyranitar lead 1950)
-        mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.0, atk: 0.85, bgm: 'ba_dpoke1', moves: [352, 337, 414, 246],
+        mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.2, atk: 0.85, bgm: 'ba_dpoke1', moves: [352, 337, 414, 246],
           tele: { name: '공간절단', every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 16 },
           revive: origin('#ff9ad8', K('펄기아가 쓰러지지 않는다! 공간이 일그러지며 오리진폼으로 모습을 바꿨다!', "Palkia won't go down! Space warps as it takes its Origin Forme!"),
             K('아공절단', 'Spacial Rend'), 11, ['cross|ring', 'quad', 'star', 'rows|x', 'checker|near']),

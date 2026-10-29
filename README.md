@@ -51,14 +51,13 @@
 
   | 버튼 | 기능 |
   |---|---|
-  | **Z** 확인 · **X** 메뉴 | 조사·대화·공격·결정 / 메뉴·취소 |
-  | **Q W E R** | 던전에서 기술 1~4 |
+  | **Z** 확인 · **X** 취소 | 조사·대화·공격·결정 / 취소 (마을과 던전에서는 게임 메뉴) |
+  | **Q W E R** (십자 배치) | 던전에서 기술 1~4. 드라스틱처럼 위 Q · 왼쪽 W · 오른쪽 E · 아래 R |
   | **⇧** 방향만 | 누른 채로 패드를 밀면 제자리에서 방향만 바꿉니다 |
   | **Tab** 태그 · **A** 쉬기 | 조종할 포켓몬 교대 / 누르고 있으면 턴 넘기기 |
-  | **J** 퀘스트 · **P** 동료 · **M** 지도 | 퀘스트 목록 / 동료 명부 / 던전 미니맵 |
-  | 왼쪽 위 작은 버튼 | 소리 · 속도(1→2→3배) · 멀티 · English · 가이드 |
+  | 왼쪽 위 **메뉴** | 십자 버튼과 따로 있는 버튼. 게임 메뉴 · 퀘스트 · 동료 · 던전 지도와 소리 · 속도(1→2→3배) · 멀티 · 구글 로그인 · English · 가이드를 한 화면에 엽니다 |
 
-- 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수도 있습니다.
+- 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수 있고, 긴 목록은 손가락으로 끌어 넘깁니다. 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다.
 - 휴대폰의 **뒤로 가기**는 X와 같습니다. 가이드나 멀티 창은 닫고, 타이틀 화면에서 누르면 앱을 끝냅니다.
 - 블루투스·USB 게임패드: A 확인 · B 메뉴 · X/Y/LB/RB 기술 1~4 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트 · 십자키나 왼쪽 스틱 이동.
 - 앱을 내려 두면 음악이 멈춥니다. 기록은 휴대폰 안에 저장되고, **구글 로그인**을 하면 내 구글 드라이브의 앱 전용 숨김 폴더를 거쳐 PC 웹 버전과 같은 세이브로 이어집니다.
@@ -126,17 +125,17 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 1388 | 위화도 회군 | 개경 · 고려 말 / 남원 운봉 | 진포(해전), 황산, 위화도 | 대포무노, 다탱구, **프리져** |
 | 1392 | 조선 건국 | 한양 / 개경 · 옛 도읍 | 인왕산 숲길 | 링곰 |
 | 1443 | 훈민정음 | 한양 · 집현전 | 집현전 서고 | 동탁군 |
-| 1592 | 임진왜란 | 여수 · 전라좌수영 / 한산도 통제영 | 한산도 · 울돌목 · 노량 (모두 해전) | 갸라도스, 아그놈 |
-| 1636 | 병자호란 | 남한산성 / 강화도 | 눈보라 산길 | 맘모꾸리 · 레지기가스(선택) |
-| 1794 | 수원 화성 | 수원 화성 | 숙지산 채석장 | 유크시, 거대코뿌리 |
+| 1592 | 임진왜란 | 여수 · 전라좌수영 / 한산도 통제영 | 한산도 · 울돌목 · 노량 (모두 해전) | 갸라도스 · 아그놈(전라 우수영, 선택) |
+| 1636 | 병자호란 | 남한산성 / 강화도 | 눈보라 산길 | 맘모꾸리 · 스이쿤(얼음 신전, 선택) |
+| 1794 | 수원 화성 | 수원 화성 | 숙지산 채석장 | 거대코뿌리 · 유크시(규장각, 선택) |
 | 1866 | 병인양요 · 신미양요 | 강화도 | 정족산성, 광성보 | **가디안**, 자포코일 · 크레세리아(선택) |
 | 1887 | 대한제국 | 한성 / 제물포 항구 | 건청궁 발전소 | 에레키블, **메타그로스** · 지라치(선택) |
 | 1905 | 을사늑약 | 한성(1905) | 경운궁 중명전 · 헤이그 특사(이야기) | **뮤츠**(2페이즈) |
-| 1919 | 3·1 운동 | 경성 / 아우내 장터 | 경성 뒷골목 | 엠라이트, **디아루가** |
+| 1919 | 3·1 운동 | 경성 / 아우내 장터 | 경성 뒷골목 | **디아루가** · 엠라이트(탑골 공원, 선택) |
 | 1920 | 독립군 | 독립군 기지(만주) / 용정 | 청산리 골짜기 | 핫삼 · 히드런(선택) |
-| 1940 | 민족 말살 통치 | 경성(1940) / 충칭 · 임시정부 | 반전세계 | 다크라이, **기라티나** |
+| 1940 | 민족 말살 통치 | 경성(1940) / 충칭 · 임시정부 | 반전세계 | **기라티나** · 다크라이(그믐달 섬, 선택) |
 | 1945 | 광복 | 서울 | 시간의 틈 · 얄타·포츠담 회담과 분단(이야기) · 진영 선택 | **펄기아** |
-| 1950 | 한국 전쟁 | 진영에 따라 다름 | 서울 시가전, 낙동강, 해전, 장진호, 판문점, 하늘기둥(서울 시가전 뒤) | 그란돈/가이오가, **한카리아스**, **보만다**, 레쿠쟈 → 테오키스 |
+| 1950 | 한국 전쟁 | 진영에 따라 다름 | 서울 시가전, 낙동강, 해전, 장진호, 판문점, 하늘기둥 · 두원 운석터(서울 시가전 뒤) | 그란돈/가이오가, **한카리아스**, **보만다**, 레쿠쟈 · 테오키스 |
 | 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **시작의 하늘(마지막 퀘스트)** | **다크라이**, **아르세우스(팀 레벨)** |
 
 ## 게임 요소
@@ -152,7 +151,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **아르세우스**(최종 보스): 1979년 12·12 뒤 **마지막 퀘스트**인 「시작의 하늘」 5층에서 기다립니다. 레벨은 고정이 아니라 **내 팀의 레벨에 맞춰** 정해집니다(최소 70, 최대 180). 쓰러뜨리면 **황금빛 이로치**로 다시 일어납니다. 체력은 처음의 2/3이고, 공격과 예고 패턴이 훨씬 거세집니다.
 - **레쿠쟈**: 쓰러뜨리면 **메가레쿠쟈**로 다시 일어나 유성을 불러냅니다.
 - **테오키스**: 노말폼으로 싸우다 체력이 반 아래로 내려가면 **어택폼**으로, 쓰러뜨리면 **스피드폼**으로 다시 일어납니다 (공격이 잘 맞지 않음).
-- **디아루가(1919) · 기라티나(1940) · 펄기아(1945)**: 쓰러뜨리면 **오리진폼**으로 변해 2페이즈를 시작합니다.
+- **디아루가(1919) · 기라티나(1940) · 펄기아(1945)**: 쓰러뜨리면 **오리진폼**으로 변해 2페이즈를 시작합니다. 이 셋과 아르세우스는 체력이 10% 더 높습니다.
 - **기라티나**는 고스트·드래곤 타입이라 격투 기술은 듣지 않고 물·불꽃 기술은 반감됩니다. 1388년에 동료가 되는 프리져처럼 얼음·드래곤·고스트·악 기술을 쓰는 동료를 데려가세요.
 
 ### 해전 (물 타입만 참가)
@@ -167,7 +166,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **마을 전투**: 1950년 서울 시가전과 1979년 12월 12일 밤의 서울은 마을이 그대로 싸움터가 됩니다. 아군 부대와 함께 적 지휘관을 쓰러뜨리거나 적군을 모두 물리치면 이기고, 12·12에서는 하나회 쪽이 모든 능력치 +15%를 받습니다.
 - **레지 3총사와 레지기가스 (1945 이후)**: 마을의 강철 거인(레지스틸)을 동료로 맞으면 레지락·레지아이스의 굴(보스는 2층)이 지도에 나타나고, 셋을 데리고 가면 선단신전(펄의 실제 신전 지도, 2층)에서 레지기가스를 만납니다.
 - **라티아스 · 라티오스 (1945 이후)**: 마을에서 둘 중 하나만 골라 동료로 맞습니다.
-- **하늘기둥 (1950 서울 시가전 뒤)**: 그란돈과 가이오가가 맞부딪친 뒤 지리산에 하늘기둥이 나타납니다. 2층에서 **레쿠쟈**를 만나고, 레쿠쟈가 동료가 되면 같은 2층에 운석과 함께 **테오키스**가 내려옵니다. 둘 다 동료가 될 때까지 다시 도전할 수 있습니다 (챌린지에서는 닫힘).
+- **하늘기둥 (1950 서울 시가전 뒤)**: 그란돈과 가이오가가 맞부딪친 뒤 지리산에 하늘기둥이 나타납니다. 2층에서 **레쿠쟈**를 만나고, 레쿠쟈가 동료가 되면 1943년 우리 땅에서 처음 기록된 운석이 떨어진 고흥의 **두원 운석터**가 나타나 그 2층에 운석과 함께 **테오키스**가 내려옵니다. 둘 다 동료가 될 때까지 다시 도전할 수 있습니다 (챌린지에서는 닫힘).
 - **테오키스 폼체인지**: 테오키스를 얻으면 마을에 **붉은 운석**이 생깁니다. 테오키스를 파티에 넣고 운석을 조사하면 노말폼(공격형) · 어택폼(공격·특공 크게 ↑, 방어 ↓) · 디펜스폼(방어·특방 크게 ↑, 공격 ↓) · 스피드폼(회피 +1) 가운데 고를 수 있습니다. 스프라이트도 파랑구조대 롬의 폼별 그림으로 바뀝니다.
 - **레지 초상화**: 파랑구조대 롬에는 레지 3총사와 레지기가스의 얼굴이 없어서, 펄 롬의 전투 그림에서 얼굴을 잘라 같은 형식(40×40, 띠 배경)으로 만들었습니다 (`tools/make_portraits.py`).
 - **1950 판문점**: 「시간의 틈」의 마지막 층은 이제 **보만다**가 지키고, 아르세우스는 여행의 맨 끝(1979)으로 옮겨 갔습니다.
@@ -192,7 +191,8 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다. 독·화상·마비 같은 **상태 이상**은 마을에 돌아오면 모두 낫습니다.
 - **기술 조준**: 우리 편 기술은 3칸 안에 적이 있으면 방향과 상관없이 그 적을 노려 **반드시 맞힙니다**. 더 멀면 바라보는 방향으로 나갑니다.
 - **보스방 부활**: 보스가 있는 층에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 보스의 기술과 예고 공격은 보스에게서 4칸까지만 닿고, 보스는 잠듦·얼음·독에 걸리지 않습니다.
-- **중간 보스**: 울돌목(아그놈)·채석장(유크시)·발전소(에레키블)·뒷골목(엠라이트)·반전세계(다크라이)는 메인 퀘스트 때 마지막 보스만 나옵니다. 중간 보스는 메인을 깬 뒤 그 맵에 다시 가면 만나는 선택 전투이고, 한 번 이기면 다시 나오지 않습니다.
+- **한 곳에 전설 하나**: 전설의 포켓몬은 장소마다 한 마리씩만 기다립니다. 아그놈 · 유크시 · 엠라이트 · 다크라이는 각자의 장소(전라 우수영 · 규장각 · 탑골 공원 · 그믐달 섬)로 옮겨 가서, 메인 던전은 한 번 깨면 끝납니다. 놓친 전설도 전설이 없는 던전에만 다시 나타나고, 레지기가스는 1945년 이후 레지 줄기에서만 만납니다.
+- **중간 보스**: 발전소(에레키블)는 메인 퀘스트 때 마지막 보스만 나옵니다. 중간 보스는 메인을 깬 뒤 다시 가면 만나는 선택 전투이고, 한 번 이기면 다시 나오지 않습니다.
 - **태그(Tab)**: 던전에서 조종하는 포켓몬을 다음 동료로 바꿉니다. 턴을 쓰지 않습니다. 조종하던 포켓몬이 쓰러지면 남은 동료가 앞장서고, **셋이 모두 쓰러져야** 탐험이 실패합니다. 던전을 클리어하면 쓰러졌던 동료도 기운을 되찾습니다.
 - **1층에서 나가기**: 아직 1층이라면 X 메뉴 → **던전에서 나가기**로 대가 없이 되돌아 나올 수 있습니다.
 
@@ -299,7 +299,7 @@ docs/screenshots/       README 스크린샷
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
   - Arceus (its level follows the team's, up to Lv 180) is the last quest, after December 12, 1979, and turns golden for a second phase; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
-  - After the battle for Seoul (1950) the Sky Pillar appears: Rayquaza on floor 2 (Mega Rayquaza for its second phase), then Deoxys, who fights in its Normal, Attack and Speed Formes. With Deoxys, a red meteorite in town changes its Forme (Normal, Attack, Defense, or Speed, which dodges); the Formes use the PMD ROM's own sprites.
+  - After the battle for Seoul (1950) the Sky Pillar appears: Rayquaza on floor 2 (Mega Rayquaza for its second phase); once it joins, Deoxys comes down at the Duwon Meteorite Site (where Korea's first recorded meteorite fell in 1943) and fights in its Normal, Attack and Speed Formes. With Deoxys, a red meteorite in town changes its Forme (Normal, Attack, Defense, or Speed, which dodges); the Formes use the PMD ROM's own sprites.
   - Regirock, Regice, Registeel and Regigigas have portraits cut from their Pearl battle sprites in the PMD style (`tools/make_portraits.py`).
   - Twenty eras now: Goguryeo's last battle at Pyongyang (668), the Eulsa Treaty (1905, Mewtwo with a second phase, the Hague envoys in the story) and October 26 / December 12, 1979 (a town battle against Darkrai, with the Hanahoe side at +15%).
   - Some towns copy the real layouts of Pokémon Pearl's cities (Canalave, Hearthome, Oreburgh, Snowpoint, Veilstone, Pastoria), read from the ROM by `tools/pearl_maps.py`.
@@ -310,14 +310,16 @@ docs/screenshots/       README 스크린샷
   - Moves work as in the main games: a level-up move that finds four moves asks which one to forget (or skips it), and in town X menu → Pokémon → Z → Learn moves teaches any move of the species' level-up list up to its level, forgotten ones too.
   - Ordinary foes (not bosses) have 80% of their HP and stats; poison takes 1/64 of max HP a turn, and every status problem is cured back in town.
   - Your team's moves turn to any foe within 3 tiles and always hit; a boss reaches 4 tiles at most and can't be put to sleep, frozen or poisoned. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries also cure status problems.
-  - A story dungeon's mid-boss (Azelf, Uxie, Electivire, Mesprit, Darkrai) waits for a visit after the story run, so every run meets one boss.
+  - One legend to a place: Azelf, Uxie, Mesprit and Darkrai have places of their own (the Jeolla Right Naval Base, Kyujanggak, Tapgol Park, Newmoon Island), missed legends only return to dungeons without one, and Suicune now keeps 1636's Ice Temple, so Regigigas appears only after 1945. Electivire, the one mid-boss left, waits for a visit after the story run.
+  - Dialga, Palkia, Giratina and Arceus have 10% more HP.
+  - Phones: the moves sit in a DraStic-style cross (Q up, W left, E right, R down), and a separate Menu button opens one panel with the game menu, quests, team, dungeon map and the settings. Menus scroll with a finger, and a tap on the dungeon's move list uses that move.
   - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 3000 nyang for strong attacks (power 80+), 1000 for the rest; a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
   - From 1200 on, foes follow your strongest Pokémon (its level to +2, +3 to +5 past Lv 45) and bosses have 30% more HP.
   - Easy, Normal and Hard difficulty; Challenge (after any ending) means no wipes and no legendary recruits.
   - Water-only naval battles; pick a side in the Korean War.
   - 35% recruit rate (legendaries always join) and a 500-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.
-- **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left and buttons on the right that carry the keyboard letters, so the on-screen hints still apply. The back button works like X, and Bluetooth gamepads are supported. **[Download the APK](https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk)** and open it on the phone: allow installs from Chrome when Android asks, let Play Protect scan it or install without a scan, then install. **Google login** keeps one save in a hidden app folder of your own Google Drive, shared with the web version. Build it with `tools/build_mobile.ps1` (`-Release` for the public APK; JDK 21 and the Android SDK required).
+- **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left, the moves Q W E R as a DraStic-style cross on the right beside Z and X, and a separate Menu button for the game menus and settings; menus can be tapped directly. The back button works like X, and Bluetooth gamepads are supported. **[Download the APK](https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk)** and open it on the phone: allow installs from Chrome when Android asks, let Play Protect scan it or install without a scan, then install. **Google login** keeps one save in a hidden app folder of your own Google Drive, shared with the web version. Build it with `tools/build_mobile.ps1` (`-Release` for the public APK; JDK 21 and the Android SDK required).
 - **Run locally**: `python -m http.server 8000 --directory web`, then open http://localhost:8000.
 - **Notice**:
   - Pokémon © Nintendo / Creatures Inc. / GAME FREAK inc.; Pokémon Mystery Dungeon © Spike Chunsoft.

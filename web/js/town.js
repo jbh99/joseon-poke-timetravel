@@ -711,6 +711,7 @@ export class Town {
     };
     say([{ who: npc.sp, name: npc.name, text: tr('골라 보시오, 골라 봐! 던전 가기 전엔 열매가 필수라오!', 'Take your pick! Never head into a dungeon without berries!'), choices: tr(['사기', '팔기', '그만두기'], ['Buy', 'Sell', 'Leave']), onChoice: (i) => { if (i === 0) buy(); else if (i === 1) sell(); } }]);
   }
+  get padKeys() { return ['menu', 'quest', 'party']; } // what the touch menu panel offers here (core.js initMenu)
   openMain() {
     openMenu([
       { label: tr('포켓몬', 'Pokémon'), fn: partyMenu }, { label: tr('동료 명부', 'Companions'), fn: rosterMenu }, { label: tr('도구', 'Items'), fn: () => itemMenu(null) }, { label: tr('퀘스트', 'Quests'), fn: questMenu },
@@ -852,6 +853,6 @@ export class Town {
       lines.forEach((l, i) => ui.text(l, VW - 180, 22 + i * 11, { size: 9 }));
     }
     ui.text(tr(`${S.money}냥`, `${S.money} nyang`), 14, VH - 16, { size: 9, color: '#fff', shadow: true });
-    if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 메뉴 · J 퀘스트 · P 동료', 'Z talk · X menu · J quests · P team') : tr('Z 조사 · X 메뉴 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
+    if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 게임 메뉴 · 메뉴: 퀘스트 · 동료', 'Z talk · X game menu · Menu: quests · team') : tr('Z 조사 · X 메뉴 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
   }
 }

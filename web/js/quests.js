@@ -37,8 +37,8 @@ export function checkRun() {
 }
 const RUN = ['dungeon', 'battle']; // steps that are a dungeon run (a 'battle' is started by talking to its NPC in town)
 const ahead = (dId) => era().main.some((s, i) => i >= S.step && RUN.includes(s.do) && s.d === dId); // its story run is still to come
-// a story dungeon's mid-boss (the lake trio, Electivire, Darkrai) waits for a visit after the story run, so that run
-// meets one boss; once beaten (mid_<id>) it is gone for good
+// a story dungeon's mid-boss (Electivire at the power plant) waits for a visit after the story run, so that run meets
+// one boss; once beaten (mid_<id>) it is gone for good
 export const midWaiting = (dId) => { const d = era().dungeons[dId]; return !!d?.mid && !S.flags['mid_' + dId] && !ahead(dId); };
 // a legend lair is done once its legend was met, or for the post-war Regi line (retry) once it joined
 export function lairDone(dId) {
@@ -49,9 +49,11 @@ export function lairDone(dId) {
 // ---------------------------------------------------------------- missed legends
 // A legendary boss (story or optional) from an era already left behind that never joined comes back in the next era,
 // one floor below the last of one of that era's dungeons, at the dungeon's own level. Side dungeons host first, then
-// naval ones, then story dungeons (outside their story run). The plan is fixed when the era is first entered, so a
-// legend keeps its dungeon all era; one met but left behind again moves on to the era after.
+// naval ones, then story dungeons (outside their story run), but never a place that holds a legend of its own: no map
+// shows two. The plan is fixed when the era is first entered, so a legend keeps its dungeon all era; one met but left
+// behind again moves on to the era after (as does one that found no free place).
 const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final && !b.noWander);
+const holdsLegend = (d) => !!d.legend || [d.mid, d.boss].some((b) => b && LEGENDS.has(b.sp));
 const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);
 function wanderPlan() {
   if (challenge()) return {}; // legends never join a challenge, so none come back either
@@ -63,7 +65,7 @@ function wanderPlan() {
   }
   const story = (id) => e.main.some((s) => s.do === 'dungeon' && s.d === id);
   const rank = (id) => (story(id) ? 2 : 0) + (e.dungeons[id].water ? 1 : 0);
-  const hosts = e.nodes.filter((n) => n.d && !e.dungeons[n.d].legend && !(e.dungeons[n.d].mid && !S.flags['mid_' + n.d])) // one boss a visit
+  const hosts = e.nodes.filter((n) => n.d && !holdsLegend(e.dungeons[n.d]) && !(e.dungeons[n.d].mid && !S.flags['mid_' + n.d])) // one boss a visit
     .map((n) => n.d).sort((a, b) => rank(a) - rank(b));
   const at = {};
   hosts.forEach((id, k) => { if (missed[k]) at[id] = missed[k]; });
@@ -411,7 +413,7 @@ class Evolution {
   update(dt) {
     this.t += dt;
     if (this.stage === 0 && this.t > 3.2) { this.stage = 1; this.mon.evolve(this.to); jingle('fanfa2'); cry(this.to); }
-    if (this.stage === 1 && this.t > 4 && (input.hit('ok') || this.t > 8)) { this.done = true; this.cb(); }
+    if (this.stage === 1 && this.t > 4 && (input.hit('ok') || input.tap(0, 0, VW, VH) || this.t > 8)) { this.done = true; this.cb(); }
   }
   drawUI() {
     ui.rect(0, 0, VW, VH, '#141020');

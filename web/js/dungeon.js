@@ -1072,6 +1072,8 @@ export class Dungeon {
     if (key === 'quest') return questMenu();
     if (key === 'tag') return this.tag();
     if (key === 'party') return this.msg(tr('던전에서는 동료를 바꿀 수 없다. 마을이나 세계 지도에서 P를 누르자.', 'You can\'t swap companions in a dungeon. Press P in town or on the world map.'), COL.red);
+    const L = this.moveList(), t = input.tap(L.x - 6, L.y - 6, 154, L.n * 14 + 10); // a tap on the move list uses that move
+    if (t && L.n) return this.playerAct('move-skill', clamp(Math.floor((t.y - L.y) / 14), 0, L.n - 1));
     for (let k = 0; k < 4; k++) if (input.hit('m' + (k + 1))) return this.playerAct('move-skill', k);
     if (input.hit('ok')) return this.playerAct('basic');
     if (input.isDown('rest')) { if (!this.restT || G.time > this.restT) { this.restT = G.time + 0.12; return this.playerAct('wait'); } return; }
@@ -1085,6 +1087,9 @@ export class Dungeon {
       this.playerAct('move', [dx, dy]);
     } else { this.dirSince = 0; this.nextMoveAt = 0; }
   }
+  get padKeys() { return this.arena ? ['menu', 'quest'] : ['menu', 'quest', 'map']; } // the touch menu panel's game buttons
+  // the move list in the bottom-right corner (drawUI), whose rows a tap uses like Q W E R
+  moveList() { const n = this.player.mon.moves.length; return { n, x: VW - 152, y: VH - 12 - n * 14 }; }
   menu() {
     openMenu([
       { label: tr('기술', 'Moves'), fn: () => openMenu(this.player.mon.moves.map((mv, k) => { const d = DEX.moves[mv.id]; return { label: `${'QWER'[k]}. ${d.name}`, right: `PP ${mv.pp}/${d.pp}`, desc: moveDesc(mv.id), fn: () => this.playerAct('move-skill', k) }; }), { title: tr('기술', 'Moves'), desc: true, x: 140, y: 40, w: 220 }) },
@@ -1270,8 +1275,7 @@ export class Dungeon {
       }
     }
     // moves
-    const mv = this.player.mon.moves;
-    const bx = VW - 152, by = VH - 12 - mv.length * 14;
+    const mv = this.player.mon.moves, { x: bx, y: by } = this.moveList();
     ui.panel(bx - 6, by - 6, 154, mv.length * 14 + 10, { accent: false });
     mv.forEach((m, k) => {
       const d = DEX.moves[m.id];

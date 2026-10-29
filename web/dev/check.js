@@ -63,6 +63,10 @@ export async function checkAll(opts = {}) {
         for (const t of teles) for (const p of t.pats) for (const part of p.split('|')) if (!PATS.includes(part)) bad(tag, `${id} pattern ${part}`);
       }
       if (d.mid && d.mid.floor >= d.floors) bad(tag, `${id} mid-boss floor ${d.mid.floor} not before the last floor ${d.floors}`);
+      // one legend to a place, and Regigigas only in the Regi line after 1945
+      const legs = [d.mid, d.boss].filter((b) => b && game.LEGENDS.has(b.sp));
+      if (legs.length > 1) bad(tag, `${id} holds ${legs.length} legends (${legs.map((b) => b.sp).join(', ')})`);
+      if (e.year < 1945 && legs.some((b) => b.sp === 486)) bad(tag, `${id}: Regigigas before 1945`);
     }
   }
   // towns: every NPC, the gate and the exit reachable from where the player stands

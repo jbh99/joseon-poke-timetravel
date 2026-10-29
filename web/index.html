@@ -35,24 +35,27 @@
   body.touch #touch { display: block; }
   .pad { position: fixed; z-index: 6; top: 0; bottom: 0; width: var(--pad, 140px); box-sizing: border-box; padding: 8px 7px 12px;
     display: flex; flex-direction: column; justify-content: space-between; touch-action: none; }
-  #pad-l { left: env(safe-area-inset-left, 0px); justify-content: flex-end; }
+  #pad-l { left: env(safe-area-inset-left, 0px); }
   #pad-r { right: env(safe-area-inset-right, 0px); }
   #touch button { font: 15px 'Galmuri11B', sans-serif; color: var(--ink); background: rgba(243,232,207,0.9); border: 2px solid var(--ink);
     border-radius: 10px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
     touch-action: none; box-shadow: 0 2px 0 rgba(0,0,0,0.45); }
   #touch button small { font: 9px 'Galmuri9', sans-serif; color: var(--ink2); margin-top: 2px; }
   #touch button.on { background: var(--gold); transform: translateY(2px); box-shadow: none; }
-  #touch .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-  #touch .chips button { height: 34px; font-size: 13px; }
-  #touch .moves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  #touch .moves button { height: 40px; font-size: 17px; }
-  #touch .acts { position: relative; height: 142px; }
-  #touch .acts .mini { position: absolute; top: 0; width: calc((100% - 10px) / 3); height: 38px; font-size: 12px; }
-  #touch .acts .mini:nth-child(1) { left: 0; } #touch .acts .mini:nth-child(2) { left: calc((100% - 10px) / 3 + 5px); } #touch .acts .mini:nth-child(3) { right: 0; }
+  /* right column: ⇧ Tab A on top like shoulder buttons, the moves as a DraStic-style diamond (Q up, W left, E right,
+     R down), X and Z below it. The menu button keeps to the top of the left column, apart from the diamond. */
+  #touch .minis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  #touch .minis button { height: 36px; font-size: 12px; }
+  #touch .moves { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 2px; width: min(100%, 156px); aspect-ratio: 1; align-self: center; }
+  #touch .moves button { border-radius: 50%; font-size: 18px; }
+  #touch .moves .q { grid-area: 1 / 2; } #touch .moves .w { grid-area: 2 / 1; } #touch .moves .e { grid-area: 2 / 3; } #touch .moves .r { grid-area: 3 / 2; }
+  #touch .acts { position: relative; height: 92px; }
   #touch .acts .b, #touch .acts .a { position: absolute; border-radius: 50%; font-size: 20px; }
   #touch .acts .a { right: 0; bottom: 0; width: 64px; height: 64px; background: rgba(178,53,43,0.92); color: #fff4dc; }
   #touch .acts .a small { color: #ffe0c8; }
-  #touch .acts .b { left: 0; bottom: 30px; width: 56px; height: 56px; }
+  #touch .acts .b { left: 0; top: 0; width: 54px; height: 54px; }
+  #touch .menu { height: 44px; flex-direction: row; gap: 9px; font-size: 15px; }
+  #touch .menu i { display: block; width: 16px; height: 2px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; }
   #dpad { position: relative; align-self: center; width: min(calc(var(--pad, 140px) - 10px), 150px); aspect-ratio: 1; border-radius: 50%;
     background: rgba(243,232,207,0.16); border: 2px solid rgba(243,232,207,0.55); touch-action: none; }
   #dpad span { position: absolute; color: rgba(243,232,207,0.85); font: 16px sans-serif; transform: translate(-50%, -50%); pointer-events: none; }
@@ -60,11 +63,22 @@
   #dpad i { position: absolute; left: 50%; top: 50%; width: 38%; height: 38%; margin: -19% 0 0 -19%; border-radius: 50%;
     background: rgba(243,232,207,0.85); border: 2px solid var(--ink); pointer-events: none; transition: transform 0.05s; }
   #dpad.on i { background: var(--gold); }
-  /* the HUD buttons pack into the top of the left column */
-  /* on touch screens the HUD sits in the free top of the left pad column, so it stacks above that column (which would
-     otherwise take its taps); the pad itself keeps to the bottom */
-  #hud.inpad { left: calc(env(safe-area-inset-left, 0px) + 7px); right: auto; top: 8px; width: calc(var(--pad, 140px) - 14px); flex-wrap: wrap; gap: 4px; z-index: 7; }
-  #hud.inpad button { flex: 1 1 calc(50% - 4px); font-size: 10px; padding: 5px 2px; }
+  /* touch screens: the menu button opens this panel with the game's own menus and the HUD buttons, which move into it
+     (core.js initMenu); a tap on the dim backdrop or ✕ closes it */
+  #tmenu { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; background: rgba(12,10,14,0.6); }
+  #tmenu[hidden] { display: none; }
+  #tmenu .box { width: min(480px, calc(100vw - 24px)); max-height: calc(100vh - 16px); overflow-y: auto; box-sizing: border-box;
+    background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 4px 4px 0 rgba(0,0,0,0.45); }
+  #tmenu header { border-top: 4px solid var(--red); box-shadow: inset 0 3px 0 var(--green), inset 0 5px 0 var(--blue); padding: 10px 14px 4px; display: flex; justify-content: space-between; align-items: center; }
+  #tmenu h2 { font: 15px 'Galmuri11B', sans-serif; margin: 0; }
+  #tmenu h3 { font: 11px 'Galmuri11B', sans-serif; color: var(--ink2); margin: 10px 0 6px; }
+  #tmenu .in { padding: 4px 14px 14px; }
+  #tmenu .game, #hud.inmenu { position: static; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  #tmenu button, #hud.inmenu button { min-height: 44px; padding: 6px 4px; font: 13px 'Galmuri11', sans-serif; color: var(--ink); background: #fffaf0;
+    border: 2px solid var(--ink); cursor: pointer; }
+  #tmenu .game button { font-family: 'Galmuri11B', sans-serif; background: var(--paper2); }
+  #tmenu .game button:disabled { opacity: 0.4; cursor: default; }
+  #tmenu header button { min-height: 0; width: 36px; height: 30px; padding: 0; }
   body.app #btn-full { display: none; }
   body.touch #mp-video { inset: 0 calc(var(--pad, 140px) + env(safe-area-inset-right, 0px)) 0 calc(var(--pad, 140px) + env(safe-area-inset-left, 0px)); width: auto; height: auto; }
   /* roster search box (core.js askText): game paper and ink, near the top so a phone keyboard doesn't cover it */
@@ -137,7 +151,7 @@
 <body>
 <canvas id="screen"></canvas>
 <div id="status">불러오는 중…</div>
-<div id="hud"><button id="btn-sound" type="button">소리 켬</button><button id="btn-speed" type="button">속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-cloud" type="button">구글 로그인</button><button id="btn-lang" type="button">English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-full" type="button">전체화면</button></div>
+<div id="hud"><button id="btn-sound" type="button" data-stay>소리 켬</button><button id="btn-speed" type="button" data-stay>속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-cloud" type="button">구글 로그인</button><button id="btn-lang" type="button" data-stay>English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-full" type="button">전체화면</button></div>
 <video id="mp-video" playsinline autoplay muted hidden></video>
 <button id="mp-play" type="button" hidden>▶</button>
 <div id="mp" hidden role="dialog" aria-labelledby="mp-title">
@@ -172,24 +186,37 @@
 </div>
 <div id="touch">
   <div id="pad-l" class="pad">
+    <button type="button" id="btn-tmenu" class="menu"><i></i><span data-lang="ko">메뉴</span><span data-lang="en" hidden>Menu</span></button>
     <div id="dpad"><span class="u">▲</span><span class="l">◀</span><span class="r">▶</span><span class="d">▼</span><i></i></div>
   </div>
   <div id="pad-r" class="pad">
-    <div class="chips">
-      <button type="button" data-k="quest">J<small data-lang="ko">퀘스트</small><small data-lang="en" hidden>Quests</small></button>
-      <button type="button" data-k="party">P<small data-lang="ko">동료</small><small data-lang="en" hidden>Team</small></button>
-      <button type="button" data-k="map">M<small data-lang="ko">지도</small><small data-lang="en" hidden>Map</small></button>
+    <div class="minis">
+      <button type="button" data-k="shift">⇧<small data-lang="ko">방향만</small><small data-lang="en" hidden>Face</small></button>
+      <button type="button" data-k="tag">Tab<small data-lang="ko">태그</small><small data-lang="en" hidden>Tag</small></button>
+      <button type="button" data-k="rest">A<small data-lang="ko">쉬기</small><small data-lang="en" hidden>Rest</small></button>
     </div>
     <div class="moves">
-      <button type="button" data-k="m1">Q</button><button type="button" data-k="m2">W</button>
-      <button type="button" data-k="m3">E</button><button type="button" data-k="m4">R</button>
+      <button type="button" class="q" data-k="m1">Q</button><button type="button" class="w" data-k="m2">W</button>
+      <button type="button" class="e" data-k="m3">E</button><button type="button" class="r" data-k="m4">R</button>
     </div>
     <div class="acts">
-      <button type="button" class="mini" data-k="shift">⇧<small data-lang="ko">방향만</small><small data-lang="en" hidden>Face</small></button>
-      <button type="button" class="mini" data-k="tag">Tab<small data-lang="ko">태그</small><small data-lang="en" hidden>Tag</small></button>
-      <button type="button" class="mini" data-k="rest">A<small data-lang="ko">쉬기</small><small data-lang="en" hidden>Rest</small></button>
-      <button type="button" class="b" data-k="cancel">X<small data-lang="ko">메뉴</small><small data-lang="en" hidden>Menu</small></button>
+      <button type="button" class="b" data-k="cancel">X<small data-lang="ko">취소</small><small data-lang="en" hidden>Back</small></button>
       <button type="button" class="a" data-k="ok">Z<small data-lang="ko">확인</small><small data-lang="en" hidden>OK</small></button>
+    </div>
+  </div>
+</div>
+<div id="tmenu" hidden role="dialog" aria-labelledby="tmenu-title">
+  <div class="box">
+    <header><h2 id="tmenu-title"><span data-lang="ko">메뉴</span><span data-lang="en" hidden>Menu</span></h2><button type="button" data-close>✕</button></header>
+    <div class="in">
+      <div class="game">
+        <button type="button" data-k="menu"><span data-lang="ko">게임 메뉴</span><span data-lang="en" hidden>Game menu</span></button>
+        <button type="button" data-k="quest"><span data-lang="ko">퀘스트</span><span data-lang="en" hidden>Quests</span></button>
+        <button type="button" data-k="party"><span data-lang="ko">동료</span><span data-lang="en" hidden>Team</span></button>
+        <button type="button" data-k="map"><span data-lang="ko">던전 지도</span><span data-lang="en" hidden>Dungeon map</span></button>
+      </div>
+      <h3><span data-lang="ko">설정</span><span data-lang="en" hidden>Settings</span></h3>
+      <div class="slot"></div>
     </div>
   </div>
 </div>
@@ -224,7 +251,7 @@
         </div>
       </div>
       <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 지도를 끌거나(드래그) 휠을 굴려 둘러볼 수 있어요. 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리, 아래쪽 조작키 안내 보이기/숨기기, 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
-      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽 버튼에는 키보드와 같은 글자(Z 확인 · X 메뉴 · QWER 기술 · Tab 태그 · A 쉬기 · ⇧ 방향만 바꾸기 · J 퀘스트 · P 동료 · M 지도)가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다. 화면을 직접 눌러 장소·대화·메뉴를 고를 수도 있고, 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). <b>구글 로그인</b> 버튼으로 로그인하면 세이브가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
+      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽에는 드라스틱처럼 <b>십자 모양으로 놓인 기술 버튼 Q · W · E · R</b>(위 · 왼쪽 · 오른쪽 · 아래)과 Z 확인 · X 취소 · ⇧ 방향만 바꾸기 · Tab 태그 · A 쉬기 버튼이 있어요. X는 마을과 던전에서 게임 메뉴도 엽니다. <b>메뉴</b> 버튼은 십자 버튼과 따로 왼쪽 위에 있고, 누르면 게임 메뉴 · 퀘스트 · 동료 · 던전 지도와 소리 · 속도 · 멀티 · 구글 로그인 · 언어 · 가이드가 한 화면에 열립니다. 메뉴 · 대화 · 장소는 화면을 직접 눌러 고를 수 있고(긴 목록은 손가락으로 끌어 넘기기), 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다. 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). 메뉴 안의 <b>구글 로그인</b> 버튼으로 로그인하면 세이브가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
       <p class="get-app"><b>안드로이드 앱 받기</b>: 휴대폰 크롬에서 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">APK 내려받기</a>를 누르고, 다 받으면 파일을 열어 설치합니다. 경고 창이 뜨면 '다운로드' → '설정'에서 '이 출처 허용' 켜기 → '설치' 순서로 누르면 돼요. 자세한 방법은 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">릴리스 페이지</a>에 있어요.</p>
       <p>화면 옆 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
 
@@ -234,7 +261,7 @@
         <li><b>펄 마을</b>: 1887 제물포(운하시티), 1905 한성(연고시티), 1940 경성(무쇠시티), 1950 흥남(선단시티)과 서울 시가전(장막시티), 1979 서울(들판시티)은 「포켓몬스터 펄」의 실제 마을 배치(길, 건물 자리, 물, 문)를 롬에서 읽어 그대로 본떠 만들었습니다.</li>
         <li><b>순사</b>: 일제 강점기(1919·1940)의 마을에 들어갈 때마다 순사가 다가와 엽전 50냥을 빼앗아 갑니다 (한 번 들어갈 때 한 번).</li>
         <li><b>세계 지도</b>: 마을 출구로 나가면 열립니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, <b style="color:var(--gold)">금색 테두리 안의 포켓몬</b>은 그곳에 있는 전설의 포켓몬입니다.</li>
-        <li><b>놓친 전설</b>: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 평소 마지막 층보다 한 층 더 깊은 곳에서, 그 던전의 적과 같은 레벨로 기다려요. 또 놓치면 그다음 시대로 옮겨 갑니다.</li>
+        <li><b>놓친 전설</b>: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 평소 마지막 층보다 한 층 더 깊은 곳에서, 그 던전의 적과 같은 레벨로 기다려요. 또 놓치면 그다음 시대로 옮겨 갑니다. 전설이 없는 던전에만 나타나서, 자리가 모자라면 그다음 시대로 미뤄져요.</li>
         <li><b>던전</b>: 그래픽은 「포켓몬 불가사의 던전 파랑구조대」의 던전 지형과 포켓몬 스프라이트를 씁니다. 층마다 지형이 무작위로 바뀌어요.</li>
         <li>메인 퀘스트를 끝내면 광장의 <b>시간의 문</b>이 열리고 다음 시대로 넘어갑니다.</li>
       </ul>
@@ -270,26 +297,27 @@
         <tr><td>676 나당 전쟁</td><td>매소성 (메인) · 대왕암 (선택)</td><td>썬더 · 루기아</td></tr>
         <tr><td>1232 대몽 항쟁</td><td>황룡사 (메인)</td><td>파이어</td></tr>
         <tr><td>1388 위화도 회군</td><td>위화도 (메인)</td><td>프리져</td></tr>
-        <tr><td>1592 임진왜란</td><td>울돌목 2층 (메인을 깬 뒤 다시 가면) · 노량 (메인)</td><td>아그놈 · 갸라도스</td></tr>
-        <tr><td>1636 · 1794</td><td>얼음 신전 (선택) · 채석장 2층 (메인을 깬 뒤)</td><td>레지기가스 · 유크시</td></tr>
+        <tr><td>1592 임진왜란</td><td>전라 우수영 (선택) · 노량 (메인)</td><td>아그놈 · 갸라도스</td></tr>
+        <tr><td>1636 · 1794</td><td>얼음 신전 (선택) · 규장각 (선택)</td><td>스이쿤 · 유크시</td></tr>
         <tr><td>1866 양요</td><td>정족산성 (메인) · 달빛 섬 (선택)</td><td>가디안 · 크레세리아</td></tr>
         <tr><td>1887 대한제국</td><td>발전소 (메인) · 소원의 시계탑 (선택)</td><td><b>메타그로스</b> · 지라치</td></tr>
         <tr><td>1905 을사늑약</td><td>경운궁 중명전 (메인)</td><td><b>뮤츠</b> (쓰러뜨리면 각성해 다시 일어나는 2페이즈)</td></tr>
-        <tr><td>1919 3·1 운동</td><td>뒷골목 2층 (메인을 깬 뒤) · 뒷골목 5층 (메인)</td><td>엠라이트 · <b>디아루가</b></td></tr>
+        <tr><td>1919 3·1 운동</td><td>탑골 공원 (선택) · 경성 뒷골목 5층 (메인)</td><td>엠라이트 · <b>디아루가</b></td></tr>
         <tr><td>1920 독립군</td><td>천지 화구 (선택)</td><td>히드런</td></tr>
-        <tr><td>1940 민족 말살 통치</td><td>반전세계 3층 (메인을 깬 뒤) · 5층 (메인)</td><td>다크라이 · <b>기라티나</b></td></tr>
+        <tr><td>1940 민족 말살 통치</td><td>그믐달 섬 (선택) · 반전세계 5층 (메인)</td><td>다크라이 · <b>기라티나</b></td></tr>
         <tr><td>1945 광복</td><td>시간의 틈 (메인)</td><td>펄기아</td></tr>
         <tr><td>1945 이후</td><td>마을의 강철 거인 · 바위굴 2층 · 얼음굴 2층 · 선단신전 2층</td><td>레지스틸 · 레지락 · 레지아이스 · <b>레지기가스</b></td></tr>
         <tr><td>1950–53 한국 전쟁</td><td>서울 시가전 · 낙동강 · 백마고지 (선택) · 판문점</td><td>그란돈 · 가이오가 · <b>한카리아스</b> · 마기라스 · <b>보만다</b></td></tr>
-        <tr><td>1950 서울 시가전 뒤</td><td>하늘기둥 2층 (선택)</td><td>레쿠쟈 → 테오키스</td></tr>
+        <tr><td>1950 서울 시가전 뒤</td><td>하늘기둥 2층 (선택) · 두원 운석터 2층 (레쿠쟈가 동료가 된 뒤)</td><td>레쿠쟈 · 테오키스</td></tr>
         <tr><td>1979 10·26과 12·12</td><td>12월 12일 밤의 서울 (마을 전투) · 시작의 하늘 (마지막 퀘스트)</td><td><b>다크라이</b> · <b>아르세우스</b> (팀 레벨)</td></tr>
       </table>
       <ul>
         <li><b>밀정 찾기 (1920)</b>: 청산리 대첩 뒤 독립군 기지에 숨은 밀정을 찾습니다. 전령이 알려 주는 <b>타입</b>과 대략의 <b>몸무게</b>를 실마리로, 그 타입의 포켓몬들을 저울에 달아 보고 밀정을 지목하세요. 잘못 지목하면 3년, 던전에 다녀올 때마다 1년이 흐르고, <b>1930년</b>이 되도록 못 잡으면 경찰이 기지를 덮쳐 포켓몬이 모두 쓰러지고 처음부터 다시 찾아야 합니다.</li>
         <li><b>마을 전투</b>: 1950년 서울과 1979년 12월 12일의 서울에서는 마을이 그대로 싸움터가 됩니다. 아군 부대(초록 표시)와 함께 적 지휘관을 쓰러뜨리거나 적군을 모두 물리치면 이깁니다. 12·12에서는 하나회 쪽 포켓몬이 모든 능력치 +15%를 받습니다.</li>
-        <li><b>레지 3총사와 레지기가스 (1945 이후)</b>: 마을의 강철 거인(레지스틸)을 동료로 맞으면 세계 지도에 레지락·레지아이스의 굴이 나타나고(보스는 2층), 셋을 모두 데리고 가면 선단신전(펄의 실제 신전 지도)에서 레지기가스를 만날 수 있습니다.</li>
+        <li><b>한 곳에 전설 하나</b>: 전설의 포켓몬은 장소마다 한 마리씩만 기다립니다. 아그놈 · 유크시 · 엠라이트 · 다크라이는 각자의 장소(전라 우수영 · 규장각 · 탑골 공원 · 그믐달 섬)에 있어서, 메인 던전은 한 번 깨면 다시 갈 필요가 없어요.</li>
+        <li><b>레지 3총사와 레지기가스 (1945 이후)</b>: 마을의 강철 거인(레지스틸)을 동료로 맞으면 세계 지도에 레지락·레지아이스의 굴이 나타나고(보스는 2층), 셋을 모두 데리고 가면 선단신전(펄의 실제 신전 지도)에서 레지기가스를 만날 수 있습니다. 레지기가스는 1945년 전에는 나오지 않아요.</li>
         <li><b>라티아스 · 라티오스 (1945 이후)</b>: 마을에서 둘 중 하나만 골라 동료로 맞을 수 있습니다.</li>
-        <li><b>하늘기둥 (1950 서울 시가전 뒤)</b>: 그란돈과 가이오가가 맞부딪친 뒤 세계 지도에 하늘기둥이 나타납니다. 2층에서 <b>레쿠쟈</b>(2페이즈: 메가레쿠쟈)를 만나고, 레쿠쟈가 동료가 되면 같은 2층에 <b>테오키스</b>가 운석과 함께 내려옵니다. 테오키스는 노말폼 → 어택폼(체력 절반) → 스피드폼(2페이즈)으로 모습을 바꾸며 싸웁니다.</li>
+        <li><b>하늘기둥 (1950 서울 시가전 뒤)</b>: 그란돈과 가이오가가 맞부딪친 뒤 세계 지도에 하늘기둥이 나타납니다. 2층에서 <b>레쿠쟈</b>(2페이즈: 메가레쿠쟈)를 만나고, 레쿠쟈가 동료가 되면 1943년 우리 땅에서 처음 기록된 운석이 떨어진 고흥의 <b>두원 운석터</b>가 지도에 나타나고, 그 2층에 <b>테오키스</b>가 운석과 함께 내려옵니다. 테오키스는 노말폼 → 어택폼(체력 절반) → 스피드폼(2페이즈)으로 모습을 바꾸며 싸웁니다.</li>
         <li><b>테오키스 폼체인지</b>: 테오키스를 얻으면 마을에 <b>붉은 운석</b>이 생깁니다. 테오키스를 파티에 넣고 운석을 조사하면 노말폼 · 어택폼(공격·특공 ↑, 방어 ↓) · 디펜스폼(방어·특방 ↑, 공격 ↓) · 스피드폼(회피 +1) 가운데 고를 수 있어요.</li>
       </ul>
 
@@ -352,7 +380,7 @@
         </div>
       </div>
       <p><b>Mouse</b>: click a place on the world map to go there (drag the map or roll the mouse wheel to look around), and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound and the on-screen key hints on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
-      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons), and the buttons on the right carry the keyboard letters (Z OK · X menu · QWER moves · Tab tag · A rest · ⇧ face only · J quests · P team · M map), so the hints at the bottom of the screen still apply. You can also tap places, dialogue and menus on the screen (drag the world map with a finger to look around), and the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> to keep your save in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
+      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons). On the right, the <b>move buttons Q · W · E · R sit in a cross</b> as on DraStic (up · left · right · down), with Z OK · X back · ⇧ face only · Tab tag · A rest; X also opens the game menu in town and in dungeons. The <b>Menu</b> button stands apart at the top left and opens one panel with the game menu, quests, team and dungeon map, and sound, speed, co-op, Google login, language and the guide. Tap menus, dialogue and places on the screen to pick them (drag a long list with a finger to scroll it), and tap a move in the dungeon's move list at the bottom right to use it. Drag the world map with a finger to look around; the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> in the menu to keep your save in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
       <p class="get-app"><b>Get the Android app</b>: open <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">the APK download</a> in Chrome on the phone, then open the file to install it. Past the warnings, tap Download, turn on "Allow from this source" in Settings, then Install; the <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">release page</a> has the full steps.</p>
       <p>The <b>English / 한국어</b> button beside the screen switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
 
@@ -362,7 +390,7 @@
         <li><b>Pearl towns</b>: Jemulpo 1887 (Canalave), Hanseong 1905 (Hearthome), Gyeongseong 1940 (Oreburgh), Hungnam 1950 and the battle for Seoul (Snowpoint, Veilstone), and Seoul 1979 (Pastoria) copy the real layouts of Pokémon Pearl's towns (paths, building lots, water, doors), read from the ROM.</li>
         <li><b>Colonial police</b>: each time you enter a town under colonial rule (1919, 1940) a constable walks up and takes 50 nyang (once per visit).</li>
         <li><b>World map</b>: red marks are the main quest, blue marks are requests you took, and a Pokémon in a <b style="color:var(--gold)">gold ring</b> is the legendary Pokémon waiting there.</li>
-        <li><b>Missed legends</b>: a legendary Pokémon that did not join you in its era (never met, or let go) comes back in another dungeon of the next era, one floor below the usual last floor, at the level of that dungeon's foes. Miss it again and it moves on to the era after.</li>
+        <li><b>Missed legends</b>: a legendary Pokémon that did not join you in its era (never met, or let go) comes back in another dungeon of the next era, one floor below the usual last floor, at the level of that dungeon's foes. Miss it again and it moves on to the era after. It only comes to a dungeon with no legend of its own, so when there is no free one it waits for the next era.</li>
         <li><b>Dungeons</b> use the terrain and Pokémon sprites of Pokémon Mystery Dungeon: Blue Rescue Team. Floors change every time.</li>
         <li>Finish the main quest and the <b>Time Gate</b> in the square opens to the next era.</li>
       </ul>
@@ -398,26 +426,27 @@
         <tr><td>676 Silla-Tang War</td><td>Maeso Fortress (main) · Daewangam (optional)</td><td>Zapdos · Lugia</td></tr>
         <tr><td>1232 Mongol invasions</td><td>Hwangnyongsa (main)</td><td>Moltres</td></tr>
         <tr><td>1388 Wihwado</td><td>Wihwado (main)</td><td>Articuno</td></tr>
-        <tr><td>1592 Imjin War</td><td>Uldolmok F2 (after the main run) · Noryang (main)</td><td>Azelf · Gyarados</td></tr>
-        <tr><td>1636 · 1794</td><td>Ice Temple (optional) · Quarry F2 (after the main run)</td><td>Regigigas · Uxie</td></tr>
+        <tr><td>1592 Imjin War</td><td>Jeolla Right Naval Base (optional) · Noryang (main)</td><td>Azelf · Gyarados</td></tr>
+        <tr><td>1636 · 1794</td><td>Ice Temple (optional) · Kyujanggak (optional)</td><td>Suicune · Uxie</td></tr>
         <tr><td>1866 Western incursions</td><td>Jeongjok Fortress (main) · Moonlit Isle (optional)</td><td>Gardevoir · Cresselia</td></tr>
         <tr><td>1887 Korean Empire</td><td>Power plant (main) · Wishing Clock Tower (optional)</td><td><b>Metagross</b> · Jirachi</td></tr>
         <tr><td>1905 Eulsa Treaty</td><td>Jungmyeongjeon Hall (main)</td><td><b>Mewtwo</b> (rises again Awakened for a second phase)</td></tr>
-        <tr><td>1919 March 1st Movement</td><td>Back alleys F2 (after the main run) · F5 (main)</td><td>Mesprit · <b>Dialga</b></td></tr>
+        <tr><td>1919 March 1st Movement</td><td>Tapgol Park (optional) · Back alleys F5 (main)</td><td>Mesprit · <b>Dialga</b></td></tr>
         <tr><td>1920 Independence Army</td><td>Heaven Lake crater (optional)</td><td>Heatran</td></tr>
-        <tr><td>1940 Erasing a People</td><td>Distortion World F3 (after the main run) · F5 (main)</td><td>Darkrai · <b>Giratina</b></td></tr>
+        <tr><td>1940 Erasing a People</td><td>Newmoon Island (optional) · Distortion World F5 (main)</td><td>Darkrai · <b>Giratina</b></td></tr>
         <tr><td>1945 Liberation</td><td>Rift of Time (main)</td><td>Palkia</td></tr>
         <tr><td>After 1945</td><td>The steel giant in town · rock cave F2 · ice cave F2 · Snowpoint Temple F2</td><td>Registeel · Regirock · Regice · <b>Regigigas</b></td></tr>
         <tr><td>1950–53 Korean War</td><td>Battle for Seoul · Nakdong · White Horse Hill (optional) · Panmunjom</td><td>Groudon · Kyogre · <b>Garchomp</b> · Tyranitar · <b>Salamence</b></td></tr>
-        <tr><td>After the battle for Seoul</td><td>Sky Pillar F2 (optional)</td><td>Rayquaza → Deoxys</td></tr>
+        <tr><td>After the battle for Seoul</td><td>Sky Pillar F2 (optional) · Duwon Meteorite Site F2 (once Rayquaza joins)</td><td>Rayquaza · Deoxys</td></tr>
         <tr><td>1979 October 26 and December 12</td><td>Seoul on the night of December 12 (town battle) · Sky of Beginnings (last quest)</td><td><b>Darkrai</b> · <b>Arceus</b> (your team's level)</td></tr>
       </table>
       <ul>
         <li><b>The spy (1920)</b>: after Cheongsan-ri, find the spy hiding in the independence army's base. The messenger tells you its <b>type</b> and roughly its <b>weight</b>; weigh the Pokémon of that type and accuse one. A wrong accusation costs three years and every dungeon trip one; miss <b>1930</b> and the police storm the base, your Pokémon go down, and the hunt starts over.</li>
         <li><b>Town battles</b>: in Seoul in 1950 and on the night of December 12, 1979 the town itself is the battlefield. Fight beside allied troops (green tags) and defeat the enemy commander or drive off all their troops. On December 12 the Hanahoe side gets +15% to every stat.</li>
-        <li><b>The Regis and Regigigas (after 1945)</b>: once the steel giant in town (Registeel) joins, the caves of Regirock and Regice appear on the world map (bosses on floor 2); bring all three to Snowpoint Temple (Pearl's real temple map) to meet Regigigas.</li>
+        <li><b>One legend to a place</b>: every place holds a single legendary Pokémon. Azelf, Uxie, Mesprit and Darkrai each have a place of their own (the Jeolla Right Naval Base, Kyujanggak, Tapgol Park and Newmoon Island), so a story dungeon never needs a second visit.</li>
+        <li><b>The Regis and Regigigas (after 1945)</b>: once the steel giant in town (Registeel) joins, the caves of Regirock and Regice appear on the world map (bosses on floor 2); bring all three to Snowpoint Temple (Pearl's real temple map) to meet Regigigas. Regigigas never appears before 1945.</li>
         <li><b>Latias · Latios (after 1945)</b>: in town you can take one of the pair, not both.</li>
-        <li><b>Sky Pillar (after the battle for Seoul, 1950)</b>: once Groudon and Kyogre have clashed, the Sky Pillar appears on the world map. Meet <b>Rayquaza</b> on floor 2 (second phase: Mega Rayquaza); once it joins, <b>Deoxys</b> comes down to the same floor with a meteorite and fights in its Normal Forme, then its Attack Forme (half HP) and its Speed Forme (second phase).</li>
+        <li><b>Sky Pillar (after the battle for Seoul, 1950)</b>: once Groudon and Kyogre have clashed, the Sky Pillar appears on the world map. Meet <b>Rayquaza</b> on floor 2 (second phase: Mega Rayquaza); once it joins, the <b>Duwon Meteorite Site</b> in Goheung (where the first meteorite on record in Korea fell in 1943) appears on the map, and on its floor 2 <b>Deoxys</b> comes down with a meteorite and fights in its Normal Forme, then its Attack Forme (half HP) and its Speed Forme (second phase).</li>
         <li><b>Deoxys' Formes</b>: with Deoxys, a <b>red meteorite</b> appears in town. Bring Deoxys in your team and examine it to pick the Normal, Attack (Attack and Sp. Atk up, defenses down), Defense (defenses up, attack down) or Speed Forme (evasion +1).</li>
       </ul>
 

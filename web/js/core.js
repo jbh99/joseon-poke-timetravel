@@ -46,9 +46,9 @@ export function initCanvas() {
     screen.style.width = Math.floor(VW * css) + 'px';
     screen.style.height = Math.floor(VH * css) + 'px';
     G.sctx.imageSmoothingEnabled = false;
-    // the HUD buttons go in the free strip beside or above the game (the left pad column on touch screens); with no room they fade over it
+    // the HUD buttons go in the free strip beside or above the game (into the menu panel on touch screens); with no room they fade over it
     const hud = document.getElementById('hud');
-    if (hud) hud.className = touchUI ? 'inpad' : (innerWidth - VW * css) / 2 >= 124 ? 'side' : (innerHeight - VH * css) / 2 >= 36 ? '' : 'over';
+    if (hud) hud.className = touchUI ? 'inmenu' : (innerWidth - VW * css) / 2 >= 124 ? 'side' : (innerHeight - VH * css) / 2 >= 36 ? '' : 'over';
   };
   addEventListener('resize', fit);
   fit();
@@ -138,7 +138,30 @@ export function initTouch() {
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
   });
   initDpad();
+  initMenu();
   document.getElementById('touch').addEventListener('contextmenu', (e) => e.preventDefault());
+}
+// The menu button (apart from the move diamond) opens a panel: the game's own menus, offered only where the screen
+// answers to them (a scene's padKeys) and nothing is open over it, then the HUD buttons, moved into it. A game button
+// closes the panel and acts as its key; sound, speed and language (data-stay) keep it open to show the change.
+function initMenu() {
+  const panel = document.getElementById('tmenu'), btn = document.getElementById('btn-tmenu');
+  panel.querySelector('.slot').append(document.getElementById('hud'));
+  const show = (on) => {
+    panel.hidden = !on; btn.classList.toggle('on', on);
+    const keys = G.overlays.length || fade.a > 0 ? [] : G.scene?.padKeys || [];
+    if (on) panel.querySelectorAll('button[data-k]').forEach((b) => { b.disabled = !keys.includes(b.dataset.k); });
+  };
+  btn.addEventListener('click', () => show(panel.hidden));
+  // capture: the panel closes before a button's own handler opens the guide, co-op or sign-in over it
+  panel.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (e.target === panel || b?.hasAttribute('data-close')) return show(false);
+    if (!b || b.hasAttribute('data-stay')) return;
+    show(false);
+    const k = b.dataset.k;
+    if (k && !G.onPadKey?.(k)) { press(k); release(k); }
+  }, true);
 }
 // 8-way pad: straight directions get 60° each and diagonals 30°, so a slightly crooked thumb still walks straight in town
 const DIRS = [[30, ['right']], [60, ['down', 'right']], [120, ['down']], [150, ['down', 'left']], [210, ['left']], [240, ['up', 'left']], [300, ['up']], [330, ['up', 'right']], [361, ['right']]];
@@ -383,6 +406,12 @@ export class Menu {
     const page = this.box?.rows || n;
     if (n > page && input.repeat('left')) { this.sel = Math.max(0, this.sel - page); G.sfx?.('cursor'); }
     if (n > page && input.repeat('right')) { this.sel = Math.min(n - 1, this.sel + page); G.sfx?.('cursor'); }
+    // a finger dragged over a long list scrolls it a row per 16 px (the click a drag ends in is dropped, see initCanvas)
+    if (n > page && input.pan.y) {
+      this.drag = (this.drag || 0) + input.pan.y;
+      const k = Math.trunc(this.drag / 16);
+      if (k) { this.drag -= k * 16; this.sel = clamp(this.sel - k, 0, n - 1); }
+    }
     const b = this.box;
     if (input.click && b) {
       const j = Math.floor((input.click.y - b.y - 5) / 16);

@@ -263,7 +263,7 @@ export function itemDef(id, questItems) { return ITEMS[id] || questItems?.[id]; 
 const SAVE_KEY = 'joseon-poke-save-v1';
 // v2 added six eras before 1392: older saves move forward by that many eras (levels are lifted on load, see quests.liftLevels);
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
-const SAVE_V = 4, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
+const SAVE_V = 5, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
 // v4 put 1905 between 1887 and 1919 (index 13), and opened the Korean War (v3 index 17) with the battle for Seoul
 const ERA_1905 = 13, WAR_V3 = 17, WAR_NEW_STEPS = 2;
 function migrateV4(o) {
@@ -274,6 +274,16 @@ function migrateV4(o) {
     if (m && +m[2] >= ERA_1905) { o.flags[m[1] + (+m[2] + 1)] = o.flags[k]; delete o.flags[k]; }
   }
   o.wander = null; // the missed-legend plan is made again for the new list of eras
+}
+// v5 gave the lake trio and Darkrai places of their own (no map holds two legends) and put Suicune in the Ice Temple:
+// a mid-boss already met counts for its new lair, the temple's old meeting (Regigigas) is dropped, and the
+// missed-legend plan is made again, as its hosts now never hold a legend of their own
+const MOVED_MIDS = { mid_uldol: 'legend_usuyeong', mid_quarry: 'legend_kyujanggak', mid_alley: 'legend_tapgol', mid_distortion: 'legend_newmoon' };
+function migrateV5(o) {
+  const f = o.flags || {};
+  for (const [from, to] of Object.entries(MOVED_MIDS)) if (f[from]) { f[to] = true; delete f[from]; }
+  delete f.legend_icetemple;
+  o.wander = null;
 }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town
 const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', inRun: null, spy: null });
@@ -311,6 +321,7 @@ export function load() {
     if (v < 2) { o.era = (o.era || 0) + OLD_ERA_SHIFT; o.migrated = true; }
     if (v < 3 && o.era >= ERA_1940) o.era++;
     if (v < 4) migrateV4(o);
+    if (v < 5) migrateV5(o);
     Object.assign(S, FRESH(), o, { party, roster });
     delete S.savedAt;
     return true;
