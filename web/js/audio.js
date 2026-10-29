@@ -169,6 +169,7 @@ const SFX = {
   buff: [[523, 0.06, 'triangle', 0.15], [784, 0.1, 'triangle', 0.15]],
   heal: [[659, 0.08, 'sine', 0.2], [880, 0.08, 'sine', 0.2], [1175, 0.14, 'sine', 0.18]],
   bump: [[110, 0.05, 'square', 0.1]],
+  whistle: [[2093, 0.07, 'square', 0.09], [1865, 0.05, 'square', 0.08], [2093, 0.16, 'square', 0.09]], // a constable's whistle
 };
 let noiseBuf = null;
 export function sfx(name) {

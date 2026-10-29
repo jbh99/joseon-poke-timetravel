@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, hasSave, readSave, load, save, TYPE_COLORS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun, resumeSteps } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
@@ -52,7 +52,7 @@ export class Title {
       if (sv) {
         const pt = Math.floor((sv.playtime || 0) / 60);
         items.unshift({ label: tr('이어하기', 'Continue'), right: `${ERAS[sv.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}`, fn: () => {
-          if (load()) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); resumeSteps(); });
+          if (load()) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); }); // the town plays a step left waiting (resumeSteps)
           else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
         } });
       }

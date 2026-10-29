@@ -1,0 +1,66 @@
+# Builds the Android app the way tools/build_mobile.ps1 -Release does (web/ without the dev helpers copied into the
+# Capacitor project) and publishes the APK, and a zip of it, as a GitHub release, so the README's
+# releases/latest/download/joseon-poke.apk link always points at the newest app.
+#
+# Run it from Actions → Android release → Run workflow with a tag such as v1.6, or push such a tag. The release
+# build is signed with the debug keystore (app/build.gradle): the copies already installed only update from an APK
+# with the same signature, and Google sign-in is registered for that certificate. So the keystore of the PC that
+# built the earlier releases (%USERPROFILE%\.android\debug.keystore) has to be stored once as the repository secret
+# ANDROID_DEBUG_KEYSTORE, base64-encoded:  [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.android\debug.keystore"))
+# Without it the workflow stops before building, so it never publishes an APK the installed apps can't update to.
+name: Android release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. v1.6)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
+    steps:
+      - name: Check the signing key
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::error::Add the ANDROID_DEBUG_KEYSTORE secret (base64 of the debug.keystore that signed the earlier releases) first."
+            exit 1
+          fi
+          mkdir -p ~/.android
+          echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the APK
+        working-directory: mobile
+        run: |
+          npm ci
+          rm -rf www && mkdir www && cp -r ../web/. www/ && rm -rf www/dev
+          npx cap sync android
+          cd android && chmod +x gradlew && ./gradlew assembleRelease --console=plain -q
+          mkdir -p ../release
+          cp app/build/outputs/apk/release/app-release.apk ../release/joseon-poke.apk
+          cd ../release && zip -q joseon-poke-apk.zip joseon-poke.apk && ls -la
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" mobile/release/joseon-poke.apk mobile/release/joseon-poke-apk.zip --clobber
+          else
+            gh release create "$TAG" mobile/release/joseon-poke.apk mobile/release/joseon-poke-apk.zip --target "$GITHUB_SHA" --title "조선 시간여행 안드로이드 앱 ${TAG#v}" --notes "**[📱 joseon-poke.apk 내려받기](https://github.com/${{ github.repository }}/releases/download/$TAG/joseon-poke.apk)** · 이미 설치했다면 같은 방법으로 설치하세요. 기록은 그대로 두고 업데이트됩니다."
+          fi

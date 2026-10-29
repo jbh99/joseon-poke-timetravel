@@ -106,11 +106,12 @@ const home = () => S.homeParty || S.party;
 const partnerLine = (L) => (L.who === 'partner' ? { ...L, who: home()[1].sp, shiny: home()[1].shiny, name: home()[1].name } : L.who === 'player' ? { ...L, who: home()[0].sp, shiny: home()[0].shiny, name: home()[0].name } : L);
 export const lines = (arr) => arr.map(partnerLine);
 
+let playing = false; // a step that runs by itself is playing now (resumeSteps leaves it be)
 export async function advanceMain() {
   S.step++;
   const st = mainStep();
-  if (st?.do === 'scene') { await say(lines(st.say)); return advanceMain(); }
-  if (st?.do === 'faction') { if (!S.faction) await chooseFaction(); return advanceMain(); }
+  if (st?.do === 'scene') { playing = true; await say(lines(st.say)); playing = false; return advanceMain(); }
+  if (st?.do === 'faction') { playing = true; if (!S.faction) await chooseFaction(); playing = false; return advanceMain(); }
   if (!st) {
     await say(lines(era().outro));
     S.eraClear = true;
@@ -120,11 +121,11 @@ export async function advanceMain() {
   } else toast(tr('새 목표: ', 'New goal: ') + st.log, COL.blue);
 }
 
-// a save that stopped on a step which runs by itself (a scene or the choice of a side, e.g. one added later to an era
-// it had finished) plays it on arrival in town
+// a step that runs by itself left waiting (1950 opens with a scene; a save that stopped on one, e.g. one added later to
+// an era it had finished) plays on arrival in town, unless the story is already playing it
 export async function resumeSteps() {
   const st = mainStep();
-  if (st?.do === 'scene' || st?.do === 'faction') { S.step--; await advanceMain(); }
+  if (!playing && (st?.do === 'scene' || st?.do === 'faction')) { S.step--; await advanceMain(); }
 }
 // an old save moved into a later era: bring the team up to that era's foes
 export function liftLevels() {

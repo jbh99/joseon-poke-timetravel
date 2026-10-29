@@ -208,10 +208,13 @@ def export_tiles(fs, out_dir):
         tiles, cel, pals, cex = ts
         n = len(cex) // 3
         used, look = [], []
+        blank = {c for c in set(cex) if chunk_img(tiles, cel, pals, c).getextrema()[:3] == ((0, 0), (0, 0), (0, 0))}
         for i in range(n):
             row = []
             for v in range(3):
                 c = cex[i * 3 + v]
+                if v and c in blank:  # an unpainted alternate (set 25's floors) would show as a black hole: use the main chunk
+                    c = cex[i * 3]
                 if c not in used:
                     used.append(c)
                 row.append(used.index(c))

@@ -1,7 +1,7 @@
 // The last era: the Korean War (1950-1953). The player picks the side whose people they stay with;
 // both routes follow the real course of the war and end at the armistice. Town, NPCs and the main
 // quest come from the chosen side (S.faction); dungeons and the finale are shared.
-import { K, T, CELEBI } from './content_k.js';
+import { K, T, CELEBI, SIG } from './content_k.js';
 import { S } from './game.js';
 import { tr } from './i18n.js'; // runtime lines (they read a name) must follow the language live; K() is for fixed story text
 
@@ -114,16 +114,20 @@ const BATTLE_TOWN = { name: K('서울 · 1950년 6월', 'Seoul, June 1950'), pea
 const SOUTH_ARMY = [59, 230, 18, 67, 58], NORTH_ARMY = [217, 227, 232, 67, 75];
 const GROUDON_JOIN = { sp: 383, item: 'redorb', text: K('그란돈이 땅을 울리며 다가왔다. 주홍구슬이 그 손에서 빛난다. 함께 가고 싶어 한다!', 'Groudon comes over, shaking the ground. The Red Orb glows in its hand. It wants to come along!') };
 const KYOGRE_JOIN = { sp: 382, item: 'blueorb', text: K('가이오가가 물보라를 일으키며 다가왔다. 쪽빛구슬이 그 곁에서 빛난다. 함께 가고 싶어 한다!', 'Kyogre comes over in a spray of water. The Blue Orb glows beside it. It wants to come along!') };
+// the legends' signature moves: once above half their HP, two or three times below it (their second phase)
+const CMD_SIG_AT = [[0.75, 0.4, 0.15], [0.75, 0.42, 0.27, 0.12]];
 const COMMANDER = { lv: 60, lvMin: 54, lvUp: 3, hp: 1.5, atk: 0.85, cap: 0.32, noJoin: true, noWander: true, bgm: 'ba_dpoke1' };
 const GROUDON_CMD = { ...COMMANDER, sp: 383, moves: [89, 53, 157, 444],
-  tele: { name: K('단애의 칼', 'Precipice Blades'), every: 3, dmg: 0.32, pats: ['near', 'rows', 'cross', 'ring'], type: 4 },
+  tele: { name: K('대지의 힘', 'Earth Power'), every: 3, dmg: 0.32, pats: ['near', 'rows', 'cross', 'ring'], type: 4 },
+  sig: { use: [SIG.blades], at: CMD_SIG_AT },
   say: [
     { who: 'narr', text: K('1950년 6월 28일. 전쟁이 시작된 지 사흘 만에 서울 거리가 싸움터가 되었다. 땅이 갈라지며 붉은 거인이 북쪽 군대 앞에 섰다!', 'June 28, 1950. Three days into the war, Seoul\'s streets have become a battlefield. The ground splits, and a red giant stands before the northern army!') },
     { who: 383, name: K('그란돈', 'Groudon'), text: K('그오오오…!! 땅을 넓히는 것이 나의 뜻이다. 막아서는 자는 모두 밀어내겠다!', 'Groooh...!! To widen the land is my will. Whoever stands in the way will be pushed aside!') },
     { who: 'partner', text: K('그란돈이 북쪽 군대를 이끌고 있어! 가이오가와 아군이 함께 싸워 줄 거야. 시민들을 지키자!', 'Groudon leads the northern army! Kyogre and our troops will fight with us. Let\'s protect the people!') }],
   after: [{ who: 383, name: K('그란돈', 'Groudon'), text: K('…그르르. 이 땅을 지키려는 마음, 단단하구나. 오늘은 물러나겠다.', '...Grrr. Your will to defend this land is firm. Today I will fall back.') }] };
 const KYOGRE_CMD = { ...COMMANDER, sp: 382, moves: [57, 58, 87, 56],
-  tele: { name: K('근원의 파동', 'Origin Pulse'), every: 3, dmg: 0.32, pats: ['far', 'ring', 'cols', 'x'], type: 11 },
+  tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 3, dmg: 0.32, pats: ['far', 'ring', 'cols', 'x'], type: 11 },
+  sig: { use: [SIG.pulse], at: CMD_SIG_AT },
   say: [
     { who: 'narr', text: K('1950년 6월 28일. 북쪽 군대가 서울로 들어서자, 한강 쪽에서 거대한 파도가 거리를 덮치며 푸른 거인이 남쪽 군대 앞에 섰다!', 'June 28, 1950. As the northern army enters Seoul, a huge wave sweeps the streets from the Han River, and a blue giant stands before the southern army!') },
     { who: 382, name: K('가이오가', 'Kyogre'), text: K('부오오오…!! 바다를 넓히는 것이 나의 뜻이다. 모두 물결 아래로 가라앉아라!', 'Booooh...!! To widen the sea is my will. Sink beneath the waves, all of you!') },

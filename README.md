@@ -84,7 +84,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | **Z / Enter / Space** | 조사 · 대화 · 기본 공격 · 결정 |
 | **X / Esc / C** | 메뉴 · 취소 (예/아니오 질문에서는 '아니오') |
 | **Q W E R** | 던전에서 기술 1~4 사용 |
-| **Tab** | **태그**: 던전에서 조종할 포켓몬을 다음 동료로 교대 (턴 소모 없음) |
+| **Tab** | **태그**: 던전에서는 조종할 포켓몬을 다음 동료로 교대 (턴 소모 없음), 마을에서는 다음 동료가 앞장서도록 팀 순서를 돌림 |
 | **A** (누르고 있기) | 쉬기 · 턴 넘기기 |
 | **Shift + 방향키** | 제자리에서 방향만 바꾸기 |
 | **J** | 퀘스트 목록 열기 · 한 번 더 누르면 닫기 |
@@ -147,11 +147,17 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **600족 보스**: 메타그로스(1887), 한카리아스·보만다·마기라스(1950)는 전설의 포켓몬보다 15%쯤 약한 강적입니다 (레벨 +2, 체력·공격·예고 공격이 전설의 85%).
 - **일반 보스**: 1200년부터 체력이 30% 늘어나고, 우리 팀이 성장하면 보스 레벨도 함께 오릅니다.
 
-### 2페이즈
-- **아르세우스**(최종 보스): 1979년 12·12 뒤 **마지막 퀘스트**인 「시작의 하늘」 5층에서 기다립니다. 레벨은 고정이 아니라 **내 팀의 레벨에 맞춰** 정해집니다(최소 70, 최대 180). 쓰러뜨리면 **황금빛 이로치**로 다시 일어납니다. 체력은 처음의 2/3이고, 공격과 예고 패턴이 훨씬 거세집니다.
+### 2페이즈 · 3페이즈
+- **아르세우스**(최종 보스, 3페이즈): 1979년 12·12 뒤 **마지막 퀘스트**인 「시작의 하늘」 5층에서 기다립니다. 레벨은 고정이 아니라 **내 팀의 레벨에 맞춰** 정해집니다(최소 70, 최대 180). 쓰러뜨리면 **황금빛 이로치**로 다시 일어납니다(2페이즈: 체력은 처음의 2/3, 공격과 예고 패턴이 훨씬 거셈). 2페이즈부터 **심판의 뭉치**가 하늘에서 필드 곳곳에 원 모양으로 쏟아집니다. 또 쓰러뜨리면 무지갯빛으로 일어나는 **3페이즈**(체력 절반, 공격 +10% · 방어 +20%)에서는 매 턴 심판이 쏟아지고, **파괴광선**을 360도로 한 바퀴 돌리며 세 번 휘두릅니다 (다음에 지나갈 줄기가 붉게 빛남).
+- **다크라이**(1979 12·12 마을 전투 · 1940 그믐달 섬, 3페이즈): **다크홀**(발밑에 열린 검은 구멍에 빠지면 잠듦) → 악몽의 모습(다크홀 · **섀도다이브**) → 칠흑의 모습(공격 +10% · 방어 +20%, **악의파동**까지).
 - **레쿠쟈**: 쓰러뜨리면 **메가레쿠쟈**로 다시 일어나 유성을 불러냅니다.
 - **테오키스**: 노말폼으로 싸우다 체력이 반 아래로 내려가면 **어택폼**으로, 쓰러뜨리면 **스피드폼**으로 다시 일어납니다 (공격이 잘 맞지 않음).
 - **디아루가(1919) · 기라티나(1940) · 펄기아(1945)**: 쓰러뜨리면 **오리진폼**으로 변해 2페이즈를 시작합니다. 이 셋과 아르세우스는 체력이 10% 더 높습니다.
+- **전설의 전용기**: 1페이즈에 한 번, 2페이즈에 두세 번 씁니다. 체력이 그 고비에 닿으면 전용기를 쓰기 전까지는 더 깎이지 않습니다.
+  - **디아루가 · 시간의 포효**: 한 턴 기를 모은 뒤 시간을 되감아 **10초 전의 체력**으로 돌아가고, 우리 편 모두의 HP를 최대치의 **20%** 깎습니다. 그다음 턴은 반동으로 쉽니다(빈틈).
+  - **펄기아 · 공간절단**: 공간이 찢어지며 싸움터가 바깥부터 한 겹씩 **좁아지고**(두 번까지), 바닥의 틈에서 공격이 솟아오릅니다.
+  - **기라티나 · 섀도다이브**: **어둠 속으로 사라졌다가** 우리 포켓몬의 **그림자 밑에서 튀어나와** 공격합니다. 악 타입에 맞서 격투 기술 **파동탄**도 씁니다.
+  - **그란돈 · 단애의 칼 / 가이오가 · 근원의 파동** (1950 서울 시가전의 지휘관): 갈라진 땅을 따라 바위 칼날이 솟거나, 여덟 방향으로 파동이 퍼집니다. 원래 예고 공격은 대지의 힘 · 하이드로펌프로 이름이 바뀌었습니다.
 - **기라티나**는 고스트·드래곤 타입이라 격투 기술은 듣지 않고 물·불꽃 기술은 반감됩니다. 1388년에 동료가 되는 프리져처럼 얼음·드래곤·고스트·악 기술을 쓰는 동료를 데려가세요.
 
 ### 해전 (물 타입만 참가)
@@ -160,7 +166,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 ### 새로 생긴 이야기와 장치
 - **마을 표시**: 빨간 `!`는 메인 퀘스트, 파란 `!`는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), 엽전 표지는 장사꾼, 국밥 표지는 주막 주인, 보라색 디스크 표지는 기술머신 상인입니다.
 - **펄 마을**: 1887 제물포(운하시티), 1905 한성(연고시티), 1940 경성(무쇠시티), 1950 흥남(선단시티)과 서울 시가전(장막시티), 1979 서울(들판시티)은 「포켓몬스터 펄」 롬의 실제 마을 배치(이동 가능한 칸, 건물 자리, 물, 문, NPC 자리)를 읽어 본떠 만들었습니다 (`tools/pearl_maps.py`).
-- **순사 (1919·1940)**: 일제 강점기 마을에 들어갈 때마다 순사가 다가와 엽전 50냥을 빼앗아 갑니다.
+- **순사 그라에나 (1910~1944)**: 일제 강점기 마을(1919 경성·아우내 장터, 1920 용정, 1940 경성)에서는 순사 그라에나 4마리가 **2마리씩 짝지어 순찰**합니다. 눈에 띄면 다가와 **100냥**을 요구하고, 내거나 **그 자리에서 맞서 싸울** 수 있습니다(마을이 그대로 싸움터가 되고, 그라에나는 일반 적보다 **12% 강함**). 이기면 그 짝은 마을을 떠나고, 어느 쪽이든 그 방문 동안 다시 붙잡지 않습니다. 멀리 달아나면 쫓기를 포기하고, 말을 걸어 싸움을 걸 수도 있습니다. 독립군 기지와 충칭 임시정부에는 오지 않습니다.
 - **밀정 찾기 (1920)**: 전령이 알려 주는 타입과 대략의 몸무게로, 그 타입 포켓몬들을 저울에 달아 밀정을 지목합니다. 잘못 지목하면 3년, 던전에 다녀오면 1년이 흐르고, 1930년까지 못 잡으면 경찰이 기지를 덮쳐 포켓몬이 모두 쓰러지고 처음부터 다시 찾습니다.
 - **헤이그 특사 (1905)·카이로·얄타·포츠담 회담 (1940·1945)·10·26 (1979)**: 퀘스트가 아니라 이야기로 나옵니다.
 - **마을 전투**: 1950년 서울 시가전과 1979년 12월 12일 밤의 서울은 마을이 그대로 싸움터가 됩니다. 아군 부대와 함께 적 지휘관을 쓰러뜨리거나 적군을 모두 물리치면 이기고, 12·12에서는 하나회 쪽이 모든 능력치 +15%를 받습니다.
@@ -189,11 +195,12 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **최대 레벨 180**: 포켓몬은 본편의 100에서 멈추지 않고 Lv 180까지 오릅니다. 아르세우스도 팀 레벨을 따라 최대 Lv 180이 됩니다.
 - **기술 배우기**: 레벨이 올라 새 기술을 배울 때 기술이 이미 4개면, 본편 포켓몬처럼 **잊을 기술을 고르거나 배우지 않을** 수 있습니다. 마을에서 X 메뉴 → **포켓몬** → Z → **기술 배우기**를 고르면 지금 레벨까지 배우는 기술을 언제든 배웁니다. 잊었거나 건너뛴 기술도 여기서 다시 배우고, 앞으로 배울 기술과 그 레벨도 볼 수 있습니다.
 - **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다. 독·화상·마비 같은 **상태 이상**은 마을에 돌아오면 모두 낫습니다.
-- **기술 조준**: 우리 편 기술은 3칸 안에 적이 있으면 방향과 상관없이 그 적을 노려 **반드시 맞힙니다**. 더 멀면 바라보는 방향으로 나갑니다.
-- **보스방 부활**: 보스가 있는 층에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 보스의 기술과 예고 공격은 보스에게서 4칸까지만 닿고, 보스는 잠듦·얼음·독에 걸리지 않습니다.
+- **기술 조준**: 우리 편 기술은 3칸 안에 적이 있으면 방향과 상관없이 그 적을 노려 **반드시 맞힙니다**. 더 멀면 바라보는 방향으로 나갑니다(특수 기술은 직선 6칸). 야생 포켓몬의 기술은 직선 **4칸**까지만 닿습니다.
+- **리더 뱃지와 동료 따라오기**: 지금 조종하는 포켓몬은 머리 위와 팀 창의 이름 옆에 **리더 뱃지**(왕관 방패)를 답니다. 파트너와 동료는 리더 곁 4칸 안에서 싸우고, 통로에서는 앞 동료 바로 뒤로 줄지어 따라오며, 시야 밖으로 떨어지면 리더 곁으로 따라붙습니다.
+- **보스방 부활**: 보스가 있는 층에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 보스의 기술과 예고 공격은 보스에게서 4칸까지만 닿고(전설의 전용기는 싸움터 전체), 보스는 잠듦·얼음·독에 걸리지 않습니다. **전설의 포켓몬 보스**는 마비·화상까지 모든 상태 이상에 걸리지 않습니다.
 - **한 곳에 전설 하나**: 전설의 포켓몬은 장소마다 한 마리씩만 기다립니다. 아그놈 · 유크시 · 엠라이트 · 다크라이는 각자의 장소(전라 우수영 · 규장각 · 탑골 공원 · 그믐달 섬)로 옮겨 가서, 메인 던전은 한 번 깨면 끝납니다. 놓친 전설도 전설이 없는 던전에만 다시 나타나고, 레지기가스는 1945년 이후 레지 줄기에서만 만납니다.
 - **중간 보스**: 발전소(에레키블)는 메인 퀘스트 때 마지막 보스만 나옵니다. 중간 보스는 메인을 깬 뒤 다시 가면 만나는 선택 전투이고, 한 번 이기면 다시 나오지 않습니다.
-- **태그(Tab)**: 던전에서 조종하는 포켓몬을 다음 동료로 바꿉니다. 턴을 쓰지 않습니다. 조종하던 포켓몬이 쓰러지면 남은 동료가 앞장서고, **셋이 모두 쓰러져야** 탐험이 실패합니다. 던전을 클리어하면 쓰러졌던 동료도 기운을 되찾습니다.
+- **태그(Tab)**: 던전에서 조종하는 포켓몬을 다음 동료로 바꿉니다. 턴을 쓰지 않습니다. 마을에서 누르면 다음 동료가 앞장서도록 팀 순서가 한 칸씩 돌아가고, 던전도 그 포켓몬이 앞장서서 시작합니다. 조종하던 포켓몬이 쓰러지면 남은 동료가 앞장서고, **셋이 모두 쓰러져야** 탐험이 실패합니다. 던전을 클리어하면 쓰러졌던 동료도 기운을 되찾습니다.
 - **1층에서 나가기**: 아직 1층이라면 X 메뉴 → **던전에서 나가기**로 대가 없이 되돌아 나올 수 있습니다.
 
 ### 엽전과 상점
@@ -298,20 +305,20 @@ docs/screenshots/       README 스크린샷
 - **Features**:
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
-  - Arceus (its level follows the team's, up to Lv 180) is the last quest, after December 12, 1979, and turns golden for a second phase; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
+  - Arceus (its level follows the team's, up to Lv 180) is the last quest, after December 12, 1979: it turns golden for a second phase, where Judgment starts raining round blasts all over the field, and rises a third time in rainbow light (Attack +10%, Defense +20%) to swing Hyper Beam round a full circle three times; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
   - After the battle for Seoul (1950) the Sky Pillar appears: Rayquaza on floor 2 (Mega Rayquaza for its second phase); once it joins, Deoxys comes down at the Duwon Meteorite Site (where Korea's first recorded meteorite fell in 1943) and fights in its Normal, Attack and Speed Formes. With Deoxys, a red meteorite in town changes its Forme (Normal, Attack, Defense, or Speed, which dodges); the Formes use the PMD ROM's own sprites.
   - Regirock, Regice, Registeel and Regigigas have portraits cut from their Pearl battle sprites in the PMD style (`tools/make_portraits.py`).
   - Twenty eras now: Goguryeo's last battle at Pyongyang (668), the Eulsa Treaty (1905, Mewtwo with a second phase, the Hague envoys in the story) and October 26 / December 12, 1979 (a town battle against Darkrai, with the Hanahoe side at +15%).
   - Some towns copy the real layouts of Pokémon Pearl's cities (Canalave, Hearthome, Oreburgh, Snowpoint, Veilstone, Pastoria), read from the ROM by `tools/pearl_maps.py`.
-  - Colonial police take 50 nyang each time you enter an occupied town; in 1920 a spy must be found by type and weight before 1930.
+  - Constable Mightyena patrol occupied towns (1910–1944, not the independence army's base or Chongqing) in two pairs: a pair that spots you demands 100 nyang, or a fight right where you stand, the town as the battlefield (they are 12% stronger than ordinary foes); in 1920 a spy must be found by type and weight before 1930.
   - After 1945: Registeel in town opens Regirock's and Regice's caves, and all three open Snowpoint Temple (Regigigas); pick one of Latias or Latios. The side is chosen in 1945; in 1950 Groudon (North) or Kyogre (South) joins with its orb for Primal Reversion.
   - A run fails only when all three are down; clearing revives the fallen, and floor 1 can be left from the menu.
   - Pokémon grow past 100, up to Lv 180, and Arceus follows the team up to Lv 180.
   - Moves work as in the main games: a level-up move that finds four moves asks which one to forget (or skips it), and in town X menu → Pokémon → Z → Learn moves teaches any move of the species' level-up list up to its level, forgotten ones too.
   - Ordinary foes (not bosses) have 80% of their HP and stats; poison takes 1/64 of max HP a turn, and every status problem is cured back in town.
-  - Your team's moves turn to any foe within 3 tiles and always hit; a boss reaches 4 tiles at most and can't be put to sleep, frozen or poisoned. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries also cure status problems.
+  - Your team's moves turn to any foe within 3 tiles and always hit; a wild Pokémon's moves reach 4 tiles in a line, a boss's 4 tiles at most; bosses can't be put to sleep, frozen or poisoned, and legendary bosses shrug off every status problem. The one you control wears a leader badge; teammates fight within 4 tiles of it, follow in a line through corridors and catch up when left behind. Tab in town lets the next teammate lead. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries also cure status problems.
   - One legend to a place: Azelf, Uxie, Mesprit and Darkrai have places of their own (the Jeolla Right Naval Base, Kyujanggak, Tapgol Park, Newmoon Island), missed legends only return to dungeons without one, and Suicune now keeps 1636's Ice Temple, so Regigigas appears only after 1945. Electivire, the one mid-boss left, waits for a visit after the story run.
-  - Dialga, Palkia, Giratina and Arceus have 10% more HP.
+  - Dialga, Palkia, Giratina and Arceus have 10% more HP. Legends use signature moves, once in their first phase and two or three times in their second: Dialga's Roar of Time (its HP back to 10 seconds before, the team -20% HP), Palkia's Spacial Rend (the arena closes in, rifts erupt from the floor), Giratina's Shadow Force (out of a teammate's shadow; it also knows Aura Sphere), Groudon's Precipice Blades and Kyogre's Origin Pulse. Darkrai fights in three phases with Dark Void (sleep), Shadow Force and Dark Pulse.
   - Phones: the moves sit in a DraStic-style cross (Q up, W left, E right, R down), and a separate Menu button opens one panel with the game menu, quests, team, dungeon map and the settings. Menus scroll with a finger, and a tap on the dungeon's move list uses that move.
   - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 3000 nyang for strong attacks (power 80+), 1000 for the rest; a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
   - From 1200 on, foes follow your strongest Pokémon (its level to +2, +3 to +5 past Lv 45) and bosses have 30% more HP.

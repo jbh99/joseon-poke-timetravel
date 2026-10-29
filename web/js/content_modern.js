@@ -4,7 +4,7 @@
 // Temple, and the Latias / Latios choice; and after the battle for Seoul, the Sky Pillar (Rayquaza), then the Duwon
 // meteorite site (Deoxys).
 // Their levels are set directly (the Joseon chapters' lift() curve is not applied to them).
-import { K, T, CELEBI } from './content_k.js';
+import { K, T, CELEBI, SIG, DARKRAI_SIG, DARKRAI_REVIVE } from './content_k.js';
 import { S } from './game.js';
 import { tr } from './i18n.js';
 
@@ -99,7 +99,8 @@ export const ERA_1905 = {
 // ---------------------------------------------------------------- 1979
 // December 12: the town itself turns into the battlefield (a 'battle' step started by talking to the officer)
 const DARKRAI_1212 = { sp: 491, lv: 70, lvMin: 63, lvUp: 4, hp: 1.35, atk: 0.8, cap: 0.32, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
-  tele: { name: K('다크홀', 'Dark Void'), every: 3, dmg: 0.34, pats: ['ring', 'target', 'checker', 'x', 'near'], type: 17 },
+  tele: { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.34, pats: ['ring', 'target', 'checker', 'x', 'near'], type: 17 },
+  sig: DARKRAI_SIG, revive: DARKRAI_REVIVE, // three phases: Dark Void, then Shadow Force, then Dark Pulse as well
   say: [
     { who: 'narr', text: K('12월 12일 밤. 반란군의 탱크 소리가 울리는 거리 한가운데, 어둠이 사람의 모양으로 일어섰다.', 'The night of December 12. In the middle of streets echoing with the rebels\' tanks, the darkness rose in a human-like shape.') },
     { who: 491, name: K('다크라이', 'Darkrai'), text: K('…모두가 악몽 속에 있다. 이 밤은 길고, 아침은 오지 않을 것이다.', '...Everyone is inside a nightmare. This night is long, and morning will not come.') },
@@ -117,20 +118,33 @@ const ARCEUS_TELE = [
     msg: '아르세우스가 어둠의 플레이트를 꺼내 들었다! 공격이 한층 거세진다!',
     line: [{ who: 493, name: '아르세우스', text: '시간이 시작되기 전의 빛이다. 피할 수 있겠느냐!' }] },
 ];
-// second page: Arceus gets back up golden (its shiny colours) with 2/3 of its HP, harder hits and double patterns
+// second page: Arceus gets back up golden (its shiny colours) with 2/3 of its HP, harder hits and double patterns, and
+// from now on Judgment's orbs of light rain on random spots all over the arena (patterns with 'orbs')
+const JUDGMENT = K('심판의 뭉치', 'Judgment');
 const ARCEUS_REVIVE = { hp: 2 / 3, atk: 1.35, shiny: true, cap: 0.34, aura: '#ffd84a',
   msg: K('아르세우스가 쓰러지지 않는다! 온몸이 황금빛으로 물들었다!', 'Arceus refuses to fall! Its whole body turns to gold!'),
   line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('…좋다. 이것이 창조의 진짜 모습이다. 마지막까지 버텨 보아라!', '...Very well. This is the true face of creation. Hold out to the very end!') }],
   tele: [
-    { name: K('황금 심판', 'Golden Judgment'), every: 2, dmg: 0.55, stagger: 1, pats: ['star|ring', 'checker|cross', 'quad', 'rows|x', 'cols|near', 'target|far'], type: 0, first: 2 },
-    { at: 0.5, name: K('황금 창세', 'Golden Genesis'), every: 1, dmg: 0.68, stagger: 1, pats: ['quad|target', 'random|cross', 'checker|x', 'ring|rows', 'star|far', 'cols|near'], type: 17, summon: 2, summonSp: [436, 343],
+    { name: K('황금 심판', 'Golden Judgment'), orbName: JUDGMENT, every: 2, dmg: 0.55, stagger: 1, pats: ['orbs', 'star|ring', 'orbs|cross', 'checker|cross', 'quad', 'orbs|x', 'rows|x', 'cols|near', 'target|far'], type: 0, first: 2 },
+    { at: 0.5, name: K('황금 창세', 'Golden Genesis'), orbName: JUDGMENT, every: 1, dmg: 0.68, stagger: 1, pats: ['orbs|target', 'quad|target', 'random|cross', 'orbs|ring', 'checker|x', 'ring|rows', 'orbs|cols', 'star|far', 'cols|near'], type: 17, summon: 2, summonSp: [436, 343],
       msg: K('황금빛 아르세우스가 모든 플레이트를 한꺼번에 해방했다!', 'Golden Arceus unleashes every plate at once!'),
       line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('이 빛을 견뎌 낸다면… 너희에게 이 시대의 꽃잎을 맡기겠다.', 'Endure this light... and I will entrust you with this era\'s petal.') }] },
   ] };
+// third page: Arceus rises once more with half that HP, Attack +10% and Defense +20%, every plate merged into one
+// (a rainbow aura): Judgment pours down every turn, and three times it swings Hyper Beam round a full circle
+const ARCEUS_REVIVE3 = { hp: 0.5, atk: 1.1, def: 1.2, shiny: true, cap: 0.36, aura: 'rainbow', bgm: 'ba_chanp',
+  msg: K('아르세우스가 또다시 일어선다! 모든 플레이트가 하나로 겹쳐지며 무지갯빛을 내뿜는다!', 'Arceus rises yet again! Every plate merges into one, blazing with rainbow light!'),
+  line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('…이것이 마지막이다. 시간과 공간이 태어나기 전의 힘, 받아 보아라!', '...This is the last. The power from before time and space were born: take it!') }],
+  tele: [
+    { name: K('창세의 심판', 'Genesis Judgment'), orbName: JUDGMENT, every: 1, dmg: 0.6, stagger: 1, pats: ['orbs|cross', 'orbs|x', 'star|orbs', 'quad|target', 'checker|ring', 'random|cols', 'orbs|rows'], type: 0, first: 2 },
+    { at: 0.4, name: K('무한의 심판', 'Endless Judgment'), orbName: JUDGMENT, every: 1, dmg: 0.7, stagger: 1, pats: ['orbs|star', 'orbs|quad', 'checker|cross|orbs', 'ring|x|orbs', 'target|far|orbs'], type: 17, summon: 2, summonSp: [436, 343],
+      msg: K('아르세우스의 빛이 끝없이 쏟아진다! 공격이 한층 거세진다!', 'Arceus\'s light pours down without end! Its attacks grow fiercer!') },
+  ],
+  sig: { use: [SIG.beam], at: [[0.9, 0.6, 0.25]] } };
 // the final boss sets its own numbers (dungeon.js bossTier): its level follows the team's like any boss's, from Lv 70 up
 // to Lv 180, a long fight where dodging decides everything. A team that already has Arceus (it joined in the 1950
 // finale of older versions) gets no second one.
-const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.25, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: ARCEUS_REVIVE,
+const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.25, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: [ARCEUS_REVIVE, ARCEUS_REVIVE3],
   get noJoin() { return !!S.flags.got_493; },
   say: [
     { who: 'narr', text: '눈부신 빛 속에서, 거대한 포켓몬이 천천히 고개를 들었다.' },

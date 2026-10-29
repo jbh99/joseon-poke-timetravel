@@ -63,6 +63,10 @@ export async function checkAll(opts = {}) {
         for (const t of teles) for (const p of t.pats) for (const part of p.split('|')) if (!PATS.includes(part)) bad(tag, `${id} pattern ${part}`);
       }
       if (d.mid && d.mid.floor >= d.floors) bad(tag, `${id} mid-boss floor ${d.mid.floor} not before the last floor ${d.floors}`);
+      for (const b of [d.boss, d.mid].filter(Boolean)) for (const sg of [b.sig, ...[].concat(b.revive || []).map((r) => r.sig)].filter(Boolean)) {
+        for (const u of sg.use) if (!u?.name || !['roar', 'rend', 'shadow', 'blades', 'pulse', 'void', 'sweep'].includes(u.kind)) bad(tag, `${id} signature move ${u?.name} of unknown kind ${u?.kind}`);
+        if (!Array.isArray(sg.at) || !sg.at.length) bad(tag, `${id} signature move without HP marks`);
+      }
       // one legend to a place, and Regigigas only in the Regi line after 1945
       const legs = [d.mid, d.boss].filter((b) => b && game.LEGENDS.has(b.sp));
       if (legs.length > 1) bad(tag, `${id} holds ${legs.length} legends (${legs.map((b) => b.sp).join(', ')})`);
@@ -78,7 +82,10 @@ export async function checkAll(opts = {}) {
       try { t = new g.Town(kind); } catch (err) { bad(`${e.year} town${kind}`, `failed: ${err.message}`); continue; }
       stats.towns++;
       const seen = new Set([t.py * t.W + t.px]), q = [[t.px, t.py]];
-      const free = (x, y) => x >= 0 && y >= 0 && x < t.W && y < t.H && !t.solid[y][x] && !t.onGate(x, y) && !t.npcs.some((n) => n.x === x && n.y === y);
+      const free = (x, y) => x >= 0 && y >= 0 && x < t.W && y < t.H && !t.solid[y][x] && !t.onGate(x, y) && !t.npcs.some((n) => n.role !== 'police' && n.x === x && n.y === y); // constables walk on
+      // constables: two pairs in every town from 1910 to 1944 but the base and Chongqing, none anywhere else
+      const cops = t.npcs.filter((n) => n.role === 'police').length, want = e.year >= 1910 && e.year < 1945 && (kind === 2 ? e.town2 : e.town).police !== false ? 4 : 0;
+      if (cops !== want) bad(`${e.year} town${kind}`, `${cops} constables (want ${want})`);
       while (q.length) {
         const [x, y] = q.shift();
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {

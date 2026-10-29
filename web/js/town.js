@@ -7,6 +7,11 @@ import { tr } from './i18n.js';
 import { hasPmdSprite, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
 import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons, forgetMenu, moveInfo } from './quests.js';
 
+// occupied towns (1910-1944) have constables on patrol (Town.patrols); the independence army's base and the
+// Provisional Government in Chongqing (police: false) are out of their reach
+export const policed = (era, t) => era.year >= 1910 && era.year < 1945 && t.police !== false;
+const TOLL = 100;
+let police = null; // the patrols of the town you are in, kept while a fight with one of them plays out (Town.policeFight)
 export let BLD = {};
 export function setBuildings(b) { BLD = b; }
 // town and floor layouts rebuilt from Pearl's field data (tools/pearl_maps.py → data/pearl.json)
@@ -97,55 +102,165 @@ export class Town {
     const coast = this.def.biome === 'coast';
     if (this.layout) { [this.px, this.py] = this.start; this.face = this.startFace; }
     else { [this.px, this.py] = coast ? [this.W - 3, 17] : [this.OX + 19, this.H - 3]; this.face = coast ? 'left' : 'up'; }
-    const restored = !!S.townPos;
-    if (S.townPos) { [this.px, this.py] = S.townPos; S.townPos = null; }
+    const restored = !!S.townPos && !this.battle; // a battlefield (Dungeon) is not where you stand
+    if (restored) { [this.px, this.py] = S.townPos; S.townPos = null; }
     this.vx = this.px; this.vy = this.py; this.moving = false; this.moveT = 0;
-    this.trail = [[this.px, this.py + 1]];
-    const [qx, qy] = this.layout && !restored ? this.behind : [this.px, Math.min(this.H - 1, this.py + 1)];
-    this.partner = { x: qx, y: qy, fx: qx, fy: qy, vx: qx, vy: qy, face: 'up' };
-    this.mate = null; // third follower (recruit), created on demand in update()
-    if (this.def.police && !this.battle) this.posting();
+    // the followers walk in a line behind you: the partner first, then the third member (made in update() when the
+    // team has one). `who` is the team slot each one shows; walking into the second one swaps the two (update)
+    const [qx, qy] = this.layout && !restored ? this.behind : this.besideFree(this.px, this.py);
+    this.partner = { x: qx, y: qy, fx: qx, fy: qy, vx: qx, vy: qy, face: 'up', who: 1 };
+    this.mate = null;
+    this.pairs = [];
+    if (!this.battle && policed(this.era, this.def)) this.patrols();
   }
-  // Occupied towns (1910-1945): a constable walks up to you once each time you come in and takes 50 nyang
-  // (whatever is left if you have less). It gives up chasing after a while and calls out from where it stands.
-  posting() {
-    const [x, y] = this.layout ? [Math.round((this.px + (this.gate?.tx ?? this.W / 2)) / 2), Math.round((this.py + (this.gate?.ty ?? this.H / 2)) / 2)] : [this.px, this.py - 6];
-    const npc = this.addNpc({ id: 'police', sp: 262, role: 'police', x: 0, y: 0 }, () => tr('순사 그라에나', 'Constable Mightyena'), [x, y]);
-    this.police = { npc, t: 1.2, steps: 0, done: false };
+  // a free tile next to (x, y) for a follower, behind your back first
+  besideFree(x, y) {
+    const back = { up: [0, 1], down: [0, -1], left: [1, 0], right: [-1, 0] }[this.face] || [0, 1];
+    for (const [dx, dy] of [back, [0, 1], [-1, 0], [1, 0], [0, -1]]) {
+      const a = x + dx, b = y + dy;
+      if (!this.blocked(a, b) && !(a === this.px && b === this.py)) return [a, b];
+    }
+    return [x, y];
   }
-  policeStep() {
-    const P = this.police, n = P.npc;
-    if (Math.abs(n.x - this.px) + Math.abs(n.y - this.py) <= 1 || ++P.steps > 30) return this.policeToll();
-    // one tile along the shortest way to the player (around people and the followers)
-    const busy = (x, y) => this.blocked(x, y) || (x === this.partner.x && y === this.partner.y) || (this.mate && x === this.mate.x && y === this.mate.y);
-    const prev = new Map([[n.y * this.W + n.x, null]]), q = [[n.x, n.y]];
+  follower(x, y) { return [this.partner, this.mate].some((f) => f && f.x === x && f.y === y); }
+
+  // Occupied towns (content.js policed: 1910-1944): two pairs of constables (Mightyena) walk the streets. A pair that
+  // spots you comes over and demands 100 nyang, or a fight right where you stand (policeDef). Either way it leaves you
+  // alone for the rest of the visit; a pair beaten is gone. Coming back from that fight, everyone is where they were.
+  patrols() {
+    const key = `${S.era}:${this.kind}`, back = G.policeBack === key && police?.key === key;
+    G.policeBack = null;
+    if (!back) police = { key, pairs: [{}, {}] };
+    const W = this.W, md = (a, b, x, y) => Math.abs(a - x) + Math.abs(b - y);
+    const exit = (x, y) => this.exitTiles.some(([a, b]) => a === x && b === y);
+    const open = (x, y) => !this.blocked(x, y) && !exit(x, y) && !(x === this.px && y === this.py) && !this.follower(x, y);
+    // the streets you can walk from where you stand, away from dead ends
+    const seen = new Set([this.py * W + this.px]), q = [[this.px, this.py]];
+    for (let k = 0; k < q.length; k++) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = q[k][0] + dx, y = q[k][1] + dy;
+      if (!seen.has(y * W + x) && !this.blocked(x, y)) { seen.add(y * W + x); q.push([x, y]); }
+    }
+    const roomy = q.filter(([x, y]) => open(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => open(x + dx, y + dy)).length >= 2);
+    police.pairs.forEach((v, k) => {
+      if (v.beaten) return;
+      let at = back && v.at && open(...v.at) ? v.at : null;
+      for (let far = 12; !at && far >= 0; far -= 4) { // well away from you and the other pair
+        const ok = roomy.filter(([x, y]) => md(x, y, this.px, this.py) >= far && this.pairs.every((o) => md(x, y, o.lead.x, o.lead.y) >= far * 0.7));
+        at = ok[Math.floor(Math.random() * ok.length)];
+      }
+      if (!at) return;
+      const by = (back && v.by && open(...v.by) && md(...v.by, ...at) === 1 ? v.by : null)
+        || [[0, 1], [1, 0], [-1, 0], [0, -1]].map(([dx, dy]) => [at[0] + dx, at[1] + dy]).find(([x, y]) => open(x, y));
+      if (!by) return;
+      const name = () => tr('순사 그라에나', 'Constable Mightyena');
+      const lead = this.addNpc({ id: `police${k}`, sp: 262, role: 'police' }, name, null, at);
+      const tail = this.addNpc({ id: `police${k}b`, sp: 262, role: 'police' }, name, null, by);
+      const pair = { lead, tail, v, state: 'walk', t: 0.5 + Math.random(), steps: 0, calm: 0, dir: null };
+      lead.pair = tail.pair = pair;
+      this.pairs.push(pair);
+    });
+  }
+  // a pair's turn: walking its beat, spotting you (within five tiles), coming over to stop you, or giving up when you
+  // get well away. The second constable steps where the first one stood.
+  patrolStep(pr, dt) {
+    if ((pr.t -= dt) > 0) return;
+    const { lead, tail } = pr, md = (n) => Math.abs(n.x - this.px) + Math.abs(n.y - this.py);
+    const exit = (x, y) => this.exitTiles.some(([a, b]) => a === x && b === y);
+    const open = (x, y) => !this.blocked(x, y) && !exit(x, y) && !(x === this.px && y === this.py) && !this.follower(x, y);
+    const move = ([x, y]) => {
+      const ox = lead.x, oy = lead.y;
+      lead.face = x > ox ? 'right' : x < ox ? 'left' : y > oy ? 'down' : 'up';
+      lead.x = x; lead.y = y;
+      tail.face = ox > tail.x ? 'right' : ox < tail.x ? 'left' : oy > tail.y ? 'down' : 'up';
+      tail.x = ox; tail.y = oy;
+    };
+    if (pr.state === 'walk') {
+      pr.t = 0.5 + Math.random() * 0.25;
+      if (!pr.v.done && G.time > pr.calm && Math.min(md(lead), md(tail)) <= 5) { // spotted
+        pr.state = 'alert'; pr.t = 0.6; pr.steps = 0;
+        for (const n of [lead, tail]) n.face = this.px > n.x ? 'right' : this.px < n.x ? 'left' : this.py > n.y ? 'down' : 'up';
+        sfx('whistle');
+        return;
+      }
+      if (Math.random() < 0.15) return; // a pause on the beat
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => open(lead.x + dx, lead.y + dy));
+      const fwd = pr.dir && dirs.find(([dx, dy]) => dx === pr.dir[0] && dy === pr.dir[1]);
+      const turn = dirs.filter(([dx, dy]) => !pr.dir || dx !== -pr.dir[0] || dy !== -pr.dir[1]);
+      const d = fwd && Math.random() < 0.8 ? fwd : choice(turn.length ? turn : dirs.length ? dirs : [null]);
+      pr.dir = d;
+      if (d) move([lead.x + d[0], lead.y + d[1]]);
+      return;
+    }
+    if (pr.state === 'alert') { pr.state = 'chase'; pr.t = 0; return; }
+    pr.t = 0.24; // chasing: a little slower than you walk
+    if (md(lead) <= 1 || md(tail) <= 1) return this.checkpoint(pr);
+    if (++pr.steps > 40 || md(lead) > 12) { pr.state = 'walk'; pr.calm = G.time + 8; return; } // you got away
+    const s = this.stepToward(lead, open);
+    if (s) move(s);
+  }
+  // one tile along the shortest way to you (around people and the followers), or null
+  stepToward(n, open) {
+    const W = this.W, prev = new Map([[n.y * W + n.x, null]]), q = [[n.x, n.y]];
     let goal = null;
     for (let k = 0; k < q.length && k < 3000 && !goal; k++) {
       const [x, y] = q[k];
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const a = x + dx, b = y + dy, key = b * this.W + a;
+        const a = x + dx, b = y + dy, key = b * W + a;
         if (prev.has(key)) continue;
         if (a === this.px && b === this.py) { goal = [x, y]; break; }
-        if (busy(a, b)) continue;
+        if (!open(a, b)) continue;
         prev.set(key, [x, y]); q.push([a, b]);
       }
     }
-    if (!goal || (goal[0] === n.x && goal[1] === n.y)) return;
+    if (!goal || (goal[0] === n.x && goal[1] === n.y)) return null;
     let s = goal;
-    while (prev.get(s[1] * this.W + s[0]) && !(prev.get(s[1] * this.W + s[0])[0] === n.x && prev.get(s[1] * this.W + s[0])[1] === n.y)) s = prev.get(s[1] * this.W + s[0]);
-    n.face = s[0] > n.x ? 'right' : s[0] < n.x ? 'left' : n.face;
-    n.x = s[0]; n.y = s[1];
+    for (let p = prev.get(s[1] * W + s[0]); p && !(p[0] === n.x && p[1] === n.y); p = prev.get(s[1] * W + s[0])) s = p;
+    return s;
   }
-  policeToll() {
-    const P = this.police, n = P.npc;
-    P.done = true;
-    n.face = this.px > n.x ? 'right' : 'left';
-    n.wander = 3; n.hx = n.x; n.hy = n.y;
-    const take = Math.min(50, S.money);
-    S.money -= take;
-    sfx(take ? 'cancel' : 'bump');
-    say([{ who: 262, name: n.name, text: take ? tr(`거기 서! 검문이다. …세금이 밀렸군. ${take}냥 내놔.`, `Halt! Inspection. ...Your taxes are overdue. Hand over ${take} nyang.`) : tr('거기 서! 검문이다. …빈털터리로군. 쳇, 가 봐.', 'Halt! Inspection. ...Flat broke, are you. Tch, get lost.') },
-      ...(take ? [{ who: 'narr', text: tr(`순사가 엽전 ${take}냥을 빼앗아 갔다…`, `The constable took ${take} nyang...`) }] : [])]);
+  // the stop: 100 nyang, or a fight
+  checkpoint(pr) {
+    pr.state = 'walk'; pr.calm = G.time + 8; this.queued = null;
+    for (const n of [pr.lead, pr.tail]) n.face = this.px > n.x ? 'right' : this.px < n.x ? 'left' : n.face;
+    const name = pr.lead.name;
+    if (!S.money) {
+      pr.v.done = true;
+      return say([{ who: 262, name, text: tr('거기 서! 검문이다. …빈털터리로군. 쳇, 가 봐.', 'Halt! Inspection. ...Flat broke, are you. Tch, get lost.') }]);
+    }
+    sfx('whistle');
+    say([{ who: 262, name, text: tr(`거기 서! 검문이다. …세금이 밀렸군. ${TOLL}냥 내놔.`, `Halt! Inspection. ...Your taxes are overdue. Hand over ${TOLL} nyang.`),
+      choices: tr([`${TOLL}냥을 낸다`, '맞서 싸운다'], [`Pay ${TOLL} nyang`, 'Stand up to them']), cancel: false, onChoice: (i) => {
+        if (i) return this.policeFight(pr);
+        const take = Math.min(TOLL, S.money);
+        S.money -= take; pr.v.done = true;
+        sfx('cancel');
+        say([{ who: 'narr', text: tr(`순사가 엽전 ${take}냥을 빼앗아 갔다…`, `The constable took ${take} nyang...`) }]);
+      } }]);
+  }
+  policeTalk(pr) {
+    if (!pr.v.done) return this.checkpoint(pr);
+    say([{ who: 262, name: pr.lead.name, text: tr('…뭘 보나? 어서 지나가.', '...What are you looking at? Move along.'),
+      choices: tr(['맞서 싸운다', '그만둔다'], ['Stand up to them', 'Leave it']), onChoice: (i) => { if (!i) this.policeFight(pr); } }]);
+  }
+  // the fight: this town turned battlefield around where you stand, the pair beside you, both 12% above the era's
+  // ordinary foes. However it ends the pair leaves you alone this visit (a win sends it off for good), and you come
+  // back to the town where you stood.
+  policeFight(pr) {
+    for (const o of this.pairs) { o.v.at = [o.lead.x, o.lead.y]; o.v.by = [o.tail.x, o.tail.y]; }
+    const v = pr.v, e = this.era;
+    const step = e.main.find((st) => st.do === 'dungeon' && e.dungeons[st.d] && !e.dungeons[st.d].water);
+    const d0 = e.dungeons[step?.d] || Object.values(e.dungeons).find((d) => !d.water && !d.battle) || Object.values(e.dungeons)[0];
+    const team = [[this.px, this.py], ...[this.partner, this.mate].filter(Boolean).sort((a, b) => a.who - b.who).map((f) => [f.x, f.y])];
+    const def = {
+      get name() { return tr('순사 검문', 'Constable Checkpoint'); },
+      tiles: d0.tiles, floors: 1, lv: d0.lv, mons: [262], bgm: 'ba_ginga', police: true, fromTown: true,
+      tint: S.night ? 'rgba(20,24,70,0.30)' : null,
+      battle: { town: this.def, kind: this.kind, foes: [262, 262], foeBuff: 1.12, at: team[0], team, foesAt: [v.at, v.by],
+        msg: () => tr('순사 그라에나 둘과 싸움이 붙었다! 둘 다 쓰러뜨리자.', 'A fight with two constables! Knock them both down.'),
+        end: (won) => { v.done = true; if (won) v.beaten = true; } },
+    };
+    S.townPos = [this.px, this.py];
+    G.policeBack = police.key;
+    fadeTo(() => G.goDungeon('police', def));
   }
   enter() {
     const t = this.def;
@@ -268,10 +383,10 @@ export class Town {
     };
   }
   // names are functions of the current language so a live language switch can relabel them; `at` overrides the
-  // content position (Pearl towns stand their people where Pearl's own NPCs stood)
-  addNpc(n, nameFn, at) {
+  // content position (Pearl towns stand their people where Pearl's own NPCs stood), `exact` is a tile already found free
+  addNpc(n, nameFn, at, exact) {
     if (n.when && !n.when()) return null;
-    const [x, y] = at ? this.nearestFree(...at) : this.nearestFree(n.x + this.OX, n.y);
+    const [x, y] = exact || (at ? this.nearestFree(...at) : this.nearestFree(n.x + this.OX, n.y));
     const npc = { ...n, x, y, vx: x, vy: y, hx: x, hy: y, face: 'left', t: Math.random() * 3, phase: Math.random() * 3 };
     npc.nameFn = nameFn || (() => (/\s/.test(n.name || '') ? n.name : DEX.species[n.sp].name));
     npc.name = npc.nameFn();
@@ -517,8 +632,7 @@ export class Town {
   }
   update(dt) {
     if (G.overlays.length) return;
-    const pol = this.police;
-    if (pol && !pol.done && !fade.cb && (pol.t -= dt) <= 0) { pol.t = 0.3; this.policeStep(); }
+    if (!fade.cb) for (const pr of this.pairs) this.patrolStep(pr, dt);
     // NPC wandering
     for (const n of this.npcs) {
       n.vx += (n.x - n.vx) * Math.min(1, dt * 8); n.vy += (n.y - n.vy) * Math.min(1, dt * 8);
@@ -528,7 +642,7 @@ export class Town {
         n.t = 1.5 + Math.random() * 3;
         const [dx, dy] = choice([[1, 0], [-1, 0], [0, 1], [0, -1]]);
         const nx = n.x + dx, ny = n.y + dy;
-        if (Math.abs(nx - n.hx) <= n.wander && Math.abs(ny - n.hy) <= n.wander && !this.blocked(nx, ny) && !(nx === this.px && ny === this.py) && !(nx === this.partner.x && ny === this.partner.y) && !(this.mate && nx === this.mate.x && ny === this.mate.y)) {
+        if (Math.abs(nx - n.hx) <= n.wander && Math.abs(ny - n.hy) <= n.wander && !this.blocked(nx, ny) && !(nx === this.px && ny === this.py) && !this.follower(nx, ny)) {
           n.x = nx; n.y = ny; n.face = dx > 0 ? 'right' : dx < 0 ? 'left' : n.face;
         }
       }
@@ -536,7 +650,7 @@ export class Town {
     // player, then the followers: each walks the tile the one ahead just left, in step with the player
     const P = this.partner;
     if (S.party[2] && !this.mate) this.mate = this.spawnMate(P);
-    if (!S.party[2]) this.mate = null;
+    if (!S.party[2]) { this.mate = null; P.who = 1; }
     const Q = this.mate;
     if (this.moving) {
       this.moveT += dt / 0.15;
@@ -553,7 +667,7 @@ export class Town {
       if (k === 'cancel' || k === 'menu') return this.openMain();
       if (k === 'quest') return questMenu();
       if (k === 'party') return rosterMenu();
-      if (k === 'tag') toast(tr('태그(Tab)는 던전에서 조종할 포켓몬을 바꿀 때 써요.', 'Tag (Tab) switches the Pokémon you control in dungeons.'));
+      if (k === 'tag') return this.tag();
       let dx = 0, dy = 0;
       if (input.isDown('left')) { dx = -1; this.face = 'left'; } else if (input.isDown('right')) { dx = 1; this.face = 'right'; } else if (input.isDown('up')) { dy = -1; this.face = 'up'; } else if (input.isDown('down')) { dy = 1; this.face = 'down'; }
       if (dx || dy) {
@@ -561,14 +675,16 @@ export class Town {
         const exit = this.layout ? this.exitTiles.some(([ex, ey]) => ex === nx && ey === ny) // a Pearl town: walking into a gate door
           : this.exitTiles.some(([ex, ey]) => ex === this.px && ey === this.py) && (ny >= this.H || nx >= this.W);
         if (exit) return this.leave();
-        const swap = nx === P.x && ny === P.y; // walking into the partner swaps the two; the third member stays put
-        if (!this.blocked(nx, ny) || swap) {
-          for (const f of Q ? [P, Q] : [P]) { f.fx = f.x; f.fy = f.y; }
-          if (Q && !swap) { Q.x = P.x; Q.y = P.y; Q.face = P.face; Q.dir = P.dir; }
-          P.x = this.px; P.y = this.py;
-          P.dir = this.face; // PMD sprites face every way; box icons keep their last left/right
-          P.face = this.face === 'up' || this.face === 'down' ? P.face : this.face;
-          this.fx = this.px; this.fy = this.py; this.px = nx; this.py = ny; this.moving = true; this.moveT = 0;
+        const F = Q ? [P, Q] : [P], hit = F.findIndex((f) => f.x === nx && f.y === ny); // walking into a follower trades places
+        if (!this.blocked(nx, ny) || hit >= 0) {
+          for (const f of F) { f.fx = f.x; f.fy = f.y; }
+          const ox = this.px, oy = this.py;
+          this.fx = ox; this.fy = oy; this.px = nx; this.py = ny; this.moving = true; this.moveT = 0;
+          if (hit >= 0) { // the one walked into steps back where you stood; the third one, swapped with, now walks right behind
+            F[hit].x = ox; F[hit].y = oy;
+            if (hit === 1) { this.partner = Q; this.mate = P; }
+          } else { P.x = ox; P.y = oy; if (Q) this.trail(Q, P.fx, P.fy, P); }
+          for (const f of F) this.turn(f);
         } else if (input.pressed.size) sfx('bump');
       }
     }
@@ -577,7 +693,40 @@ export class Town {
   spawnMate(P) {
     const spot = [[0, 1], [-1, 0], [1, 0], [0, -1]].map(([dx, dy]) => [P.x + dx, P.y + dy])
       .find(([x, y]) => !this.blocked(x, y) && !(x === this.px && y === this.py)) || [P.x, P.y];
-    return { x: spot[0], y: spot[1], fx: spot[0], fy: spot[1], vx: spot[0], vy: spot[1], face: P.face, dir: P.dir };
+    return { x: spot[0], y: spot[1], fx: spot[0], fy: spot[1], vx: spot[0], vy: spot[1], face: P.face, dir: P.dir, who: 3 - P.who };
+  }
+  // The third member takes the tile the partner (a) just left. When that is not one step away (you turned back past
+  // it and the partner swapped places with you), it never jumps through anyone: it stays beside the partner, or takes
+  // one step toward it.
+  trail(f, tx, ty, a) {
+    const md = (x, y, u, v) => Math.abs(x - u) + Math.abs(y - v);
+    if (md(f.x, f.y, tx, ty) === 1) { f.x = tx; f.y = ty; return; }
+    if (md(f.x, f.y, a.x, a.y) === 1) return;
+    const s = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [f.x + dx, f.y + dy])
+      .filter(([x, y]) => !this.blocked(x, y) && !(x === this.px && y === this.py) && !(x === a.x && y === a.y))
+      .sort((p, q) => md(...p, a.x, a.y) - md(...q, a.x, a.y))[0];
+    if (s) { f.x = s[0]; f.y = s[1]; }
+  }
+  // a follower faces the way it just stepped (PMD sprites face every way; box icons keep their last left/right)
+  turn(f) {
+    const dx = f.x - f.fx, dy = f.y - f.fy;
+    if (!dx && !dy) return;
+    f.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
+    if (dx) f.face = f.dir;
+  }
+  // Tab: the next one in the team takes the lead. The team's order turns round (the leader goes to the back, and the
+  // dungeons start with the new leader) and everyone slides into place behind it.
+  tag() {
+    const P = this.partner, Q = this.mate;
+    if (S.party.length < 2) { sfx('cancel'); return toast(tr('교대할 동료가 없다.', 'No teammate can tag in.'), COL.red); }
+    const at = new Map([[S.party[0], [this.px, this.py]], [S.party[P.who], [P.x, P.y]]]);
+    if (Q) at.set(S.party[Q.who], [Q.x, Q.y]);
+    S.party.push(S.party.shift());
+    [this.fx, this.fy] = at.get(S.party[0]);
+    for (const f of Q ? [P, Q] : [P]) [f.fx, f.fy] = at.get(S.party[f.who]);
+    this.moving = true; this.moveT = 0;
+    sfx('cursor');
+    toast(tr(`${S.party[0].name}이(가) 앞장선다!`, `${S.party[0].name} takes the lead!`), COL.blue);
   }
   onArrive() {}
   facing() { const d = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] }[this.face]; return [this.px + d[0], this.py + d[1]]; }
@@ -594,7 +743,7 @@ export class Town {
       if (npc.role === 'regi') return this.regiTalk(npc);
       if (npc.role === 'lati') return this.latiTalk();
       if (npc.role === 'meteor') return this.meteorTalk();
-      if (npc.role === 'police') return say([{ who: npc.sp, name: npc.name, text: tr('…뭘 보나? 어서 지나가.', '...What are you looking at? Move along.') }]);
+      if (npc.role === 'police') return this.policeTalk(npc.pair);
       if (npc.role === 'caught') return say([{ who: npc.sp, name: npc.name, text: tr('…밀정 노릇도 이제 끝이다.', '...My days as a spy are over.') }]);
       if (npc.folk != null) return say([{ who: npc.sp, name: npc.name, text: choice(FOLK_TIPS()) }]);
       return onTalk(npc, this);
@@ -750,15 +899,16 @@ export class Town {
     } });
     for (const n of this.npcs) list.push({ base: n.vy * TILE + TILE, draw: () => {
       if (n.role === 'meteor') this.drawMeteor(c, n.vx * TILE + 12, n.vy * TILE + TILE);
-      else drawMon(c, n.sp, false, n.vx * TILE + 12, n.vy * TILE + TILE, { facing: n.face, phase: n.phase });
+      else drawMon(c, n.sp, false, n.vx * TILE + 12, n.vy * TILE + TILE, { facing: n.face, phase: n.phase, moving: Math.abs(n.x - n.vx) + Math.abs(n.y - n.vy) > 0.05 });
       const mark = this.markOf(n), mx = n.vx * TILE + 12, my = n.vy * TILE - 12;
-      if (mark === 'main' || mark === 'side') this.drawMark(c, mx, my, '!', mark === 'main' ? COL.red : COL.blue);
+      if (mark === 'main' || mark === 'side' || mark === 'alarm') this.drawMark(c, mx, my, '!', mark === 'main' ? COL.red : mark === 'alarm' ? '#e0702a' : COL.blue);
       else if (mark) this.drawSign(c, mx, my, mark);
     } });
-    const [a, b, m3] = S.party;
-    const Q = this.mate;
-    if (Q && m3) list.push({ base: Q.vy * TILE + TILE - 2, draw: () => drawMon(c, m3.spr, m3.shiny, Q.vx * TILE + 12, Q.vy * TILE + TILE, { face: Q.dir, facing: Q.face === 'right' ? 'right' : 'left', moving: this.moving, phase: 2 }) });
-    list.push({ base: this.partner.vy * TILE + TILE - 1, draw: () => drawMon(c, b.spr, b.shiny, this.partner.vx * TILE + 12, this.partner.vy * TILE + TILE, { face: this.partner.dir, facing: this.partner.face === 'right' ? 'right' : 'left', moving: this.moving, phase: 1 }) });
+    const a = S.party[0];
+    for (const [f, k] of [[this.mate, 2], [this.partner, 1]]) { // each follower shows its team slot (who)
+      const m = f && S.party[f.who];
+      if (m) list.push({ base: f.vy * TILE + TILE - k, draw: () => drawMon(c, m.spr, m.shiny, f.vx * TILE + 12, f.vy * TILE + TILE, { face: f.dir, facing: f.face === 'right' ? 'right' : 'left', moving: this.moving, phase: k }) });
+    }
     list.push({ base: this.vy * TILE + TILE, draw: () => drawMon(c, a.spr, a.shiny, this.vx * TILE + 12, this.vy * TILE + TILE, { face: this.face, facing: this.face === 'right' ? 'right' : this.face === 'left' ? 'left' : this.lastH || 'left', moving: this.moving }) });
     if (this.face === 'left' || this.face === 'right') this.lastH = this.face;
     list.sort((p, q) => p.base - q.base).forEach((d) => d.draw());
@@ -783,6 +933,7 @@ export class Town {
   // a delivery's recipient while you carry it), a coin sign over the merchant, a bowl over the innkeeper and a purple disc over the TM dealer
   markOf(n) {
     if (this.isQuestNpc(n)) return 'main';
+    if (n.pair?.lead === n && n.pair.state !== 'walk') return 'alarm'; // a constable pair coming for you
     const side = this.era.side || [];
     if (n.role === 'board' && side.some((q) => ['open', 'ready'].includes(sideState(q)))) return 'side';
     if (side.some((q) => q.kind === 'deliver' && q.to === n.id && S.side[q.id] === 'active' && countItem(q.item))) return 'side';
@@ -848,11 +999,11 @@ export class Town {
     const goal = trackerText();
     if (goal) {
       const lines = ui.wrap(goal, 170, 9);
-      ui.panel(VW - 186, 6, 180, 14 + lines.length * 11);
+      ui.panel(VW - 186, 6, 180, 17 + lines.length * 11); // room below the last row for its descenders
       ui.text(tr('▶ 목표', '▶ Goal'), VW - 180, 11, { size: 9, color: COL.red, bold: true });
       lines.forEach((l, i) => ui.text(l, VW - 180, 22 + i * 11, { size: 9 }));
     }
     ui.text(tr(`${S.money}냥`, `${S.money} nyang`), 14, VH - 16, { size: 9, color: '#fff', shadow: true });
-    if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 게임 메뉴 · 메뉴: 퀘스트 · 동료', 'Z talk · X game menu · Menu: quests · team') : tr('Z 조사 · X 메뉴 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
+    if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 게임 메뉴 · Tab 교대 · 메뉴: 퀘스트 · 동료', 'Z talk · X game menu · Tab lead · Menu: quests · team') : tr('Z 조사 · X 메뉴 · Tab 교대 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · Tab lead · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
   }
 }

@@ -244,7 +244,7 @@
         <div class="keys">
           <span><kbd>Shift</kbd> + 방향</span><span>제자리에서 방향만 바꾸기</span>
           <span><kbd>A</kbd> (누르고 있기)</span><span>쉬기 · 턴 넘기기</span>
-          <span><kbd>Tab</kbd></span><span>태그: 던전에서 조종할 포켓몬을 다음 동료로 교대 (턴 소모 없음)</span>
+          <span><kbd>Tab</kbd></span><span>태그: 던전에서는 조종할 포켓몬을 다음 동료로 교대 (턴 소모 없음), 마을에서는 다음 동료가 앞장서도록 팀 순서를 돌립니다 (던전도 그 포켓몬이 앞장서서 시작)</span>
           <span><kbd>J</kbd> / <kbd>M</kbd></span><span>퀘스트 목록 열기·닫기 / 미니맵 켜고 끄기</span>
           <span><kbd>P</kbd></span><span>동료 명부 열기·닫기 (던전 밖에서만): <b>찾기</b>(이름·초성·타입·도감 번호)로 원하는 동료를 골라 리더·파트너·동료 어느 자리에든 데려가고, 팀끼리 자리도 바꿉니다. 기술 순서 바꾸기와 기술 배우기(잊은 기술도 다시)는 X 메뉴 → 포켓몬에서 Z로 합니다</span>
           <span><kbd>H</kbd></span><span>이 가이드 열기·닫기</span>
@@ -259,7 +259,7 @@
       <ul>
         <li><b>마을</b>: 머리 위의 <b style="color:var(--red)">빨간 !</b>는 메인 퀘스트, <b style="color:var(--blue)">파란 !</b>는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), <b>엽전 표지</b>는 장사꾼, <b>국밥 표지</b>는 주막 주인, <b style="color:#6a3aa8">보라색 디스크 표지</b>는 기술머신 상인입니다. 주막(회복·저장·동료 명부), 장터(도구), 기술머신 상인(사는 자리에서 기술을 가르쳐 줌, 1000냥·센 기술 3000냥), 방(榜, 의뢰 게시판)이 있고, 큰 중심 마을과 함께 <b>두 번째 마을</b>이 있는 시대도 많습니다.</li>
         <li><b>펄 마을</b>: 1887 제물포(운하시티), 1905 한성(연고시티), 1940 경성(무쇠시티), 1950 흥남(선단시티)과 서울 시가전(장막시티), 1979 서울(들판시티)은 「포켓몬스터 펄」의 실제 마을 배치(길, 건물 자리, 물, 문)를 롬에서 읽어 그대로 본떠 만들었습니다.</li>
-        <li><b>순사</b>: 일제 강점기(1919·1940)의 마을에 들어갈 때마다 순사가 다가와 엽전 50냥을 빼앗아 갑니다 (한 번 들어갈 때 한 번).</li>
+        <li><b>순사 그라에나</b>: 일제 강점기(1910~1944년: 1919 경성·아우내 장터, 1920 용정, 1940 경성)의 마을에서는 순사 그라에나 4마리가 <b>2마리씩 짝지어 순찰</b>합니다. 눈에 띄면 다가와 <b>100냥</b>을 요구하는데, 낼 수도 있고 <b>그 자리에서 맞서 싸울 수도</b> 있어요 (마을이 그대로 싸움터가 되고, 그라에나는 일반 적보다 <b>12% 강합니다</b>). 이기면 그 짝은 마을을 떠나고, 어느 쪽이든 그 방문 동안은 다시 붙잡지 않아요. 멀리 달아나면 쫓기를 포기하고, 말을 걸어 싸움을 걸 수도 있습니다. 독립군 기지와 충칭 임시정부에는 오지 않아요.</li>
         <li><b>세계 지도</b>: 마을 출구로 나가면 열립니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, <b style="color:var(--gold)">금색 테두리 안의 포켓몬</b>은 그곳에 있는 전설의 포켓몬입니다.</li>
         <li><b>놓친 전설</b>: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 평소 마지막 층보다 한 층 더 깊은 곳에서, 그 던전의 적과 같은 레벨로 기다려요. 또 놓치면 그다음 시대로 옮겨 갑니다. 전설이 없는 던전에만 나타나서, 자리가 모자라면 그다음 시대로 미뤄져요.</li>
         <li><b>던전</b>: 그래픽은 「포켓몬 불가사의 던전 파랑구조대」의 던전 지형과 포켓몬 스프라이트를 씁니다. 층마다 지형이 무작위로 바뀌어요.</li>
@@ -270,7 +270,8 @@
       <h2>던전 전투와 난이도</h2>
       <ul>
         <li>내가 한 번 움직이면 적도 한 번 움직이는 턴제입니다. 파트너와 동료는 알아서 싸워요.</li>
-        <li>우리 편 기술은 <b>3칸 안에 적</b>이 있으면 방향과 상관없이 그 적을 노려 <b>반드시 맞힙니다</b>. 더 멀면 <b>물리 기술</b>은 바로 앞 한 칸, <b>특수 기술</b>은 바라보는 방향 직선 6칸으로 나갑니다. "주변 전체" 기술은 둘레 8칸을 공격하고, 보스의 기술과 예고 공격은 보스에게서 <b>4칸</b>까지만 닿아요. 보스는 잠듦·얼음·독에 걸리지 않습니다.</li>
+        <li>우리 편 기술은 <b>3칸 안에 적</b>이 있으면 방향과 상관없이 그 적을 노려 <b>반드시 맞힙니다</b>. 더 멀면 <b>물리 기술</b>은 바로 앞 한 칸, <b>특수 기술</b>은 바라보는 방향 직선 6칸으로 나갑니다. "주변 전체" 기술은 둘레 8칸을 공격하고, 야생 포켓몬의 기술은 직선 <b>4칸</b>, 보스의 기술과 예고 공격도 보스에게서 <b>4칸</b>까지만 닿아요. 보스는 잠듦·얼음·독에 걸리지 않고, <b>전설의 포켓몬 보스</b>는 마비·화상까지 <b>모든 상태 이상</b>에 걸리지 않습니다.</li>
+        <li>지금 조종하는 포켓몬은 머리 위와 팀 창의 이름 옆에 <b>리더 뱃지</b>(왕관 방패)가 붙습니다. 파트너와 동료는 리더 곁을 지키고, 통로에서는 줄지어 뒤따릅니다.</li>
         <li>포켓몬은 본편의 100을 넘어 <b>Lv 180</b>까지 오릅니다.</li>
         <li><b>보스방</b>에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 그 밖에는 장터의 <b>기력의 조각</b>(1000냥)으로 던전 한 번에 한 마리를 되살릴 수 있어요.</li>
         <li><b>초반은 쉽게, 중반부터 어렵게</b>: 앞쪽 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며 회복이 느려져요.</li>
@@ -286,8 +287,14 @@
       <ul>
         <li>바닥이 <b style="color:var(--red)">붉게 빛나는 칸</b>에는 곧 강력한 공격이 떨어집니다. 남은 턴 안에 붉은 칸 밖으로 이동하세요.</li>
         <li>큰 기술을 쓴 직후 보스에게는 <b style="color:var(--green)">빈틈</b>이 생겨 받는 피해가 <b>1.5배</b>가 됩니다. 피하고 → 반격하는 리듬이 핵심입니다.</li>
-        <li><b>600족</b>(한카리아스·보만다·메타그로스·마기라스·망나뇽) 보스는 전설의 포켓몬보다 <b>15%쯤 약한</b> 강적이고 (레벨 +2, 체력·공격·예고 공격이 전설의 85%), <b>아르세우스</b>는 1979년 12·12 뒤 <b>마지막 퀘스트</b>에서 만나는 3단계 최종 보스로, 레벨이 <b>내 팀 레벨에 맞춰지고</b>(최대 180) 체력이 매우 높습니다. 쓰러뜨려도 <b>황금빛 이로치</b>로 다시 일어나는 <b>2페이즈</b>가 있어요 (체력은 처음의 2/3, 공격과 예고 패턴이 더 거셈).</li>
+        <li><b>600족</b>(한카리아스·보만다·메타그로스·마기라스·망나뇽) 보스는 전설의 포켓몬보다 <b>15%쯤 약한</b> 강적이고 (레벨 +2, 체력·공격·예고 공격이 전설의 85%), <b>아르세우스</b>는 1979년 12·12 뒤 <b>마지막 퀘스트</b>에서 만나는 3단계 최종 보스로, 레벨이 <b>내 팀 레벨에 맞춰지고</b>(최대 180) 체력이 매우 높습니다. 쓰러뜨려도 <b>황금빛 이로치</b>로 다시 일어나는 <b>2페이즈</b>(체력은 처음의 2/3, 공격과 예고 패턴이 더 거셈)가 있고, 2페이즈부터는 <b>심판의 뭉치</b>가 하늘에서 필드 곳곳에 원 모양으로 쏟아집니다(금빛 고리 아래를 피하세요). 그래도 쓰러뜨리면 무지갯빛으로 다시 일어나는 <b>3페이즈</b>(체력 절반, 공격 +10%·방어 +20%)가 시작되고, 매 턴 심판이 쏟아지는 사이 <b>파괴광선</b>을 360도로 한 바퀴 휘두릅니다(세 번). 다음에 지나갈 줄기가 붉게 빛나니 비켜서세요.</li>
         <li><b>펄기아·디아루가·기라티나</b>도 쓰러뜨리면 <b>오리진폼</b>으로 변해 2페이즈를 시작합니다 (체력 2/3, 더 강한 공격과 겹치는 패턴). 1919년 디아루가와 1940년 기라티나는 메인 보스라 꼭 이겨야 해요.</li>
+        <li><b>전설의 전용기</b>: 1페이즈에 한 번, 2페이즈에 두세 번 씁니다. 체력이 그 고비에 닿으면 전용기를 쓰기 전까지는 더 깎이지 않아요.
+          <b>디아루가 · 시간의 포효</b>: 한 턴 기를 모은 뒤 시간을 되감아 <b>10초 전의 체력</b>으로 돌아가고, 우리 편 모두의 <b>HP를 최대치의 20%</b> 깎습니다 (피할 수 없으니 미리 회복하고, 반동으로 쉬는 틈을 노리세요).
+          <b>펄기아 · 공간절단</b>: 공간이 찢어지며 <b>싸움터가 한 겹씩 좁아지고</b>(두 번까지) 바닥의 틈에서 공격이 솟아오릅니다.
+          <b>기라티나 · 섀도다이브</b>: <b>어둠 속으로 사라졌다가</b> 우리 포켓몬의 <b>그림자 밑에서 튀어나와</b> 공격합니다. 그림자가 술렁이는 자리에서 벗어나세요. 악 타입에 맞서 격투 기술 <b>파동탄</b>도 씁니다.
+          <b>그란돈 · 단애의 칼</b>, <b>가이오가 · 근원의 파동</b> (1950 서울 시가전): 땅이 갈라진 줄기를 따라 바위 칼날이 솟거나, 여덟 방향으로 파동이 퍼집니다.
+          <b>다크라이</b>(1979 12·12 · 1940 그믐달 섬)는 <b>3페이즈</b>로 싸웁니다: <b>다크홀</b>(발밑의 검은 구멍에 빠지면 잠듦) → 악몽의 모습에서 다크홀·<b>섀도다이브</b> → 칠흑의 모습(공격 +10%·방어 +20%)에서 <b>악의파동</b>까지. 잠든 리더는 Tab으로 깨어 있는 동료와 교대하세요.</li>
         <li><b>기라티나</b>는 고스트·드래곤 타입이라 격투 기술은 아예 안 듣고 물·불꽃 기술은 반감돼요. 1388년에 동료가 되는 <b>프리저</b>(얼음)처럼 얼음·드래곤·고스트·악 기술을 쓰는 동료를 데려가세요.</li>
         <li><b>썬더·파이어·프리져</b>는 같은 시대 보스 중 가장 강합니다. 체력이 보통 보스의 약 10배이고 공격도 매우 아파서, 예고 공격을 피하고 회복 도구를 챙겨야 합니다. 어렵다면 레벨을 올려 다시 도전하세요 (전설의 레벨은 일정 이상 오르지 않아요).</li>
       </ul>
@@ -373,7 +380,7 @@
         <div class="keys">
           <span><kbd>Shift</kbd> + direction</span><span>Turn without moving</span>
           <span><kbd>A</kbd> (hold)</span><span>Rest · pass the turn</span>
-          <span><kbd>Tab</kbd></span><span>Tag: hand control to the next teammate in dungeons (no turn spent)</span>
+          <span><kbd>Tab</kbd></span><span>Tag: in dungeons, hand control to the next teammate (no turn spent); in town, turn the team's order round so the next one leads (it leads in dungeons too)</span>
           <span><kbd>J</kbd> / <kbd>M</kbd></span><span>Open or close the quest list / toggle the minimap</span>
           <span><kbd>P</kbd></span><span>Open or close the companion roster (outside dungeons): <b>Search</b> (name, type, dex number) for the one you want and bring it into any slot, or swap the team's places. Reorder or learn moves (forgotten ones too) under X menu → Pokémon with Z</span>
           <span><kbd>H</kbd></span><span>Open or close this guide</span>
@@ -388,7 +395,7 @@
       <ul>
         <li><b>Towns</b>: a <b style="color:var(--red)">red !</b> above someone's head means your main quest, a <b style="color:var(--blue)">blue !</b> a request (the crier with a new or finished one, or someone waiting for a delivery), a <b>coin sign</b> the merchant, a <b>soup-bowl sign</b> the innkeeper and a <b style="color:#6a3aa8">purple disc sign</b> the TM dealer, who teaches a TM's move right where you buy it (1000 nyang, strong moves 3000). Every town has an inn (heal, save, roster), a market and a notice board. Many eras also have a <b>second town</b> next to the big main town.</li>
         <li><b>Pearl towns</b>: Jemulpo 1887 (Canalave), Hanseong 1905 (Hearthome), Gyeongseong 1940 (Oreburgh), Hungnam 1950 and the battle for Seoul (Snowpoint, Veilstone), and Seoul 1979 (Pastoria) copy the real layouts of Pokémon Pearl's towns (paths, building lots, water, doors), read from the ROM.</li>
-        <li><b>Colonial police</b>: each time you enter a town under colonial rule (1919, 1940) a constable walks up and takes 50 nyang (once per visit).</li>
+        <li><b>Constable Mightyena</b>: towns under colonial rule (1910–1944: 1919 Gyeongseong and Aunae, 1920 Yongjeong, 1940 Gyeongseong) have four constables <b>patrolling in pairs</b>. A pair that spots you demands <b>100 nyang</b>: pay, or <b>stand up to them right there</b> (the town becomes the battlefield; they are <b>12% stronger</b> than ordinary foes). Beaten, the pair leaves town; either way it won't stop you again that visit. Run far enough and they give up; talk to a pair to pick a fight. They never come to the independence army's base or Chongqing.</li>
         <li><b>World map</b>: red marks are the main quest, blue marks are requests you took, and a Pokémon in a <b style="color:var(--gold)">gold ring</b> is the legendary Pokémon waiting there.</li>
         <li><b>Missed legends</b>: a legendary Pokémon that did not join you in its era (never met, or let go) comes back in another dungeon of the next era, one floor below the usual last floor, at the level of that dungeon's foes. Miss it again and it moves on to the era after. It only comes to a dungeon with no legend of its own, so when there is no free one it waits for the next era.</li>
         <li><b>Dungeons</b> use the terrain and Pokémon sprites of Pokémon Mystery Dungeon: Blue Rescue Team. Floors change every time.</li>
@@ -399,7 +406,8 @@
       <h2>Dungeon battles and difficulty</h2>
       <ul>
         <li>Turn-based: every time you act, the foes act once. Your partner and ally fight on their own.</li>
-        <li>Your team's moves turn to <b>any foe within 3 tiles</b>, whichever way you face, and <b>always hit</b>; farther off, <b>physical moves</b> hit the tile in front and <b>special moves</b> travel 6 tiles in a straight line. "All around" moves hit all 8 neighbors, and a boss's moves and warning blasts reach <b>4 tiles</b> at most. Bosses can't be put to sleep, frozen or poisoned.</li>
+        <li>Your team's moves turn to <b>any foe within 3 tiles</b>, whichever way you face, and <b>always hit</b>; farther off, <b>physical moves</b> hit the tile in front and <b>special moves</b> travel 6 tiles in a straight line. "All around" moves hit all 8 neighbors; a wild Pokémon's moves reach <b>4 tiles</b> in a line, and a boss's moves and warning blasts <b>4 tiles</b> at most. Bosses can't be put to sleep, frozen or poisoned, and <b>legendary bosses</b> shrug off <b>every status problem</b>, paralysis and burns too.</li>
+        <li>The Pokémon you control wears the <b>leader badge</b> (a crowned shield) over its head and beside its name in the team panel. Your partner and ally keep close to it and follow in a line through corridors.</li>
         <li>Pokémon grow past the main games' 100, up to <b>Lv 180</b>.</li>
         <li>Stepping into a <b>boss room</b> brings fallen teammates back with half their HP; otherwise a <b>Revive</b> from the market (1000 nyang) gets one back up, once per dungeon run.</li>
         <li><b>Easy at first, hard from the middle on</b>: early eras field fewer, weaker foes and you heal quickly. Later eras bring more foes, harder hits and slower recovery.</li>
@@ -415,8 +423,14 @@
       <ul>
         <li>Tiles that <b style="color:var(--red)">glow red</b> are about to be hit hard. Step off them before the turn count runs out.</li>
         <li>Right after a big move the boss is <b style="color:var(--green)">open</b> and takes <b>1.5x damage</b>. Dodge, then strike back.</li>
-        <li>The <b>600-class</b> bosses (Garchomp, Salamence, Metagross, Tyranitar, Dragonite) fight <b>about 15% below a legend</b> (+2 levels; HP, attack and warning blasts at 85% of a legend's); <b>Arceus</b> is the three-phase final boss whose level <b>follows your team's</b> (up to 180), with a huge HP pool, met in the <b>last quest</b> after December 12, 1979. Knock it out and it rises again <b>golden (Shiny)</b> for a <b>second phase</b> with 2/3 of its HP and harsher attacks and warning patterns.</li>
+        <li>The <b>600-class</b> bosses (Garchomp, Salamence, Metagross, Tyranitar, Dragonite) fight <b>about 15% below a legend</b> (+2 levels; HP, attack and warning blasts at 85% of a legend's); <b>Arceus</b> is the three-phase final boss whose level <b>follows your team's</b> (up to 180), with a huge HP pool, met in the <b>last quest</b> after December 12, 1979. Knock it out and it rises again <b>golden (Shiny)</b> for a <b>second phase</b> with 2/3 of its HP and harsher attacks and warning patterns; from then on <b>Judgment</b> rains round blasts all over the field (dodge the gold rings). Down again, it rises in rainbow light for a <b>third phase</b> (half that HP, Attack +10%, Defense +20%): Judgment pours down every turn, and three times it swings <b>Hyper Beam</b> round a full circle. The line it reaches next glows red; step aside.</li>
         <li><b>Palkia, Dialga and Giratina</b> also take their <b>Origin Forme</b> once knocked out and start a second phase (2/3 HP, harder hits, overlapping patterns). Dialga (1919) and Giratina (1940) are main-story bosses you must beat.</li>
+        <li><b>Signature moves</b>: once in the first phase, two or three times in the second. When its HP reaches the mark, it can't be worn further down until the move has gone off.
+          <b>Dialga · Roar of Time</b>: after a turn building it up, time turns back to <b>its HP of 10 seconds before</b>, and your whole team loses <b>20% of its max HP</b> (no dodging it: heal beforehand, and hit it while it recharges).
+          <b>Palkia · Spacial Rend</b>: space tears, the <b>arena closes in a ring</b> (twice at most) and attacks burst out of rifts in the floor.
+          <b>Giratina · Shadow Force</b>: it <b>vanishes into the dark</b> and bursts <b>out of the shadow</b> of one of your team; step off the stirring shadow. Against Dark types it also uses the Fighting move <b>Aura Sphere</b>.
+          <b>Groudon · Precipice Blades</b> and <b>Kyogre · Origin Pulse</b> (Seoul, 1950): stone blades rise along fissures, or waves spread out in eight directions.
+          <b>Darkrai</b> (12·12 in 1979, Newmoon Island in 1940) fights in <b>three phases</b>: <b>Dark Void</b> (fall into a black hole and you fall asleep), then Nightmare with Dark Void and <b>Shadow Force</b>, then Pitch Black (Attack +10%, Defense +20%) with <b>Dark Pulse</b> as well. Tab out of a sleeping leader to an awake teammate.</li>
         <li><b>Giratina</b> is Ghost/Dragon: Fighting moves don't touch it and Water or Fire moves are resisted. Bring partners with Ice, Dragon, Ghost or Dark moves, such as <b>Articuno</b>, who joins you in 1388.</li>
         <li><b>Zapdos, Moltres and Articuno</b> are the toughest bosses of their eras, with about ten times a normal boss's HP and very painful attacks. Dodge the warning attacks and bring healing items; if it's too hard, level up and try again (legendaries stop at a set level).</li>
       </ul>
