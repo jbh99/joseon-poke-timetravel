@@ -6,24 +6,36 @@
 import { G, APP, touchUI, input, toast, COL } from './core.js';
 import { tr, onLang } from './i18n.js';
 import { ERAS } from './content.js';
-import { readSave, saveText, replaceSave } from './game.js';
+import { S, SLOTS, MODE_NAMES, slotOf, readSave, saves, saveText, replaceSave } from './game.js';
 
 // web OAuth client of the joseon-poke-timetravel Google Cloud project (origins: both sites and localhost:8790);
 // the app is recognised by its package name and signing certificate instead
 const CLIENT_ID = '238371388945-g8nh0a7h199q8rel4iiv3abku2crn2r5.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email';
-const FILE = 'joseon-save.json', API = 'https://www.googleapis.com';
-// this device's link, { email, synced }: synced is the savedAt of the save this device last sent or took, which tells
-// which side moved on since (a device that never synced has none)
+const API = 'https://www.googleapis.com';
+// every journey (game.js SLOTS, one per difficulty) has a copy of its own; Normal keeps the name the versions before
+// 1.7 gave their only save, so they go on syncing it
+const fileName = (slot) => (slot === 'normal' ? 'joseon-save.json' : `joseon-save-${slot}.json`);
+// this device's link, { email, synced: { journey: savedAt } }: the savedAt of the save this device last sent or took
+// for each journey, which tells which side moved on since (a journey never synced here has none). Before 1.7 synced was
+// one savedAt, that of the device's only save.
 const PREF = 'joseon-cloud', TOOK = 'joseon-cloud-took';
 const $ = (id) => document.getElementById(id);
-// file: the Drive copy (undefined = not looked up yet); choice: the player has to pick between this device's save and
-// the cloud's (newer: only the cloud moved on, but taking it now would drop the play in progress)
-const st = { token: null, exp: 0, email: null, file: undefined, choice: null, pending: false, busy: false, msg: '' };
+// files: the Drive copies by journey (undefined = not looked up yet); choice: the player has to pick between this
+// device's save of a journey and the cloud's (newer: only the cloud moved on, but taking it would drop the play in progress)
+const st = { token: null, exp: 0, email: null, files: undefined, choice: null, pending: false, busy: false, msg: '' };
 
-const linked = () => { try { return JSON.parse(localStorage.getItem(PREF)); } catch (e) { return null; } };
+const linked = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(PREF));
+    if (typeof v?.synced === 'string') v.synced = { [SLOTS.find((s) => String(readSave(s)?.savedAt) === v.synced) || 'normal']: v.synced };
+    return v;
+  } catch (e) { return null; }
+};
 const setLink = (v) => { try { if (v) localStorage.setItem(PREF, JSON.stringify(v)); else localStorage.removeItem(PREF); } catch (e) { /* private mode */ } };
-const markSynced = (savedAt) => setLink({ email: st.email, synced: String(savedAt) });
+const markSynced = (slot, savedAt) => setLink({ email: st.email, synced: { ...linked()?.synced, [slot]: String(savedAt) } });
+// the journey being played, whose save the cloud must not take away unasked (none on the title)
+const playing = () => (G.scene && G.scene.constructor.name !== 'Title' ? S.slot : null);
 
 // ---------------------------------------------------------------- tokens
 let gis = null;
@@ -68,58 +80,85 @@ async function api(path, opts = {}) {
   if (!r.ok) throw new Error(`Drive ${r.status}`);
   return r;
 }
+// the journeys' copies in the app folder; a copy from before 1.7 names no journey, so its own save is read for it
 async function find() {
-  const q = encodeURIComponent(`name='${FILE}'`);
-  st.file = (await (await api(`/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,appProperties)`)).json()).files[0] || null;
+  const list = (await (await api('/drive/v3/files?spaces=appDataFolder&fields=files(id,name,appProperties)&pageSize=100')).json()).files || [];
+  const files = {};
+  for (const f of list) {
+    if (!/^joseon-save/.test(f.name || '')) continue;
+    if (!f.appProperties?.slot) {
+      try { f.appProperties = { ...f.appProperties, slot: slotOf(JSON.parse(await (await api(`/drive/v3/files/${f.id}?alt=media`)).text())) }; } catch (e) { continue; }
+    }
+    const slot = f.appProperties.slot, had = files[slot];
+    if (SLOTS.includes(slot) && !(had && +had.appProperties.savedAt >= +f.appProperties.savedAt)) files[slot] = f;
+  }
+  st.files = files;
 }
 // what a save is, in a few words kept beside the file (Drive app properties are short strings)
-const meta = (o) => ({ era: String(o.era), playtime: String(Math.round(o.playtime || 0)), savedAt: String(o.savedAt || 0) });
-async function push() {
-  const text = saveText();
+const meta = (o, slot) => ({ slot, era: String(o.era), playtime: String(Math.round(o.playtime || 0)), savedAt: String(o.savedAt || 0) });
+async function push(slot) {
+  const text = saveText(slot);
   if (!text) return;
-  const m = meta(JSON.parse(text));
-  const head = { appProperties: m, ...(st.file ? {} : { name: FILE, parents: ['appDataFolder'] }) };
+  const m = meta(JSON.parse(text), slot), file = st.files[slot];
+  const head = { appProperties: m, ...(file ? {} : { name: fileName(slot), parents: ['appDataFolder'] }) };
   const b = `joseon${Date.now()}`;
   const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(head)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${text}\r\n--${b}--`;
-  const path = `/upload/drive/v3/files${st.file ? `/${st.file.id}` : ''}?uploadType=multipart&fields=id,appProperties`;
-  st.file = await (await api(path, { method: st.file ? 'PATCH' : 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` }, body })).json();
-  markSynced(m.savedAt);
-  st.pending = false;
+  const path = `/upload/drive/v3/files${file ? `/${file.id}` : ''}?uploadType=multipart&fields=id,name,appProperties`;
+  st.files[slot] = await (await api(path, { method: file ? 'PATCH' : 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` }, body })).json();
+  markSynced(slot, m.savedAt);
 }
-// the cloud copy replaces this device's save and the game starts over from the title with it
-async function pull() {
-  const text = await (await api(`/drive/v3/files/${st.file.id}?alt=media`)).text();
-  replaceSave(text);
-  markSynced(JSON.parse(text).savedAt);
-  try { sessionStorage.setItem(TOOK, JSON.stringify(meta(JSON.parse(text)))); } catch (e) { /* private mode */ }
+// a journey's cloud copy replaces its save on this device
+async function pull(slot) {
+  const text = await (await api(`/drive/v3/files/${st.files[slot].id}?alt=media`)).text();
+  replaceSave(text, slot);
+  markSynced(slot, JSON.parse(text).savedAt);
+  return meta(JSON.parse(text), slot);
+}
+// saves taken from the cloud: with the journey in play among them (or on the title) the game starts over from the title;
+// another journey's save just waits there for its turn
+function took(list) {
+  const p = playing();
+  if (p && !list.some((m) => m.slot === p)) return toast(tr(`클라우드 세이브를 받았어요 · ${list.map(describe).join(' / ')}`, `Took the cloud save · ${list.map(describe).join(' / ')}`), COL.blue, 5);
+  try { sessionStorage.setItem(TOOK, JSON.stringify(list)); } catch (e) { /* private mode */ }
   location.reload();
 }
-// line this device up with the cloud: the side that moved on since this device last synced wins by itself; a device's
-// first sync, or both sides having moved on, asks the player. auto: not asked for, so play in progress is not dropped
+// line each journey on this device up with its cloud copy: the side that moved on since this device last synced wins by
+// itself; a device's first sync of a journey, or both sides having moved on, asks the player (one journey at a time).
+// auto: not asked for, so the journey in play is never taken away
 async function sync(auto) {
   await find();
-  const local = readSave(), cloud = st.file?.appProperties, was = linked()?.synced;
-  if (!cloud) {
-    if (!local) return say(tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.'));
-    await push();
-    return say(tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud."));
+  const was = linked()?.synced || {}, p = playing(), got = [];
+  let sent = 0;
+  st.choice = null;
+  for (const slot of SLOTS) {
+    const local = readSave(slot), cloud = st.files[slot]?.appProperties, w = was[slot];
+    if (!cloud) { if (local) { await push(slot); sent++; } continue; }
+    if (local && String(local.savedAt) === cloud.savedAt) { markSynced(slot, cloud.savedAt); continue; }
+    if (local && w && cloud.savedAt === w) { await push(slot); sent++; continue; }
+    if (!local || (w && String(local.savedAt) === w)) {
+      if (auto && slot === p) st.choice ||= { slot, cloud, newer: true };
+      else got.push(await pull(slot));
+      continue;
+    }
+    st.choice ||= { slot, local: meta(local, slot), cloud };
   }
-  if (local && String(local.savedAt) === cloud.savedAt) { markSynced(cloud.savedAt); return say(tr('클라우드와 같은 최신 세이브예요.', 'Up to date with the cloud.')); }
-  if (local && was && cloud.savedAt === was) { await push(); return say(tr('이 기기에서 더 진행한 세이브를 올렸어요.', 'Uploaded the further progress made here.')); }
-  if (!local || (was && String(local.savedAt) === was)) {
-    if (!auto || !G.scene || G.scene.constructor.name === 'Title') return pull(); // nothing in progress yet
-    st.choice = { cloud, newer: true };
-    return;
-  }
-  st.choice = { local: meta(local), cloud };
+  st.pending = false;
+  say(st.choice ? '' : sent ? tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud.")
+    : SLOTS.some((s) => st.files[s]) ? tr('클라우드와 같은 최신 세이브예요.', 'Up to date with the cloud.') : tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.'));
+  if (got.length) took(got);
 }
 
 // ---------------------------------------------------------------- panel
+// a journey's difficulty leads once there is more than one journey here or in the cloud (or it is not Normal)
+const journeys = () => new Set([...saves().map((s) => s.slot), ...Object.keys(st.files || {})]).size;
 function describe(m) {
   const t = +m.playtime || 0, d = new Date(+m.savedAt || 0), two = (n) => String(n).padStart(2, '0');
   const when = `${d.getMonth() + 1}/${d.getDate()} ${two(d.getHours())}:${two(d.getMinutes())}`, year = ERAS[+m.era]?.year ?? '?';
-  return tr(`${year}년 · ${Math.floor(t / 3600)}시간 ${Math.floor(t / 60) % 60}분 · ${when}`, `${year} · ${Math.floor(t / 3600)}h ${Math.floor(t / 60) % 60}m · ${when}`);
+  const name = m.slot && (m.slot !== 'normal' || journeys() > 1) ? `${MODE_NAMES()[m.slot]} · ` : '';
+  return name + tr(`${year}년 · ${Math.floor(t / 3600)}시간 ${Math.floor(t / 60) % 60}분 · ${when}`, `${year} · ${Math.floor(t / 3600)}h ${Math.floor(t / 60) % 60}m · ${when}`);
 }
+// the journey a button means: the one in question, else the one in play, else the one played last
+const current = () => st.choice?.slot || playing() || saves()[0]?.slot || 'normal';
 // the save that went further (era, then time played) is the one offered first
 const ahead = (a, b) => +a.era - +b.era || +a.playtime - +b.playtime;
 function say(msg) { st.msg = msg; }
@@ -155,10 +194,20 @@ const signIn = () => run(async () => {
   if (linked()?.email !== st.email) setLink({ email: st.email }); // another account: this device has not synced with it
   await sync(false);
 });
-const upload = () => run(async () => { await getToken(true); if (st.file === undefined) await find(); await push(); st.choice = null; say(tr('클라우드에 저장했어요.', 'Saved to the cloud.')); });
-const download = () => run(async () => { await getToken(true); await find(); if (!st.file) return say(tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.')); await pull(); });
+const upload = () => run(async () => {
+  await getToken(true); if (st.files === undefined) await find();
+  await push(current());
+  st.choice = null; st.pending = false; say(tr('클라우드에 저장했어요.', 'Saved to the cloud.'));
+});
+const download = () => run(async () => {
+  await getToken(true); await find();
+  const slot = current();
+  if (!st.files[slot]) return say(tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.'));
+  const m = await pull(slot);
+  st.choice = null; took([m]);
+});
 function signOut() {
-  Object.assign(st, { token: null, exp: 0, email: null, file: undefined, choice: null, pending: false, msg: tr('로그아웃했어요.', 'Signed out.') });
+  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, choice: null, pending: false, msg: tr('로그아웃했어요.', 'Signed out.') });
   setLink(null); render();
 }
 function render() {
@@ -166,8 +215,8 @@ function render() {
   $('btn-cloud').textContent = st.email ? tr('클라우드', 'Cloud') + (st.pending || st.choice ? ' !' : '') : touchUI ? tr('로그인', 'Sign in') : tr('구글 로그인', 'Google login');
   if ($('cloud').hidden) return;
   $('cloud-title').textContent = tr('구글 계정 · 클라우드 저장', 'Google account · cloud save');
-  $('cloud-intro').textContent = tr('구글로 로그인하면 세이브가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되고, 로그인한 PC와 폰이 서로 가장 최근 진행으로 이어져요.',
-    'Sign in with Google to keep your save in a hidden app folder of your own Google Drive; signed-in PCs and phones then carry on from the latest progress.');
+  $('cloud-intro').textContent = tr('구글로 로그인하면 세이브(난이도마다 하나씩)가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되고, 로그인한 PC와 폰이 서로 가장 최근 진행으로 이어져요.',
+    'Sign in with Google to keep your saves (one per difficulty) in a hidden app folder of your own Google Drive; signed-in PCs and phones then carry on from the latest progress.');
   $('cloud-who').textContent = st.email ? tr(`${st.email} 로그인됨`, `Signed in as ${st.email}`) : '';
   const row = $('cloud-buttons');
   row.replaceChildren();
@@ -187,8 +236,9 @@ function render() {
     const give = () => add(tr(`이 기기 세이브 올리기 (${describe(c.local)})`, `Upload this device's save (${describe(c.local)})`), upload, ahead(c.cloud, c.local) < 0);
     if (ahead(c.cloud, c.local) >= 0) { take(); give(); } else { give(); take(); }
   } else {
-    add(tr('지금 클라우드에 저장', 'Save to the cloud now'), upload, true);
-    add(tr('클라우드에서 불러오기', 'Load from the cloud'), download);
+    const which = journeys() > 1 ? ` (${MODE_NAMES()[current()]})` : ''; // the buttons mean the journey in play or played last
+    add(tr(`지금 클라우드에 저장${which}`, `Save to the cloud now${which}`), upload, true);
+    add(tr(`클라우드에서 불러오기${which}`, `Load from the cloud${which}`), download);
     add(tr('로그아웃', 'Sign out'), signOut);
   }
   $('cloud-status').textContent = st.busy ? tr('잠시만요…', 'One moment…') : st.msg;
@@ -210,9 +260,11 @@ export function initCloud() {
     timer = setTimeout(autoSync, 2500);
   };
   try {
-    const took = JSON.parse(sessionStorage.getItem(TOOK));
-    if (took) { sessionStorage.removeItem(TOOK); toast(tr(`클라우드 세이브를 불러왔어요 · ${describe(took)}`, `Loaded the cloud save · ${describe(took)}`), COL.blue, 5); }
+    const list = [].concat(JSON.parse(sessionStorage.getItem(TOOK)) || []).map(describe).join(' / ');
+    if (list) { sessionStorage.removeItem(TOOK); toast(tr(`클라우드 세이브를 불러왔어요 · ${list}`, `Loaded the cloud save · ${list}`), COL.blue, 5); }
   } catch (e) { /* private mode */ }
+  // a link kept before 1.7 holds one savedAt: it is stored per journey now, while the saves are as it last saw them
+  try { if (typeof JSON.parse(localStorage.getItem(PREF))?.synced === 'string') setLink(linked()); } catch (e) { /* private mode */ }
   st.email = linked()?.email || null;
   if (st.email) {
     // the app reconnects silently at once and whenever it comes back; the web at the player's first click or key press

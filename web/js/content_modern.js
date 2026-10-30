@@ -242,7 +242,7 @@ export const ERA_1979 = {
     cheonggye: { name: K('청계천 판자촌', 'Cheonggyecheon Shanties'), tiles: T.alley, floors: 3, lv: [60, 64], mons: [88, 89, 19, 20, 109, 110, 52, 53, 41, 42], bgm: 'road_a' },
     // the last quest: Mt. Coronet, four stages (FINALE): Palkia, Dialga, the Spear Pillar where the Azure Flute they
     // leave behind brings down the stairs, and the Hall of Origin at their top, where Arceus waits
-    origin: { name: K('천관산', 'Mt. Coronet'), tiles: T.rift, floors: 4, lv: [66, 70], mons: [], bgm: 'd_mount2', stages: FINALE,
+    origin: { name: K('천관산', 'Mt. Coronet'), tiles: T.rift, floors: 4, lv: [66, 70], mons: [], bgm: 'd_mount2', climb: true, stages: FINALE,
       prize: { item: 'azureflute', flags: ['origin_palkia', 'origin_dialga'], say: [
         { who: CELEBI, name: K('세레비', 'Celebi'), text: K('펄기아와 디아루가가 남긴 빛이 모여 피리가 되었어! 천계의 피리야!', 'The light Palkia and Dialga left behind has gathered into a flute! It\'s the Azure Flute!') },
         { who: CELEBI, name: K('세레비', 'Celebi'), text: K('창기둥 꼭대기의 제단에서 불면, 시작의 방으로 가는 계단이 나타날 거야.', 'Play it at the altar on top of the Spear Pillar, and the stairs to the Hall of Origin will appear.') }] } },
@@ -395,7 +395,7 @@ const DEOXYS = { sp: 386, lv: 68, lvMin: 62, lvUp: 4, hp: 2.3, atk: 0.9, cap: 0.
   after: [{ who: 386, name: K('테오키스', 'Deoxys'), text: K('……(테오키스의 몸에서 빛이 잦아들었다. 레쿠쟈를 바라보더니 조용히 고개를 끄덕인다.)', '......(The light in Deoxys\'s body fades. It looks at Rayquaza and quietly nods.)') }],
   join: K('테오키스가 너희 곁으로 내려왔다. 함께 가고 싶어 한다! (마을의 붉은 운석에서 모습을 바꿀 수 있다)', 'Deoxys comes down beside you. It wants to come along! (It can change Forme at the red meteorite in town)') };
 const SKY = {
-  skypillar: { name: K('하늘기둥', 'Sky Pillar'), tiles: T.crystal, floors: 2, lv: [58, 62], legend: true, mons: [333, 334, 357, 227, 22, 279, 337, 338, 343, 344], bgm: 'd_lake',
+  skypillar: { name: K('하늘기둥', 'Sky Pillar'), tiles: T.crystal, floors: 2, lv: [58, 62], legend: true, climb: true, mons: [333, 334, 357, 227, 22, 279, 337, 338, 343, 344], bgm: 'd_lake',
     tint: 'rgba(120,170,255,0.10)', boss: RAYQUAZA },
   duwon: { name: K('두원 운석터', 'Duwon Meteorite Site'), tiles: T.cliff, floors: 2, lv: [60, 64], legend: true, mons: [35, 36, 337, 338, 343, 344, 374, 375], bgm: 'd_mount2',
     tint: 'rgba(255,90,60,0.10)', boss: DEOXYS },

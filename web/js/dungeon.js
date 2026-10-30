@@ -1272,7 +1272,7 @@ export class Dungeon {
   }
   // The Spear Pillar's altar: the Azure Flute played there brings down a stairway of light to the Hall of Origin.
   playFlute() {
-    if (!S.items[this.stage.flute.item]) return say([{ who: 'narr', text: tr('오래된 제단이다. 이곳에서 불 피리가 있다면…', 'An ancient altar. If only you had a flute to play here...') }]);
+    if (!S.items[this.stage.flute.item]) return say([{ who: 'narr', text: tr('오래된 제단이다. 여기서 불 수 있는 피리가 있다면…', 'An ancient altar. If only you had a flute to play here...') }]);
     say([{ who: 'narr', text: tr('창기둥 꼭대기의 제단이다. 천계의 피리를 불까?', 'The altar at the top of the Spear Pillar. Play the Azure Flute?'), choices: tr(['피리를 분다', '그만둔다'], ['Play it', 'Not yet']), onChoice: (i) => {
       if (i) return;
       this.lit = true; this.stairs = this.lightAt;
@@ -1426,7 +1426,11 @@ export class Dungeon {
     if (this.pendingFlute) { this.pendingFlute = false; this.latch = null; return this.playFlute(); }
     if (this.pendingStairs) {
       this.pendingStairs = false; this.latch = null;
-      return say([{ who: 'narr', text: this.floor >= this.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?') : tr('다음 층으로 가는 계단이다. 내려갈까?', 'Stairs to the next floor. Go down?'), choices: tr(['간다', '그만둔다'], ['Go', 'Stay']), onChoice: (i) => { if (i === 0) this.descend(); } }]);
+      // a tower or a mountain (def.climb) goes up, and the Azure Flute's stairs of light up into the sky
+      const text = this.floor >= this.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?')
+        : this.lit ? tr('하늘로 이어진 빛의 계단이다. 올라갈까?', 'A stairway of light into the sky. Climb it?')
+          : this.def.climb ? tr('다음 층으로 가는 계단이다. 올라갈까?', 'Stairs to the next floor. Go up?') : tr('다음 층으로 가는 계단이다. 내려갈까?', 'Stairs to the next floor. Go down?');
+      return say([{ who: 'narr', text, choices: tr(['간다', '그만둔다'], ['Go', 'Stay']), onChoice: (i) => { if (i === 0) this.descend(); } }]);
     }
     // input
     const key = this.latch; this.latch = null;

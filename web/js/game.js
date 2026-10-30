@@ -262,7 +262,13 @@ export function tmFits(mon, move) {
 export function itemDef(id, questItems) { return ITEMS[id] || questItems?.[id]; }
 
 // ---------------------------------------------------------------- state
-const SAVE_KEY = 'joseon-poke-save-v1';
+// one save per journey, named for the difficulty it was started on (S.slot; Settings may change the strength later):
+// a new journey replaces only the save of its own difficulty, so a finished story stays while another difficulty is
+// played from the start. Normal keeps the key every version before 1.7 used.
+export const SLOTS = ['easy', 'normal', 'hard', 'challenge'];
+const SAVE_KEY = 'joseon-poke-save-v1', slotKey = (slot) => (slot === 'normal' ? SAVE_KEY : `${SAVE_KEY}-${slot}`);
+// the journey a save belongs to; one from before 1.7 goes by its difficulty (a challenge lost on the way plays on at Normal)
+export const slotOf = (o) => (SLOTS.includes(o?.slot) ? o.slot : o?.flags?.challengeLost ? 'challenge' : SLOTS.includes(o?.mode) ? o.mode : 'normal');
 // v2 added six eras before 1392: older saves move forward by that many eras (levels are lifted on load, see quests.liftLevels);
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
 const SAVE_V = 6, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
@@ -291,34 +297,42 @@ function migrateV5(o) {
 // era before 1979, so the plan is made again
 function migrateV6(o) { o.wander = null; }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', inRun: null, spy: null });
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
-  Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode });
+  Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode });
   S.party = [new Mon(starter, 6, { shiny: true }), new Mon(partner, 6, { shiny: true })];
 }
 export function save() {
   if (S.party.length < 2) return false;
   try {
     const party = (S.homeParty || S.party).filter((m) => !m.loan); // never save a naval crew or loaned Pokémon as the team
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ ...S, homeParty: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt: Date.now() }));
+    localStorage.setItem(slotKey(S.slot), JSON.stringify({ ...S, homeParty: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt: Date.now() }));
     G.onSaved?.(); // the cloud copy follows (cloud.js)
     return true;
   } catch (e) { return false; }
 }
-// the save as stored, and a whole save from elsewhere (the cloud copy), checked like readSave before it replaces this one
-export function saveText() { try { return localStorage.getItem(SAVE_KEY); } catch (e) { return null; } }
-export function replaceSave(text) {
+// a save from before 1.7 sits under the Normal key whatever its difficulty: it moves to its own journey's key, once
+export function initSaves() {
+  try {
+    const text = localStorage.getItem(SAVE_KEY), slot = text && slotOf(JSON.parse(text));
+    if (slot && slot !== 'normal' && !localStorage.getItem(slotKey(slot))) { localStorage.setItem(slotKey(slot), text); localStorage.removeItem(SAVE_KEY); }
+  } catch (e) { /* private mode, or a broken save left where it is */ }
+}
+// a journey's save as stored, and a whole save from elsewhere (its cloud copy), checked like readSave before it replaces it
+export function saveText(slot) { try { return localStorage.getItem(slotKey(slot)); } catch (e) { return null; } }
+export function replaceSave(text, slot) {
   const o = JSON.parse(text);
   if (!o || !Array.isArray(o.party) || o.party.length < 2) throw new Error('not a save');
-  localStorage.setItem(SAVE_KEY, text);
+  localStorage.setItem(slotKey(slot), text);
 }
-export function readSave() {
-  try { const o = JSON.parse(localStorage.getItem(SAVE_KEY)); return o && Array.isArray(o.party) && o.party.length >= 2 ? o : null; } catch (e) { return null; }
+export function readSave(slot) {
+  try { const o = JSON.parse(localStorage.getItem(slotKey(slot))); return o && Array.isArray(o.party) && o.party.length >= 2 ? o : null; } catch (e) { return null; }
 }
-export const hasSave = () => !!readSave();
-export function load() {
-  const o = readSave();
+// the journeys saved on this device, the one played last first
+export const saves = () => SLOTS.map((slot) => ({ slot, o: readSave(slot) })).filter((s) => s.o).sort((a, b) => (b.o.savedAt || 0) - (a.o.savedAt || 0));
+export function load(slot = saves()[0]?.slot) {
+  const o = slot && readSave(slot);
   if (!o) return false;
   try {
     const party = o.party.map(Mon.from), roster = (o.roster || []).map(Mon.from);
@@ -328,7 +342,7 @@ export function load() {
     if (v < 4) migrateV4(o);
     if (v < 5) migrateV5(o);
     if (v < 6) migrateV6(o);
-    Object.assign(S, FRESH(), o, { party, roster });
+    Object.assign(S, FRESH(), o, { party, roster, slot }); // the key it was read from names its journey
     delete S.savedAt;
     return true;
   } catch (e) { console.warn('save load failed', e); return false; }
@@ -347,6 +361,7 @@ export const MODES = {
   challenge: { lv: 0, hp: 1, dmg: 1 },
 };
 export const mode = () => MODES[S.mode] || MODES.normal;
+export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '어려움', challenge: '챌린지' }, { easy: 'Easy', normal: 'Normal', hard: 'Hard', challenge: 'Challenge' });
 export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
 // a defeated Pokémon joins: straight into the party if there is room, otherwise into the town roster
 export function recruit(mon) {

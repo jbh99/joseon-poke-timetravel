@@ -55,6 +55,6 @@ export function addTower(era, bossOf) {
       { who: 493, name: K('아르세우스', 'Arceus'), text: K('…다시 왔구나. 이번에는 조금도 봐주지 않겠다.', '...So you came again. This time I will hold nothing back.') },
       tip('마지막이야! 지금까지 익힌 걸 모두 쏟아붓자!', 'This is the last one! Give it everything we\'ve learned!')]),
   ];
-  era.dungeons.tower = { name: K('보스 탑', 'Boss Tower'), tiles: T.temple, floors: stages.length, lv: [66, 70], mons: [], bgm: 'd_ginlobby', tower: true, stages };
+  era.dungeons.tower = { name: K('보스 탑', 'Boss Tower'), tiles: T.temple, floors: stages.length, lv: [66, 70], mons: [], bgm: 'd_ginlobby', tower: true, climb: true, stages };
   era.nodes.push({ id: 'tower', name: era.dungeons.tower.name, lon: 128.3, lat: 37.95, d: 'tower', when: () => S.step >= era.main.length });
 }

@@ -477,7 +477,7 @@ const JOSEON = [
           { who: 'partner', text: '전깃불이 자꾸 꺼지는 이유가 이거였구나!' }],
         after: [{ who: 466, text: '…휴. 시원한 연못물 덕분에 열이 식었다.' }] } },
       tramway: { name: '종로 전찻길', tiles: T.street, floors: 3, lv: [30, 34], mons: [100, 81, 19, 20, 52, 431, 434], bgm: 'road_b' },
-      clocktower: { name: K('소원의 시계탑', 'Wishing Clock Tower'), tiles: T.rift, floors: 3, lv: [31, 35], mons: [81, 82, 436, 437, 374, 375], bgm: 'd_mount2', legend: true,
+      clocktower: { name: K('소원의 시계탑', 'Wishing Clock Tower'), tiles: T.rift, floors: 3, lv: [31, 35], mons: [81, 82, 436, 437, 374, 375], bgm: 'd_mount2', legend: true, climb: true,
         tint: 'rgba(60,120,200,0.10)',
         boss: { sp: 385, lv: 42, lvMin: 34, lvUp: 4, hp: 2.0, atk: 0.85, bgm: 'ba_dpoke1', moves: [353, 94, 442, 129],
           tele: { name: K('파멸의 소원', 'Doom Desire'), every: 4, dmg: 0.36, pats: ['far', 'ring', 'random', 'x'], type: 8 },

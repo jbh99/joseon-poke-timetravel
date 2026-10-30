@@ -60,7 +60,7 @@
 - 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수 있고, 긴 목록은 손가락으로 끌어 넘깁니다. 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다.
 - 휴대폰의 **뒤로 가기**는 X와 같습니다. 가이드나 멀티 창은 닫고, 타이틀 화면에서 누르면 앱을 끝냅니다.
 - 블루투스·USB 게임패드: A 확인 · B 메뉴 · X/Y/LB/RB 기술 1~4 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트 · 십자키나 왼쪽 스틱 이동.
-- 앱을 내려 두면 음악이 멈춥니다. 기록은 휴대폰 안에 저장되고, **구글 로그인**을 하면 내 구글 드라이브의 앱 전용 숨김 폴더를 거쳐 PC 웹 버전과 같은 세이브로 이어집니다.
+- 앱을 내려 두면 음악이 멈춥니다. 기록은 휴대폰 안에 저장되고, **구글 로그인**을 하면 내 구글 드라이브의 앱 전용 숨김 폴더를 거쳐 PC 웹 버전과 같은 세이브로 이어집니다(난이도마다 따로).
 - 멀티플레이는 웹 버전과 서로 연결됩니다. 앱에서 방을 열면 초대 링크는 GitHub Pages 주소로 만들어집니다.
 
 ### 앱 빌드
@@ -110,6 +110,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 4. **던전**: 층마다 지형이 무작위로 만들어지는 턴제 던전입니다. 계단을 찾아 내려가고, 마지막 층의 보스를 쓰러뜨립니다.
 5. 메인 퀘스트를 끝내면 광장의 **시간의 문**이 열리고 다음 시대로 넘어갑니다.
 6. 마을에 돌아올 때마다 **자동 저장**됩니다. 저장은 브라우저(localStorage)에 남으니 같은 브라우저에서 **이어하기**를 고르세요.
+   - 기록은 **난이도마다 따로** 남습니다. 엔딩을 본 뒤 다른 난이도로 **새로운 여행**을 시작해도 다 깬 기록은 그대로 남고, 같은 난이도로 새로 시작할 때만 그 난이도의 기록을 덮어씁니다. 기록이 여러 개면 이어하기에서 어느 기록으로 이어 할지 고릅니다(엔딩까지 본 기록에는 ★).
 
 메인 스토리만 하면 1배속으로 약 4시간 안팎, 3배속으로 2~3시간쯤 걸립니다 (의뢰는 제외, 플레이 실력에 따라 차이가 큽니다).
 
@@ -231,7 +232,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 어려움 | 적 레벨 +2, 적이 주는 피해와 보스 체력 +25% |
 | 챌린지 | 어느 난이도로든 엔딩을 한 번 보면 열립니다. 보통의 강함으로 **한 번도 전멸하지 않고** 엔딩까지 가야 하고, **전설의 포켓몬은 동료가 되지 않습니다**. 전멸하거나 던전 도중에 게임을 끄면 챌린지가 끝나고 그 여행은 보통 난이도로 이어집니다. |
 
-쉬움 · 보통 · 어려움은 X 메뉴 → 설정에서 언제든 바꿀 수 있습니다.
+쉬움 · 보통 · 어려움은 X 메뉴 → 설정에서 언제든 바꿀 수 있습니다. 기록은 여행을 **시작한 난이도**의 칸에 남아서, 난이도마다 여행을 하나씩 따로 이어 갈 수 있습니다.
 
 ### 함께 하기 (멀티플레이)
 - 혼자 하던 게임에 친구를 불러 이야기를 같이 보고 던전을 같이 깰 수 있습니다. 혼자 하다가 언제든 방을 열 수 있습니다.
@@ -331,11 +332,11 @@ docs/screenshots/       README 스크린샷
   - Phones: the moves sit in a DraStic-style cross (Q up, W left, E right, R down), and a separate Menu button opens one panel with the game menu, quests, team, dungeon map and the settings. Menus scroll with a finger, and a tap on the dungeon's move list uses that move.
   - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 3000 nyang for strong attacks (power 80+), 1000 for the rest; a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
   - From 1200 on, foes follow your strongest Pokémon (its level to +2, +3 to +5 past Lv 45) and bosses have 30% more HP.
-  - Easy, Normal and Hard difficulty; Challenge (after any ending) means no wipes and no legendary recruits.
+  - Easy, Normal and Hard difficulty; Challenge (after any ending) means no wipes and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey).
   - Water-only naval battles; pick a side in the Korean War.
   - 35% recruit rate (legendaries always join) and a 500-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.
-- **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left, the moves Q W E R as a DraStic-style cross on the right beside Z and X, and a separate Menu button for the game menus and settings; menus can be tapped directly. The back button works like X, and Bluetooth gamepads are supported. **[Download the APK](https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk)** and open it on the phone: allow installs from Chrome when Android asks, let Play Protect scan it or install without a scan, then install. **Google login** keeps one save in a hidden app folder of your own Google Drive, shared with the web version. Build it with `tools/build_mobile.ps1` (`-Release` for the public APK; JDK 21 and the Android SDK required).
+- **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left, the moves Q W E R as a DraStic-style cross on the right beside Z and X, and a separate Menu button for the game menus and settings; menus can be tapped directly. The back button works like X, and Bluetooth gamepads are supported. **[Download the APK](https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk)** and open it on the phone: allow installs from Chrome when Android asks, let Play Protect scan it or install without a scan, then install. **Google login** keeps your saves (one per difficulty) in a hidden app folder of your own Google Drive, shared with the web version. Build it with `tools/build_mobile.ps1` (`-Release` for the public APK; JDK 21 and the Android SDK required).
 - **Run locally**: `python -m http.server 8000 --directory web`, then open http://localhost:8000.
 - **Notice**:
   - Pokémon © Nintendo / Creatures Inc. / GAME FREAK inc.; Pokémon Mystery Dungeon © Spike Chunsoft.

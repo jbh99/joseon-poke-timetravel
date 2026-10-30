@@ -1,6 +1,6 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText, fadeTo, shuffle } from './core.js';
-import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, save, moveDesc, MAX_LV } from './game.js';
+import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, MAX_LV } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
 import { tr } from './i18n.js';
@@ -21,7 +21,6 @@ export function foeLevels(d) {
   const k = mode().lv;
   return [Math.max(2, lo + k), Math.max(2, hi + k), scaled];
 }
-export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '어려움', challenge: '챌린지' }, { easy: 'Easy', normal: 'Normal', hard: 'Hard', challenge: 'Challenge' });
 export const challenge = () => S.mode === 'challenge';
 // a challenge ends at the first wipe (or a run abandoned mid-dungeon): the journey goes on at Normal
 export function loseChallenge() {

@@ -31,6 +31,7 @@ export function bindStory(root, table, missing) {
   const walk = (o) => {
     for (const k of Object.keys(o)) {
       const v = o[k];
+      if (typeof v === 'string' && Object.getOwnPropertyDescriptor(o, k).get) continue; // text built when read (tr) follows the language by itself
       if (typeof v === 'string') {
         if (/[가-힣]/.test(v)) { if (table[v]) { slots.push([o, k, v, table[v]]); remember(v, table[v]); } else missing?.add(v); }
       } else if (v && typeof v === 'object') walk(v);

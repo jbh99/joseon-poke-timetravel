@@ -1,9 +1,9 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, hasSave, readSave, load, save, TYPE_COLORS } from './game.js';
+import { S, DEX, newGame, readSave, saves, load, save, TYPE_COLORS, MODE_NAMES } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, MODE_NAMES, checkRun } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
@@ -48,16 +48,27 @@ export class Title {
       if (!this.reopen) sfx('confirm');
       this.started = true; this.reopen = false;
       const items = [{ label: tr('새로운 여행', 'New journey'), fn: () => this.newGame() }, { label: 'Language / 언어', right: EN ? 'English' : '한국어', fn: () => setLang(EN ? 'ko' : 'en') }];
-      const sv = readSave();
-      if (sv) {
-        const pt = Math.floor((sv.playtime || 0) / 60);
-        items.unshift({ label: tr('이어하기', 'Continue'), right: `${ERAS[sv.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}`, fn: () => {
-          if (load()) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); }); // the town plays a step left waiting (resumeSteps)
-          else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
-        } });
-      }
+      const list = saves();
+      // one journey continues at once; several (one per difficulty) are picked from a list, the one played last on top
+      if (list.length === 1) items.unshift({ label: tr('이어하기', 'Continue'), right: this.when(list[0].o), fn: () => this.resume(list[0].slot) });
+      else if (list.length) items.unshift({ label: tr('이어하기', 'Continue'), right: tr(`기록 ${list.length}개`, `${list.length} saves`), fn: () => this.pickSave(list) });
       this.menu = openMenu(items, { x: VW / 2 - 85, y: 196, w: 170, onCancel: () => { this.started = false; } });
     }
+  }
+  // a save in a few words: the year and the time played, ★ once its story has been seen through
+  when(o) {
+    const pt = Math.floor((o.playtime || 0) / 60), last = ERAS.length - 1;
+    const done = o.era >= last && o.step >= ERAS[last].main.length;
+    return `${ERAS[o.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}${done ? ' ★' : ''}`;
+  }
+  pickSave(list) {
+    const N = MODE_NAMES();
+    openMenu(list.map(({ slot, o }) => ({ label: slot === 'challenge' && o.flags?.challengeLost ? tr('챌린지(실패)', 'Challenge (lost)') : N[slot], right: this.when(o), fn: () => this.resume(slot) })),
+      { title: tr('어느 기록으로 이어 할까?', 'Continue which journey?'), x: VW / 2 - 105, y: 150, w: 210, onCancel: () => { this.started = false; } });
+  }
+  resume(slot) {
+    if (load(slot)) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); }); // the town plays a step left waiting (resumeSteps)
+    else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
   }
   // the language row shows the language in use; rebuild the menu so every label follows a switch
   relang() {
@@ -77,13 +88,14 @@ export class Title {
       hard: 'Foes +2 levels; foe damage and boss HP +25%.',
       challenge: prefs.ended ? 'Normal strength, but reach the ending without a single wipe. Legendary Pokémon never join.' : 'Opens once you have seen an ending at any difficulty.',
     });
+    // only the save of the difficulty picked is replaced: the other journeys stay to be continued
     const pick = (m) => {
       const go = () => fadeTo(() => setScene(new Intro(m)));
-      if (hasSave()) say([{ who: 'narr', text: tr('새로 시작하면 기존 기록을 덮어씁니다. 괜찮나요?', 'Starting over will overwrite your saved journey. Is that OK?'), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
+      if (readSave(m)) say([{ who: 'narr', text: tr(`새로 시작하면 ${N[m]} 난이도의 기록을 덮어씁니다. 다른 난이도의 기록은 그대로 남아요. 괜찮나요?`, `Starting over replaces your ${N[m]} journey. Journeys at other difficulties stay. Is that OK?`), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
       else go();
     };
-    openMenu(['easy', 'normal', 'hard', 'challenge'].map((m) => ({ label: N[m], desc: desc[m], right: m === 'challenge' && !prefs.ended ? tr('엔딩 후', 'After an ending') : '',
-      disabled: m === 'challenge' && !prefs.ended, fn: () => pick(m) })), { title: tr('난이도', 'Difficulty'), desc: true, sel: 1, x: VW / 2 - 120, y: 130, w: 240, onCancel: () => { this.started = false; } });
+    openMenu(['easy', 'normal', 'hard', 'challenge'].map((m) => ({ label: N[m], desc: desc[m], right: m === 'challenge' && !prefs.ended ? tr('엔딩 후', 'After an ending') : readSave(m) ? tr('기록 있음', 'Saved') : '',
+      disabled: m === 'challenge' && !prefs.ended, fn: () => pick(m) })), { title: tr('난이도 · 기록은 난이도마다 따로', 'Difficulty · one save each'), desc: true, sel: 1, x: VW / 2 - 120, y: 130, w: 240, onCancel: () => { this.started = false; } });
   }
   draw(c) {
     drawBackdrop(c, 41, 3, 1.04 + Math.sin(this.t * 0.15) * 0.02);

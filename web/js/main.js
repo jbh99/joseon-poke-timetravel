@@ -1,7 +1,7 @@
 // Boot and main loop.
 import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
-import { initData, S, save, load, newGame } from './game.js';
+import { initData, initSaves, S, save, load, newGame } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
 import { Town, setBuildings, setPearl, townSets } from './town.js';
@@ -132,6 +132,7 @@ function checkVolume(launch) {
 }
 
 async function boot() {
+  initSaves();
   initCanvas();
   initTouch();
   initGuide();
