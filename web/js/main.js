@@ -24,7 +24,7 @@ G.goTown = (kind) => {
   else { save(); setTimeout(resumeSteps, 450); }
 };
 G.goWorld = () => setScene(new WorldMap());
-G.goDungeon = (d, def) => setScene(new Dungeon(d, def)); // def: a fight no era lists (Town.policeDef)
+G.goDungeon = (d, def, o) => setScene(new Dungeon(d, def, o)); // def: a fight no era lists (Town.policeDef); o.floor: where to start
 G.nextEra = () => fadeTo(() => {
   S.era++; S.step = 0; S.eraClear = false; S.night = false; S.lastNode = 'town'; S.townKind = 1;
   save();

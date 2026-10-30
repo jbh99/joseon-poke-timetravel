@@ -53,7 +53,7 @@ export function lairDone(dId) {
 // shows two. The plan is fixed when the era is first entered, so a legend keeps its dungeon all era; one met but left
 // behind again moves on to the era after (as does one that found no free place).
 const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final && !b.noWander);
-const holdsLegend = (d) => !!d.legend || [d.mid, d.boss].some((b) => b && LEGENDS.has(b.sp));
+const holdsLegend = (d) => !!d.legend || !!d.stages || [d.mid, d.boss].some((b) => b && LEGENDS.has(b.sp));
 const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);
 function wanderPlan() {
   if (challenge()) return {}; // legends never join a challenge, so none come back either
@@ -95,6 +95,8 @@ export function wanderBoss(dId) {
 export function legendsAt(dId) {
   const d = era().dungeons[dId], out = [];
   if (d.legend) { if (!lairDone(dId)) out.push(d.boss.sp); return out; }
+  if (d.tower) return out; // the Boss Tower's legends are there every visit
+  if (d.stages) return d.stages.filter((st) => st.boss && !(st.flag && S.flags[st.flag])).map((st) => st.boss.sp); // the finale's still to beat
   const w = wanderAt(dId);
   if (w) out.push(w);
   if (d.mid && LEGENDS.has(d.mid.sp) && !S.flags['mid_' + dId]) out.push(d.mid.sp); // met on a visit after the story run
@@ -656,6 +658,10 @@ function useItem(id, dungeon) {
   if (!d) return toast(tr('지금은 쓸 수 없다.', 'You can\'t use that now.'));
   if (d.escape) { if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.')); takeItem(id); return dungeon.escape(); }
   if (d.throw) { if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.')); takeItem(id); return dungeon.throwStone(d.throw); }
+  if (d.flute) { // never used up: it is played at the Spear Pillar's altar (Dungeon.playFlute)
+    if (dungeon?.altar && !dungeon.lit) return dungeon.playFlute();
+    return toast(tr('천관산 창기둥의 제단에서 불어야 한다.', 'It has to be played at the altar of the Spear Pillar.'));
+  }
   if (d.primal) { // an orb is never used up: it wakes its legend's Primal Reversion for one dungeon run
     if (!dungeon) return toast(tr('던전에서 써야 구슬의 힘이 깨어난다.', 'The orb\'s power only wakes in a dungeon.'));
     const name = DEX.species[d.primal].name, m = S.party.find((p) => p.sp === d.primal && p.hp > 0);

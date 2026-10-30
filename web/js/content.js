@@ -2,10 +2,11 @@
 // The Joseon-era chapters (1392-1945) live here; earlier eras are in content_ancient.js, the war in content_war.js.
 // NPC species ids come from the ROM's national dex; names are read from dex.json at runtime.
 
-import { K, EN_EXTRA, CELEBI, T, SIG, SIG_AT1, SIG_AT2, DARKRAI_SIG, DARKRAI_REVIVE } from './content_k.js';
+import { K, EN_EXTRA, CELEBI, T, SIG, SIG_AT1, SIG_AT2 } from './content_k.js';
 import { ANCIENT, ANCIENT_QITEMS } from './content_ancient.js';
 import { WAR, WAR_QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK } from './content_war.js';
-import { ERA_1905, ERA_1979, MODERN_QITEMS, addPostWar, addSkyLine, spyLog } from './content_modern.js';
+import { ERA_1905, ERA_1979, MODERN_QITEMS, addPostWar, addSkyLine, addFinale, spyLog } from './content_modern.js';
+import { addTower } from './content_tower.js';
 import { S } from './game.js';
 export { FACTIONS, FACTION_TALK, FACTION_PICK };
 export { EN_EXTRA, CELEBI, T };
@@ -537,7 +538,7 @@ const JOSEON = [
     dungeons: {
       alley: { name: '경성 뒷골목', tiles: T.alley, floors: 5, lv: [34, 38], mons: [198, 92, 93, 353, 355, 434, 435, 228, 200], bgm: 'd_agito',
         quest: { item: 'declaration', lastFloor: true },
-        boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 1.87, atk: 0.85, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // main-path legend: a bit less HP than the optional ones
+        boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 2.43, atk: 0.98, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // 1.7: HP +30% and attack +15% (was 1.87 / 0.85)
           tele: { name: K('러스터캐논', 'Flash Cannon'), every: 4, dmg: 0.36, pats: ['cols', 'rows', 'cross', 'quad'], type: 8 },
           sig: { use: [SIG.roar], at: SIG_AT1 },
           revive: origin('#6a9cff', K('디아루가가 쓰러지지 않는다! 시간이 거꾸로 흐르며 오리진폼으로 모습을 바꿨다!', "Dialga won't go down! Time flows backwards as it takes its Origin Forme!"),
@@ -678,16 +679,23 @@ const JOSEON = [
       { id: 'town', name: K('경성', 'Gyeongseong'), lon: 126.98, lat: 37.57 },
       { id: 'distortion', name: K('반전세계', 'Distortion World'), lon: 127.78, lat: 37.3, d: 'distortion' },
       { id: 'inwang', name: K('인왕산', 'Mount Inwang'), lon: 126.62, lat: 37.86, d: 'inwang' },
-      { id: 'newmoon', name: K('그믐달 섬', 'Newmoon Island'), lon: 126.1, lat: 37.25, d: 'newmoon' },
       { mark: true, name: K('신문 폐간', 'Papers shut down'), lon: 126.7, lat: 37.2, text: K('1940년 8월, 동아일보와 조선일보가 강제로 문을 닫았다.', 'In August 1940 the Dong-A Ilbo and the Chosun Ilbo were forced to close.') },
     ],
     dungeons: {
       distortion: { name: K('반전세계', 'Distortion World'), tiles: T.rift, floors: 5, lv: [40, 44], mons: [92, 93, 200, 429, 425, 426, 302, 355, 356], bgm: 'd_agito',
         tint: 'rgba(70,0,90,0.22)', quest: { item: 'names', perFloor: 1 },
-        // Aura Sphere answers the Dark types brought against a Ghost
-        boss: { sp: 487, lv: 46, lvMin: 38, lvUp: 4, hp: 2.31, atk: 0.85, bgm: 'ba_secret2', moves: [247, 337, 396, 414],
-          tele: { name: K('그림자 폭풍', 'Shadow Storm'), every: 4, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'], type: 7 },
-          sig: { use: [SIG.shadow], at: SIG_AT1 },
+        // Aura Sphere answers the Dark types brought against a Ghost. HP +30% and attack +15% in 1.7 (was 2.31 / 0.85).
+        // Its first form takes turns among five telegraphed attacks (dungeon.js charge: mix) and two signature moves.
+        boss: { sp: 487, lv: 46, lvMin: 38, lvUp: 4, hp: 3.0, atk: 0.98, bgm: 'ba_secret2', moves: [247, 337, 396, 414],
+          tele: { name: K('그림자 폭풍', 'Shadow Storm'), every: 3, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'], type: 7,
+            mix: [
+              { name: K('그림자 폭풍', 'Shadow Storm'), type: 7, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'] },
+              { name: K('대지의힘', 'Earth Power'), type: 4, dmg: 0.34, pats: ['near', 'rows', 'cols', 'ring'] },
+              { name: K('용성군', 'Draco Meteor'), type: 16, dmg: 0.38, pats: ['random', 'far', 'star', 'quad'] },
+              { name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.34, pats: ['target', 'cross', 'checker'] },
+              { name: K('원시의힘', 'Ancient Power'), type: 5, dmg: 0.34, pats: ['ring', 'x', 'cols', 'near'] },
+            ] },
+          sig: { use: [SIG.shadow, SIG.dragon], at: [0.8, 0.55] },
           revive: origin('#ff4a3a', K('기라티나가 쓰러지지 않는다! 그림자 날개를 펼치며 오리진폼으로 모습을 바꿨다!', "Giratina won't go down! It spreads its shadow wings and takes its Origin Forme!"),
             K('반전의 그림자', 'Reverse Shadow'), 7, ['x|random', 'quad', 'checker|ring', 'far|target', 'star'], [SIG.shadow]),
           say: [
@@ -698,18 +706,6 @@ const JOSEON = [
           after: [{ who: 487, text: '……………… (기라티나가 그림자를 거두었다. 뒤집혔던 세계가 천천히 제자리를 찾는다)' }],
           join: K('기라티나가 그림자 날개를 접고 고개를 숙였다. 함께 가고 싶어 한다!', 'Giratina folds its shadow wings and bows its head. It wants to come along!') } },
       inwang: { name: K('인왕산', 'Mount Inwang'), tiles: T.mountain, floors: 3, lv: [38, 42], mons: [163, 164, 198, 430, 215, 461, 447, 302], bgm: 'road_a_n' },
-      // Darkrai's own island (Cresselia keeps the moonlit one in 1866), where the nightmares of the stolen names drift
-      newmoon: { name: K('그믐달 섬', 'Newmoon Island'), tiles: T.forest, floors: 3, lv: [38, 42], mons: [96, 97, 198, 200, 355, 302], bgm: 'd_agito', legend: true,
-        tint: 'rgba(20,10,50,0.28)',
-        boss: { sp: 491, lv: 44, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
-          tele: { name: K('나이트메어', 'Bad Dreams'), every: 4, dmg: 0.32, pats: ['ring', 'target', 'checker', 'x'], type: 17 },
-          sig: DARKRAI_SIG, revive: DARKRAI_REVIVE,
-          say: [
-            { who: 'narr', text: K('달이 뜨지 않는 그믐밤의 섬. 경성에서 흘러온 악몽이 검은 안개가 되어 숲을 덮고 있다.', 'An island on a moonless night. Nightmares drifting over from Gyeongseong cover its woods in black mist.') },
-            { who: 491, name: K('다크라이', 'Darkrai'), text: K('…이곳에는 악몽이 가득하다. 이름을 빼앗긴 자들의 꿈은 모두 검게 물들었지.', '...This place is full of nightmares. The dreams of those robbed of their names have all turned black.') },
-            { who: 'partner', text: K('악몽을 보여 주는 다크라이야! 그래도 우리는 깨어 있을 거야!', 'It\'s Darkrai, bringer of nightmares! But we\'ll stay awake!') }],
-          after: [{ who: 491, name: K('다크라이', 'Darkrai'), text: K('…악몽 속에서도 제 이름을 놓지 않는구나. 이름을 지키는 마음은 어떤 어둠에도 물들지 않는다.', '...Even inside a nightmare you hold on to your names. A heart that keeps its name is stained by no darkness.') }],
-          join: K('다크라이가 그림자에서 걸어 나왔다. 너희를 따라가고 싶은 듯하다…', 'Darkrai steps out of the shadows. It seems to want to follow you...') } },
     },
     npcs: [
       { id: 'scholar40', sp: 164, name: K('조선어학회 야부엉', 'Language Society Noctowl'), x: 22, y: 15, say: [{ text: K('말은 겨레의 얼이라네. 말을 잃으면 겨레도 잃는 것이지.', 'Language is the soul of a people. Lose the words and you lose the people.') }] },
@@ -763,7 +759,8 @@ const JOSEON = [
     ],
     dungeons: {
       rift: { name: '시간의 틈', tiles: T.rift, floors: 6, lv: [42, 47], mons: [444, 148, 247, 359, 197, 196, 356, 281, 429, 477], bgm: 'd_mount2', // 600-total lines stay boss-only (Garchomp, Tyranitar lead 1950)
-        mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.2, atk: 0.85, bgm: 'ba_dpoke1', moves: [352, 337, 414, 246],
+        // HP +30% and attack +15% in 1.7 (was 2.2 / 0.85); Hydro Pump in place of Water Pulse
+        mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.86, atk: 0.98, bgm: 'ba_dpoke1', moves: [56, 337, 414, 246],
           tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 11 },
           sig: { use: [SIG.rend], at: SIG_AT1 },
           revive: origin('#ff9ad8', K('펄기아가 쓰러지지 않는다! 공간이 일그러지며 오리진폼으로 모습을 바꿨다!', "Palkia won't go down! Space warps as it takes its Origin Forme!"),
@@ -956,6 +953,10 @@ addPostWar(ERAS.filter((e) => e.year >= 1945));
 const seoulWon = () => { const e = ERAS[S.era]; return e.year > 1950 || (e.year === 1950 && S.step > e.main.findIndex((s) => s.d === 'seoul1950')); };
 addSkyLine(ERAS.filter((e) => e.year >= 1950), seoulWon);
 Object.assign(QITEMS, ANCIENT_QITEMS, WAR_QITEMS, MODERN_QITEMS);
+// the Arceus finale's guardians and the Boss Tower fight as the story's own legends (the first of each species met)
+const bossOf = (sp) => ERAS.flatMap((e) => Object.values(e.dungeons).flatMap((d) => [d.boss, d.mid])).find((b) => b?.sp === sp);
+addFinale(bossOf);
+addTower(ERA_1979, bossOf);
 
 // shown the first time a boss with telegraphed attacks appears
 export const TELE_TUT = [

@@ -1,4 +1,4 @@
-"""Rebuild the layouts of Pearl's towns and of Snowpoint Temple from the ROM's field data.
+"""Rebuild the layouts of Pearl's towns, Snowpoint Temple and Mt. Coronet's summit from the ROM's field data.
 
 Reads (all from the Korean Pearl ROM, see romlib.ROM_PATH):
   arm9 map header table      matrix, event file and place name of every map
@@ -27,7 +27,8 @@ OUT = "../web/assets/data/pearl.json"
 DEX = "../web/assets/data/dex.json"
 HEADER_TABLE = 0xEA408  # Korean Pearl arm9: 24-byte map headers, indexed like mapname.bin
 TOWNS = ["C02", "C03", "C05", "C06", "C07", "C09"]   # 운하 무쇠 연고 들판 장막 선단
-FLOORS = ["D20R0101", "D20R0106"]                    # 선단신전 1F and its deepest floor (Regigigas)
+FLOORS = ["D20R0101", "D20R0106",                   # 선단신전 1F and its deepest floor (Regigigas)
+          "D05R0114", "D05R0116"]                   # 천관산 창기둥 and 시작의 방 (the Arceus finale)
 
 rom = romlib.rom()
 arm9 = bytes(rom.arm9)

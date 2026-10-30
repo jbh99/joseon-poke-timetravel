@@ -399,6 +399,7 @@ export class Dialog {
 
 export function say(lines, onDone) {
   return new Promise((res) => {
+    if (!lines.length) { onDone?.(); return res(); } // nothing to say (a Boss Tower keeper has no parting words)
     const d = new Dialog(lines, () => { onDone?.(); res(); });
     G.overlays.push(d);
   });

@@ -1,10 +1,11 @@
 // Eras added after the eighteen: 1905 (the Eulsa Treaty, ending with the Hague envoys) between 1887 and 1919, and
-// 1979 (October 26 and the December 12 coup) after the Korean War, which now ends the journey with Arceus. Also the
+// 1979 (October 26 and the December 12 coup) after the Korean War, which now ends the journey with Arceus on Mt. Coronet
+// (Cheongwansan), past Palkia and Dialga. Also the
 // post-1945 side line shared by the last eras: Registeel in town, then Regirock, Regice and Regigigas in Snowpoint
 // Temple, and the Latias / Latios choice; and after the battle for Seoul, the Sky Pillar (Rayquaza), then the Duwon
 // meteorite site (Deoxys).
 // Their levels are set directly (the Joseon chapters' lift() curve is not applied to them).
-import { K, T, CELEBI, SIG, DARKRAI_SIG, DARKRAI_REVIVE } from './content_k.js';
+import { K, T, CELEBI, SIG, SIG_AT1, SIG_AT2 } from './content_k.js';
 import { S } from './game.js';
 import { tr } from './i18n.js';
 
@@ -13,7 +14,8 @@ const challenge = () => S.mode === 'challenge';
 export const spyLog = () => tr(`기지에 숨은 밀정을 찾자 · 지금 ${S.spy?.year || 1921}년 (1930년이 되기 전에!)`, `Find the spy hiding in the base · now ${S.spy?.year || 1921} (before 1930!)`); // legendary Pokémon never join a challenge, so their side lines stay closed
 
 // ---------------------------------------------------------------- 1905
-const MEWTWO = { sp: 150, lv: 54, lvMin: 47, lvUp: 4, hp: 2.35, atk: 0.9, cap: 0.38, bgm: 'ba_secret2', moves: [94, 396, 247, 58],
+// HP +30% and attack +15% in 1.7 (was 2.35 / 0.9)
+const MEWTWO = { sp: 150, lv: 54, lvMin: 47, lvUp: 4, hp: 3.06, atk: 1.04, cap: 0.38, bgm: 'ba_secret2', moves: [94, 396, 247, 58],
   tele: [
     { name: K('사이코키네시스', 'Psychic'), every: 3, dmg: 0.35, stagger: 1, pats: ['ring', 'target', 'x', 'checker'], type: 14, first: 2 },
     { at: 0.5, name: K('파동탄', 'Aura Sphere'), every: 2, dmg: 0.39, stagger: 1, pats: ['star', 'quad', 'far', 'target', 'random'], type: 1,
@@ -97,6 +99,24 @@ export const ERA_1905 = {
 };
 
 // ---------------------------------------------------------------- 1979
+// Darkrai belongs to this era alone (nowhere before 1979). It rises twice: the nightmare deepens (Dark Void and Shadow
+// Force), then turns pitch black (all three moves, Attack +10% and Defense +20% like Arceus's last phase).
+const DARKRAI_SIG = { use: [SIG.void], at: SIG_AT1 };
+const DARKRAI_REVIVE = [
+  { hp: 0.6, atk: 1.15, cap: 0.36, aura: '#7a3cff', form: K('악몽', 'Nightmare'),
+    msg: K('다크라이가 쓰러지지 않는다! 악몽이 짙어지며 다시 일어섰다!', "Darkrai won't go down! The nightmare deepens as it rises again!"),
+    tele: [
+      { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.4, stagger: 1, pats: ['ring', 'target', 'checker', 'x|near', 'quad'], type: 17, first: 2 },
+      { at: 0.5, name: K('나이트메어', 'Bad Dreams'), every: 2, dmg: 0.46, stagger: 1, pats: ['ring|x', 'target|checker', 'quad|near', 'star', 'random|cross'], type: 17,
+        msg: K('악몽이 걷잡을 수 없이 번진다! 공격이 더욱 거세진다!', 'The nightmare spreads out of control! Its attacks grow fiercer still!') },
+    ],
+    sig: { use: [SIG.void, SIG.shadow], at: SIG_AT2 } },
+  { hp: 0.45, atk: 1.1, def: 1.2, cap: 0.38, aura: '#d02050', form: K('칠흑', 'Pitch Black'),
+    msg: K('다크라이가 또다시 일어선다! 칠흑 같은 어둠이 모든 것을 삼킨다!', 'Darkrai rises yet again! A pitch-black darkness swallows everything!'),
+    line: [{ who: 491, name: K('다크라이', 'Darkrai'), text: K('…깨어 있으려 할수록 악몽은 깊어진다. 끝까지 버틸 수 있겠느냐.', '...The harder you try to stay awake, the deeper the nightmare. Can you hold out to the end?') }],
+    tele: [{ name: K('영원한 악몽', 'Endless Nightmare'), every: 2, dmg: 0.5, stagger: 1, pats: ['ring|target', 'checker|x', 'quad|near', 'star|far', 'random|cross', 'rows|cols'], type: 17, first: 2 }],
+    sig: { use: [SIG.shadow, SIG.dark, SIG.void], at: [[0.75, 0.45, 0.2], [0.7, 0.35]] } },
+];
 // December 12: the town itself turns into the battlefield (a 'battle' step started by talking to the officer)
 const DARKRAI_1212 = { sp: 491, lv: 70, lvMin: 63, lvUp: 4, hp: 1.35, atk: 0.8, cap: 0.32, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
   tele: { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.34, pats: ['ring', 'target', 'checker', 'x', 'near'], type: 17 },
@@ -144,7 +164,7 @@ const ARCEUS_REVIVE3 = { hp: 0.5, atk: 1.1, def: 1.2, shiny: true, cap: 0.36, au
 // the final boss sets its own numbers (dungeon.js bossTier): its level follows the team's like any boss's, from Lv 70 up
 // to Lv 180, a long fight where dodging decides everything. A team that already has Arceus (it joined in the 1950
 // finale of older versions) gets no second one.
-const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.25, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: [ARCEUS_REVIVE, ARCEUS_REVIVE3],
+export const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.25, atk: 0.62, cap: 0.28, final: true, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414], tele: ARCEUS_TELE, revive: [ARCEUS_REVIVE, ARCEUS_REVIVE3],
   get noJoin() { return !!S.flags.got_493; },
   say: [
     { who: 'narr', text: '눈부신 빛 속에서, 거대한 포켓몬이 천천히 고개를 들었다.' },
@@ -156,6 +176,42 @@ const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.25, atk
     { who: 493, name: '아르세우스', text: '……보았다. 너희가 걸어온 길에 깃든 마음을. 잊지 않는 한, 그 시간은 사라지지 않겠지.' },
     { who: 493, name: K('아르세우스', 'Arceus'), text: K('이 땅의 시간은 이대로 흐르게 두겠다. 갈라진 길도 언젠가 다시 이어질 수 있으리라.', 'I will let this land\'s time flow on. Even divided roads may one day be joined again.') }],
   join: '아르세우스가 조용히 너희 곁에 내려섰다. 함께 가겠다는 듯하다…!' };
+
+// The finale on Mt. Coronet (천관산, "the heavenly crown": Pearl's mountain, and Cheongwansan in Jangheung). Palkia and
+// Dialga guard the way, both stronger than ever (addFinale); once both are beaten their light becomes the Azure Flute
+// (the dungeon's prize), which, played at the Spear Pillar's altar, brings down the stairs to the Hall of Origin. The
+// summit's two floors are Pearl's own (data/pearl.json); Arceus waits at the top of the stairs and wakes when the team
+// comes near (wake). A guardian once beaten stays beaten (flag), so a run starts at the first stage still to clear.
+const FINALE = [
+  { name: K('공간의 틈', 'Rift in Space'), flag: 'origin_palkia', tiles: T.rift, tint: 'rgba(255,140,210,0.10)', boss: null },
+  { name: K('시간의 틈', 'Rift in Time'), flag: 'origin_dialga', tiles: T.crystal, tint: 'rgba(110,150,255,0.12)', boss: null },
+  { name: K('창기둥', 'Spear Pillar'), layout: 'D05R0114', tiles: T.temple, tint: 'rgba(200,220,255,0.10)', bgm: 'legend',
+    flute: { item: 'azureflute', altar: [31, 11], stairs: [31, 10], say: [
+      { who: CELEBI, name: K('세레비', 'Celebi'), text: K('계단이 하늘로 이어져 있어… 저 위 시작의 방에서 아르세우스가 기다리고 있어!', 'The stairs reach up into the sky... Arceus is waiting up there, in the Hall of Origin!') }] } },
+  { name: K('시작의 방', 'Hall of Origin'), layout: 'D05R0116', tiles: T.temple, tint: 'rgba(255,226,150,0.12)', bgm: 'legend', wake: 8, boss: ARCEUS },
+];
+// the guardians: the story's own Palkia (1945) and Dialga (1919), content.js passing them in, with 30% more HP and
+// attack again, at the team's level like Arceus, and half as quick again with their blasts and signature moves (pace)
+function guardian(b, o) {
+  return { ...b, hp: b.hp * 1.3, atk: b.atk * 1.3, pace: 1.5, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, noWander: true, ...o,
+    get noJoin() { return !!S.flags['got_' + b.sp]; } }; // one already in the team doesn't join twice
+}
+export function addFinale(bossOf) {
+  FINALE[0].boss = guardian(bossOf(484), {
+    say: [
+      { who: 'narr', text: K('천관산을 오르는 길, 공간이 일그러지며 길이 끊겼다. 찢어진 공간 한가운데서 펄기아가 포효한다!', 'On the way up Mt. Coronet, space warps and the path breaks off. In the middle of the torn space, Palkia roars!') },
+      { who: 484, name: K('펄기아', 'Palkia'), text: K('그오오오…! 시작의 방으로 가려는 자들이여. 공간을 다스리는 이 힘을 넘어서 보아라!', 'Grooooh...! You who would reach the Hall of Origin. Get past the power that rules space!') },
+      { who: 'partner', text: K('예전보다 훨씬 강해졌어! 공간절단도 더 자주 날아올 거야. 붉은 칸을 잘 보자!', 'It\'s far stronger than before! Spacial Rend will come more often too. Watch the red tiles!') }],
+    after: [{ who: 484, name: K('펄기아', 'Palkia'), text: K('…좋다. 공간은 너희에게 길을 열겠다. 이제 시간의 주인에게 가거라.', '...Very well. Space opens the way for you. Now go to the master of time.') }],
+    join: K('펄기아가 진주처럼 빛나는 몸을 낮추었다. 함께 가고 싶어 한다!', 'Palkia lowers its pearl-bright body. It wants to come along!') });
+  FINALE[1].boss = guardian(bossOf(483), {
+    say: [
+      { who: 'narr', text: K('더 높은 곳, 시간이 거꾸로 흐르는 틈. 금강석처럼 빛나는 디아루가가 길을 막아섰다!', 'Higher up, in a rift where time flows backwards, Dialga shines like adamant and blocks the way!') },
+      { who: 483, name: K('디아루가', 'Dialga'), text: K('그라아아…! 시간의 끝까지 걸어온 자들이여. 그 걸음이 진짜였는지 시간의 포효로 시험하겠다!', 'Grahhh...! You who walked to the end of time. I will test with the Roar of Time whether your steps were true!') },
+      { who: 'partner', text: K('시간의 포효를 훨씬 자주 써! HP를 넉넉히 채워 두자!', 'It uses the Roar of Time far more often! Keep your HP topped up!') }],
+    after: [{ who: 483, name: K('디아루가', 'Dialga'), text: K('…시간도 더는 너희를 막지 않겠다. 그 걸음 끝에서 모든 것을 만든 자가 기다린다.', '...Time will no longer stand in your way. At the end of your steps, the one who made everything is waiting.') }],
+    join: K('디아루가가 금강석처럼 빛나는 몸을 낮추었다. 함께 가고 싶어 한다!', 'Dialga lowers its adamant-bright body. It wants to come along!') });
+}
 
 export const ERA_1979 = {
   year: 1979, years: '1979 – 1980', title: K('10·26과 12·12', 'October 26 and December 12'), sub: K('끝나지 않은 겨울, 기다리는 봄', 'A winter that would not end, a spring yet to come'),
@@ -174,7 +230,7 @@ export const ERA_1979 = {
     { id: 'town', name: K('서울', 'Seoul'), lon: 126.98, lat: 37.57 },
     { id: 'cheonggye', name: K('청계천 판자촌', 'Cheonggyecheon Shanties'), lon: 127.4, lat: 37.2, d: 'cheonggye' },
     { mark: true, name: K('10·26', 'October 26'), lon: 126.6, lat: 37.9, text: K('1979년 10월 26일, 서울 궁정동 안가에서 박정희 대통령이 숨졌다.', 'On October 26, 1979, President Park died at a KCIA safehouse in Gungjeong-dong, Seoul.') },
-    { id: 'origin', name: K('시작의 하늘', 'Sky of Beginnings'), lon: 127.75, lat: 38.3, d: 'origin' },
+    { id: 'origin', name: K('천관산', 'Mt. Coronet'), lon: 126.93, lat: 34.55, d: 'origin', when: () => ERA_1979.main[S.step]?.d === 'origin' },
     { mark: true, name: K('→ 광주 (1980년 5월)', '→ Gwangju (May 1980)'), lon: 126.85, lat: 35.16, text: K('1980년 5월, 광주 시민들은 계엄군에 맞서 민주주의를 외쳤다(5·18 민주화 운동).', 'In May 1980 the people of Gwangju stood against the martial-law troops and called for democracy (the May 18 Democratic Uprising).') },
   ],
   dungeons: {
@@ -184,9 +240,12 @@ export const ERA_1979 = {
       battle: { town: null, foeBuff: 1.15, allies: [59, 448, 68, 475, 208], foes: [262, 229, 430, 461, 452, 359] },
       boss: DARKRAI_1212 },
     cheonggye: { name: K('청계천 판자촌', 'Cheonggyecheon Shanties'), tiles: T.alley, floors: 3, lv: [60, 64], mons: [88, 89, 19, 20, 109, 110, 52, 53, 41, 42], bgm: 'road_a' },
-    // the last quest: the sky where time began, gathering every era's time; Arceus on the last floor
-    origin: { name: K('시작의 하늘', 'Sky of Beginnings'), tiles: T.rift, floors: 5, lv: [66, 70], mons: [444, 359, 197, 229, 282, 429, 477, 356, 475, 474], bgm: 'legend',
-      tint: 'rgba(255,220,140,0.08)', boss: ARCEUS },
+    // the last quest: Mt. Coronet, four stages (FINALE): Palkia, Dialga, the Spear Pillar where the Azure Flute they
+    // leave behind brings down the stairs, and the Hall of Origin at their top, where Arceus waits
+    origin: { name: K('천관산', 'Mt. Coronet'), tiles: T.rift, floors: 4, lv: [66, 70], mons: [], bgm: 'd_mount2', stages: FINALE,
+      prize: { item: 'azureflute', flags: ['origin_palkia', 'origin_dialga'], say: [
+        { who: CELEBI, name: K('세레비', 'Celebi'), text: K('펄기아와 디아루가가 남긴 빛이 모여 피리가 되었어! 천계의 피리야!', 'The light Palkia and Dialga left behind has gathered into a flute! It\'s the Azure Flute!') },
+        { who: CELEBI, name: K('세레비', 'Celebi'), text: K('창기둥 꼭대기의 제단에서 불면, 시작의 방으로 가는 계단이 나타날 거야.', 'Play it at the altar on top of the Spear Pillar, and the stairs to the Hall of Origin will appear.') }] } },
   },
   npcs: [
     { id: 'spinda79', sp: 327, name: K('라디오 아나운서 얼루기', 'Radio Announcer Spinda'), x: 22, y: 15, say: [{ text: K('통행금지 사이렌이 울리기 전에 다들 집에 가셔야 해요. 밤 12시부터 새벽 4시까지는 거리에 나올 수 없거든요.', 'Everyone should be home before the curfew siren. No one may be on the streets from midnight to 4 a.m.') }] },
@@ -210,10 +269,11 @@ export const ERA_1979 = {
       { who: 327, name: K('라디오 아나운서 얼루기', 'Radio Announcer Spinda'), text: K('역사는 그날 밤을 "군사 반란"이라 부르게 될 거예요. 1997년 대법원 판결이 그랬죠.', 'History will call that night a "military rebellion". The Supreme Court ruled so in 1997.') },
       { who: 327, name: K('라디오 아나운서 얼루기', 'Radio Announcer Spinda'), text: K('그리고 1987년 6월, 시민들은 대통령을 직접 뽑을 권리를 스스로 되찾았어요. 봄은 늦게, 그래도 왔어요.', 'And in June 1987 the people won back the right to choose their own president. Spring came late, but it came.') }] },
     { do: 'scene', say: [
-      { who: CELEBI, name: K('세레비', 'Celebi'), text: K('…느껴져? 마지막 꽃잎이 서울 하늘 위, 시간이 처음 시작된 곳에서 빛나고 있어.', '...Do you feel it? The last petal is shining in the sky above Seoul, where time first began.') },
-      { who: CELEBI, name: K('세레비', 'Celebi'), text: K('612년부터 1980년까지, 모든 시대의 시간이 그곳으로 모이고 있어. 그곳에서… 아르세우스가 기다리고 있을 거야.', 'From 612 to 1980, the time of every era is gathering there. And there... Arceus will be waiting.') },
+      { who: CELEBI, name: K('세레비', 'Celebi'), text: K('…느껴져? 마지막 꽃잎이 남쪽 장흥의 천관산 꼭대기, 하늘의 관을 쓴 봉우리에서 빛나고 있어.', '...Do you feel it? The last petal is shining on the summit of Mt. Coronet in Jangheung, far to the south, the peak that wears the crown of heaven.') },
+      { who: CELEBI, name: K('세레비', 'Celebi'), text: K('612년부터 1980년까지, 모든 시대의 시간이 그곳으로 모이고 있어. 그런데 산길을 펄기아와 디아루가가 지키고 있대.', 'From 612 to 1980, the time of every era is gathering there. But Palkia and Dialga are guarding the mountain path.') },
+      { who: CELEBI, name: K('세레비', 'Celebi'), text: K('둘을 진정시키면 천계의 피리가 나타날 거야. 창기둥에서 그 피리를 불면… 아르세우스에게 가는 계단이 열려.', 'Calm them both and the Azure Flute will appear. Play it at the Spear Pillar... and the stairs to Arceus will open.') },
       { who: 'partner', text: K('여기까지 함께 온 모두의 마음을 보여 주자. 마지막 여행이야!', 'Let\'s show it the hearts of everyone who came this far with us. Our last journey!') }] },
-    { do: 'dungeon', d: 'origin', log: K('시작의 하늘 가장 깊은 곳에서 아르세우스를 만나자 (마지막 퀘스트)', 'Meet Arceus in the depths of the Sky of Beginnings (the last quest)') },
+    { do: 'dungeon', d: 'origin', log: K('천관산에서 펄기아와 디아루가를 넘어, 천계의 피리로 아르세우스를 만나자 (마지막 퀘스트)', 'On Mt. Coronet, get past Palkia and Dialga, then meet Arceus with the Azure Flute (the last quest)') },
   ],
   outro: [
     { who: 'narr', text: K('긴 겨울을 지나, 사람들은 스스로의 힘으로 민주주의를 되찾았다.', 'After a long winter, the people won back democracy by their own strength.') },

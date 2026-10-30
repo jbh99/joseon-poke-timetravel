@@ -279,7 +279,12 @@ export class WorldMap {
       if (n.id === 'town' || n.town) return fadeTo(() => G.goTown(n.town || 1));
       const d = this.e.dungeons[n.d], [lo, hi] = foeLevels(d);
       if (d.needs && !d.needs.every((sp) => S.party.some((m) => m.sp === sp))) return say([{ who: 'narr', text: d.needsText }]);
-      say([{ who: 'narr', text: tr(`${d.name} (${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${lo}~${hi})에 들어갈까?`, `Enter ${d.name}? (${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${lo}-${hi})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
+      // the Boss Tower: from its first floor, or from above the highest floor cleared on an earlier visit
+      const top = d.tower ? S.flags.towerTop || 0 : 0;
+      if (top) return say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층)에 들어갈까? 지난번에 ${top}층까지 올랐다.`, `Enter the ${d.name}? (${d.floors} floors) Last time you cleared floor ${top}.`),
+        choices: tr(['1층부터', `${top + 1}층부터`, '그만두기'], ['From floor 1', `From floor ${top + 1}`, 'Not now']), onChoice: (i) => { if (i < 2) fadeTo(() => G.goDungeon(n.d, undefined, { floor: i ? top + 1 : 1 })); } }]);
+      const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${d.floors} floors · legendary Pokémon`) : tr(`${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${lo}~${hi}`, `${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${lo}-${hi}`);
+      say([{ who: 'narr', text: tr(`${d.name} (${what})에 들어갈까?`, `Enter ${d.name}? (${what})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('menu')) return openMenu([
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
@@ -371,7 +376,11 @@ export class WorldMap {
       const d = this.e.dungeons[n.d], w = wanderAt(n.d), fl = d.floors + (w ? 1 : 0);
       const legs = legendsAt(n.d).filter((sp) => sp !== w).map((sp) => DEX.species[sp].name).join(' · ');
       const [lo, hi] = foeLevels(d);
-      lines2.push(tr(`${fl}층 · 적 Lv ${lo}~${hi}`, `${fl} floors · foes Lv ${lo}-${hi}`));
+      if (d.tower) {
+        lines2.push(tr(`${fl}층 · 보스 모드`, `${fl} floors · Boss Mode`), tr('층마다 전설의 포켓몬만 기다린다. 잡을 수는 없다.', 'Only legendary Pokémon wait, floor after floor. None can be caught.'));
+        if (S.flags.towerTop) lines2.push(tr(`지난번에 ${S.flags.towerTop}층까지 올랐다`, `Last time: cleared floor ${S.flags.towerTop}`));
+        if (S.flags.towerClears) lines2.push(tr(`꼭대기까지 ${S.flags.towerClears}번 올랐다`, `Reached the top ${S.flags.towerClears} time(s)`));
+      } else lines2.push(d.stages ? tr(`${fl}층 · 전설의 포켓몬`, `${fl} floors · legendary Pokémon`) : tr(`${fl}층 · 적 Lv ${lo}~${hi}`, `${fl} floors · foes Lv ${lo}-${hi}`));
       if (d.water) lines2.push(tr('[해전] 물 타입 포켓몬만 출전한다', '[Naval] Only Water-type Pokémon can fight'));
       if (w) lines2.push(tr(`★ 지난 시대에 놓친 ${DEX.species[w].name}이(가) ${fl}층에서 기다린다! (Lv ${hi})`, `★ ${DEX.species[w].name}, missed in an earlier era, waits on floor ${fl}! (Lv ${hi})`));
       if (legs) lines2.push(tr(`★ 전설의 포켓몬 ${legs}의 기척이 있다!`, `★ A legendary presence: ${legs}!`));

@@ -242,6 +242,8 @@ export const ITEMS = {
   // key items (never sold, never used up): in a dungeon they wake the Primal Reversion of the legend they belong to
   redorb: withText(['주홍구슬', 'Red Orb'], ['던전에서 쓰면 그란돈이 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오르고 불꽃 타입이 더해진다.', 'Use it in a dungeon and Groudon undergoes Primal Reversion: much stronger, and part Fire type, until the dungeon ends.'], { price: 0, key: true, primal: 383, types: [4, 10] }),
   blueorb: withText(['쪽빛구슬', 'Blue Orb'], ['던전에서 쓰면 가이오가가 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오른다.', 'Use it in a dungeon and Kyogre undergoes Primal Reversion: much stronger until the dungeon ends.'], { price: 0, key: true, primal: 382, types: [11] }),
+  // the finale's: Palkia and Dialga's light, played at the Spear Pillar's altar (dungeon.js playFlute)
+  azureflute: withText(['천계의 피리', 'Azure Flute'], ['펄기아와 디아루가가 남긴 빛으로 된 피리. 천관산 창기둥의 제단에서 불면 시작의 방으로 가는 계단이 나타난다.', 'A flute made of the light Palkia and Dialga left behind. Played at the altar of the Spear Pillar on Mt. Coronet, it brings down the stairs to the Hall of Origin.'], { price: 0, key: true, flute: true }),
 };
 export const SHOP = ['oran', 'sitrus', 'rice', 'herb', 'stone', 'escape', 'ginseng', 'revive'];
 // Gen 4 TM01-TM92 by move id. A villager in every town deals in them (town.js tmMenu), selling the ones the dungeons can
@@ -263,7 +265,7 @@ export function itemDef(id, questItems) { return ITEMS[id] || questItems?.[id]; 
 const SAVE_KEY = 'joseon-poke-save-v1';
 // v2 added six eras before 1392: older saves move forward by that many eras (levels are lifted on load, see quests.liftLevels);
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
-const SAVE_V = 5, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
+const SAVE_V = 6, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
 // v4 put 1905 between 1887 and 1919 (index 13), and opened the Korean War (v3 index 17) with the battle for Seoul
 const ERA_1905 = 13, WAR_V3 = 17, WAR_NEW_STEPS = 2;
 function migrateV4(o) {
@@ -285,6 +287,9 @@ function migrateV5(o) {
   delete f.legend_icetemple;
   o.wander = null;
 }
+// v6 took Darkrai out of 1940 (it appears from 1979 on): a missed-legend plan made earlier may still send it to an
+// era before 1979, so the plan is made again
+function migrateV6(o) { o.wander = null; }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town
 const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', inRun: null, spy: null });
 export const S = { ...FRESH(), party: [] };
@@ -322,6 +327,7 @@ export function load() {
     if (v < 3 && o.era >= ERA_1940) o.era++;
     if (v < 4) migrateV4(o);
     if (v < 5) migrateV5(o);
+    if (v < 6) migrateV6(o);
     Object.assign(S, FRESH(), o, { party, roster });
     delete S.savedAt;
     return true;

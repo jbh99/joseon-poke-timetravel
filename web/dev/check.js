@@ -2,7 +2,7 @@
 //   const c = await import('/dev/check.js'); await c.checkAll()   → { problems: [...], stats }
 // Covers: story/quest references, sprites and moves, town reachability (NPCs, gate, exit),
 // world-map nodes, and every dungeon floor (stairs / boss reachable from the start).
-const PATS = ['cross', 'x', 'star', 'near', 'ring', 'far', 'rows', 'cols', 'checker', 'quad', 'random', 'target'];
+const PATS = ['cross', 'x', 'star', 'near', 'ring', 'far', 'rows', 'cols', 'checker', 'quad', 'random', 'target', 'orbs'];
 const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
 export async function checkAll(opts = {}) {
@@ -20,6 +20,8 @@ export async function checkAll(opts = {}) {
   const spOk = async (where, sp) => { if (!DEX.species[sp]) bad(where, `unknown species ${sp}`); else if (!(await iconOk(sp))) bad(where, `no sprite for ${sp}`); };
   const snap = JSON.stringify({ era: S.era, step: S.step, townKind: S.townKind, faction: S.faction, flags: S.flags, side: S.side });
   const party = S.party.slice(), roster = S.roster.slice();
+  const pearl = await (await fetch('/assets/data/pearl.json')).json();
+  const pearlFloor = async (code) => !!pearl.floors[code];
 
   for (let i = 0; i < g.ERAS.length; i++) {
     const e = g.ERAS[i], tag = `${e.year}`;
@@ -56,21 +58,36 @@ export async function checkAll(opts = {}) {
       if (!set.meta || !set.im.naturalWidth) bad(tag, `dungeon ${id} tileset ${d.tiles} failed to load`);
       for (const sp of d.mons) await spOk(`${tag} ${id}`, sp);
       if (d.quest && !QITEMS[d.quest.item]) bad(tag, `dungeon ${id} quest item ${d.quest.item} missing`);
-      for (const b of [d.boss, d.mid].filter(Boolean)) {
+      // a staged dungeon (the finale, the Boss Tower): one stage a floor, each boss (or pair) set, Pearl floors present
+      const stageBosses = (d.stages || []).flatMap((st) => [].concat(st.bosses || st.boss || []));
+      if (d.stages) {
+        if (d.stages.length !== d.floors) bad(tag, `${id} has ${d.stages.length} stages for ${d.floors} floors`);
+        for (const [k, st] of d.stages.entries()) {
+          if ([].concat(st.bosses || st.boss || []).some((b) => !b)) bad(tag, `${id} stage ${k + 1} boss not set`);
+          if (st.layout && !(await pearlFloor(st.layout))) bad(tag, `${id} stage ${k + 1} layout ${st.layout} missing`);
+          if (st.flute && !ITEMS[st.flute.item]) bad(tag, `${id} stage ${k + 1} flute item ${st.flute.item} missing`);
+          if (st.tiles != null) { const s = pmd.tileSet(st.tiles); try { await s.ready; } catch (err) { /* below */ } if (!s.meta || !s.im.naturalWidth) bad(tag, `${id} stage ${k + 1} tileset ${st.tiles} failed to load`); }
+        }
+        if (d.prize && !ITEMS[d.prize.item]) bad(tag, `${id} prize ${d.prize.item} missing`);
+      }
+      const bosses = [d.boss, d.mid, ...stageBosses].filter(Boolean);
+      for (const b of bosses) {
         await spOk(`${tag} ${id} boss`, b.sp);
         for (const m of b.moves || []) if (!DEX.moves[m]) bad(tag, `${id} boss move ${m} missing`);
-        const teles = [b.tele, ...(b.revive ? [b.revive.tele] : [])].flat().filter(Boolean);
-        for (const t of teles) for (const p of t.pats) for (const part of p.split('|')) if (!PATS.includes(part)) bad(tag, `${id} pattern ${part}`);
+        const teles = [b.tele, ...[].concat(b.revive || []).map((r) => r.tele)].flat().filter(Boolean);
+        for (const t of teles) for (const p of [...t.pats, ...(t.mix || []).flatMap((m) => m.pats)]) for (const part of p.split('|')) if (!PATS.includes(part)) bad(tag, `${id} pattern ${part}`);
       }
       if (d.mid && d.mid.floor >= d.floors) bad(tag, `${id} mid-boss floor ${d.mid.floor} not before the last floor ${d.floors}`);
-      for (const b of [d.boss, d.mid].filter(Boolean)) for (const sg of [b.sig, ...[].concat(b.revive || []).map((r) => r.sig)].filter(Boolean)) {
+      for (const b of bosses) for (const sg of [b.sig, ...[].concat(b.revive || []).map((r) => r.sig)].filter(Boolean)) {
         for (const u of sg.use) if (!u?.name || !['roar', 'rend', 'shadow', 'blades', 'pulse', 'void', 'sweep'].includes(u.kind)) bad(tag, `${id} signature move ${u?.name} of unknown kind ${u?.kind}`);
         if (!Array.isArray(sg.at) || !sg.at.length) bad(tag, `${id} signature move without HP marks`);
       }
-      // one legend to a place, and Regigigas only in the Regi line after 1945
+      // one legend to a place (a staged dungeon holds its own on purpose: the finale's three, the Boss Tower's pairs),
+      // Regigigas only in the Regi line after 1945, and Darkrai nowhere before 1979
       const legs = [d.mid, d.boss].filter((b) => b && game.LEGENDS.has(b.sp));
       if (legs.length > 1) bad(tag, `${id} holds ${legs.length} legends (${legs.map((b) => b.sp).join(', ')})`);
       if (e.year < 1945 && legs.some((b) => b.sp === 486)) bad(tag, `${id}: Regigigas before 1945`);
+      if (e.year < 1979 && (bosses.some((b) => b.sp === 491) || d.mons.includes(491))) bad(tag, `${id}: Darkrai before 1979`);
     }
   }
   // towns: every NPC, the gate and the exit reachable from where the player stands
@@ -113,9 +130,12 @@ export async function checkAll(opts = {}) {
       for (let f = 1; f <= d.floors; f++) for (let k = 0; k < tries; k++) {
         try { dg.floor = f; dg.newFloor(); } catch (err) { bad(`${e.year} ${id} F${f}`, `newFloor failed: ${err.message}`); break; }
         stats.floors++;
-        const p = dg.player, target = dg.boss || null;
-        const goal = target ? (x, y) => Math.max(Math.abs(x - target.x), Math.abs(y - target.y)) <= 1 : dg.stairs ? (x, y) => x === dg.stairs[0] && y === dg.stairs[1] : null;
+        const p = dg.player, target = dg.boss || null, st = dg.stage;
+        if (st && dg.bosses.length !== [].concat(st.bosses || st.boss || []).length) bad(`${e.year} ${id} F${f}`, `${dg.bosses.length} bosses for its stage`);
+        const way = dg.stairs || dg.altar; // the Spear Pillar: the altar, where the flute brings the stairs down
+        const goal = target ? (x, y) => Math.max(Math.abs(x - target.x), Math.abs(y - target.y)) <= 1 : way ? (x, y) => x === way[0] && y === way[1] : null;
         if (!goal) { bad(`${e.year} ${id} F${f}`, 'no stairs and no boss'); continue; }
+        if (dg.altar && !dg.walk(...dg.lightAt)) bad(`${e.year} ${id} F${f}`, 'the stairs of light stand on no floor');
         const seen = new Set([p.y * 1000 + p.x]), q = [[p.x, p.y]];
         let ok = false;
         while (q.length && !ok) {

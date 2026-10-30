@@ -1,10 +1,15 @@
 """Shared helpers for reading the Pokemon DP (Korean Pearl) ROM."""
+import os
 import struct
+from pathlib import Path
 import ndspy.rom
 import ndspy.narc
 from PIL import Image
 
-ROM_PATH = r"C:\Users\사용자\Downloads\포켓몬스터DP - 펄기아(K).nds"
+# the user's own ROM, never part of the repository: $PEARL_ROM, else the first of these that exists
+ROM_NAME = "포켓몬스터DP - 펄기아(K).nds"
+ROM_PATHS = [Path.home() / "Downloads" / "claude skills" / ROM_NAME, Path.home() / "Downloads" / ROM_NAME]
+ROM_PATH = os.environ.get("PEARL_ROM") or str(next((p for p in ROM_PATHS if p.exists()), ROM_PATHS[0]))
 _rom = None
 
 

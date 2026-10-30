@@ -9,7 +9,8 @@ import { tr } from './i18n.js';
 import { tileSet, paintTerrain, hasPmdSprite, pmdHeadroom } from './pmd.js';
 import { NET } from './net.js';
 
-const W = 44, H = 32;
+// the floor's size in tiles: 44x32, unless a Pearl floor needs more room (fixedFloor sets it per floor)
+let W = 44, H = 32;
 const DIRS8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
 const faceName = (d) => (d[0] > 0 ? 'right' : d[0] < 0 ? 'left' : null);
 const RECRUIT_RATE = 0.35; // wild Pokémon asking to join after fainting (shiny: 70%; legendaries: always)
@@ -74,13 +75,16 @@ const PATTERNS = {
 };
 
 export class Dungeon {
-  constructor(dId, def = era().dungeons[dId]) { // def: a fight that no era lists (Town.policeDef)
+  // def: a fight that no era lists (Town.policeDef); o.floor: the floor to start on (the Boss Tower's checkpoint)
+  constructor(dId, def = era().dungeons[dId], o = {}) {
     this.dId = dId;
     this.def = def;
     this.main = ['dungeon', 'battle'].includes(mainStep()?.do) && mainStep().d === dId; // a 'battle' step is a run started in town
     this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting one floor below the usual last one
-    if (challenge()) { S.inRun = dId; save(); } // a challenge run left unfinished counts as a wipe (quests.js checkRun)
-    this.floor = 1;
+    // a challenge run left unfinished counts as a wipe (quests.js checkRun); the Boss Tower comes after the ending
+    if (challenge() && !def.tower) { S.inRun = dId; save(); }
+    // a run of stages starts at the first one still to beat (the finale's guardians stay beaten)
+    this.floor = this.startFloor = o.floor || 1 + Math.max(0, (def.stages || []).findIndex((st) => !(st.flag && S.flags[st.flag])));
     this.msgs = [];
     this.pops = [];
     this.queue = [];
@@ -110,9 +114,9 @@ export class Dungeon {
     for (const m of crew) if (!m.loan && !home.includes(m) && !S.roster.includes(m)) (S.party.length < 3 ? S.party : S.roster).push(m); // recruited at sea
   }
   enter() {
-    playBgm(this.def.bgm);
+    playBgm(this.stage?.bgm || this.def.bgm);
     G.dialogSpeaker = (L) => { if (typeof L?.who === 'number' && L.who !== this._lastCry) { cry(L.who); this._lastCry = L.who; } };
-    if (!this.def.police) this.msg(tr(`${this.def.name}에 들어왔다!`, `Entered ${this.def.name}!`), COL.blue); // a fight in town is entered nowhere
+    if (!this.def.police) this.msg(tr(`${this.title}에 들어왔다!`, `Entered ${this.title}!`), COL.blue); // a fight in town is entered nowhere
     // a legend fighting on its own ground (Groudon on the Nakdong, Kyogre off Incheon) is stronger for this run
     for (const f of this.def.field || []) for (const m of S.party) if (m.sp === f.sp && !m.field) { m.field = f.mul; this.msg(f.msg(m.name), COL.green); }
     if (this.def.battle) this.msg(this.def.battle.msg?.() || tr('전투가 시작됐다! 적의 지휘관을 쓰러뜨리거나 적군을 모두 물리치자.', 'The battle begins! Defeat the enemy commander or drive off all their troops.'), COL.red);
@@ -123,25 +127,31 @@ export class Dungeon {
   }
   exit() { G.dialogSpeaker = null; }
   relang(sw) { for (const m of this.msgs) m.text = sw(m.text); }
-  // the boss waiting on this floor: a legend's lair, a returning legend, the story boss on the last floor of the story
-  // run, or a story dungeon's mid-boss on a visit after that run (midWaiting): every run meets one boss
-  get bossDef() {
-    const d = this.def;
-    if (d.legend) return d.boss && this.floor === d.floors && !lairDone(this.dId) ? d.boss : null;
-    if (this.wander && this.floor === this.floors) return this.wander;
-    if (!this.main) return d.mid && this.floor === d.mid.floor && midWaiting(this.dId) ? d.mid : null;
-    if (d.boss && this.floor === d.floors) return d.boss;
-    return null;
+  // the bosses waiting on this floor: a stage's own (one, or a pair in the Boss Tower; a guardian once beaten stays
+  // beaten), a legend's lair, a returning legend, the story boss on the last floor of the story run, or a story
+  // dungeon's mid-boss on a visit after that run (midWaiting): every run meets one boss
+  get bossDefs() {
+    const d = this.def, st = this.stage;
+    if (st) return st.flag && S.flags[st.flag] ? [] : [].concat(st.bosses || st.boss || []);
+    if (d.legend) return d.boss && this.floor === d.floors && !lairDone(this.dId) ? [d.boss] : [];
+    if (this.wander && this.floor === this.floors) return [this.wander];
+    if (!this.main) return d.mid && this.floor === d.mid.floor && midWaiting(this.dId) ? [d.mid] : [];
+    return d.boss && this.floor === d.floors ? [d.boss] : [];
   }
+  get bossDef() { return this.bossDefs[0] || null; }
   get bossFloor() { return !!this.bossDef; }
   get floors() { return this.def.floors + (this.wander ? 1 : 0); }
+  // a dungeon made of fixed stages (the Arceus finale, the Boss Tower): what this floor is
+  get stage() { return this.def.stages?.[this.floor - 1] || null; }
+  get title() { return this.stage?.name ? `${this.def.name} · ${this.stage.name}` : this.def.name; }
 
   // ---------------------------------------------------------------- generation
   newFloor() {
+    W = 44; H = 32;
+    const lay = this.fixedFloor(); // a Pearl floor (a big one sets a bigger size) or a town turned battlefield; null for a generated floor
     const grid = Array.from({ length: H }, () => new Array(W).fill(0));
     const roomOf = Array.from({ length: H }, () => new Array(W).fill(-1));
     const rooms = [];
-    const lay = this.fixedFloor(); // a Pearl floor or a town turned battlefield; null for a generated floor
     this.arena = !lay && this.bossFloor; // single 20x11 room that fits one screen; the camera stays fixed on it
     if (lay) {
       for (const [x, y] of lay.open) { grid[y][x] = 1; roomOf[y][x] = 0; }
@@ -185,7 +195,7 @@ export class Dungeon {
     this.bg = null;
     this.seen = Array.from({ length: H }, () => new Array(W).fill(false));
     this.vis = Array.from({ length: H }, () => new Array(W).fill(false));
-    this.ents = []; this.items = []; this.stairs = null; this.pendingStairs = false; this.boss = null;
+    this.ents = []; this.items = []; this.stairs = null; this.pendingStairs = false; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null;
     // allies
     const startRoom = this.bossFloor || lay ? rooms[0] : choice(rooms);
     const sx = lay ? lay.start[0] : this.bossFloor ? 22 : randInt(startRoom.x + 1, startRoom.x + startRoom.w - 2);
@@ -213,32 +223,21 @@ export class Dungeon {
       return null;
     };
     if (this.bossFloor) {
-      const b = this.bossDef;
-      const avg = Math.round((S.party[0].lv + S.party[1].lv) / 2);
-      // the boss's tier (bossTier) sets its level bonus and multipliers; from 1200 on it also stays ahead of the team's
-      // growth (foeLevels). A boss with `revive` gets back up once in a second form (see reviveBoss).
-      // A returning legend (b.wander) fights at exactly its new dungeon's level.
-      const t = bossTier(b), [, top, scaled] = foeLevels(this.def), up = b.wander ? 0 : t.up;
-      let lv = b.wander ? b.lv : clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up) + mode().lv;
-      if (scaled && !b.wander) lv = Math.max(lv, top + 2 + up);
-      if (b.lvCap) lv = Math.min(lv, b.lvCap); // Arceus follows the team up to Lv 180
-      const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: this.def.battle?.foeBuff, moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
-      mon.slowT = b.slow || 0;
-      const e = this.boss = this.addEnt(mon, ...(lay?.bossAt ? this.nearestOpen(...lay.bossAt) : [22, 12]), 'foe');
-      e.isBoss = true; e.def = b; e.bphase = 1; e.stagger = 0; e.tele = null;
-      e.tier = t; e.cap = b.cap ?? t.cap;
-      // a legend or 600-class boss with a single telegraph gains a second, faster and harder phase below half HP
-      e.teleSet = t.phase2 && b.tele && !Array.isArray(b.tele)
-        ? [b.tele, { ...b.tele, at: 0.5, every: Math.max(2, b.tele.every - 2), dmg: b.tele.dmg * 1.2, stagger: 1,
-          msg: t === LEGEND_TIER ? tr(`${mon.name}이(가) 전설의 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} unleashes its legendary power! Its attacks grow fiercer!`)
-            : tr(`${mon.name}이(가) 온 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} draws on all its strength! Its attacks grow fiercer!`) }]
-        : b.tele;
-      e.teleCD = b.tele ? (this.teleConf(e).first ?? 3) : 0;
-      e.sig = this.sigPlan(b.sig);
-      this.bossIntro = true;
+      // one boss in the middle of the arena, a pair side by side; on a Pearl floor or in a town, at its own spot
+      const defs = this.bossDefs, at = defs.length > 1 ? [[18, 12], [26, 12]] : [[22, 12]];
+      this.bosses = defs.map((b, i) => this.spawnBoss(b, lay?.bossAt ? this.nearestOpen(...lay.bossAt) : at[i], i));
+      this.boss = this.bosses[0];
+      this.bossIntro = !this.stage?.wake; // one waiting in its hall speaks when the team comes near (foeAI)
       if (lay?.battle) this.deployArmies(lay);
     } else if (lay?.battle) this.deployArmies(lay);
-    else {
+    else if (this.stage) { // a stage with no boss (the Spear Pillar): no foes either, only the way on
+      this.stairs = lay?.stairs || null;
+      const fl = this.stage.flute;
+      if (fl && lay) {
+        this.altar = lay.at(fl.altar); this.lightAt = lay.at(fl.stairs);
+        this.msg(tr('꼭대기의 제단에서 천계의 피리를 불자!', 'Play the Azure Flute at the altar on the summit!'), COL.blue);
+      }
+    } else {
       this.stairs = lay?.stairs || spot();
       const k = curve();
       const n = Math.min(9, Math.round(2 + k * 4 + (this.floor - 1) * (0.4 + k * 0.6)));
@@ -248,6 +247,31 @@ export class Dungeon {
       this.questSpawns(spot);
     }
     this.updateVis();
+  }
+  // A boss: its tier (bossTier) sets its level bonus and multipliers; from 1200 on it also stays ahead of the team's
+  // growth (foeLevels). A boss with `revive` gets back up in a later form (see reviveBoss). A returning legend
+  // (b.wander) fights at exactly its new dungeon's level. The second of a pair charges its first blast later.
+  spawnBoss(b, [x, y], i = 0) {
+    const avg = Math.round((S.party[0].lv + S.party[1].lv) / 2);
+    const t = bossTier(b), [, top, scaled] = foeLevels(this.def), up = b.wander ? 0 : t.up;
+    let lv = b.wander ? b.lv : clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up) + mode().lv;
+    if (scaled && !b.wander) lv = Math.max(lv, top + 2 + up);
+    if (b.lvCap) lv = Math.min(lv, b.lvCap); // Arceus follows the team up to Lv 180
+    const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: this.def.battle?.foeBuff, moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
+    mon.slowT = b.slow || 0;
+    const e = this.addEnt(mon, x, y, 'foe');
+    e.isBoss = true; e.def = b; e.bphase = 1; e.stagger = 0; e.tele = null;
+    e.tier = t; e.cap = b.cap ?? t.cap;
+    // a legend or 600-class boss with a single telegraph gains a second, faster and harder phase below half HP
+    e.teleSet = t.phase2 && b.tele && !Array.isArray(b.tele)
+      ? [b.tele, { ...b.tele, at: 0.5, every: Math.max(2, b.tele.every - 2), dmg: b.tele.dmg * 1.2, mix: b.tele.mix?.map((m) => ({ ...m, dmg: m.dmg * 1.2 })), stagger: 1,
+        msg: t === LEGEND_TIER ? tr(`${mon.name}이(가) 전설의 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} unleashes its legendary power! Its attacks grow fiercer!`)
+          : tr(`${mon.name}이(가) 온 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} draws on all its strength! Its attacks grow fiercer!`) }]
+      : b.tele;
+    e.teleCD = b.tele ? (this.teleConf(e).first ?? 3) + i * 2 : 0;
+    e.sig = this.sigPlan(b.sig, b.pace);
+    e.waiting = this.stage?.wake || 0;
+    return e;
   }
   questSpawns(spot) {
     const last = this.floor === this.def.floors || (this.def.boss && this.main && this.floor === this.def.floors - 1);
@@ -297,21 +321,27 @@ export class Dungeon {
   walk(x, y) { return x >= 0 && y >= 0 && x < W && y < H && this.grid[y][x] === 1; }
   entAt(x, y) { return this.ents.find((e) => e.alive && !e.hidden && e.x === x && e.y === y); } // one gone into the dark (Shadow Force) stands nowhere
   itemAt(x, y) { return this.items.find((i) => i.x === x && i.y === y); }
-  // Fixed floors. A Pearl floor (def.layouts[floor - 1] → data/pearl.json, e.g. Snowpoint Temple) keeps the room's
-  // real shape: entered at its gate or arrival stairs, left by its other stairs, its boss on Pearl's own spot.
-  // A town battle (def.battle) fights in the town itself: the town as we build it, cropped to the 44x32 grid where it
-  // is most open. Both keep only the tiles reachable from the start.
+  // Fixed floors. A Pearl floor (a stage's layout or def.layouts[floor - 1] → data/pearl.json: Snowpoint Temple,
+  // Mt. Coronet's summit) keeps the room's real shape: entered at its gate or arrival stairs, left by its other stairs,
+  // its boss on Pearl's own spot. Its walkable part is framed in the floor, which grows past 44x32 for a big map (the
+  // Spear Pillar). A town battle (def.battle) fights in the town itself: the town as we build it, cropped to the 44x32
+  // grid where it is most open. Both keep only the tiles reachable from the start.
   fixedFloor() {
     if (this.def.battle) return this.battleFloor();
-    const L = PEARL.floors[this.def.layouts?.[this.floor - 1]];
+    const L = PEARL.floors[this.stage?.layout || this.def.layouts?.[this.floor - 1]];
     if (!L) return null;
-    const ox = Math.max(0, Math.floor((W - L.w) / 2)), oy = Math.max(0, Math.floor((H - L.h) / 2));
-    const open = (x, y) => x - ox >= 0 && y - oy >= 0 && x - ox < L.w && y - oy < L.h && x < W - 1 && y < H - 1 && x > 0 && y > 0 && '.,*i='.includes(L.rows[y - oy][x - ox]);
+    const walkable = (ch) => '.,*i='.includes(ch);
+    let x0 = L.w, y0 = L.h, x1 = 0, y1 = 0;
+    L.rows.forEach((row, y) => { for (let x = 0; x < L.w; x++) if (walkable(row[x])) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } });
+    W = Math.max(W, x1 - x0 + 3); H = Math.max(H, y1 - y0 + 3);
+    const ox = Math.floor((W - (x1 - x0 + 1)) / 2) - x0, oy = Math.floor((H - (y1 - y0 + 1)) / 2) - y0;
+    const at = (p) => p && [p[0] + ox, p[1] + oy]; // Pearl's coordinates on this floor
+    const open = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1 && walkable(L.rows[y - oy]?.[x - ox] || '#');
     const gate = L.doors.find((q) => q[2] === 'gate'), stairs = L.doors.filter((q) => q[2] === 'stairs');
     const entry = gate || stairs[0], out = stairs.find((q) => q !== entry);
-    const start = [entry[0] + ox, entry[1] + oy];
+    const start = at(entry);
     const tiles = this.reach(start, open);
-    return { open: tiles, box: this.boxOf(tiles), start, stairs: out && [out[0] + ox, out[1] + oy], bossAt: L.npcs[0] && [L.npcs[0][0] + ox, L.npcs[0][1] + oy] };
+    return { open: tiles, box: this.boxOf(tiles), start, stairs: at(out), bossAt: at(L.npcs[0]), at };
   }
   // A fight in a town (def.battle): the town as built, cropped to the 44x32 grid. A battle of armies takes the window
   // with the most room to fight, our side at its bottom middle and the other side about twenty steps away; a fight
@@ -554,6 +584,7 @@ export class Dungeon {
       }
     }
     if (this.stairs && p.x === this.stairs[0] && p.y === this.stairs[1]) this.pendingStairs = true;
+    if (this.altar && !this.lit && p.x === this.altar[0] && p.y === this.altar[1]) this.pendingFlute = true;
   }
   talkNpc(o) {
     const r = o.rescue;
@@ -793,6 +824,10 @@ export class Dungeon {
   }
   foeAI(e) {
     const m = e.mon;
+    if (e.waiting) { // a boss waiting in its hall (Arceus): it wakes, and speaks, once one of the team comes near
+      if (this.ents.some((a) => a.alive && a.team === 'ally' && Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y)) <= e.waiting)) { e.waiting = 0; this.bossIntro = true; }
+      return;
+    }
     if (e.isBoss && (this.bossTurn(e) || e.hidden)) return; // gone into the dark, it only comes out of a shadow
     if (m.status === 'slp' || m.status === 'frz' || (m.status === 'par' && Math.random() < 0.25)) return this.statusSkip(e);
     const allies = this.ents.filter((a) => a.alive && a.team === 'ally');
@@ -811,24 +846,25 @@ export class Dungeon {
       if (this.tryMove(e, dx, dy)) this.moveAnim(e, fx, fy); else e.wdir = null;
     }
   }
-  danger(x, y) { const t = this.boss?.alive && this.boss.tele; return !!t && t.tiles.has(y * W + x); }
+  danger(x, y) { return this.bosses.some((b) => b.alive && b.tele?.tiles.has(y * W + x)); }
   // Teammates: out of a telegraphed blast first; then they fight what is near the team (a foe beside them, in line or
   // within sure reach) and close in on a foe only while both stay within LEASH tiles of the one in control; otherwise
-  // they follow it (follow). A town battle's troops go after any foe they see.
+  // they follow it (follow). In a town battle everyone on our side fights on their own: teammates and troops alike go
+  // after the nearest foe anywhere on the field and never trail the leader.
   allyAI(e) {
     const m = e.mon;
     if (m.status === 'slp' || m.status === 'frz' || (m.status === 'par' && Math.random() < 0.25)) return this.statusSkip(e);
     const go = (step) => { const fx = e.x, fy = e.y; if (step && this.tryMove(e, ...step)) { this.moveAnim(e, fx, fy); return true; } return false; };
     if (this.danger(e.x, e.y) && go(this.bfs(e, (x, y) => !this.danger(x, y) && !this.entAt(x, y), 6))) return;
-    const p = this.player, near = (a, x, y) => Math.max(Math.abs(a.x - x), Math.abs(a.y - y));
+    const p = this.player, near = (a, x, y) => Math.max(Math.abs(a.x - x), Math.abs(a.y - y)), free = !!this.def.battle;
     const foes = this.ents.filter((f) => f.alive && f.team === 'foe' && !f.hidden && this.vis[f.y][f.x]);
     const closest = foes.map((f) => ({ f, d: near(e, f.x, f.y) })).sort((a, b) => a.d - b.d)[0];
-    if (closest && closest.d <= LINE_REACH) {
+    if (closest && (free || closest.d <= LINE_REACH)) {
       if (this.actWith(e, closest.f)) return;
-      const held = (x, y) => e.army || near(p, x, y) <= LEASH; // a teammate keeps to the leader; troops roam
-      if (held(e.x, e.y) && go(this.bfs(e, (x, y) => held(x, y) && foes.some((f) => held(f.x, f.y) && near(f, x, y) <= 1) && !this.entAt(x, y) && !this.danger(x, y), 8))) return;
+      const held = (x, y) => free || near(p, x, y) <= LEASH; // a teammate keeps to the leader
+      if (held(e.x, e.y) && go(this.bfs(e, (x, y) => held(x, y) && foes.some((f) => held(f.x, f.y) && near(f, x, y) <= 1) && !this.entAt(x, y) && !this.danger(x, y), free ? 40 : 8))) return;
     }
-    this.follow(e);
+    if (!free) this.follow(e);
   }
   // Following: to a free tile beside the leader or, where that can't be reached (a corridor), beside a teammate nearer
   // the leader than itself, so the team walks in a line; one already right behind such a teammate stays put. A
@@ -836,13 +872,13 @@ export class Dungeon {
   follow(e) {
     const p = this.player, near = (a, x, y) => Math.max(Math.abs(a.x - x), Math.abs(a.y - y)), d = near(e, p.x, p.y);
     if (d <= 1) { e.lost = 0; return; }
-    const ahead = e.army ? [] : this.mates.filter((a) => a !== e && a.alive && near(a, p.x, p.y) < d);
+    const ahead = this.mates.filter((a) => a !== e && a.alive && near(a, p.x, p.y) < d);
     if (!ahead.some((a) => near(a, e.x, e.y) <= 1 && near(a, p.x, p.y) <= 1)) {
       const to = [p, ...ahead], fx = e.x, fy = e.y;
       const step = this.bfs(e, (x, y) => !this.entAt(x, y) && !this.danger(x, y) && to.some((a) => near(a, x, y) <= 1), 24);
       if (step && this.tryMove(e, ...step)) this.moveAnim(e, fx, fy);
     }
-    e.lost = !e.army && !this.vis[e.y][e.x] && near(e, p.x, p.y) > 4 ? (e.lost || 0) + 1 : 0;
+    e.lost = !this.vis[e.y][e.x] && near(e, p.x, p.y) > 4 ? (e.lost || 0) + 1 : 0;
     if (e.lost >= 3) {
       const [x, y] = this.freeNear(p.x, p.y);
       if (!this.entAt(x, y)) { e.x = e.vx = x; e.y = e.vy = y; e.lost = 0; }
@@ -874,13 +910,18 @@ export class Dungeon {
       this.step(() => this.msg(tr(`${m.name}이(가) 힘을 모으고 있다… (${left}턴 뒤)`, `${m.name} is gathering power... (${left} turns)`), COL.red), 0.15);
       return !e.def.relentless; // relentless bosses keep fighting while the blast charges
     }
-    if (this.sigTurn(e)) return true;
+    // a pair takes turns with its big attacks: one blast or signature move on the field at a time
+    const other = this.bosses.some((o) => o !== e && o.alive && (o.tele || o.sigRun || o.hidden));
+    if (!other && this.sigTurn(e)) return true;
     if (e.stagger > 0) {
       e.stagger--;
       this.step(() => this.msg(tr(`${m.name}은(는) 지쳐서 숨을 고르고 있다!`, `${m.name} is worn out and catching its breath!`), COL.green), 0.15);
       return true;
     }
-    if (--e.teleCD <= 0) { this.charge(e); return true; }
+    if (--e.teleCD <= 0) {
+      if (!other) { this.charge(e); return true; }
+      e.teleCD = 1; // its partner's blast first
+    }
     return false;
   }
   // Arceus-style phases: plate change, cadence change, minions
@@ -922,10 +963,12 @@ export class Dungeon {
         if (P.hit(dx, dy, Math.max(Math.abs(dx), Math.abs(dy)), x, y, p, q)) add(x, y);
       }
       if (part === 'target') for (const a of allies) for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(a.x + ox, a.y + oy);
-      if (part === 'orbs') { // round blasts of light raining on random spots of the field
+      if (part === 'orbs') { // round blasts of light raining on random spots of the field (its floor, not its walls)
         set.orbs = [];
-        for (let k = 0; k < 6 + Math.floor(R.w * R.h / 80); k++) {
+        for (let k = 0, tries = 0; k < 6 + Math.floor(R.w * R.h / 80) && tries < 400; tries++) {
           const cx = randInt(R.x, R.x + R.w - 1), cy = randInt(R.y, R.y + R.h - 1);
+          if (!this.walk(cx, cy)) continue;
+          k++;
           set.orbs.push([cx, cy]);
           for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(cx + ox, cy + oy, true);
         }
@@ -938,12 +981,13 @@ export class Dungeon {
     const R = this.rooms[0];
     let best = 99;
     for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) {
-      if (this.walk(x, y) && !tiles.has(y * W + x) && !(x === this.boss.x && y === this.boss.y)) best = Math.min(best, Math.max(Math.abs(x - a.x), Math.abs(y - a.y)));
+      if (this.walk(x, y) && !tiles.has(y * W + x) && !this.bosses.some((b) => b.alive && b.x === x && b.y === y)) best = Math.min(best, Math.max(Math.abs(x - a.x), Math.abs(y - a.y)));
     }
     return best;
   }
   charge(e) {
-    const T = this.teleConf(e);
+    // a telegraph with a `mix` takes turns among several attacks (Giratina), each with its own name, type, shapes and power
+    const P = this.teleConf(e), T = P.mix ? { ...P, ...P.mix[(e.mixN = (e.mixN ?? -1) + 1) % P.mix.length] } : P;
     const allies = this.ents.filter((a) => a.alive && a.team === 'ally');
     let pick = null;
     for (const name of shuffle(T.pats.slice())) {
@@ -954,7 +998,7 @@ export class Dungeon {
     if (!pick) pick = { tiles: this.patternTiles('target', e, allies), delay: 1, name: 'target' };
     const nm = T.orbName && pick.name.includes('orbs') ? T.orbName : T.name; // Judgment's orbs go by its own name
     e.teleN = (e.teleN || 0) + 1;
-    e.teleCD = T.every;
+    e.teleCD += T.every / (e.def.pace || 1); // a paced boss (the finale's guardians) charges more often; a fraction carries over
     e.tele = { tiles: pick.tiles, turns: pick.delay, name: nm, dmg: T.dmg * e.tier.blast, color: TYPE_COLORS[T.type ?? e.mon.types[0]], orbs: pick.tiles.orbs };
     e.face = [0, 1];
     this.step(() => { this.msg(tr(`${e.mon.name}의 ${nm}! 붉은 칸에서 벗어나라!`, `${e.mon.name}'s ${nm}! Get off the red tiles!`), COL.red); sfx('buff'); this.shake = 0.15; }, 0.3);
@@ -992,7 +1036,18 @@ export class Dungeon {
   // one, the move goes off on its turn (sigTurn), the boss's moves taking turns. Most are a blast of their own shape,
   // telegraphed for a turn and landing like any other (unleash); Roar of Time charges for a turn and Hyper Beam turns a
   // full circle (sigStep).
-  sigPlan(s) { return s && { use: s.use, k: 0, at: (Array.isArray(s.at[0]) ? choice(s.at) : s.at).slice() }; }
+  // A paced boss (pace > 1, the finale's guardians) uses them more often: half as many marks again (at least one
+  // more), spread evenly over the same stretch of its bar.
+  sigPlan(s, pace = 1) {
+    if (!s) return null;
+    let at = (Array.isArray(s.at[0]) ? choice(s.at) : s.at).slice();
+    if (pace > 1) {
+      const n = at.length + Math.max(1, Math.floor(at.length * (pace - 1)));
+      const hi = Math.min(0.9, at[0] + 0.1), lo = Math.max(0.15, at[at.length - 1] - 0.1);
+      at = Array.from({ length: n }, (_, i) => hi - (hi - lo) * i / (n - 1));
+    }
+    return { use: s.use, k: 0, at };
+  }
   sigTurn(e) {
     const s = e.sig;
     if (!s?.at.length || e.mon.hp > e.mon.maxhp * s.at[0]) return false;
@@ -1022,12 +1077,12 @@ export class Dungeon {
       blast(this.sigTiles(e, (add) => { for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(t.x + ox, t.y + oy); }), { at: [t.x, t.y] });
       return tell(`${m.name}의 ${sg.name}! 어둠 속으로 사라졌다… ${t.mon.name}의 그림자가 술렁인다!`, `${m.name}'s ${sg.name}! It vanished into the dark... ${t.mon.name}'s shadow stirs!`);
     }
-    if (sg.kind === 'rend') { // space tears: the arena closes in a ring, and rifts open in the floor
+    if (sg.kind === 'rend') { // space tears: the arena closes in a ring, and long rifts open all over the floor
       const closed = this.rendArena();
       blast(this.escapable(team, () => this.sigTiles(e, (add, R) => {
-        for (let n = 0; n < 4 + (e.revives || 0) * 2; n++) {
+        for (let n = 0; n < 6 + (e.revives || 0) * 2; n++) {
           const cx = randInt(R.x + 1, R.x + R.w - 2), cy = randInt(R.y + 1, R.y + R.h - 2), [dx, dy] = choice(DIRS8);
-          for (let i = -2; i <= 2; i++) add(cx + dx * i, cy + dy * i);
+          for (let i = -3; i <= 3; i++) add(cx + dx * i, cy + dy * i);
         }
       })));
       return closed ? tell(`${m.name}의 ${sg.name}! 공간이 찢어지며 싸움터가 좁아졌다! 바닥에 벌어진 틈에서 벗어나라!`, `${m.name}'s ${sg.name}! Space tears and the arena closes in! Get away from the rifts in the floor!`)
@@ -1161,20 +1216,26 @@ export class Dungeon {
     if (r.form) Object.defineProperty(m, 'name', { configurable: true, get: () => `${m.data.name} (${r.form})` });
     if (r.cap) e.cap = r.cap;
     e.teleSet = r.tele; e.bphase = 1; e.tele = null; e.stagger = 0; e.teleCD = this.teleConf(e).first ?? 2;
-    e.sig = this.sigPlan(r.sig); e.hpLog = [];
+    e.sig = this.sigPlan(r.sig, e.def.pace); e.hpLog = [];
     this.step(() => { this.shake = 0.9; e.reviveT = 1.2; sfx('super'); cry(m.sp); this.msg(r.msg, COL.red); if (r.bgm) playBgm(r.bgm, 0.2); }, 0.9);
     if (r.line) this.step(() => say(lines(r.line)), 0.1);
   }
 
   // ---------------------------------------------------------------- outcomes
   async bossDefeated(e) {
-    const b = e.def, mid = b === this.def.mid;
+    const b = e.def, mid = b === this.def.mid, st = this.stage;
     e.tele = null;
+    const left = this.bosses.find((o) => o.alive);
+    if (left) return this.msg(tr(`${e.mon.name}이(가) 쓰러졌다! 남은 ${left.mon.name}에게 집중하자!`, `${e.mon.name} is down! Now for ${left.mon.name}!`), COL.green); // the other of a pair fights on
+    if (this.stageDone) return; // both of a pair fell in the same turn
+    this.stageDone = true;
     playBgm(b.tele ? 'win_poke' : 'win_gym', 0.3);
     await say(lines(b.after || []));
     if (mid) S.flags['mid_' + this.dId] = true;
     if (this.def.legend) S.flags['legend_' + this.dId] = true;
     if (b.wander) S.flags[`wander_${b.sp}_${S.era}`] = true; // met in this era; if it stays behind again, it moves on to the next
+    if (st?.flag) S.flags[st.flag] = true;
+    await this.prize();
     if (!b.noJoin) await this.offerRecruit(e.mon, b.join);
     const J = this.def.battle?.join; // a town battle won: the side's own legend asks to come along, with its orb
     const ally = J && this.army?.find((a) => a.mon.sp === J.sp);
@@ -1183,12 +1244,42 @@ export class Dungeon {
       ally.mon.hp = ally.mon.maxhp;
       await this.offerRecruit(ally.mon, J.text);
     }
-    if (!mid) return this.cleared();
-    // a mid-boss opens the way deeper into the dungeon
-    this.boss = null;
+    if (this.def.tower) this.towerFloor();
+    if (!mid && (!st || this.floor >= this.floors)) return this.cleared();
+    // a mid-boss, or a stage's boss before the last stage, opens the way on
+    this.boss = null; this.bosses = [];
     this.stairs = [e.x, e.y];
-    playBgm(this.def.bgm, 0.6);
-    this.msg(tr('안쪽으로 이어지는 계단이 나타났다!', 'Stairs leading deeper have appeared!'), COL.blue);
+    playBgm(st?.bgm || this.def.bgm, 0.6);
+    this.msg(st ? tr('다음 층으로 가는 계단이 나타났다!', 'Stairs to the next floor have appeared!') : tr('안쪽으로 이어지는 계단이 나타났다!', 'Stairs leading deeper have appeared!'), COL.blue);
+  }
+  // a dungeon's prize for a set of stages (the finale's guardians: the Azure Flute), handed over once
+  async prize() {
+    const P = this.def.prize;
+    if (!P || S.items[P.item] || !P.flags.every((f) => S.flags[f])) return;
+    addItem(P.item); jingle('fanfa4');
+    this.msg(tr(`${ITEMS[P.item].name}을(를) 손에 넣었다!`, `Got the ${ITEMS[P.item].name}!`), COL.green);
+    await say(lines(P.say || []));
+  }
+  // the Boss Tower remembers the highest floor cleared (a later visit may start above it); clearing the top starts it over
+  towerFloor() {
+    if (this.floor < this.floors) S.flags.towerTop = Math.max(S.flags.towerTop || 0, this.floor);
+    else { S.flags.towerTop = 0; S.flags.towerClears = (S.flags.towerClears || 0) + 1; }
+  }
+  // between the Boss Tower's floors the team is restored: each floor is a fight of its own
+  restoreTeam() {
+    for (const m of S.party) { m.heal(true); m.stages = {}; }
+    this.msg(tr('탑의 기운이 모두의 HP와 PP를 되돌렸다!', 'The tower\'s power restores everyone\'s HP and PP!'), COL.green);
+  }
+  // The Spear Pillar's altar: the Azure Flute played there brings down a stairway of light to the Hall of Origin.
+  playFlute() {
+    if (!S.items[this.stage.flute.item]) return say([{ who: 'narr', text: tr('오래된 제단이다. 이곳에서 불 피리가 있다면…', 'An ancient altar. If only you had a flute to play here...') }]);
+    say([{ who: 'narr', text: tr('창기둥 꼭대기의 제단이다. 천계의 피리를 불까?', 'The altar at the top of the Spear Pillar. Play the Azure Flute?'), choices: tr(['피리를 분다', '그만둔다'], ['Play it', 'Not yet']), onChoice: (i) => {
+      if (i) return;
+      this.lit = true; this.stairs = this.lightAt;
+      this.lightFx = { t: 1.6 }; this.shake = 0.5; sfx('warp'); jingle('fanfa5');
+      this.msg(tr('맑은 피리 소리가 하늘로 울려 퍼진다… 빛의 계단이 나타났다!', 'A clear note rings up into the sky... A stairway of light appears!'), COL.gold);
+      say(lines(this.stage.flute.say || []));
+    } }]);
   }
   // a defeated Pokémon may ask to join (always for bosses; RECRUIT_RATE for wild ones)
   offerRecruit(mon, text) {
@@ -1212,6 +1303,7 @@ export class Dungeon {
     if (this.def.police) return this.result(tr('순사들을 혼쭐내 쫓아 버렸다!', 'You sent the constables packing!'), true); // their coins are the reward
     const bonus = Math.round((this.def.battle ? 4 : this.def.floors) * (40 + S.era * 15) / 10) * 10; // clear reward grows with depth and era
     S.money += bonus;
+    if (this.def.tower) return this.result(tr(`보스 탑 꼭대기까지 올랐다! 완주 보상 ${bonus}냥`, `You reached the top of the Boss Tower! Reward: ${bonus} nyang`), true);
     this.result(this.def.battle ? tr(`전투에서 이겼다! 보상 ${bonus}냥`, `Victory! Reward: ${bonus} nyang`) : tr(`던전 클리어! 클리어 보상 ${bonus}냥`, `Dungeon cleared! Clear reward: ${bonus} nyang`), true);
   }
   failed() {
@@ -1220,12 +1312,12 @@ export class Dungeon {
     const lost = Math.floor(S.money * (0.1 + curve() * 0.2)); // early defeats cost little
     S.money -= lost;
     S.party.forEach((m) => { m.hp = Math.max(1, Math.floor(m.maxhp / 2)); m.status = null; });
-    const lostCh = loseChallenge() ? [tr('챌린지 실패… 모두 쓰러지고 말았다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the whole team went down. The journey now continues at Normal.')] : [];
+    const lostCh = !this.def.tower && loseChallenge() ? [tr('챌린지 실패… 모두 쓰러지고 말았다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the whole team went down. The journey now continues at Normal.')] : [];
     this.result(tr(`모두 쓰러지고 말았다… 엽전 ${lost}냥을 잃었다.`, `The whole team fainted... and lost ${lost} nyang.`), false, lostCh);
   }
   // walking back out the way you came: only from the first floor, at no cost
   leave() {
-    if (this.done || this.floor !== 1) return;
+    if (this.done || this.floor !== this.startFloor) return;
     this.done = true;
     sfx('stairs');
     this.result(tr('왔던 길로 되돌아 던전을 나왔다.', 'You walked back out the way you came.'), false);
@@ -1289,9 +1381,11 @@ export class Dungeon {
     sfx('stairs');
     fadeTo(() => {
       this.floor++;
+      if (this.def.tower) this.restoreTeam();
       this.newFloor();
-      this.msg(tr(`${this.floor}층에 도착했다.`, `Reached floor ${this.floor}.`), COL.blue);
-      if (this.bossFloor) playBgm(this.bossDef.bgm || 'ba_gym', 0.4);
+      this.msg(this.stage?.name ? tr(`${this.stage.name}에 도착했다.`, `Reached the ${this.stage.name}.`) : tr(`${this.floor}층에 도착했다.`, `Reached floor ${this.floor}.`), COL.blue);
+      if (this.bossFloor && !this.stage?.wake) playBgm(this.bossDef.bgm || 'ba_gym', 0.4);
+      else if (this.stage) playBgm(this.stage.bgm || this.def.bgm, 0.6);
     }, '#000', 4);
   }
 
@@ -1312,6 +1406,7 @@ export class Dungeon {
     if (this.blast) { this.blast.t -= dt; if (this.blast.t <= 0) this.blast = null; }
     if (this.beamFx) { this.beamFx.t -= dt; if (this.beamFx.t <= 0) this.beamFx = null; }
     if (this.timeFx) { this.timeFx.t -= dt; if (this.timeFx.t <= 0) this.timeFx = null; }
+    if (this.lightFx) { this.lightFx.t -= dt; if (this.lightFx.t <= 0) this.lightFx = null; }
     if (this.shake) this.shake = Math.max(0, this.shake - dt);
     // X/C/M/J/Tab/P pressed while a turn plays out wait for it instead of being dropped
     for (const k of ['cancel', 'menu', 'map', 'quest', 'tag', 'party']) if (input.hit(k)) this.latch = k;
@@ -1323,11 +1418,12 @@ export class Dungeon {
       this.bossIntro = false; this.latch = null;
       const b = this.boss.def;
       playBgm(b.bgm || 'ba_gym', 0.4); cry(b.sp);
-      const L = lines(b.say || []);
+      const L = lines(this.stage?.say || b.say || []); // a Boss Tower floor introduces its pair in its own words
       if (b.tele && !S.flags.teleTut) { S.flags.teleTut = true; L.push(...lines(TELE_TUT)); }
       say(L);
       return;
     }
+    if (this.pendingFlute) { this.pendingFlute = false; this.latch = null; return this.playFlute(); }
     if (this.pendingStairs) {
       this.pendingStairs = false; this.latch = null;
       return say([{ who: 'narr', text: this.floor >= this.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?') : tr('다음 층으로 가는 계단이다. 내려갈까?', 'Stairs to the next floor. Go down?'), choices: tr(['간다', '그만둔다'], ['Go', 'Stay']), onChoice: (i) => { if (i === 0) this.descend(); } }]);
@@ -1364,11 +1460,11 @@ export class Dungeon {
       { label: tr('포켓몬', 'Pokémon'), fn: () => partyMenu({ dungeon: true }) },
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('발밑 / 쉬기', 'Rest a turn'), fn: () => this.playerAct('wait') },
-      { label: tr('던전에서 나가기', 'Leave the dungeon'), right: this.def.police ? tr('싸우는 중', 'Mid-fight') : this.floor === 1 ? '' : tr('1층에서만', 'Floor 1 only'), disabled: this.floor !== 1 || !!this.def.police, fn: () => say([{ who: 'narr', text: tr('아직 1층이라 왔던 길로 되돌아 나갈 수 있다. 던전에서 나갈까?', 'Still on floor 1, you can walk back out the way you came. Leave the dungeon?'), choices: tr(['나간다', '그만둔다'], ['Leave', 'Stay']), onChoice: (i) => { if (i === 0) this.leave(); } }]) },
+      { label: tr('던전에서 나가기', 'Leave the dungeon'), right: this.def.police ? tr('싸우는 중', 'Mid-fight') : this.floor === this.startFloor ? '' : tr('들어온 층에서만', 'First floor only'), disabled: this.floor !== this.startFloor || !!this.def.police, fn: () => say([{ who: 'narr', text: tr('아직 들어온 층이라 왔던 길로 되돌아 나갈 수 있다. 던전에서 나갈까?', 'Still on the floor you came in on, you can walk back out the way you came. Leave the dungeon?'), choices: tr(['나간다', '그만둔다'], ['Leave', 'Stay']), onChoice: (i) => { if (i === 0) this.leave(); } }]) },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
       quitItem(true, () => this.restoreCrew()),
       { label: tr('닫기', 'Close') },
-    ], { title: tr(`${this.def.name} ${this.floor}층`, `${this.def.name} F${this.floor}`) });
+    ], { title: this.stage?.name ? this.title : tr(`${this.def.name} ${this.floor}층`, `${this.def.name} F${this.floor}`) });
   }
   draw(c) {
     const p = this.player;
@@ -1384,11 +1480,13 @@ export class Dungeon {
     if (this.bg) drawSeen(c, this.bg, camX, camY);
     c.fillStyle = '#0b0a10';
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (!this.seen[y][x]) c.fillRect(x * TILE, y * TILE, TILE, TILE);
-    if (this.stairs && this.seen[this.stairs[1]][this.stairs[0]]) this.drawStairs(c, this.stairs[0] * TILE, this.stairs[1] * TILE);
+    if (this.stairs && this.seen[this.stairs[1]][this.stairs[0]]) this.drawStairs(c, this.stairs[0] * TILE, this.stairs[1] * TILE, this.lit);
+    if (this.altar && !this.lit) this.drawAltar(c, this.altar[0] * TILE + 12, this.altar[1] * TILE + 12);
     // telegraphed danger tiles (brighter on the last turn) and the blast flash
     if (this.rent) for (const k of this.rent.tiles) this.drawRent(c, k % W, Math.floor(k / W));
-    const tele = this.boss?.alive && this.boss.tele;
-    if (tele) {
+    for (const boss of this.bosses) {
+      const tele = boss.alive && boss.tele;
+      if (!tele) continue;
       const a = (tele.turns <= 1 ? 0.42 : 0.24) + 0.14 * Math.sin(G.time * (tele.turns <= 1 ? 14 : 7));
       for (const k of tele.tiles) {
         const x = (k % W) * TILE, y = Math.floor(k / W) * TILE;
@@ -1400,7 +1498,7 @@ export class Dungeon {
         c.strokeStyle = `rgba(255,236,150,${0.5 + 0.4 * Math.sin(G.time * 10)})`; c.lineWidth = 2;
         c.beginPath(); c.arc(ox * TILE + 12, oy * TILE + 12, 26, 0, Math.PI * 2); c.stroke();
       }
-      if (tele.fx === 'shadow' && this.boss.hidden) this.drawShadow(c, tele.at[0] * TILE + 12, tele.at[1] * TILE + 16);
+      if (tele.fx === 'shadow' && boss.hidden) this.drawShadow(c, tele.at[0] * TILE + 12, tele.at[1] * TILE + 16);
     }
     if (this.blast) {
       const b = this.blast, f = 1 - b.t / 0.45;
@@ -1437,7 +1535,9 @@ export class Dungeon {
     // fog (seen but not visible)
     c.fillStyle = 'rgba(5,4,10,0.55)';
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (this.seen[y][x] && !this.vis[y][x]) c.fillRect(x * TILE - camX, y * TILE - camY, TILE, TILE);
-    if (this.def.tint) { c.fillStyle = this.def.tint; c.fillRect(0, 0, VW, VH); }
+    const tint = this.stage?.tint ?? this.def.tint;
+    if (tint) { c.fillStyle = tint; c.fillRect(0, 0, VW, VH); }
+    if (this.lightFx) { c.fillStyle = `rgba(255,238,170,${0.55 * Math.min(1, this.lightFx.t)})`; c.fillRect(0, 0, VW, VH); } // the flute's light
     if (this.timeFx) { // Roar of Time: the world tinted blue, clock rings spreading from Dialga
       const t = this.timeFx, x = t.x * TILE + 12 - camX, y = t.y * TILE + 8 - camY;
       c.fillStyle = `rgba(60,110,255,${0.32 * t.t})`; c.fillRect(0, 0, VW, VH);
@@ -1508,7 +1608,7 @@ export class Dungeon {
       this.bg = cv;
       return;
     }
-    const set = tileSet(this.def.tiles);
+    const set = tileSet(this.stage?.tiles ?? this.def.tiles);
     if (!set.meta || !ready(set.im)) return;
     const cv = document.createElement('canvas');
     cv.width = W * TILE; cv.height = H * TILE;
@@ -1534,10 +1634,28 @@ export class Dungeon {
     c.fillStyle = 'rgba(20,0,30,0.7)'; c.beginPath(); c.ellipse(x, y, r, r * 0.45, 0, 0, Math.PI * 2); c.fill();
     c.strokeStyle = 'rgba(190,90,255,0.8)'; c.lineWidth = 1; c.beginPath(); c.ellipse(x, y, r * 0.7, r * 0.3, G.time * 2, 0, Math.PI * 2); c.stroke();
   }
-  drawStairs(c, x, y) {
-    c.fillStyle = '#2a2420'; c.fillRect(x + 3, y + 3, 18, 18);
-    for (let i = 0; i < 4; i++) { c.fillStyle = i % 2 ? '#8c7a64' : '#b29e82'; c.fillRect(x + 4 + i * 2, y + 5 + i * 4, 16 - i * 4, 3); }
+  // stairs; the stairway of light the Azure Flute brings down (light) glows gold
+  drawStairs(c, x, y, light) {
+    if (light) {
+      const g = c.createRadialGradient(x + 12, y + 12, 2, x + 12, y + 12, 22);
+      g.addColorStop(0, `rgba(255,246,200,${0.75 + 0.2 * Math.sin(G.time * 5)})`); g.addColorStop(1, 'rgba(255,214,90,0)');
+      c.fillStyle = g; c.fillRect(x - 10, y - 10, 44, 44);
+    }
+    c.fillStyle = light ? '#8a6a20' : '#2a2420'; c.fillRect(x + 3, y + 3, 18, 18);
+    for (let i = 0; i < 4; i++) { c.fillStyle = light ? (i % 2 ? '#ffe9a0' : '#fff8dc') : i % 2 ? '#8c7a64' : '#b29e82'; c.fillRect(x + 4 + i * 2, y + 5 + i * 4, 16 - i * 4, 3); }
     if (Math.floor(G.time * 2) % 2) { c.fillStyle = '#fff4c0'; c.fillRect(x + 11, y + 1, 2, 2); }
+  }
+  // the Spear Pillar's altar, where the Azure Flute is played: a stone pedestal with a light pulsing over it
+  drawAltar(c, x, y) {
+    const a = 0.6 + 0.3 * Math.sin(G.time * 3), oy = Math.sin(G.time * 2.5) * 2;
+    const g = c.createRadialGradient(x, y - 12 + oy, 1, x, y - 12 + oy, 18);
+    g.addColorStop(0, `rgba(230,245,255,${a})`); g.addColorStop(0.5, `rgba(120,180,255,${a * 0.5})`); g.addColorStop(1, 'rgba(120,180,255,0)');
+    c.fillStyle = g; c.fillRect(x - 18, y - 30 + oy, 36, 36);
+    c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(x, y + 8, 11, 4, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#2c2a38'; c.fillRect(x - 9, y - 4, 18, 13); // the pedestal: outline, side and top
+    c.fillStyle = '#8a8698'; c.fillRect(x - 8, y - 3, 16, 11);
+    c.fillStyle = '#c4c0d2'; c.fillRect(x - 8, y - 3, 16, 4);
+    c.fillStyle = `rgba(150,210,255,${a})`; c.fillRect(x - 2, y - 15 + oy, 4, 4); c.fillRect(x - 1, y - 17 + oy, 2, 8);
   }
   drawItem(c, it) {
     const x = it.x * TILE + 12, y = it.y * TILE + 14 + Math.sin(G.time * 3 + it.x) * 1;
@@ -1559,7 +1677,7 @@ export class Dungeon {
     const allies = team.slice().sort((a, b) => at(a) - at(b)); // party order; the one in control is marked
     ui.panel(6, 6, 176, 18 + allies.length * 22);
     const foesLeft = this.def.battle && this.ents.filter((e) => e.alive && e.team === 'foe').length;
-    ui.text(this.def.battle ? tr(`${this.def.name}  남은 적 ${foesLeft}`, `${this.def.name}  Foes left ${foesLeft}`) : tr(`${this.def.name}  ${this.floor}층`, `${this.def.name}  F${this.floor}`), 12, 12, { size: 9, color: COL.red, bold: true }); // below the dancheong stripe
+    ui.text(this.def.battle ? tr(`${this.def.name}  남은 적 ${foesLeft}`, `${this.def.name}  Foes left ${foesLeft}`) : this.stage?.name ? this.title : tr(`${this.def.name}  ${this.floor}층`, `${this.def.name}  F${this.floor}`), 12, 12, { size: 9, color: COL.red, bold: true }); // below the dancheong stripe
     allies.forEach((e, i) => {
       const m = e.mon, y = 24 + i * 22;
       if (e.isPlayer) drawBadge(ui.c, 8, y - 1, BADGE_S);
@@ -1568,24 +1686,9 @@ export class Dungeon {
       ui.text(`${m.hp}/${m.maxhp}`, 176, y, { size: 9, align: 'right' });
       ui.bar(12, y + 11, 164, 5, m.hp, m.maxhp);
     });
-    // boss bar
-    if (this.boss && this.boss.alive) {
-      const b = this.boss, m = b.mon, bx = VW / 2 - 52; // right of the party panel
-      ui.panel(bx, 6, 180, 24, { accent: false, fill: ['#3a1c1c', '#4a3810', '#33204e'][Math.min(2, b.revives || 0)] });
-      ui.text(`${'★'.repeat(b.revives || 0)}${b.revives ? ' ' : ''}${m.name}  Lv${m.lv}`, bx + 8, 9, { size: 9, color: b.revived ? '#ffe27a' : '#ffe0d0', bold: true });
-      if (Array.isArray(b.teleSet)) for (let i = 0; i < b.teleSet.length; i++) ui.rect(bx + 150 + i * 9 - b.teleSet.length * 9 + 18, 10, 6, 6, i < b.bphase ? '#ff6a4a' : '#6a4a40');
-      ui.bar(bx + 8, 21, 164, 5, m.hp, m.maxhp);
-      const roar = b.sigRun?.sg.kind === 'roar' && b.sigRun.sg;
-      const note = roar ? [tr(`[!] ${roar.name} — 다음 턴, 모두 HP ${Math.round(roar.cut * 100)}% 감소`, `[!] ${roar.name} — next turn, everyone loses ${Math.round(roar.cut * 100)}% HP`), '#8ab4ff']
-        : b.tele ? [tr(`[!] ${b.tele.name} — 붉은 칸 밖으로! ${b.tele.turns}턴 뒤`, `[!] ${b.tele.name} — leave the red tiles! ${b.tele.turns} turn(s)`), b.tele.turns <= 1 ? '#ff5a3a' : '#ffb070']
-        : b.stagger > 0 ? [tr(`빈틈! 받는 피해 1.5배 (${b.stagger}턴)`, `Opening! Takes 1.5x damage (${b.stagger})`), '#8ff0a0']
-          : m.slowT > 0 ? [tr(`아직 제 힘을 내지 못한다 (${m.slowT}턴)`, `Not at full power yet (${m.slowT})`), '#c8d8ff'] : null;
-      if (note) {
-        const w = ui.measure(note[0], 9) + 16, nx = Math.min(bx + 90, VW - 6 - w / 2);
-        ui.panel(nx - w / 2, 32, w, 16, { accent: false, fill: '#2a1414' });
-        ui.text(note[0], nx, 35, { size: 9, align: 'center', color: note[1], bold: true });
-      }
-    }
+    // boss bars: right of the party panel, a pair side by side
+    const bars = this.bosses.filter((b) => b.alive), bw = bars.length > 1 ? 140 : 180;
+    bars.forEach((b, i) => this.drawBossBar(b, VW / 2 - 52 + i * (bw + 4), bw, 32 + i * 18));
     // moves
     const mv = this.player.mon.moves, { x: bx, y: by } = this.moveList();
     ui.panel(bx - 6, by - 6, 154, mv.length * 14 + 10, { accent: false });
@@ -1624,6 +1727,24 @@ export class Dungeon {
       ui.text(txt, VW / 2, 56, { align: 'center', bold: true, color: COL.red });
     }
     if (!ms.length && prefs.hints) ui.text(touchUI ? tr('패드 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴', 'Pad moves · Z attack · QWER moves · Tab tag · A rest · X menu') : tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8, VH - 12, { size: 9, color: '#fff', shadow: true });
+  }
+  // a boss's bar: name and level (a star per later form), phase pips, HP, and below it what it is about to do
+  drawBossBar(b, bx, w, ny) {
+    const m = b.mon;
+    ui.panel(bx, 6, w, 24, { accent: false, fill: ['#3a1c1c', '#4a3810', '#33204e'][Math.min(2, b.revives || 0)] });
+    ui.text(`${'★'.repeat(b.revives || 0)}${b.revives ? ' ' : ''}${m.name}  Lv${m.lv}`, bx + 8, 9, { size: 9, color: b.revived ? '#ffe27a' : '#ffe0d0', bold: true });
+    if (Array.isArray(b.teleSet)) for (let i = 0; i < b.teleSet.length; i++) ui.rect(bx + w - 12 - (b.teleSet.length - i) * 9, 10, 6, 6, i < b.bphase ? '#ff6a4a' : '#6a4a40');
+    ui.bar(bx + 8, 21, w - 16, 5, m.hp, m.maxhp);
+    const roar = b.sigRun?.sg.kind === 'roar' && b.sigRun.sg;
+    const note = b.waiting ? [tr('가까이 다가가면 깨어난다', 'It wakes when you come near'), '#c8d8ff']
+      : roar ? [tr(`[!] ${roar.name} — 다음 턴, 모두 HP ${Math.round(roar.cut * 100)}% 감소`, `[!] ${roar.name} — next turn, everyone loses ${Math.round(roar.cut * 100)}% HP`), '#8ab4ff']
+        : b.tele ? [tr(`[!] ${b.tele.name} — 붉은 칸 밖으로! ${b.tele.turns}턴 뒤`, `[!] ${b.tele.name} — leave the red tiles! ${b.tele.turns} turn(s)`), b.tele.turns <= 1 ? '#ff5a3a' : '#ffb070']
+          : b.stagger > 0 ? [tr(`빈틈! 받는 피해 1.5배 (${b.stagger}턴)`, `Opening! Takes 1.5x damage (${b.stagger})`), '#8ff0a0']
+            : m.slowT > 0 ? [tr(`아직 제 힘을 내지 못한다 (${m.slowT}턴)`, `Not at full power yet (${m.slowT})`), '#c8d8ff'] : null;
+    if (!note) return;
+    const tw = ui.measure(note[0], 9) + 16, nx = clamp(bx + w / 2, 186 + tw / 2, VW - 6 - tw / 2); // clear of the party panel
+    ui.panel(nx - tw / 2, ny, tw, 16, { accent: false, fill: '#2a1414' });
+    ui.text(note[0], nx, ny + 3, { size: 9, align: 'center', color: note[1], bold: true });
   }
 }
 const STATS_OF = (d) => ({ 10: 'atk', 11: 'def', 12: 'spe', 13: 'spa', 14: 'spd', 50: 'atk', 51: 'def', 52: 'spe', 53: 'spa', 54: 'spd' })[d.effect] || 'atk';
