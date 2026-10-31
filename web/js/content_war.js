@@ -107,8 +107,9 @@ const NORTH = {
   ],
 };
 // June 1950: Seoul's streets as a battlefield, built on Veilstone's layout (data/pearl.json C07). Each side brings its
-// legend: Groudon marches with the North, Kyogre comes in with the South. Yours fights beside you and joins (with its
-// orb) when the battle is won; the other leads the enemy and cannot be caught. Neither can be met again after.
+// legend: Groudon marches with the North, Kyogre comes in with the South. Yours fights beside you, the only one at
+// your side, and joins (with its orb) when the battle is won; the other is the boss, alone, and cannot be caught.
+// Neither can be met again after.
 const BATTLE_TOWN = { name: K('서울 · 1950년 6월', 'Seoul, June 1950'), pearl: 'C07', biome: 'war', landmark: null,
   houses: ['western', 'choga', 'hanok', 'western', 'choga', 'hanok'], props: ['crates', 'logs', 'jars', 'pole', 'campfire'] };
 const SOUTH_ARMY = [59, 230, 18, 67, 58], NORTH_ARMY = [217, 227, 232, 67, 75];
@@ -116,14 +117,15 @@ const GROUDON_JOIN = { sp: 383, item: 'redorb', text: K('그란돈이 땅을 울
 const KYOGRE_JOIN = { sp: 382, item: 'blueorb', text: K('가이오가가 물보라를 일으키며 다가왔다. 쪽빛구슬이 그 곁에서 빛난다. 함께 가고 싶어 한다!', 'Kyogre comes over in a spray of water. The Blue Orb glows beside it. It wants to come along!') };
 // the legends' signature moves: once above half their HP, two or three times below it (their second phase)
 const CMD_SIG_AT = [[0.75, 0.4, 0.15], [0.75, 0.42, 0.27, 0.12]];
-const COMMANDER = { lv: 60, lvMin: 54, lvUp: 3, hp: 1.5, atk: 0.85, cap: 0.32, noJoin: true, noWander: true, bgm: 'ba_dpoke1' };
+// the enemy legend: 25% stronger in HP and every stat (buff)
+const COMMANDER = { lv: 60, lvMin: 54, lvUp: 3, hp: 1.5, atk: 0.85, cap: 0.32, buff: 1.25, noJoin: true, noWander: true, bgm: 'ba_dpoke1' };
 const GROUDON_CMD = { ...COMMANDER, sp: 383, moves: [89, 53, 157, 444],
   tele: { name: K('대지의 힘', 'Earth Power'), every: 3, dmg: 0.32, pats: ['near', 'rows', 'cross', 'ring'], type: 4 },
   sig: { use: [SIG.blades], at: CMD_SIG_AT },
   say: [
     { who: 'narr', text: K('1950년 6월 28일. 전쟁이 시작된 지 사흘 만에 서울 거리가 싸움터가 되었다. 땅이 갈라지며 붉은 거인이 북쪽 군대 앞에 섰다!', 'June 28, 1950. Three days into the war, Seoul\'s streets have become a battlefield. The ground splits, and a red giant stands before the northern army!') },
     { who: 383, name: K('그란돈', 'Groudon'), text: K('그오오오…!! 땅을 넓히는 것이 나의 뜻이다. 막아서는 자는 모두 밀어내겠다!', 'Groooh...!! To widen the land is my will. Whoever stands in the way will be pushed aside!') },
-    { who: 'partner', text: K('그란돈이 북쪽 군대를 이끌고 있어! 가이오가와 아군이 함께 싸워 줄 거야. 시민들을 지키자!', 'Groudon leads the northern army! Kyogre and our troops will fight with us. Let\'s protect the people!') }],
+    { who: 'partner', text: K('그란돈이 북쪽 군대를 이끌고 있어! 가이오가가 함께 싸워 줄 거야. 시민들을 지키자!', 'Groudon leads the northern army! Kyogre will fight with us. Let\'s protect the people!') }],
   after: [{ who: 383, name: K('그란돈', 'Groudon'), text: K('…그르르. 이 땅을 지키려는 마음, 단단하구나. 오늘은 물러나겠다.', '...Grrr. Your will to defend this land is firm. Today I will fall back.') }] };
 const KYOGRE_CMD = { ...COMMANDER, sp: 382, moves: [57, 58, 87, 56],
   tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 3, dmg: 0.32, pats: ['far', 'ring', 'cols', 'x'], type: 11 },
@@ -131,10 +133,10 @@ const KYOGRE_CMD = { ...COMMANDER, sp: 382, moves: [57, 58, 87, 56],
   say: [
     { who: 'narr', text: K('1950년 6월 28일. 북쪽 군대가 서울로 들어서자, 한강 쪽에서 거대한 파도가 거리를 덮치며 푸른 거인이 남쪽 군대 앞에 섰다!', 'June 28, 1950. As the northern army enters Seoul, a huge wave sweeps the streets from the Han River, and a blue giant stands before the southern army!') },
     { who: 382, name: K('가이오가', 'Kyogre'), text: K('부오오오…!! 바다를 넓히는 것이 나의 뜻이다. 모두 물결 아래로 가라앉아라!', 'Booooh...!! To widen the sea is my will. Sink beneath the waves, all of you!') },
-    { who: 'partner', text: K('가이오가가 남쪽 군대를 이끌고 있어! 그란돈과 아군이 함께 싸워 줄 거야. 사람들을 지키자!', 'Kyogre leads the southern army! Groudon and our troops will fight with us. Let\'s protect the people!') }],
+    { who: 'partner', text: K('가이오가가 남쪽 군대를 이끌고 있어! 그란돈이 함께 싸워 줄 거야. 사람들을 지키자!', 'Kyogre leads the southern army! Groudon will fight with us. Let\'s protect the people!') }],
   after: [{ who: 382, name: K('가이오가', 'Kyogre'), text: K('…부우. 물러서지 않는구나. 오늘은 바다로 돌아가겠다.', '...Booh. You will not give way. Today I return to the sea.') }] };
-const SEOUL_S = { town: BATTLE_TOWN, allies: SOUTH_ARMY, foes: NORTH_ARMY.concat([66, 262]), join: KYOGRE_JOIN };
-const SEOUL_N = { town: BATTLE_TOWN, allies: NORTH_ARMY, foes: SOUTH_ARMY.concat([66, 237]), join: GROUDON_JOIN };
+const SEOUL_S = { town: BATTLE_TOWN, join: KYOGRE_JOIN };
+const SEOUL_N = { town: BATTLE_TOWN, join: GROUDON_JOIN };
 const BATTLE_STEPS = [
   { do: 'scene', say: [
     { who: 'narr', text: K('전쟁이 시작된 지 사흘. 서울은 남과 북의 군대가 맞부딪치는 싸움터가 되었다.', 'Three days into the war, Seoul has become the place where the two armies collide.') },
@@ -220,7 +222,7 @@ export const WAR = [
             { who: 'partner', text: K('산을 무너뜨릴 만큼 힘이 센 마기라스야! 바위가 떨어지는 칸을 잘 보고 피하자!', 'Tyranitar is strong enough to topple mountains! Watch where the rocks fall and dodge!') }],
           after: [{ who: 248, name: K('마기라스', 'Tyranitar'), text: K('…산은 다시 풀이 자라겠지. 너희가 그렇게 믿는다면.', '...Grass will grow on the mountain again. If you believe so.') }],
           join: K('마기라스가 묵직한 발걸음으로 다가왔다. 함께 가고 싶어 한다!', 'Tyranitar comes closer with heavy steps. It wants to come along!') } },
-      panmun: { name: K('판문점 · 시간의 틈', 'Panmunjom · Rift'), tiles: T.rift, floors: 5, lv: [60, 64], mons: [443, 444, 359, 197, 229, 247, 281, 429, 477, 356], bgm: 'd_mount2',
+      panmun: { name: K('판문점 · 시간의 틈', 'Panmunjom · Rift'), tiles: T.rift, floors: 4, lv: [60, 64], mons: [443, 444, 359, 197, 229, 247, 281, 429, 477, 356], bgm: 'd_mount2',
         // the rift's keeper: Salamence, stirred up by the torn sky (Arceus waits at the very end of the journey, in 1979)
         boss: { sp: 373, lv: 66, lvUp: 3, hp: 2.2, atk: 0.95, cap: 0.33, bgm: 'ba_dpoke1', moves: [337, 53, 242, 89], // 600-class tier (dungeon.js bossTier) scales these
           tele: { name: K('용성군', 'Draco Meteor'), every: 3, dmg: 0.38, stagger: 1, pats: ['random', 'star', 'quad', 'far'], type: 16 },

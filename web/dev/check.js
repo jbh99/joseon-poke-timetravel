@@ -78,6 +78,7 @@ export async function checkAll(opts = {}) {
         for (const t of teles) for (const p of [...t.pats, ...(t.mix || []).flatMap((m) => m.pats)]) for (const part of p.split('|')) if (!PATS.includes(part)) bad(tag, `${id} pattern ${part}`);
       }
       if (d.mid && d.mid.floor >= d.floors) bad(tag, `${id} mid-boss floor ${d.mid.floor} not before the last floor ${d.floors}`);
+      if (!d.stages && d.floors > 4) bad(tag, `${id} has ${d.floors} floors (every dungeon ends at floor 4 at most)`); // since 1.8
       for (const b of bosses) for (const sg of [b.sig, ...[].concat(b.revive || []).map((r) => r.sig)].filter(Boolean)) {
         for (const u of sg.use) if (!u?.name || !['roar', 'rend', 'shadow', 'blades', 'pulse', 'void', 'sweep'].includes(u.kind)) bad(tag, `${id} signature move ${u?.name} of unknown kind ${u?.kind}`);
         if (!Array.isArray(sg.at) || !sg.at.length) bad(tag, `${id} signature move without HP marks`);

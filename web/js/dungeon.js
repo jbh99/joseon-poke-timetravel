@@ -80,7 +80,7 @@ export class Dungeon {
     this.dId = dId;
     this.def = def;
     this.main = ['dungeon', 'battle'].includes(mainStep()?.do) && mainStep().d === dId; // a 'battle' step is a run started in town
-    this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting one floor below the usual last one
+    this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting on the last floor (where no other boss waits)
     // a challenge run left unfinished counts as a wipe (quests.js checkRun); the Boss Tower comes after the ending
     if (challenge() && !def.tower) { S.inRun = dId; save(); }
     // a run of stages starts at the first one still to beat (the finale's guardians stay beaten)
@@ -119,7 +119,7 @@ export class Dungeon {
     if (!this.def.police) this.msg(tr(`${this.title}에 들어왔다!`, `Entered ${this.title}!`), COL.blue); // a fight in town is entered nowhere
     // a legend fighting on its own ground (Groudon on the Nakdong, Kyogre off Incheon) is stronger for this run
     for (const f of this.def.field || []) for (const m of S.party) if (m.sp === f.sp && !m.field) { m.field = f.mul; this.msg(f.msg(m.name), COL.green); }
-    if (this.def.battle) this.msg(this.def.battle.msg?.() || tr('전투가 시작됐다! 적의 지휘관을 쓰러뜨리거나 적군을 모두 물리치자.', 'The battle begins! Defeat the enemy commander or drive off all their troops.'), COL.red);
+    if (this.def.battle) this.msg(this.def.battle.msg?.() || tr(`전투가 시작됐다! ${this.boss.mon.name}을(를) 쓰러뜨려 거리를 지키자.`, `The battle begins! Defeat ${this.boss.mon.name} and protect the streets.`), COL.red);
     if (this.def.water) {
       this.msg(tr('해전! 물 타입 포켓몬만 배에 올랐다.', 'Naval battle! Only Water-type Pokémon came aboard.'), COL.blue);
       if (this.loaned.length) this.msg(tr(`물 포켓몬이 모자라 수군이 ${this.loaned.map((m) => m.name).join(', ')}을(를) 빌려주었다.`, `Short on Water types, the navy lent you ${this.loaned.map((m) => m.name).join(', ')}.`), COL.green);
@@ -134,13 +134,12 @@ export class Dungeon {
     const d = this.def, st = this.stage;
     if (st) return st.flag && S.flags[st.flag] ? [] : [].concat(st.bosses || st.boss || []);
     if (d.legend) return d.boss && this.floor === d.floors && !lairDone(this.dId) ? [d.boss] : [];
-    if (this.wander && this.floor === this.floors) return [this.wander];
+    if (this.wander && this.floor === this.def.floors) return [this.wander];
     if (!this.main) return d.mid && this.floor === d.mid.floor && midWaiting(this.dId) ? [d.mid] : [];
     return d.boss && this.floor === d.floors ? [d.boss] : [];
   }
   get bossDef() { return this.bossDefs[0] || null; }
   get bossFloor() { return !!this.bossDef; }
-  get floors() { return this.def.floors + (this.wander ? 1 : 0); }
   // a dungeon made of fixed stages (the Arceus finale, the Boss Tower): what this floor is
   get stage() { return this.def.stages?.[this.floor - 1] || null; }
   get title() { return this.stage?.name ? `${this.def.name} · ${this.stage.name}` : this.def.name; }
@@ -195,7 +194,7 @@ export class Dungeon {
     this.bg = null;
     this.seen = Array.from({ length: H }, () => new Array(W).fill(false));
     this.vis = Array.from({ length: H }, () => new Array(W).fill(false));
-    this.ents = []; this.items = []; this.stairs = null; this.pendingStairs = false; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null;
+    this.ents = []; this.items = []; this.stairs = null; this.pendingStairs = false; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null; this.bossIntro = false;
     // allies
     const startRoom = this.bossFloor || lay ? rooms[0] : choice(rooms);
     const sx = lay ? lay.start[0] : this.bossFloor ? 22 : randInt(startRoom.x + 1, startRoom.x + startRoom.w - 2);
@@ -257,7 +256,8 @@ export class Dungeon {
     let lv = b.wander ? b.lv : clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up) + mode().lv;
     if (scaled && !b.wander) lv = Math.max(lv, top + 2 + up);
     if (b.lvCap) lv = Math.min(lv, b.lvCap); // Arceus follows the team up to Lv 180
-    const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: this.def.battle?.foeBuff, moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
+    // b.buff: a boss's own edge on HP and every stat (the finale's three, the town battles' legends), on top of its side's
+    const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: (b.buff || 1) * (this.def.battle?.foeBuff || 1), moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
     mon.slowT = b.slow || 0;
     const e = this.addEnt(mon, x, y, 'foe');
     e.isBoss = true; e.def = b; e.bphase = 1; e.stagger = 0; e.tele = null;
@@ -298,7 +298,7 @@ export class Dungeon {
     return { id: 'rice' };
   }
   spawnFoe(p) {
-    if (!p) return;
+    if (!p || !this.def.mons?.length) return; // a dungeon without wild Pokémon (the finale, the Boss Tower) spawns none
     const [a, b, scaled] = foeLevels(this.def); // deeper floors lean to the top of the band
     let lv = clamp(randInt(a, b - 1) + Math.floor((this.floor - 1) / 2), a, b);
     // the first eras never field foes above the team's average level (shifted by the difficulty)
@@ -343,10 +343,10 @@ export class Dungeon {
     const tiles = this.reach(start, open);
     return { open: tiles, box: this.boxOf(tiles), start, stairs: at(out), bossAt: at(L.npcs[0]), at };
   }
-  // A fight in a town (def.battle): the town as built, cropped to the 44x32 grid. A battle of armies takes the window
-  // with the most room to fight, our side at its bottom middle and the other side about twenty steps away; a fight
-  // where you stand (B.at, town coordinates, the constables of Town.policeDef) takes the window around you, everyone
-  // where they stood.
+  // A fight in a town (def.battle): the town as built, cropped to the 44x32 grid. A boss battle (Darkrai, the 1950
+  // legends) takes the window with the most room to fight, the team at its bottom middle and the boss about ten steps
+  // away; a fight where you stand (B.at, town coordinates, the constables of Town.policeDef) takes the window around
+  // you, everyone where they stood.
   battleFloor() {
     const B = this.def.battle;
     this.battleTown = this.battleTown || new Town(B.kind || 1, { def: B.town, battle: true });
@@ -366,11 +366,11 @@ export class Dungeon {
       const [ax, ay] = local(B.at);
       for (let r = 0; r < 8 && !start; r++) for (let dy = -r; dy <= r && !start; dy++) for (let dx = -r; dx <= r && !start; dx++) if (open(ax + dx, ay + dy)) start = [ax + dx, ay + dy];
     }
-    // our side starts at the bottom middle; the other side holds the far end
+    // our side starts at the bottom middle; the boss stands further up the field
     for (let y = H - 2; y > 0 && !start; y--) for (let d = 0; d < W / 2 && !start; d++) for (const x of [W / 2 - d, W / 2 + d]) if (!start && open(x, y)) start = [x, y];
     const tiles = this.reach(start, open);
-    // the other side waits about twenty steps away (breadth-first order is distance order), so the armies meet soon
-    const far = B.foesAt ? local(B.foesAt[0]) : tiles[this.stepsAway(start, open, 20)];
+    // about ten steps away (breadth-first order is distance order), so the fight starts soon
+    const far = B.foesAt ? local(B.foesAt[0]) : tiles[this.stepsAway(start, open, 10)];
     return { open: tiles, box: this.boxOf(tiles), start, bossAt: far, enemyAt: far, foesAt: B.foesAt?.map(local), team: B.team?.map(local), battle: true };
   }
   reach(start, open) {
@@ -396,7 +396,7 @@ export class Dungeon {
     const x = Math.min(...xs), y = Math.min(...ys);
     return { x, y, w: Math.max(...xs) - x + 1, h: Math.max(...ys) - y + 1 };
   }
-  // the nearest walkable tile nobody stands on (troops fan out from their side's anchor)
+  // the nearest walkable tile nobody stands on (a town battle's fighters fan out from where they were placed)
   nearestOpen(x, y) {
     const seen = new Set(), q = [[x, y]];
     for (let k = 0; k < q.length && k < 2000; k++) {
@@ -408,19 +408,19 @@ export class Dungeon {
     }
     return [x, y];
   }
-  // a town battle: our side's troops (and its legend) gather by the team, the other side's around their far end
+  // a town battle: our side's legend (the 1950 battle for Seoul) stands by the team, the constables of a fight in town
+  // where they stood
   deployArmies(lay) {
     const B = this.def.battle, [lo, hi] = foeLevels(this.def);
     this.army = [];
-    const join = (m, at) => { const [x, y] = this.nearestOpen(...at); const e = this.addEnt(m, x, y, 'ally'); e.army = true; this.army.push(e); return e; };
-    if (B.join) join(new Mon(B.join.sp, hi + 2, { boss: true, hpMul: 2.2, atkMul: 1, buff: B.allyBuff }), lay.start);
-    for (const sp of B.allies || []) join(new Mon(sp, randInt(lo, hi), { buff: B.allyBuff }), lay.start);
+    if (B.join) {
+      const [x, y] = this.nearestOpen(...lay.start), e = this.addEnt(new Mon(B.join.sp, hi + 2, { boss: true, hpMul: 2.2, atkMul: 1 }), x, y, 'ally');
+      e.army = true; this.army.push(e);
+    }
     (B.foes || []).forEach((sp, i) => {
       const [x, y] = this.nearestOpen(...(lay.foesAt?.[i] || lay.enemyAt));
       const e = this.addEnt(new Mon(sp, randInt(lo, hi), { buff: B.foeBuff, foe: true }), x, y, 'foe');
-      // soldiers and constables don't offer to join; an army's soldiers also hit soft and drop no coins, while the
-      // constables fight like the era's ordinary foes
-      e.alert = true; e.noJoin = true; e.summoned = !this.def.police;
+      e.alert = true; e.noJoin = true; // constables fight like the era's ordinary foes but don't offer to join
     });
   }
   // Primal Reversion (an orb used in a dungeon): stronger, typed as the orb says, until the run ends (result clears it)
@@ -849,8 +849,8 @@ export class Dungeon {
   danger(x, y) { return this.bosses.some((b) => b.alive && b.tele?.tiles.has(y * W + x)); }
   // Teammates: out of a telegraphed blast first; then they fight what is near the team (a foe beside them, in line or
   // within sure reach) and close in on a foe only while both stay within LEASH tiles of the one in control; otherwise
-  // they follow it (follow). In a town battle everyone on our side fights on their own: teammates and troops alike go
-  // after the nearest foe anywhere on the field and never trail the leader.
+  // they follow it (follow). In a town battle everyone on our side fights on their own: teammates and our side's legend
+  // alike go after the nearest foe anywhere on the field and never trail the leader.
   allyAI(e) {
     const m = e.mon;
     if (m.status === 'slp' || m.status === 'frz' || (m.status === 'par' && Math.random() < 0.25)) return this.statusSkip(e);
@@ -942,10 +942,13 @@ export class Dungeon {
       this.msg(c.msg, COL.red);
       if (c.line) say(lines(c.line));
     }, 0.5);
-    for (let i = 0; i < (c.summon || 0); i++) { // minions are weaker than the floor's regular foes
+    // minions are weaker than the floor's regular foes; a phase without its own (summonSp) calls the dungeon's, and a
+    // dungeon with none (the finale, the Boss Tower) has nobody to call
+    const pool = c.summonSp || this.def.mons || [];
+    for (let i = 0; i < (pool.length ? c.summon || 0 : 0); i++) {
       const [x, y] = this.freeNear(e.x, e.y);
       if (this.entAt(x, y)) continue;
-      const f = this.addEnt(new Mon(choice(c.summonSp || this.def.mons), Math.max(5, e.mon.lv - 22), { foe: true }), x, y, 'foe');
+      const f = this.addEnt(new Mon(choice(pool), Math.max(5, e.mon.lv - 22), { foe: true }), x, y, 'foe');
       f.summoned = true; f.alert = true;
       this.step(() => this.msg(tr(`${f.mon.name}이(가) 나타났다!`, `${f.mon.name} appeared!`), COL.red), 0.15);
     }
@@ -1245,7 +1248,7 @@ export class Dungeon {
       await this.offerRecruit(ally.mon, J.text);
     }
     if (this.def.tower) this.towerFloor();
-    if (!mid && (!st || this.floor >= this.floors)) return this.cleared();
+    if (!mid && (!st || this.floor >= this.def.floors)) return this.cleared();
     // a mid-boss, or a stage's boss before the last stage, opens the way on
     this.boss = null; this.bosses = [];
     this.stairs = [e.x, e.y];
@@ -1262,7 +1265,7 @@ export class Dungeon {
   }
   // the Boss Tower remembers the highest floor cleared (a later visit may start above it); clearing the top starts it over
   towerFloor() {
-    if (this.floor < this.floors) S.flags.towerTop = Math.max(S.flags.towerTop || 0, this.floor);
+    if (this.floor < this.def.floors) S.flags.towerTop = Math.max(S.flags.towerTop || 0, this.floor);
     else { S.flags.towerTop = 0; S.flags.towerClears = (S.flags.towerClears || 0) + 1; }
   }
   // between the Boss Tower's floors the team is restored: each floor is a fight of its own
@@ -1377,7 +1380,7 @@ export class Dungeon {
   }
   descend() {
     this.pendingStairs = false;
-    if (this.floor >= this.floors) return this.cleared();
+    if (this.floor >= this.def.floors) return this.cleared();
     sfx('stairs');
     fadeTo(() => {
       this.floor++;
@@ -1427,7 +1430,7 @@ export class Dungeon {
     if (this.pendingStairs) {
       this.pendingStairs = false; this.latch = null;
       // a tower or a mountain (def.climb) goes up, and the Azure Flute's stairs of light up into the sky
-      const text = this.floor >= this.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?')
+      const text = this.floor >= this.def.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?')
         : this.lit ? tr('하늘로 이어진 빛의 계단이다. 올라갈까?', 'A stairway of light into the sky. Climb it?')
           : this.def.climb ? tr('다음 층으로 가는 계단이다. 올라갈까?', 'Stairs to the next floor. Go up?') : tr('다음 층으로 가는 계단이다. 내려갈까?', 'Stairs to the next floor. Go down?');
       return say([{ who: 'narr', text, choices: tr(['간다', '그만둔다'], ['Go', 'Stay']), onChoice: (i) => { if (i === 0) this.descend(); } }]);
@@ -1597,7 +1600,7 @@ export class Dungeon {
       if (e.team === 'npc') { const by = Math.round(y) - 42 + Math.sin(G.time * 5) * 2; c.fillStyle = '#1a1010'; c.fillRect(Math.round(x) - 4, by - 1, 8, 10); c.fillStyle = COL.blue; c.fillRect(Math.round(x) - 3, by, 6, 8); c.fillStyle = '#fff'; c.fillRect(Math.round(x) - 1, by + 1, 2, 4); c.fillRect(Math.round(x) - 1, by + 6, 2, 1); }
       if (e.team === 'foe' && !e.isBoss && e.mon.hp < e.mon.maxhp) { c.fillStyle = '#000'; c.fillRect(Math.round(x) - 9, Math.round(y) + 1, 18, 3); c.fillStyle = COL.hpCrit; c.fillRect(Math.round(x) - 8, Math.round(y) + 2, Math.round(16 * e.mon.hp / e.mon.maxhp), 1); }
       if (e.mon.status) { c.fillStyle = { psn: '#a04ad0', brn: '#e0602a', par: '#e0c020', slp: '#8aa0c0', frz: '#7fd8f0' }[e.mon.status]; c.fillRect(Math.round(x) + 8, Math.round(y) - 30, 4, 4); }
-      if (e.army) { c.fillStyle = '#3f7a4f'; c.fillRect(Math.round(x) - 2, Math.round(y) - 36, 4, 3); } // allied troops: a green tag
+      if (e.army) { c.fillStyle = '#3f7a4f'; c.fillRect(Math.round(x) - 2, Math.round(y) - 36, 4, 3); } // our side's legend in a town battle: a green tag
     }
   }
   // whole floor painted once with the dungeon's PMD chunk set (walls, floor, ponds; naval floors are open water)

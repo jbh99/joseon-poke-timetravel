@@ -1,9 +1,9 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, readSave, saves, load, save, TYPE_COLORS, MODE_NAMES } from './game.js';
+import { S, DEX, newGame, readSave, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
@@ -295,7 +295,7 @@ export class WorldMap {
       const top = d.tower ? S.flags.towerTop || 0 : 0;
       if (top) return say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층)에 들어갈까? 지난번에 ${top}층까지 올랐다.`, `Enter the ${d.name}? (${d.floors} floors) Last time you cleared floor ${top}.`),
         choices: tr(['1층부터', `${top + 1}층부터`, '그만두기'], ['From floor 1', `From floor ${top + 1}`, 'Not now']), onChoice: (i) => { if (i < 2) fadeTo(() => G.goDungeon(n.d, undefined, { floor: i ? top + 1 : 1 })); } }]);
-      const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${d.floors} floors · legendary Pokémon`) : tr(`${d.floors + (wanderAt(n.d) ? 1 : 0)}층 · 적 레벨 ${lo}~${hi}`, `${d.floors + (wanderAt(n.d) ? 1 : 0)} floors · foes Lv ${lo}-${hi}`);
+      const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${d.floors} floors · legendary Pokémon`) : tr(`${d.floors}층 · 적 레벨 ${lo}~${hi}`, `${d.floors} floors · foes Lv ${lo}-${hi}`);
       say([{ who: 'narr', text: tr(`${d.name} (${what})에 들어갈까?`, `Enter ${d.name}? (${what})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('menu')) return openMenu([
@@ -385,7 +385,7 @@ export class WorldMap {
     else if (n.id === 'town') lines2.push(tr('마을: 주막 · 장터 · 방(榜)', 'Town: inn · market · board'), tr('시간의 문이 있는 곳', 'Home of the Time Gate'));
     else if (n.town) lines2.push(tr('마을: 주막 · 장터', 'Town: inn · market'), tr('이 시대의 또 다른 마을', 'Another town of this era'));
     else {
-      const d = this.e.dungeons[n.d], w = wanderAt(n.d), fl = d.floors + (w ? 1 : 0);
+      const d = this.e.dungeons[n.d], w = wanderAt(n.d), fl = d.floors;
       const legs = legendsAt(n.d).filter((sp) => sp !== w).map((sp) => DEX.species[sp].name).join(' · ');
       const [lo, hi] = foeLevels(d);
       if (d.tower) {
@@ -395,10 +395,13 @@ export class WorldMap {
       } else lines2.push(d.stages ? tr(`${fl}층 · 전설의 포켓몬`, `${fl} floors · legendary Pokémon`) : tr(`${fl}층 · 적 Lv ${lo}~${hi}`, `${fl} floors · foes Lv ${lo}-${hi}`));
       if (d.water) lines2.push(tr('[해전] 물 타입 포켓몬만 출전한다', '[Naval] Only Water-type Pokémon can fight'));
       if (w) lines2.push(tr(`★ 지난 시대에 놓친 ${DEX.species[w].name}이(가) ${fl}층에서 기다린다! (Lv ${hi})`, `★ ${DEX.species[w].name}, missed in an earlier era, waits on floor ${fl}! (Lv ${hi})`));
+      // a lair's keeper waits until met; one that is no legend (Tyranitar) is only something strong
+      const keeper = d.legend && !lairDone(n.d), legendary = d.legend && LEGENDS.has(d.boss.sp);
       if (legs) lines2.push(tr(`★ 전설의 포켓몬 ${legs}의 기척이 있다!`, `★ A legendary presence: ${legs}!`));
-      else if (d.legend) lines2.push(tr('전설의 포켓몬과 이미 만났다', 'Legend already met'));
+      else if (keeper) lines2.push(tr('깊은 곳에 강한 기척이 있다…', 'Something strong lurks deep inside...'));
+      else if (d.legend) lines2.push(legendary ? tr('전설의 포켓몬과 이미 만났다', 'Legend already met') : tr(`${DEX.species[d.boss.sp].name}과(와) 이미 만났다`, `Already met ${DEX.species[d.boss.sp].name}`));
       else if (!w && d.boss && mainStep()?.d === n.d) lines2.push(tr('깊은 곳에 강한 기척이 있다…', 'Something strong lurks deep inside...'));
-      if (w || (d.legend && legs)) lines2.push(tr('이기면 동료가 될지도…', 'Win and it may join you...'));
+      if (w || keeper) lines2.push(tr('이기면 동료가 될지도…', 'Win and it may join you...'));
     }
     const py = 14 + h1, nameL = ui.wrap(n.name, w - 16, 11), ny = py + 6 + nameL.length * 13 + 3;
     const wrapped2 = lines2.flatMap((l) => ui.wrap(l, w - 16, 9));

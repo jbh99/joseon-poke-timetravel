@@ -52,7 +52,7 @@ export function lairDone(dId) {
 // shows two. The plan is fixed when the era is first entered, so a legend keeps its dungeon all era; one met but left
 // behind again moves on to the era after (as does one that found no free place).
 const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final && !b.noWander);
-const holdsLegend = (d) => !!d.legend || !!d.stages || [d.mid, d.boss].some((b) => b && LEGENDS.has(b.sp));
+const holdsLegend = (d) => !!d.legend || !!d.stages || [d.mid, d.boss].some((b) => b && LEGENDS.has(b.sp)); // a lair's keeper, legend or not, holds its last floor
 const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);
 function wanderPlan() {
   if (challenge()) return {}; // legends never join a challenge, so none come back either
@@ -90,10 +90,12 @@ export function wanderBoss(dId) {
       { who: 'partner', text: tr(`그때 놓쳤던 전설의 포켓몬, ${name}! 이번에는 꼭 함께 가자!`, `It's ${name}, the one we missed! This time it comes with us!`) }],
     after: [{ who: sp, name, text: tr('…시대를 건너서까지 다시 만났구나. 너희의 마음, 확실히 보았다.', '...So we meet again, even across the ages. I have seen your resolve.') }] };
 }
-// the legendary Pokémon a dungeon still holds, for the world map: a lair's legend, a returning one, story legends to come
+// the legendary Pokémon a dungeon still holds, for the world map: a lair's legend, a returning one, story legends to come.
+// A lair (d.legend) is a place whose keeper waits on the last floor until met; only a keeper that is a legend counts
+// (Tyranitar keeps White Horse Hill as a lair, but it is no legend).
 export function legendsAt(dId) {
   const d = era().dungeons[dId], out = [];
-  if (d.legend) { if (!lairDone(dId)) out.push(d.boss.sp); return out; }
+  if (d.legend) { if (!lairDone(dId) && LEGENDS.has(d.boss.sp)) out.push(d.boss.sp); return out; }
   if (d.tower) return out; // the Boss Tower's legends are there every visit
   if (d.stages) return d.stages.filter((st) => st.boss && !(st.flag && S.flags[st.flag])).map((st) => st.boss.sp); // the finale's still to beat
   const w = wanderAt(dId);

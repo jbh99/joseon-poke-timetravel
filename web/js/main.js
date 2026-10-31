@@ -165,7 +165,13 @@ async function boot() {
   let last = performance.now();
   const params = new URLSearchParams(location.search);
   const dev = Math.min(8, +params.get('speed') || 0); // ?speed=4 fast-forwards automated playtests
+  // the next frame is booked whatever this one throws: an error in a scene must not freeze the game on its last picture
   const frame = (now) => {
+    try { tick(now); } catch (e) { if (self.reportError) reportError(e); else console.error(e); }
+    input.pressed.clear(); input.click = null; input.pan.x = input.pan.y = 0;
+    schedule(frame);
+  };
+  const tick = (now) => {
     const real = Math.min(0.05, (now - last) / 1000);
     const dt = real * (dev || BASE_SPEED * G.speed);
     last = now;
@@ -190,8 +196,6 @@ async function boot() {
     drawToasts(real);
     if (fade.a > 0) { s.globalAlpha = fade.a; ui.rect(0, 0, VW, VH, fade.color); s.globalAlpha = 1; }
     NET.frame();
-    input.pressed.clear(); input.click = null; input.pan.x = input.pan.y = 0;
-    schedule(frame);
   };
   // ?timer=1 keeps the loop running in hidden/background tabs (automated playtests)
   const schedule = params.has('timer') ? (f) => setTimeout(() => f(performance.now()), 16) : requestAnimationFrame.bind(window);

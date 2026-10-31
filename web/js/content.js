@@ -536,7 +536,7 @@ const JOSEON = [
       { mark: true, name: '→ 상하이', lon: 124.2, lat: 33.6, text: '1919년 4월 11일, 중국 상하이에서 대한민국 임시정부가 수립되었다.' },
     ],
     dungeons: {
-      alley: { name: '경성 뒷골목', tiles: T.alley, floors: 5, lv: [34, 38], mons: [198, 92, 93, 353, 355, 434, 435, 228, 200], bgm: 'd_agito',
+      alley: { name: '경성 뒷골목', tiles: T.alley, floors: 4, lv: [34, 38], mons: [198, 92, 93, 353, 355, 434, 435, 228, 200], bgm: 'd_agito',
         quest: { item: 'declaration', lastFloor: true },
         boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 2.43, atk: 0.98, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // 1.7: HP +30% and attack +15% (was 1.87 / 0.85)
           tele: { name: K('러스터캐논', 'Flash Cannon'), every: 4, dmg: 0.36, pats: ['cols', 'rows', 'cross', 'quad'], type: 8 },
@@ -612,7 +612,7 @@ const JOSEON = [
       { id: 'cheonji', name: '천지 화구', lon: 128.5, lat: 41.95, d: 'cheonji' },
     ],
     dungeons: {
-      cheongsan: { name: '청산리 골짜기', tiles: T.birch, floors: 5, lv: [38, 42], mons: [123, 214, 127, 193, 469, 397, 204, 205, 287], bgm: 'd_03',
+      cheongsan: { name: '청산리 골짜기', tiles: T.birch, floors: 4, lv: [38, 42], mons: [123, 214, 127, 193, 469, 397, 204, 205, 287], bgm: 'd_03',
         quest: { item: 'supply', perFloor: 1 },
         boss: { sp: 212, lv: 46, bgm: 'ba_chanp', say: [
           { who: 212, text: '철컥! 숲을 지키던 핫삼이 포성에 놀라 골짜기를 가로막았다!' },
@@ -682,7 +682,7 @@ const JOSEON = [
       { mark: true, name: K('신문 폐간', 'Papers shut down'), lon: 126.7, lat: 37.2, text: K('1940년 8월, 동아일보와 조선일보가 강제로 문을 닫았다.', 'In August 1940 the Dong-A Ilbo and the Chosun Ilbo were forced to close.') },
     ],
     dungeons: {
-      distortion: { name: K('반전세계', 'Distortion World'), tiles: T.rift, floors: 5, lv: [40, 44], mons: [92, 93, 200, 429, 425, 426, 302, 355, 356], bgm: 'd_agito',
+      distortion: { name: K('반전세계', 'Distortion World'), tiles: T.rift, floors: 4, lv: [40, 44], mons: [92, 93, 200, 429, 425, 426, 302, 355, 356], bgm: 'd_agito',
         tint: 'rgba(70,0,90,0.22)', quest: { item: 'names', perFloor: 1 },
         // Aura Sphere answers the Dark types brought against a Ghost. HP +30% and attack +15% in 1.7 (was 2.31 / 0.85).
         // Its first form takes turns among five telegraphed attacks (dungeon.js charge: mix) and two signature moves.
@@ -717,7 +717,7 @@ const JOSEON = [
       { do: 'talk', npc: 'scholar40', log: K('조선어학회 야부엉을 만나자', 'Meet Noctowl of the Korean Language Society'), say: [
         { who: 164, name: K('조선어학회 야부엉', 'Language Society Noctowl'), text: K('사람들의 본래 이름을 적어 둔 명부와 사전 원고가 우물 속으로 빨려 들어가고 있네. 그 안은 모든 것이 거꾸로 뒤집힌 "반전세계"라네.', 'The register of people\'s true names and our dictionary manuscript are being sucked into the well. Inside is the "Distortion World", where everything is upside down.') },
         { who: 164, name: K('조선어학회 야부엉', 'Language Society Noctowl'), text: K('층마다 흩어진 명부 낱장을 되찾아 주게. 이름은 사람의 첫 번째 말이니까.', 'Recover the register pages scattered on each floor. A name is the first word a person has.') }] },
-      { do: 'dungeon', d: 'distortion', log: K('반전세계(5층)에서 이름 명부를 되찾으며 가장 깊은 곳으로', 'Recover the name register in the Distortion World (5 floors) and reach its depths') },
+      { do: 'dungeon', d: 'distortion', log: K('반전세계(4층)에서 이름 명부를 되찾으며 가장 깊은 곳으로', 'Recover the name register in the Distortion World (4 floors) and reach its depths') },
       { do: 'talk', npc: 'scholar40', log: K('야부엉에게 명부를 돌려주자', 'Bring the register back to Noctowl'), say: [
         { who: 164, name: K('조선어학회 야부엉', 'Language Society Noctowl'), text: K('잘 지켜 주었네! 이 소식을 충칭의 임시정부에 전해 주게. 그곳에서 우리 군대가 일어서고 있다네.', 'Well kept! Take the news to the Provisional Government in Chongqing. Our own army is rising there.') }] },
       { do: 'talk', npc: 'kla40', log: K('충칭의 광복군 루카리오에게 소식을 전하자', 'Bring the news to Lucario of the Liberation Army in Chongqing'), say: [
@@ -758,7 +758,7 @@ const JOSEON = [
       { id: 'warehouse', name: '서울역 창고', lon: 126.62, lat: 37.36, d: 'warehouse' },
     ],
     dungeons: {
-      rift: { name: '시간의 틈', tiles: T.rift, floors: 6, lv: [42, 47], mons: [444, 148, 247, 359, 197, 196, 356, 281, 429, 477], bgm: 'd_mount2', // 600-total lines stay boss-only (Garchomp, Tyranitar lead 1950)
+      rift: { name: '시간의 틈', tiles: T.rift, floors: 4, lv: [42, 47], mons: [444, 148, 247, 359, 197, 196, 356, 281, 429, 477], bgm: 'd_mount2', // 600-total lines stay boss-only (Garchomp, Tyranitar lead 1950)
         // HP +30% and attack +15% in 1.7 (was 2.2 / 0.85); Hydro Pump in place of Water Pulse
         mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.86, atk: 0.98, bgm: 'ba_dpoke1', moves: [56, 337, 414, 246],
           tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 11 },
@@ -806,7 +806,7 @@ const JOSEON = [
       { do: 'talk', npc: 'celebi10', log: '세레비와 이야기하자', say: [
         { who: CELEBI, name: '세레비', text: '시간의 틈 너머에서 펄기아가 날뛰고 있어. 이대로면 모든 시대가 뒤섞여 버릴 거야!' },
         { who: CELEBI, name: '세레비', text: K('세계 지도의 "시간의 틈"으로 가 줘. 빛을 되찾을 날이 바로 앞이야!', 'Go to the "rift in time" on the world map. The day the light comes back is right ahead!') }] },
-      { do: 'dungeon', d: 'rift', log: '시간의 틈(6층) 가장 깊은 곳으로! 무언가가 기다리고 있다' },
+      { do: 'dungeon', d: 'rift', log: K('시간의 틈(4층) 가장 깊은 곳으로! 무언가가 기다리고 있다', 'To the deepest part of the Rift of Time (F4)! Something is waiting') },
       { do: 'scene', say: [
         { who: 'narr', text: '1945년 8월 15일 정오. 라디오에서 일본의 항복 소식이 흘러나왔다.' },
         { who: 'narr', text: '35년의 일제 강점기가 끝났다. 사람들은 거리로 쏟아져 나와 태극기를 흔들었다. "대한 독립 만세!"' }] },

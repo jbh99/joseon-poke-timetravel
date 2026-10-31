@@ -60,7 +60,7 @@ export const ERA_1905 = {
     { mark: true, name: K('→ 헤이그', '→ The Hague'), lon: 124.2, lat: 33.6, text: K('1907년, 고종은 네덜란드 헤이그의 만국 평화 회의에 세 특사를 몰래 보냈다.', 'In 1907 Gojong secretly sent three envoys to the Peace Conference at The Hague in the Netherlands.') },
   ],
   dungeons: {
-    jungmyeong: { name: K('경운궁 중명전', 'Jungmyeongjeon Hall'), tiles: T.library, floors: 5, lv: [46, 50], mons: [92, 93, 96, 97, 198, 200, 202, 203, 281, 355], bgm: 'd_ginlobby',
+    jungmyeong: { name: K('경운궁 중명전', 'Jungmyeongjeon Hall'), tiles: T.library, floors: 4, lv: [46, 50], mons: [92, 93, 96, 97, 198, 200, 202, 203, 281, 355], bgm: 'd_ginlobby',
       tint: 'rgba(90,40,120,0.12)', boss: MEWTWO },
     jeongdong: { name: K('정동 골목', 'Jeongdong Lanes'), tiles: T.street, floors: 3, lv: [45, 49], mons: [19, 20, 52, 53, 198, 228, 431, 432, 163], bgm: 'road_b' },
   },
@@ -117,14 +117,15 @@ const DARKRAI_REVIVE = [
     tele: [{ name: K('영원한 악몽', 'Endless Nightmare'), every: 2, dmg: 0.5, stagger: 1, pats: ['ring|target', 'checker|x', 'quad|near', 'star|far', 'random|cross', 'rows|cols'], type: 17, first: 2 }],
     sig: { use: [SIG.shadow, SIG.dark, SIG.void], at: [[0.75, 0.45, 0.2], [0.7, 0.35]] } },
 ];
-// December 12: the town itself turns into the battlefield (a 'battle' step started by talking to the officer)
-const DARKRAI_1212 = { sp: 491, lv: 70, lvMin: 63, lvUp: 4, hp: 1.35, atk: 0.8, cap: 0.32, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
+// December 12: the town itself turns into the battlefield (a 'battle' step started by talking to the officer), where
+// Darkrai fights alone, 25% stronger in HP and every stat (buff) on top of the Hanahoe side's 15% (foeBuff)
+const DARKRAI_1212 = { sp: 491, lv: 70, lvMin: 63, lvUp: 4, hp: 1.35, atk: 0.8, cap: 0.32, buff: 1.25, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
   tele: { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.34, pats: ['ring', 'target', 'checker', 'x', 'near'], type: 17 },
   sig: DARKRAI_SIG, revive: DARKRAI_REVIVE, // three phases: Dark Void, then Shadow Force, then Dark Pulse as well
   say: [
     { who: 'narr', text: K('12월 12일 밤. 반란군의 탱크 소리가 울리는 거리 한가운데, 어둠이 사람의 모양으로 일어섰다.', 'The night of December 12. In the middle of streets echoing with the rebels\' tanks, the darkness rose in a human-like shape.') },
     { who: 491, name: K('다크라이', 'Darkrai'), text: K('…모두가 악몽 속에 있다. 이 밤은 길고, 아침은 오지 않을 것이다.', '...Everyone is inside a nightmare. This night is long, and morning will not come.') },
-    { who: 'partner', text: K('반란군이 다크라이의 악몽까지 등에 업었어! 하나회 쪽 포켓몬들이 15%나 강해졌어. 그래도 시민들을 지키자!', 'The rebels have Darkrai\'s nightmares behind them! The Hanahoe side is 15% stronger. We still protect the people!') }],
+    { who: 'partner', text: K('반란군이 다크라이의 악몽까지 등에 업었어! 다크라이가 평소보다 훨씬 강해. 그래도 시민들을 지키자!', 'The rebels have Darkrai\'s nightmares behind them! Darkrai is far stronger than usual. We still protect the people!') }],
   after: [{ who: 491, name: K('다크라이', 'Darkrai'), text: K('…악몽 속에서도 깨어 있으려는 자들이 있구나. 언젠가 이 긴 밤도 끝나겠지.', '...So some try to stay awake even inside the nightmare. Someday this long night too will end.') }],
   join: K('다크라이가 그림자에서 걸어 나왔다. 아침이 오는 것을 함께 보고 싶어 한다!', 'Darkrai steps out of the shadows. It wants to see the morning come with you!') };
 
@@ -182,19 +183,21 @@ export const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.
 // (the dungeon's prize), which, played at the Spear Pillar's altar, brings down the stairs to the Hall of Origin. The
 // summit's two floors are Pearl's own (data/pearl.json); Arceus waits at the top of the stairs and wakes when the team
 // comes near (wake). A guardian once beaten stays beaten (flag), so a run starts at the first stage still to clear.
+// All three fight 20% stronger in HP and every stat here (Mon buff); one already in the team doesn't join twice.
+const FINALE_UP = 1.2;
+const finale = (b, o) => ({ ...b, buff: FINALE_UP, ...o, get noJoin() { return !!S.flags['got_' + b.sp]; } });
 const FINALE = [
   { name: K('공간의 틈', 'Rift in Space'), flag: 'origin_palkia', tiles: T.rift, tint: 'rgba(255,140,210,0.10)', boss: null },
   { name: K('시간의 틈', 'Rift in Time'), flag: 'origin_dialga', tiles: T.crystal, tint: 'rgba(110,150,255,0.12)', boss: null },
   { name: K('창기둥', 'Spear Pillar'), layout: 'D05R0114', tiles: T.temple, tint: 'rgba(200,220,255,0.10)', bgm: 'legend',
     flute: { item: 'azureflute', altar: [31, 11], stairs: [31, 10], say: [
       { who: CELEBI, name: K('세레비', 'Celebi'), text: K('계단이 하늘로 이어져 있어… 저 위 시작의 방에서 아르세우스가 기다리고 있어!', 'The stairs reach up into the sky... Arceus is waiting up there, in the Hall of Origin!') }] } },
-  { name: K('시작의 방', 'Hall of Origin'), layout: 'D05R0116', tiles: T.temple, tint: 'rgba(255,226,150,0.12)', bgm: 'legend', wake: 8, boss: ARCEUS },
+  { name: K('시작의 방', 'Hall of Origin'), layout: 'D05R0116', tiles: T.temple, tint: 'rgba(255,226,150,0.12)', bgm: 'legend', wake: 8, boss: finale(ARCEUS) },
 ];
 // the guardians: the story's own Palkia (1945) and Dialga (1919), content.js passing them in, with 30% more HP and
 // attack again, at the team's level like Arceus, and half as quick again with their blasts and signature moves (pace)
 function guardian(b, o) {
-  return { ...b, hp: b.hp * 1.3, atk: b.atk * 1.3, pace: 1.5, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, noWander: true, ...o,
-    get noJoin() { return !!S.flags['got_' + b.sp]; } }; // one already in the team doesn't join twice
+  return finale(b, { hp: b.hp * 1.3, atk: b.atk * 1.3, pace: 1.5, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, noWander: true, ...o });
 }
 export function addFinale(bossOf) {
   FINALE[0].boss = guardian(bossOf(484), {
@@ -234,10 +237,10 @@ export const ERA_1979 = {
     { mark: true, name: K('→ 광주 (1980년 5월)', '→ Gwangju (May 1980)'), lon: 126.85, lat: 35.16, text: K('1980년 5월, 광주 시민들은 계엄군에 맞서 민주주의를 외쳤다(5·18 민주화 운동).', 'In May 1980 the people of Gwangju stood against the martial-law troops and called for democracy (the May 18 Democratic Uprising).') },
   ],
   dungeons: {
-    // the town battle: Pastoria (data/pearl.json C06) as built for 1979, at night; the Hanahoe side fights at +15%
+    // the town battle: Pastoria (data/pearl.json C06) as built for 1979, at night; Darkrai alone, the Hanahoe side's +15%
     night1212: { name: K('12월 12일 밤 · 서울', 'Seoul, the night of December 12'), tiles: T.street, floors: 1, lv: [62, 66], fromTown: true, bgm: 'ba_akagi',
       mons: [262, 229, 430, 461, 435, 452, 359], tint: 'rgba(20,24,70,0.30)',
-      battle: { town: null, foeBuff: 1.15, allies: [59, 448, 68, 475, 208], foes: [262, 229, 430, 461, 452, 359] },
+      battle: { town: null, foeBuff: 1.15 },
       boss: DARKRAI_1212 },
     cheonggye: { name: K('청계천 판자촌', 'Cheonggyecheon Shanties'), tiles: T.alley, floors: 3, lv: [60, 64], mons: [88, 89, 19, 20, 109, 110, 52, 53, 41, 42], bgm: 'road_a' },
     // the last quest: Mt. Coronet, four stages (FINALE): Palkia, Dialga, the Spear Pillar where the Azure Flute they
@@ -260,7 +263,7 @@ export const ERA_1979 = {
     { do: 'scene', say: [
       { who: 'narr', text: K('1979년 12월 12일 저녁, 보안사령관 전두환과 하나회 군인들이 대통령의 재가 없이 계엄사령관 정승화를 강제로 연행했다.', 'On the evening of December 12, 1979, Security Commander Chun Doo-hwan and Hanahoe officers seized Martial Law Commander Jeong Seung-hwa without the president\'s approval.') },
       { who: 'narr', text: K('수도경비사령관 장태완 등은 반란을 막으려 했지만, 하나회는 전방의 부대까지 서울로 불러들였다.', 'Capital Garrison Commander Jang Tae-wan and others tried to stop the rebellion, but Hanahoe even pulled front-line units into Seoul.') }] },
-    { do: 'battle', d: 'night1212', npc: 'lucario79', log: K('수경사 군인 루카리오와 함께 서울 거리를 지키자 (전투)', 'Hold Seoul\'s streets with Capital Guard Lucario (battle)'), say: [
+    { do: 'battle', d: 'night1212', npc: 'lucario79', log: K('수경사 군인 루카리오의 부탁으로 서울 거리를 지키자 (전투)', 'Hold Seoul\'s streets for Capital Guard Lucario (battle)'), say: [
       { who: 448, name: K('수경사 군인 루카리오', 'Capital Guard Lucario'), text: K('반란군이 시내로 들어오고 있소! 저들은 하나회의 기세를 업고 한층 강해졌소. 시민들이 다치지 않게 함께 막아 주겠소?', 'The rebels are entering the city! Riding Hanahoe\'s momentum they are stronger than before. Will you help us keep the people from harm?') }] },
     { do: 'scene', say: [
       { who: 'narr', text: K('…그러나 그날 밤, 반란은 끝내 성공했다. 하나회는 군을 손에 넣었고, 이듬해 권력까지 차지했다.', '...But that night the rebellion succeeded. Hanahoe took the army, and the next year the government too.') },
