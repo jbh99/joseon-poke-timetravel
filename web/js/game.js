@@ -72,6 +72,9 @@ export const PRIMAL_MUL = 1.3;
 export const MAX_LV = 180;
 // ordinary foes (every wild, summoned or soldier Pokémon that is not a boss) fight with 80% of their HP and every stat
 export const FOE_MUL = 0.8;
+// the team's Pokémon carry twice the games' PP for every move (1.9); bosses and ordinary foes keep the games' own
+export const PP_MUL = 2;
+export const teamPP = (id) => DEX.moves[id].pp * PP_MUL;
 // Deoxys' Formes, changed at the red meteorite in town (town.js meteorTalk): base stats and PMD sprite (pmd/spr/386a.png...).
 // Speed counts for nothing in these turn-based dungeons, so the Speed Forme dodges instead (eva: a lasting evasion stage).
 export const FORMES = {
@@ -87,13 +90,14 @@ export class Mon {
   constructor(sp, lv, o = {}) {
     this.sp = sp; this.lv = lv; this.shiny = !!o.shiny;
     this.forme = o.forme || null; // a FORMES key (Deoxys); null for the usual form
-    // the Forme and the boss multipliers must be set before hp, which reads maxhp
-    this.boss = !!o.boss; this.hpMul = o.hpMul || 1.3; this.atkMul = o.atkMul || 0.9;
+    // the Forme and the boss multipliers must be set before hp, which reads maxhp (boss and foe also before the moves' PP)
+    this.boss = !!o.boss; this.foe = !!o.foe; this.hpMul = o.hpMul || 1.3; this.atkMul = o.atkMul || 0.9;
     // a side's edge in a town battle (the Hanahoe's +15%) lifts every stat and HP; set before hp like the boss multipliers.
     // Ordinary foes (o.foe) take FOE_MUL on top; a recruit is a fresh Mon (recruit()), so it joins at full strength.
     this.buff = (o.buff || 1) * (o.foe ? FOE_MUL : 1);
     this.exp = o.exp ?? lv * lv * lv;
-    this.moves = o.moves || this.defaultMoves().map((id) => ({ id, pp: DEX.moves[id].pp }));
+    // moves as saved keep the PP they have left; ones given without PP (a recruit's, a boss's set) start full
+    this.moves = (o.moves || this.defaultMoves().map((id) => ({ id }))).map((mv) => (mv.pp == null ? { ...mv, pp: this.maxPP(mv.id) } : mv));
     this.hp = o.hp ?? this.maxhp;
     this.status = o.status || null;
     this.stages = {};
@@ -141,7 +145,7 @@ export class Mon {
       for (const [l, m] of this.data.learn) {
         if (l === this.lv && moveUsable(m) && !this.moves.some((x) => x.id === m)) {
           if (this.moves.length >= 4) { ev.push({ t: 'want', move: m }); continue; }
-          this.moves.push({ id: m, pp: DEX.moves[m].pp });
+          this.moves.push({ id: m, pp: this.maxPP(m) });
           ev.push({ t: 'learn', move: m });
         }
       }
@@ -152,7 +156,9 @@ export class Mon {
   }
   evolve(to) { const r = this.hp / this.maxhp; this.sp = to; this.hp = Math.max(1, Math.round(this.maxhp * r)); }
   heal(full = true) { this.hp = this.maxhp; this.status = null; if (full) this.restorePP(); }
-  restorePP() { this.moves.forEach((m) => { m.pp = DEX.moves[m.id].pp; }); }
+  // a move's full PP: PP_MUL times the games' number on the team, the games' own for bosses and ordinary foes
+  maxPP(id) { return this.boss || this.foe ? DEX.moves[id].pp : teamPP(id); }
+  restorePP() { this.moves.forEach((m) => { m.pp = this.maxPP(m.id); }); }
   // the moves this species learns by level (ROM learnset), each at its lowest level, that this one doesn't know now
   learnable() {
     const at = new Map();
@@ -162,7 +168,7 @@ export class Mon {
   }
   // a new move takes a free slot, or the place of the move in `slot`
   learn(move, slot) {
-    const mv = { id: move, pp: DEX.moves[move].pp };
+    const mv = { id: move, pp: this.maxPP(move) };
     if (this.moves.length < 4) this.moves.push(mv); else this.moves[slot] = mv;
   }
   toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined }; }
@@ -271,7 +277,7 @@ const SAVE_KEY = 'joseon-poke-save-v1', slotKey = (slot) => (slot === 'normal' ?
 export const slotOf = (o) => (SLOTS.includes(o?.slot) ? o.slot : o?.flags?.challengeLost ? 'challenge' : SLOTS.includes(o?.mode) ? o.mode : 'normal');
 // v2 added six eras before 1392: older saves move forward by that many eras (levels are lifted on load, see quests.liftLevels);
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
-const SAVE_V = 6, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
+const SAVE_V = 7, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
 // v4 put 1905 between 1887 and 1919 (index 13), and opened the Korean War (v3 index 17) with the battle for Seoul
 const ERA_1905 = 13, WAR_V3 = 17, WAR_NEW_STEPS = 2;
 function migrateV4(o) {
@@ -296,6 +302,8 @@ function migrateV5(o) {
 // v6 took Darkrai out of 1940 (it appears from 1979 on): a missed-legend plan made earlier may still send it to an
 // era before 1979, so the plan is made again
 function migrateV6(o) { o.wander = null; }
+// v7 doubled the team's PP (PP_MUL): every move keeps the share of its PP it had left
+function migrateV7(mons) { for (const m of mons) for (const mv of m.moves) mv.pp = Math.min(m.maxPP(mv.id), mv.pp * PP_MUL); }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town
 const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null });
 export const S = { ...FRESH(), party: [] };
@@ -342,6 +350,7 @@ export function load(slot = saves()[0]?.slot) {
     if (v < 4) migrateV4(o);
     if (v < 5) migrateV5(o);
     if (v < 6) migrateV6(o);
+    if (v < 7) migrateV7([...party, ...roster]);
     Object.assign(S, FRESH(), o, { party, roster, slot }); // the key it was read from names its journey
     delete S.savedAt;
     return true;
@@ -366,7 +375,7 @@ export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
 // a defeated Pokémon joins: straight into the party if there is room, otherwise into the town roster
 export function recruit(mon) {
   // keeps the moves it fought with (bosses have hand-picked sets) with full PP
-  const m = new Mon(mon.sp, mon.lv, { shiny: mon.shiny, moves: mon.moves.map((mv) => ({ id: mv.id, pp: DEX.moves[mv.id].pp })) });
+  const m = new Mon(mon.sp, mon.lv, { shiny: mon.shiny, moves: mon.moves.map((mv) => ({ id: mv.id })) });
   if (S.party.length < 3) { S.party.push(m); return { m, where: 'party' }; }
   if (S.roster.length >= ROSTER_MAX) return { m, where: 'full' };
   S.roster.push(m);

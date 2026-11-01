@@ -257,7 +257,7 @@ export class Dungeon {
     if (scaled && !b.wander) lv = Math.max(lv, top + 2 + up);
     if (b.lvCap) lv = Math.min(lv, b.lvCap); // Arceus follows the team up to Lv 180
     // b.buff: a boss's own edge on HP and every stat (the finale's three, the town battles' legends), on top of its side's
-    const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: (b.buff || 1) * (this.def.battle?.foeBuff || 1), moves: b.moves?.map((id) => ({ id, pp: DEX.moves[id].pp })) });
+    const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: (b.buff || 1) * (this.def.battle?.foeBuff || 1), moves: b.moves?.map((id) => ({ id })) });
     mon.slowT = b.slow || 0;
     const e = this.addEnt(mon, x, y, 'foe');
     e.isBoss = true; e.def = b; e.bphase = 1; e.stagger = 0; e.tele = null;
@@ -269,7 +269,7 @@ export class Dungeon {
           : tr(`${mon.name}이(가) 온 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} draws on all its strength! Its attacks grow fiercer!`) }]
       : b.tele;
     e.teleCD = b.tele ? (this.teleConf(e).first ?? 3) + i * 2 : 0;
-    e.sig = this.sigPlan(b.sig, b.pace);
+    e.sig = this.sigPlan(b.sig, b.pace, b.sigMore);
     e.waiting = this.stage?.wake || 0;
     return e;
   }
@@ -846,7 +846,7 @@ export class Dungeon {
       if (this.tryMove(e, dx, dy)) this.moveAnim(e, fx, fy); else e.wdir = null;
     }
   }
-  danger(x, y) { return this.bosses.some((b) => b.alive && b.tele?.tiles.has(y * W + x)); }
+  danger(x, y) { return this.bosses.some((b) => b.alive && (b.tele?.tiles.has(y * W + x) || b.sigRun?.tele?.tiles.has(y * W + x))); }
   // Teammates: out of a telegraphed blast first; then they fight what is near the team (a foe beside them, in line or
   // within sure reach) and close in on a foe only while both stay within LEASH tiles of the one in control; otherwise
   // they follow it (follow). In a town battle everyone on our side fights on their own: teammates and our side's legend
@@ -901,28 +901,32 @@ export class Dungeon {
     (e.hpLog ||= []).push([G.time, m.hp]); // what Roar of Time turns back to
     while (e.hpLog.length > 2 && e.hpLog[1][0] < G.time - 30) e.hpLog.shift();
     if (this.bossPhase(e)) return true;
-    if (e.sigRun) return this.sigStep(e); // a signature move under way takes the whole turn
+    if (e.sigRun?.sg.kind === 'roar') return this.sigStep(e); // Roar of Time takes the whole turn
+    // Hyper Beam turns a step a turn while the telegraphed blasts go on (Arceus's last page); its last shot ends the
+    // turn, and it recharges
+    const sweep = !!e.sigRun;
+    if (sweep) { this.sigStep(e); if (!e.sigRun) return true; }
     if (m.slowT > 0) { m.slowT--; if (!m.slowT) this.step(() => { this.msg(tr(`${m.name}이(가) 본래의 힘을 되찾았다!`, `${m.name} regained its true power!`), COL.red); this.shake = 0.3; }, 0.3); }
     if (e.tele) {
       e.tele.turns--;
       if (e.tele.turns <= 0) { this.unleash(e); return true; }
       const left = e.tele.turns; // read now: the blast may be gone by the time this line shows
       this.step(() => this.msg(tr(`${m.name}이(가) 힘을 모으고 있다… (${left}턴 뒤)`, `${m.name} is gathering power... (${left} turns)`), COL.red), 0.15);
-      return !e.def.relentless; // relentless bosses keep fighting while the blast charges
+      return sweep || !e.def.relentless; // relentless bosses keep fighting while the blast charges
     }
     // a pair takes turns with its big attacks: one blast or signature move on the field at a time
     const other = this.bosses.some((o) => o !== e && o.alive && (o.tele || o.sigRun || o.hidden));
-    if (!other && this.sigTurn(e)) return true;
+    if (!sweep && !other && this.sigTurn(e)) return true;
     if (e.stagger > 0) {
       e.stagger--;
-      this.step(() => this.msg(tr(`${m.name}은(는) 지쳐서 숨을 고르고 있다!`, `${m.name} is worn out and catching its breath!`), COL.green), 0.15);
+      if (!sweep) this.step(() => this.msg(tr(`${m.name}은(는) 지쳐서 숨을 고르고 있다!`, `${m.name} is worn out and catching its breath!`), COL.green), 0.15);
       return true;
     }
     if (--e.teleCD <= 0) {
       if (!other) { this.charge(e); return true; }
       e.teleCD = 1; // its partner's blast first
     }
-    return false;
+    return sweep;
   }
   // Arceus-style phases: plate change, cadence change, minions
   bossPhase(e) {
@@ -991,12 +995,12 @@ export class Dungeon {
   charge(e) {
     // a telegraph with a `mix` takes turns among several attacks (Giratina), each with its own name, type, shapes and power
     const P = this.teleConf(e), T = P.mix ? { ...P, ...P.mix[(e.mixN = (e.mixN ?? -1) + 1) % P.mix.length] } : P;
-    const allies = this.ents.filter((a) => a.alive && a.team === 'ally');
+    const allies = this.ents.filter((a) => a.alive && a.team === 'ally'), beam = e.sigRun?.tele?.tiles;
     let pick = null;
     for (const name of shuffle(T.pats.slice())) {
-      const tiles = this.patternTiles(name, e, allies);
+      const tiles = this.patternTiles(name, e, allies), off = beam ? new Set([...tiles, ...beam]) : tiles; // the way out must not cross Hyper Beam's band
       const delay = Math.max(...name.split('|').map((n) => PATTERNS[n].delay));
-      if (tiles.size && allies.every((a) => this.escapeSteps(a, tiles) <= delay)) { pick = { tiles, delay, name }; break; }
+      if (tiles.size && allies.every((a) => this.escapeSteps(a, off) <= delay)) { pick = { tiles, delay, name }; break; }
     }
     if (!pick) pick = { tiles: this.patternTiles('target', e, allies), delay: 1, name: 'target' };
     const nm = T.orbName && pick.name.includes('orbs') ? T.orbName : T.name; // Judgment's orbs go by its own name
@@ -1040,13 +1044,16 @@ export class Dungeon {
   // telegraphed for a turn and landing like any other (unleash); Roar of Time charges for a turn and Hyper Beam turns a
   // full circle (sigStep).
   // A paced boss (pace > 1, the finale's guardians) uses them more often: half as many marks again (at least one
-  // more), spread evenly over the same stretch of its bar.
-  sigPlan(s, pace = 1) {
+  // more); a boss with `more` (Dialga's sigMore) that many times the marks after that. The marks then spread evenly
+  // over the same stretch of its bar, a tenth wider on each side for each `more`.
+  sigPlan(s, pace = 1, more = 1) {
     if (!s) return null;
     let at = (Array.isArray(s.at[0]) ? choice(s.at) : s.at).slice();
-    if (pace > 1) {
-      const n = at.length + Math.max(1, Math.floor(at.length * (pace - 1)));
-      const hi = Math.min(0.9, at[0] + 0.1), lo = Math.max(0.15, at[at.length - 1] - 0.1);
+    let n = at.length;
+    if (pace > 1) n += Math.max(1, Math.floor(n * (pace - 1)));
+    n = Math.round(n * more);
+    if (n > at.length) {
+      const w = 0.1 * Math.max(1, more), hi = Math.min(0.9, at[0] + w), lo = Math.max(0.15, at[at.length - 1] - w);
       at = Array.from({ length: n }, (_, i) => hi - (hi - lo) * i / (n - 1));
     }
     return { use: s.use, k: 0, at };
@@ -1065,13 +1072,12 @@ export class Dungeon {
     e.face = [0, 1];
     if (sg.kind === 'roar') {
       e.sigRun = { sg };
-      return tell(`${m.name}이(가) ${sg.name}를 준비한다! 주위의 시간이 일그러진다… (다음 턴)`, `${m.name} is building up ${sg.name}! Time warps all around... (next turn)`);
+      return tell(`${m.name}의 ${sg.name}! 시간이 일그러진다… (다음 턴)`, `${m.name} builds up ${sg.name}! (next turn)`); // short enough for the log
     }
-    if (sg.kind === 'sweep') {
+    if (sg.kind === 'sweep') { // its band is its own (sigRun.tele): the telegraphed blasts go on beside it (bossTurn)
       const k = Math.floor(Math.random() * 8);
-      e.sigRun = { sg, k, left: 8 };
-      blast(this.beamTiles(e, k), { beam: k });
-      return tell(`${m.name}이(가) ${sg.name}을(를) 360도로 휘두른다! 다가오는 붉은 줄기를 피해라!`, `${m.name} swings ${sg.name} round a full circle! Keep clear of the red line as it comes!`);
+      e.sigRun = { sg, k, left: 8, tele: { tiles: this.beamTiles(e, k), turns: 1, name: sg.name, dmg: (sg.dmg || 0.3) * e.tier.blast, color: TYPE_COLORS[sg.type], fx: sg.kind } };
+      return tell(`${m.name}의 ${sg.name}! 360도로 휘두르며 공격도 계속된다!`, `${m.name} swings ${sg.name} round, still attacking!`); // short enough for the log
     }
     if (sg.kind === 'shadow') { // gone into the dark; next turn it bursts out of the shadow of one of the team
       const t = choice(team.filter((a) => !a.army).concat(team.filter((a) => a.isPlayer)));
@@ -1167,11 +1173,11 @@ export class Dungeon {
       return true;
     }
     if (sg.kind === 'sweep') { // fire where it was aimed, then aim a step further clockwise; after a full circle, recharge
-      const t = e.tele, k = run.k;
+      const t = run.tele, k = run.k;
       this.step(() => { this.beamFx = { x: e.x, y: e.y, k, t: 0.35 }; this.blast = { tiles: t.tiles, t: 0.3, color: '#fff2a8' }; this.shake = 0.3; sfx('super'); }, 0.3);
       this.strike(e, t);
-      if (--run.left > 0) { run.k = (run.k + 1) % 8; e.tele = { ...t, tiles: this.beamTiles(e, run.k), beam: run.k, turns: 1 }; return true; }
-      e.tele = null; e.sigRun = null; e.stagger = 2;
+      if (--run.left > 0) { run.k = (run.k + 1) % 8; run.tele = { ...t, tiles: this.beamTiles(e, run.k) }; return true; }
+      e.sigRun = null; e.stagger = 2;
       this.step(() => this.msg(tr(`${m.name}은(는) ${sg.name}의 반동으로 움직일 수 없다! 지금 공격하면 1.5배!`, `${m.name} must recharge after ${sg.name}! Attacks deal 1.5x now!`), COL.green), 0.2);
       return true;
     }
@@ -1181,7 +1187,7 @@ export class Dungeon {
   // a phase change or a second form cuts a signature move short (Shadow Force comes back out where it went in)
   sigEnd(e) {
     if (e.hidden) { e.hidden = false; e.reviveT = 0.6; }
-    if (e.sigRun) { e.sigRun = null; e.tele = null; }
+    e.sigRun = null; // Hyper Beam's band goes with it
   }
   // Shadow Force: out of the shadow it hid in, beside the one it came for if that one still stands there
   emerge(e, [x, y]) {
@@ -1219,7 +1225,7 @@ export class Dungeon {
     if (r.form) Object.defineProperty(m, 'name', { configurable: true, get: () => `${m.data.name} (${r.form})` });
     if (r.cap) e.cap = r.cap;
     e.teleSet = r.tele; e.bphase = 1; e.tele = null; e.stagger = 0; e.teleCD = this.teleConf(e).first ?? 2;
-    e.sig = this.sigPlan(r.sig, e.def.pace); e.hpLog = [];
+    e.sig = this.sigPlan(r.sig, e.def.pace, e.def.sigMore); e.hpLog = [];
     this.step(() => { this.shake = 0.9; e.reviveT = 1.2; sfx('super'); cry(m.sp); this.msg(r.msg, COL.red); if (r.bgm) playBgm(r.bgm, 0.2); }, 0.9);
     if (r.line) this.step(() => say(lines(r.line)), 0.1);
   }
@@ -1462,7 +1468,7 @@ export class Dungeon {
   moveList() { const n = this.player.mon.moves.length; return { n, x: VW - 152, y: VH - 12 - n * 14 }; }
   menu() {
     openMenu([
-      { label: tr('기술', 'Moves'), fn: () => openMenu(this.player.mon.moves.map((mv, k) => { const d = DEX.moves[mv.id]; return { label: `${'QWER'[k]}. ${d.name}`, right: `PP ${mv.pp}/${d.pp}`, desc: moveDesc(mv.id), fn: () => this.playerAct('move-skill', k) }; }), { title: tr('기술', 'Moves'), desc: true, x: 140, y: 40, w: 220 }) },
+      { label: tr('기술', 'Moves'), fn: () => openMenu(this.player.mon.moves.map((mv, k) => { const d = DEX.moves[mv.id]; return { label: `${'QWER'[k]}. ${d.name}`, right: `PP ${mv.pp}/${this.player.mon.maxPP(mv.id)}`, desc: moveDesc(mv.id), fn: () => this.playerAct('move-skill', k) }; }), { title: tr('기술', 'Moves'), desc: true, x: 140, y: 40, w: 220 }) },
       { label: tr('도구', 'Items'), fn: () => itemMenu(this) },
       { label: tr('포켓몬', 'Pokémon'), fn: () => partyMenu({ dungeon: true }) },
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
@@ -1491,8 +1497,7 @@ export class Dungeon {
     if (this.altar && !this.lit) this.drawAltar(c, this.altar[0] * TILE + 12, this.altar[1] * TILE + 12);
     // telegraphed danger tiles (brighter on the last turn) and the blast flash
     if (this.rent) for (const k of this.rent.tiles) this.drawRent(c, k % W, Math.floor(k / W));
-    for (const boss of this.bosses) {
-      const tele = boss.alive && boss.tele;
+    for (const boss of this.bosses) for (const tele of boss.alive ? [boss.tele, boss.sigRun?.tele] : []) { // a blast, Hyper Beam's band
       if (!tele) continue;
       const a = (tele.turns <= 1 ? 0.42 : 0.24) + 0.14 * Math.sin(G.time * (tele.turns <= 1 ? 14 : 7));
       for (const k of tele.tiles) {
@@ -1703,7 +1708,7 @@ export class Dungeon {
       const d = DEX.moves[m.id];
       ui.rect(bx - 2, by + k * 14 + 1, 3, 10, TYPE_COLORS[d.type]);
       ui.text(`${'QWER'[k]} ${d.name}`, bx + 4, by + k * 14, { size: 9, color: m.pp ? COL.ink : '#a99' });
-      ui.text(`${m.pp}/${d.pp}`, bx + 142, by + k * 14, { size: 9, align: 'right', color: COL.ink2 });
+      ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, bx + 142, by + k * 14, { size: 9, align: 'right', color: COL.ink2 });
     });
     // messages
     const ms = this.msgs.filter((m) => m.t > 0).slice(-4);
@@ -1742,10 +1747,11 @@ export class Dungeon {
     ui.text(`${'★'.repeat(b.revives || 0)}${b.revives ? ' ' : ''}${m.name}  Lv${m.lv}`, bx + 8, 9, { size: 9, color: b.revived ? '#ffe27a' : '#ffe0d0', bold: true });
     if (Array.isArray(b.teleSet)) for (let i = 0; i < b.teleSet.length; i++) ui.rect(bx + w - 12 - (b.teleSet.length - i) * 9, 10, 6, 6, i < b.bphase ? '#ff6a4a' : '#6a4a40');
     ui.bar(bx + 8, 21, w - 16, 5, m.hp, m.maxhp);
-    const roar = b.sigRun?.sg.kind === 'roar' && b.sigRun.sg;
+    const roar = b.sigRun?.sg.kind === 'roar' && b.sigRun.sg, beam = b.sigRun?.tele, tele = b.tele || beam;
     const note = b.waiting ? [tr('가까이 다가가면 깨어난다', 'It wakes when you come near'), '#c8d8ff']
       : roar ? [tr(`[!] ${roar.name} — 다음 턴, 모두 HP ${Math.round(roar.cut * 100)}% 감소`, `[!] ${roar.name} — next turn, everyone loses ${Math.round(roar.cut * 100)}% HP`), '#8ab4ff']
-        : b.tele ? [tr(`[!] ${b.tele.name} — 붉은 칸 밖으로! ${b.tele.turns}턴 뒤`, `[!] ${b.tele.name} — leave the red tiles! ${b.tele.turns} turn(s)`), b.tele.turns <= 1 ? '#ff5a3a' : '#ffb070']
+        : b.tele && beam ? [tr(`[!] ${beam.name} + ${b.tele.name} — 붉은 칸 밖으로!`, `[!] ${beam.name} + ${b.tele.name} — leave the red tiles!`), '#ff5a3a']
+          : tele ? [tr(`[!] ${tele.name} — 붉은 칸 밖으로! ${tele.turns}턴 뒤`, `[!] ${tele.name} — leave the red tiles! ${tele.turns} turn(s)`), tele.turns <= 1 ? '#ff5a3a' : '#ffb070']
           : b.stagger > 0 ? [tr(`빈틈! 받는 피해 1.5배 (${b.stagger}턴)`, `Opening! Takes 1.5x damage (${b.stagger})`), '#8ff0a0']
             : m.slowT > 0 ? [tr(`아직 제 힘을 내지 못한다 (${m.slowT}턴)`, `Not at full power yet (${m.slowT})`), '#c8d8ff'] : null;
     if (!note) return;

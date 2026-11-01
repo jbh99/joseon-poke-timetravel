@@ -75,7 +75,7 @@ export async function bot(turns = 200, opts = {}) {
         const s = d.pickSkill(p, adj); // the move a player would pick: power x type match, like the ally AI
         d.playerAct(s && Math.random() < 0.85 ? 'move-skill' : 'basic', s?.k); continue;
       }
-      if (adj === undefined && d.boss?.tele && opts.dodge !== false) { d.playerAct('wait'); continue; } // safe spot: wait out the blast
+      if (adj === undefined && (d.boss?.tele || d.boss?.sigRun?.tele) && opts.dodge !== false) { d.playerAct('wait'); continue; } // safe spot: wait out the blast (or Hyper Beam)
       if (!foes.length && p.mon.hp < p.mon.maxhp * 0.6) { d.playerAct('wait'); continue; } // rest like a player would
       let step = foes.length ? d.bfs(p, (x, y) => foes.some((f) => Math.max(Math.abs(f.x - x), Math.abs(f.y - y)) <= 1) && !d.entAt(x, y) && (opts.dodge === false || !d.danger(x, y)), 40) : null;
       const it = d.items.find((i) => d.vis[i.y][i.x]);

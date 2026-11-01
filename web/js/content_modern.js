@@ -152,7 +152,8 @@ const ARCEUS_REVIVE = { hp: 2 / 3, atk: 1.35, shiny: true, cap: 0.34, aura: '#ff
       line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('이 빛을 견뎌 낸다면… 너희에게 이 시대의 꽃잎을 맡기겠다.', 'Endure this light... and I will entrust you with this era\'s petal.') }] },
   ] };
 // third page: Arceus rises once more with half that HP, Attack +10% and Defense +20%, every plate merged into one
-// (a rainbow aura): Judgment pours down every turn, and three times it swings Hyper Beam round a full circle
+// (a rainbow aura): Judgment pours down every turn, and three times it swings Hyper Beam round a full circle, Judgment
+// falling all the while (dungeon.js bossTurn); since 1.9 its Hyper Beam hits 40% harder than the move's own
 const ARCEUS_REVIVE3 = { hp: 0.5, atk: 1.1, def: 1.2, shiny: true, cap: 0.36, aura: 'rainbow', bgm: 'ba_chanp',
   msg: K('아르세우스가 또다시 일어선다! 모든 플레이트가 하나로 겹쳐지며 무지갯빛을 내뿜는다!', 'Arceus rises yet again! Every plate merges into one, blazing with rainbow light!'),
   line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('…이것이 마지막이다. 시간과 공간이 태어나기 전의 힘, 받아 보아라!', '...This is the last. The power from before time and space were born: take it!') }],
@@ -161,7 +162,7 @@ const ARCEUS_REVIVE3 = { hp: 0.5, atk: 1.1, def: 1.2, shiny: true, cap: 0.36, au
     { at: 0.4, name: K('무한의 심판', 'Endless Judgment'), orbName: JUDGMENT, every: 1, dmg: 0.7, stagger: 1, pats: ['orbs|star', 'orbs|quad', 'checker|cross|orbs', 'ring|x|orbs', 'target|far|orbs'], type: 17, summon: 2, summonSp: [436, 343],
       msg: K('아르세우스의 빛이 끝없이 쏟아진다! 공격이 한층 거세진다!', 'Arceus\'s light pours down without end! Its attacks grow fiercer!') },
   ],
-  sig: { use: [SIG.beam], at: [[0.9, 0.6, 0.25]] } };
+  sig: { use: [{ ...SIG.beam, dmg: SIG.beam.dmg * 1.4 }], at: [[0.9, 0.6, 0.25]] } };
 // the final boss sets its own numbers (dungeon.js bossTier): its level follows the team's like any boss's, from Lv 70 up
 // to Lv 180, a long fight where dodging decides everything. A team that already has Arceus (it joined in the 1950
 // finale of older versions) gets no second one.

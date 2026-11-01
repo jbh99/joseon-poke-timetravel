@@ -17,7 +17,7 @@ export const SIG = {
   dragon: { kind: 'pulse', name: K('용의파동', 'Dragon Pulse'), type: 16, dmg: 0.32 }, // Giratina's, shaped like Origin Pulse
   dark: { kind: 'pulse', name: K('악의파동', 'Dark Pulse'), type: 17, dmg: 0.3 },
   void: { kind: 'void', name: K('다크홀', 'Dark Void'), type: 17, dmg: 0.12 }, // whoever it catches falls asleep
-  beam: { kind: 'sweep', name: K('파괴광선', 'Hyper Beam'), type: 0, dmg: 0.3 }, // a beam turning a full circle, a step a turn
+  beam: { kind: 'sweep', name: K('파괴광선', 'Hyper Beam'), type: 0, dmg: 0.3 }, // a beam turning a full circle, a step a turn, while its user's blasts go on
 };
 // a form's first signature move at 60% of its HP; the second form's two or three spread over its bar
 export const SIG_AT1 = [0.6], SIG_AT2 = [[0.75, 0.4], [0.8, 0.55, 0.3]];
