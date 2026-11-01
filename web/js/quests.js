@@ -11,28 +11,32 @@ export const mainStep = () => era().main[S.step];
 export const eraComplete = () => S.step >= era().main.length;
 // ---------------------------------------------------------------- foe levels and difficulty
 // A dungeon's foe levels as [lowest, highest, scaled]. Before 1200, and while the team's best is at most Lv 20, the band
-// is the designed one; from then on it follows the team's strongest Pokémon (its level to +2, then +3 to +5 past Lv 45),
-// never below the design. The difficulty mode shifts both ends.
+// is the designed one; from then on it runs 5 to 7 levels above the team's strongest Pokémon, never below the design
+// (1.10: Normal, Hard and Challenge alike). Easy takes two levels off both ends.
 export function foeLevels(d) {
   const top = Math.max(...(S.homeParty || S.party).map((m) => m.lv));
   let lo = d.lv[0], hi = d.lv[1] + 1;
   const scaled = era().year >= 1200 && top > 20;
-  if (scaled) { const [a, b] = top > 45 ? [3, 5] : [0, 2]; lo = Math.max(lo, top + a); hi = Math.max(hi, top + b); }
+  if (scaled) { lo = Math.max(lo, top + 5); hi = Math.max(hi, top + 7); }
   const k = mode().lv;
   return [Math.max(2, lo + k), Math.max(2, hi + k), scaled];
 }
 export const challenge = () => S.mode === 'challenge';
-// a challenge ends at the first wipe (or a run abandoned mid-dungeon): the journey goes on at Normal
-export function loseChallenge() {
-  if (!challenge()) return false;
-  S.mode = 'normal'; S.flags.challengeLost = true;
-  return true;
-}
-// continuing a challenge save that was left in the middle of a dungeon counts as that run's defeat
+// A challenge stakes the whole journey until its story is seen through (★): the first wipe, or a run left in the
+// middle of a dungeon, ends it for good, and the next challenge starts from the beginning (1.10). Its save stays
+// behind marked over (game.js journey), so neither this device nor its cloud copy brings the journey back.
+export const atStake = () => challenge() && !(S.era >= ERAS.length - 1 && eraComplete());
+export function endChallenge() { S.over = true; S.inRun = null; save(); }
+export const overText = () => tr('챌린지 실패… 이 여행은 여기서 끝났다. 챌린지는 처음부터 다시 시작해야 한다.', 'Challenge failed... This journey is over: a challenge starts again from the very beginning.');
+// continuing a challenge save that was left in the middle of a dungeon counts as that run's wipe: true when it ended
+// the journey (the title comes back once the player has read why)
 export function checkRun() {
   const left = S.inRun;
   S.inRun = null;
-  if (left && loseChallenge()) { save(); say([{ who: 'narr', text: tr('챌린지 실패… 던전 도중에 여행을 멈췄다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the journey stopped in the middle of a dungeon. It now continues at Normal.') }]); }
+  if (!left || !atStake()) return false;
+  endChallenge();
+  say([{ who: 'narr', text: tr('던전 도중에 여행을 멈춘 것은 전멸로 처리된다.', 'Stopping in the middle of a dungeon counts as a wipe.') }, { who: 'narr', text: overText() }], () => G.goTitle());
+  return true;
 }
 const RUN = ['dungeon', 'battle']; // steps that are a dungeon run (a 'battle' is started by talking to its NPC in town)
 const ahead = (dId) => era().main.some((s, i) => i >= S.step && RUN.includes(s.do) && s.d === dId); // its story run is still to come
@@ -252,10 +256,14 @@ export async function spyRaid(town) {
   const lost = Math.floor(S.money * 0.3);
   S.money -= lost;
   for (const m of [...S.party, ...S.roster]) { m.hp = 1; m.status = null; }
-  const ch = loseChallenge();
   S.spy = null; // the hunt starts over: a new disguise, back to 1921
-  await say([{ who: 'narr', text: tr(`…정신을 차려 보니 기지 구석이었다. 엽전 ${lost}냥을 잃었다. 밀정 찾기를 처음부터 다시 시작한다.`, `...You came to in a corner of the base, ${lost} nyang poorer. The spy hunt starts over from the beginning.`) },
-    ...(ch ? [{ who: 'narr', text: tr('챌린지 실패… 모두 쓰러지고 말았다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the whole team went down. The journey now continues at Normal.') }] : [])]);
+  if (atStake()) { // the raid is a wipe, which ends a challenge
+    endChallenge();
+    await say([{ who: 'narr', text: overText() }]);
+    spyRaid.busy = false;
+    return G.goTitle();
+  }
+  await say([{ who: 'narr', text: tr(`…정신을 차려 보니 기지 구석이었다. 엽전 ${lost}냥을 잃었다. 밀정 찾기를 처음부터 다시 시작한다.`, `...You came to in a corner of the base, ${lost} nyang poorer. The spy hunt starts over from the beginning.`) }]);
   spyRaid.busy = false;
   save();
   fadeTo(() => G.goTown(1));
@@ -637,13 +645,15 @@ export function settingsMenu(sel = 0) {
     { label: tr('닫기', 'Close') },
   ], { title: tr('설정', 'Settings'), sel, x: 150, y: 50, w: 190 });
 }
-// quit to the title screen: towns save first; a dungeon run is not saved (the game continues from the last town visit)
+// quit to the title screen: towns save first; a dungeon run is not saved (the game continues from the last town visit).
+// A challenge's run (S.inRun) left this way is a wipe, so the journey ends there and then.
 export function quitItem(inDungeon, before) {
+  const staked = () => inDungeon && !!S.inRun;
   return { label: tr('게임 종료', 'Quit game'), fn: () => say([{ who: 'narr',
-    text: inDungeon && challenge() ? tr('챌린지 도중에 던전에서 게임을 끝내면 전멸한 것으로 처리된다(1층이라면 "던전에서 나가기"를 쓰자). 그래도 끝낼까?', 'Quitting a challenge in the middle of a dungeon counts as a wipe (on floor 1, use "Leave the dungeon" instead). Quit anyway?')
+    text: staked() ? tr('챌린지 도중에 던전에서 게임을 끝내면 전멸로 처리되어 이 여행이 끝난다(챌린지는 처음부터 다시). 1층이라면 "던전에서 나가기"를 쓰자. 그래도 끝낼까?', 'Quitting a challenge in the middle of a dungeon counts as a wipe and ends this journey (a challenge starts again from the beginning). On floor 1, use "Leave the dungeon" instead. Quit anyway?')
       : inDungeon ? tr('게임을 끝내고 타이틀로 돌아갈까? 던전 안에서 한 일은 저장되지 않고, 마지막으로 마을에 들렀을 때부터 이어진다.', 'Quit to the title screen? What you did in this dungeon is not saved; you will continue from your last visit to town.')
       : tr('기록을 남기고 타이틀로 돌아갈까?', 'Save and return to the title screen?'),
-    choices: tr(['끝낸다', '계속한다'], ['Quit', 'Keep playing']), onChoice: (i) => { if (i === 0) { before?.(); G.goTitle?.(); } } }]) };
+    choices: tr(['끝낸다', '계속한다'], ['Quit', 'Keep playing']), onChoice: (i) => { if (i === 0) { before?.(); if (staked()) endChallenge(); G.goTitle?.(); } } }]) };
 }
 
 export function itemMenu(dungeon) {

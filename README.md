@@ -216,23 +216,24 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 ### 엽전과 상점
 - 엽전은 쓰러뜨린 적(레벨이 높을수록 많이, 보스는 10배), 바닥에 떨어진 엽전, **던전 클리어 보상**(층수 × 시대), 방(榜) 의뢰 보상으로 모읍니다.
-- 셋이 모두 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다.
-- 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 절반 + 상태 이상 회복), 주먹밥(HP 80 + 상태 이상 회복), 약초(상태 이상), 인삼(PP 회복), 탈출 부적, 돌팔매, 기력의 조각(1000냥: 쓰러진 포켓몬을 HP 절반으로 되살림, 던전 한 번에 하나).
+- 셋이 모두 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다 (챌린지에서는 그 여행이 끝납니다).
+- 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 **55%** + 상태 이상 회복), 주먹밥(HP 80 + 상태 이상 회복), 인삼(PP 회복), 탈출 부적, 돌팔매, 기력의 조각(1000냥: 쓰러진 포켓몬을 HP 절반으로 되살림, 던전 한 번에 하나).
+- 1.10부터 상태 이상만 고치는 **약초**는 팔지 않고 던전 바닥에도 떨어져 있지 않습니다 (가지고 있던 약초는 한 개에 40냥으로 돌려받습니다). 1392년 「북악산 약초 캐기」 의뢰의 약초는 그 의뢰 동안 북악산에서만 나는 의뢰 물건입니다.
 - **기술머신**: 마을마다 보라색 디스크 표지를 단 **기술머신 상인**이 있습니다. 4세대 기술머신 가운데 이 게임에서 쓸 수 있는 55개를 팔고, 사는 자리에서 바로 가르쳐 줍니다(기술이 4개면 하나를 잊음). 센 기술(위력 80 이상)은 3000냥, 나머지는 1000냥입니다. 포켓몬 자신의 타입, 레벨업으로 배우는 기술의 타입, 노말 타입 기술머신을 쓸 수 있습니다.
 
 ### 난이도
 초반 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며, 회복도 느려집니다. 보스는 시대가 갈수록 더 강해지고, 후반 전설은 회복 도구와 타입 상성을 챙겨야 이길 수 있습니다.
 
-- **던전 레벨**: 1200년 전까지, 그리고 팀의 가장 높은 레벨이 20 이하일 때는 던전마다 정해진 레벨입니다. 그 뒤로는 팀에서 가장 높은 레벨에 맞춰 **같은 레벨 ~ +2**, 그 레벨이 **45를 넘으면 +3 ~ +5**로 적이 나옵니다. 정해진 레벨보다 낮아지지는 않습니다.
-- **일반 포켓몬**: 보스가 아닌 적(야생 포켓몬, 보스가 부른 졸개, 순사 그라에나)은 HP와 모든 능력치가 **80%**입니다. 동료가 되면 원래 능력치로 돌아옵니다.
+- **던전 레벨**: 1200년 전까지, 그리고 팀의 가장 높은 레벨이 20 이하일 때는 던전마다 정해진 레벨입니다. 그 뒤로는 팀에서 가장 높은 레벨보다 **5 ~ 7 레벨 높은** 적이 나옵니다 (1.10부터, 보통 · 어려움 · 챌린지 모두 같고 쉬움은 2 레벨 낮음). 정해진 레벨보다 낮아지지는 않고, 보스는 그 적들의 가장 높은 레벨보다 등급만큼(전설 +3, 600족 +2) 높습니다.
+- **일반 포켓몬**: 보스가 아닌 적(야생 포켓몬, 보스가 부른 졸개, 순사 그라에나)은 HP와 모든 능력치가 **80%**입니다 (어려움에서는 여기에 25%가 더해짐). 동료가 되면 원래 능력치로 돌아옵니다.
 - **독**: 한 턴에 최대 HP의 1/64만큼 줄어듭니다 (화상은 1/16).
 
 | 난이도 | 내용 |
 |---|---|
 | 쉬움 | 적 레벨 −2, 적이 주는 피해 −25%, 보스 체력 −20% |
 | 보통 | 기본 |
-| 어려움 | 적 레벨 +2, 적이 주는 피해와 보스 체력 +25% |
-| 챌린지 | 어느 난이도로든 엔딩을 한 번 보면 열립니다. 보통의 강함으로 **한 번도 전멸하지 않고** 엔딩까지 가야 하고, **전설의 포켓몬은 동료가 되지 않습니다**. 전멸하거나 던전 도중에 게임을 끄면 챌린지가 끝나고 그 여행은 보통 난이도로 이어집니다. |
+| 어려움 | 보통과 같은 레벨. 보스를 포함한 **모든 적 포켓몬의 HP와 능력치 +25%** (예고 공격의 피해도 +25%) |
+| 챌린지 | 어느 난이도로든 엔딩을 한 번 보면 열립니다. 보통의 강함으로 **한 번도 전멸하지 않고** 엔딩까지 가야 하고, **전설의 포켓몬은 동료가 되지 않습니다**. 1.10부터 **셋 모두 쓰러지거나** 던전 도중에 게임을 끄면 **그 여행이 끝나 처음부터 다시** 시작해야 합니다 (그 기록은 이어 할 수 없고, 클라우드 세이브로도 되살아나지 않습니다). 엔딩을 본 뒤에는 전멸해도 여행이 끝나지 않습니다. |
 
 쉬움 · 보통 · 어려움은 X 메뉴 → 설정에서 언제든 바꿀 수 있습니다. 기록은 여행을 **시작한 난이도**의 칸에 남아서, 난이도마다 여행을 하나씩 따로 이어 갈 수 있습니다.
 
@@ -327,16 +328,17 @@ docs/screenshots/       README 스크린샷
   - Pokémon grow past 100, up to Lv 180, and Arceus follows the team up to Lv 180.
   - Moves work as in the main games: a level-up move that finds four moves asks which one to forget (or skips it), and in town X menu → Pokémon → Z → Learn moves teaches any move of the species' level-up list up to its level, forgotten ones too.
   - Ordinary foes (not bosses) have 80% of their HP and stats; poison takes 1/64 of max HP a turn, and every status problem is cured back in town.
-  - Your team's moves turn to any foe within 3 tiles and always hit; a wild Pokémon's moves reach 4 tiles in a line, a boss's 4 tiles at most; bosses can't be put to sleep, frozen or poisoned, and legendary bosses shrug off every status problem. The one you control wears a leader badge; teammates fight within 4 tiles of it, follow in a line through corridors and catch up when left behind. Tab in town lets the next teammate lead. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries also cure status problems.
+  - Your team's moves turn to any foe within 3 tiles and always hit; a wild Pokémon's moves reach 4 tiles in a line, a boss's 4 tiles at most; bosses can't be put to sleep, frozen or poisoned, and legendary bosses shrug off every status problem. The one you control wears a leader badge; teammates fight within 4 tiles of it, follow in a line through corridors and catch up when left behind. Tab in town lets the next teammate lead. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries restore 55% of max HP and also cure status problems (the Herb is gone since 1.10).
   - One legend to a place: Azelf, Uxie and Mesprit have places of their own (the Jeolla Right Naval Base, Kyujanggak, Tapgol Park), Darkrai appears from 1979 on only, missed legends only return to dungeons without one, and Suicune now keeps 1636's Ice Temple, so Regigigas appears only after 1945. Electivire, the one mid-boss left, waits for a visit after the story run.
+  - 1.10: Normal, Hard and Challenge field the same dungeon levels, 5 to 7 above your strongest Pokémon; Hard gives every foe, bosses included, 25% more HP and stats (instead of +2 levels and harder hits). A challenge wipe, or quitting in the middle of a dungeon, now ends the journey: its save can't be continued, not even from the cloud, and a new challenge starts from the beginning (after the ending a wipe no longer counts). The Herb is gone (herbs in the bag become 40 nyang each), Sitrus Berries restore 55%, and long lines in the dungeon log wrap.
   - 1.9: Your Pokémon carry twice the games' PP for every move (wild Pokémon and bosses keep the games' own; an older save's PP doubles too). In Arceus's third phase Judgment keeps falling while Hyper Beam turns, and Hyper Beam hits 40% harder. Dialga uses Roar of Time twice as often in both its forms (1919: 2 + 4-6; Mt. Coronet: 4 + 6-8).
   - 1.8: Palkia no longer freezes the game in its second phase (on Mt. Coronet and in the Boss Tower its Origin Forme called minions from a dungeon with no wild Pokémon, and the error stopped the game; a frame that throws no longer stops the game either). On Mt. Coronet, Palkia, Dialga and Arceus have 20% more HP and every stat (the Boss Tower keeps its numbers). Town battles are boss fights: Darkrai alone on December 12, and in 1950 Groudon or Kyogre (by side) with your side's legend as your one ally, all three with 25% more HP and every stat. Every dungeon ends at floor 4 at most, where its boss waits (missed legends wait on that last floor too), and Tyranitar, no legend, no longer wears a legend's gold ring on the world map.
   - 1.7: Dialga, Palkia, Giratina and Mewtwo have 30% more HP and 15% more attack (Arceus keeps 1.5's +10% HP); Palkia uses Hydro Pump and a stronger Spacial Rend (more, longer rifts); Giratina's first form takes turns with five warning attacks and two signature moves. The last quest climbs Mt. Coronet: a stronger Palkia, then Dialga (30% stronger again, their attacks about 1.5x as often), whose light becomes the Azure Flute; played at the Spear Pillar's altar (Pearl's own map) it brings down the stairs to the Hall of Origin, where Arceus waits. After the ending, the Boss Tower (Boss Mode) holds ten floors of legends only: lesser legends in pairs that cover each other's weaknesses, then Mewtwo, Dialga, Palkia and Giratina alone and 15% stronger, and Arceus 15% stronger at the top; none can be caught, every floor restores the team, and a later visit can start above the last floor cleared. In town battles your teammates and troops fight on their own instead of following you.
   - 1.5: Dialga, Palkia, Giratina and Arceus have 10% more HP. Legends use signature moves, once in their first phase and two or three times in their second: Dialga's Roar of Time (its HP back to 10 seconds before, the team -20% HP), Palkia's Spacial Rend (the arena closes in, rifts erupt from the floor), Giratina's Shadow Force (out of a teammate's shadow; it also knows Aura Sphere), Groudon's Precipice Blades and Kyogre's Origin Pulse. Darkrai fights in three phases with Dark Void (sleep), Shadow Force and Dark Pulse.
   - Phones: the moves sit in a DraStic-style cross (Q up, W left, E right, R down), and a separate Menu button opens one panel with the game menu, quests, team, dungeon map and the settings. Menus scroll with a finger, and a tap on the dungeon's move list uses that move.
   - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 3000 nyang for strong attacks (power 80+), 1000 for the rest; a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
-  - From 1200 on, foes follow your strongest Pokémon (its level to +2, +3 to +5 past Lv 45) and bosses have 30% more HP.
-  - Easy, Normal and Hard difficulty; Challenge (after any ending) means no wipes and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey).
+  - From 1200 on, foes stand 5 to 7 levels above your strongest Pokémon (Normal, Hard and Challenge alike) and bosses have 30% more HP.
+  - Easy, Normal and Hard difficulty (Hard: every foe, bosses included, has 25% more HP and stats); Challenge (after any ending) means no wipes (a wipe ends the journey for good) and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey).
   - Water-only naval battles; pick a side in the Korean War.
   - 35% recruit rate (legendaries always join) and a 500-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.

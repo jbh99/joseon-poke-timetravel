@@ -1,7 +1,7 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, readSave, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
+import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
 import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone } from './quests.js';
 import { drawMon, BLD } from './town.js';
@@ -67,7 +67,8 @@ export class Title {
       { title: tr('어느 기록으로 이어 할까?', 'Continue which journey?'), x: VW / 2 - 105, y: 150, w: 210, onCancel: () => { this.started = false; } });
   }
   resume(slot) {
-    if (load(slot)) fadeTo(() => { liftLevels(); checkRun(); G.goTown(); }); // the town plays a step left waiting (resumeSteps)
+    // the town plays a step left waiting (resumeSteps); a challenge left in the middle of a dungeon ends instead (checkRun)
+    if (load(slot)) fadeTo(() => { liftLevels(); if (!checkRun()) G.goTown(); });
     else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
   }
   // the language row shows the language in use; rebuild the menu so every label follows a switch
@@ -79,22 +80,22 @@ export class Title {
   newGame() {
     const N = MODE_NAMES(), desc = tr({
       easy: '적 레벨 −2, 적이 주는 피해 −25%, 보스 체력 −20%. 이야기를 편하게 즐기고 싶다면.',
-      normal: '기본 난이도. 1200년부터 던전이 우리 팀의 성장에 맞춰 강해진다.',
-      hard: '적 레벨 +2, 적이 주는 피해와 보스 체력 +25%.',
-      challenge: prefs.ended ? '보통의 강함으로, 한 번도 전멸하지 않고 엔딩까지 가야 한다. 전설의 포켓몬은 동료가 되지 않는다.' : '어느 난이도로든 엔딩을 한 번 보면 열린다.',
+      normal: '기본 난이도. 1200년부터 던전이 우리 팀의 성장에 맞춰 강해진다(가장 강한 포켓몬보다 5~7레벨 위).',
+      hard: '보통과 같은 레벨에, 보스를 포함한 모든 적 포켓몬의 체력과 능력치 +25%.',
+      challenge: prefs.ended ? '보통의 강함으로, 한 번도 전멸하지 않고 엔딩까지 가야 한다. 전멸하면 기록이 끝나고 처음부터 다시. 전설의 포켓몬은 동료가 되지 않는다.' : '어느 난이도로든 엔딩을 한 번 보면 열린다.',
     }, {
       easy: 'Foes −2 levels, foes deal 25% less damage, bosses have 20% less HP. For enjoying the story.',
-      normal: 'The standard game. From 1200 on, dungeons grow with your team.',
-      hard: 'Foes +2 levels; foe damage and boss HP +25%.',
-      challenge: prefs.ended ? 'Normal strength, but reach the ending without a single wipe. Legendary Pokémon never join.' : 'Opens once you have seen an ending at any difficulty.',
+      normal: 'The standard game. From 1200 on, dungeons grow with your team (5-7 levels above your strongest).',
+      hard: 'Levels as in Normal, but every foe, bosses included, has 25% more HP and stats.',
+      challenge: prefs.ended ? 'Normal strength, but reach the ending without a single wipe: a wipe ends the journey and you start over. Legendary Pokémon never join.' : 'Opens once you have seen an ending at any difficulty.',
     });
     // only the save of the difficulty picked is replaced: the other journeys stay to be continued
     const pick = (m) => {
       const go = () => fadeTo(() => setScene(new Intro(m)));
-      if (readSave(m)) say([{ who: 'narr', text: tr(`새로 시작하면 ${N[m]} 난이도의 기록을 덮어씁니다. 다른 난이도의 기록은 그대로 남아요. 괜찮나요?`, `Starting over replaces your ${N[m]} journey. Journeys at other difficulties stay. Is that OK?`), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
+      if (journey(m)) say([{ who: 'narr', text: tr(`새로 시작하면 ${N[m]} 난이도의 기록을 덮어씁니다. 다른 난이도의 기록은 그대로 남아요. 괜찮나요?`, `Starting over replaces your ${N[m]} journey. Journeys at other difficulties stay. Is that OK?`), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
       else go();
     };
-    openMenu(['easy', 'normal', 'hard', 'challenge'].map((m) => ({ label: N[m], desc: desc[m], right: m === 'challenge' && !prefs.ended ? tr('엔딩 후', 'After an ending') : readSave(m) ? tr('기록 있음', 'Saved') : '',
+    openMenu(['easy', 'normal', 'hard', 'challenge'].map((m) => ({ label: N[m], desc: desc[m], right: m === 'challenge' && !prefs.ended ? tr('엔딩 후', 'After an ending') : journey(m) ? tr('기록 있음', 'Saved') : '',
       disabled: m === 'challenge' && !prefs.ended, fn: () => pick(m) })), { title: tr('난이도 · 기록은 난이도마다 따로', 'Difficulty · one save each'), desc: true, sel: 1, x: VW / 2 - 120, y: 130, w: 240, onCancel: () => { this.started = false; } });
   }
   draw(c) {

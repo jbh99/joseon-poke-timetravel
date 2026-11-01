@@ -237,9 +237,9 @@ export function expGain(foe) { return Math.max(4, Math.floor(foe.data.exp * foe.
 // ---------------------------------------------------------------- items
 export const ITEMS = {
   oran: withText(['오랭열매', 'Oran Berry'], ['HP를 30 회복한다.', 'Restores 30 HP.'], { price: 30, heal: 30 }),
-  sitrus: withText(['자뭉열매', 'Sitrus Berry'], ['HP를 최대치의 절반만큼 회복하고 상태 이상을 고친다.', 'Restores half of max HP and cures status problems.'], { price: 120, healPct: 0.5, cure: true }),
+  sitrus: withText(['자뭉열매', 'Sitrus Berry'], ['HP를 최대치의 55%만큼 회복하고 상태 이상을 고친다.', 'Restores 55% of max HP and cures status problems.'], { price: 120, healPct: 0.55, cure: true }),
   rice: withText(['주먹밥', 'Rice Ball'], ['HP를 80 회복하고 상태 이상을 고친다.', 'Restores 80 HP and cures status problems.'], { price: 90, heal: 80, cure: true }),
-  herb: withText(['약초', 'Herb'], ['독·화상·마비 같은 상태 이상을 고친다.', 'Cures poison, burns, paralysis and other status problems.'], { price: 40, cure: true }),
+  // (no item only cures status since 1.10: the Herb is gone, and 'herb' is a quest item now, content.js QITEMS)
   ginseng: withText(['인삼', 'Ginseng'], ['모든 기술의 PP를 회복한다.', 'Restores the PP of every move.'], { price: 220, pp: true }),
   // one a dungeon run, boss room included (Dungeon.revived); the boss room also stands the fallen up by itself
   revive: withText(['기력의 조각', 'Revive'], ['쓰러진 포켓몬을 HP 절반으로 되살린다. 던전 한 번(보스방 포함)에 하나만 쓸 수 있다.', 'Revives a fainted Pokémon with half its HP. One per dungeon run, boss room included.'], { price: 1000, revive: 0.5 }),
@@ -251,7 +251,7 @@ export const ITEMS = {
   // the finale's: Palkia and Dialga's light, played at the Spear Pillar's altar (dungeon.js playFlute)
   azureflute: withText(['천계의 피리', 'Azure Flute'], ['펄기아와 디아루가가 남긴 빛으로 된 피리. 천관산 창기둥의 제단에서 불면 시작의 방으로 가는 계단이 나타난다.', 'A flute made of the light Palkia and Dialga left behind. Played at the altar of the Spear Pillar on Mt. Coronet, it brings down the stairs to the Hall of Origin.'], { price: 0, key: true, flute: true }),
 };
-export const SHOP = ['oran', 'sitrus', 'rice', 'herb', 'stone', 'escape', 'ginseng', 'revive'];
+export const SHOP = ['oran', 'sitrus', 'rice', 'stone', 'escape', 'ginseng', 'revive'];
 // Gen 4 TM01-TM92 by move id. A villager in every town deals in them (town.js tmMenu), selling the ones the dungeons can
 // use and teaching the move on the spot: strong attacks (power 80 and up) cost 3000 nyang, the rest 1000.
 export const TMS = [264, 337, 352, 347, 46, 92, 258, 339, 331, 237, 241, 269, 58, 59, 63, 113, 182, 240, 202, 219, 218, 76, 231,
@@ -277,7 +277,7 @@ const SAVE_KEY = 'joseon-poke-save-v1', slotKey = (slot) => (slot === 'normal' ?
 export const slotOf = (o) => (SLOTS.includes(o?.slot) ? o.slot : o?.flags?.challengeLost ? 'challenge' : SLOTS.includes(o?.mode) ? o.mode : 'normal');
 // v2 added six eras before 1392: older saves move forward by that many eras (levels are lifted on load, see quests.liftLevels);
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
-const SAVE_V = 7, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
+const SAVE_V = 8, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
 // v4 put 1905 between 1887 and 1919 (index 13), and opened the Korean War (v3 index 17) with the battle for Seoul
 const ERA_1905 = 13, WAR_V3 = 17, WAR_NEW_STEPS = 2;
 function migrateV4(o) {
@@ -304,8 +304,16 @@ function migrateV5(o) {
 function migrateV6(o) { o.wander = null; }
 // v7 doubled the team's PP (PP_MUL): every move keeps the share of its PP it had left
 function migrateV7(mons) { for (const m of mons) for (const mv of m.moves) mv.pp = Math.min(m.maxPP(mv.id), mv.pp * PP_MUL); }
-// party: [leader, partner, optional recruit]; roster: recruits waiting in town
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null });
+// v8 dropped the Herb, the one item that did nothing but cure status (Sitrus and Rice Balls still cure): the herbs in
+// the bag are paid back at the shop's price ('herb' is now only a quest item)
+const HERB_PRICE = 40;
+function migrateV8(o) {
+  const n = o.items?.herb || 0;
+  if (n) { o.money = (o.money || 0) + n * HERB_PRICE; delete o.items.herb; }
+}
+// party: [leader, partner, optional recruit]; roster: recruits waiting in town. over: a challenge lost (quests.js
+// endChallenge), its save kept only to mark the journey ended
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode });
@@ -337,10 +345,13 @@ export function replaceSave(text, slot) {
 export function readSave(slot) {
   try { const o = JSON.parse(localStorage.getItem(slotKey(slot))); return o && Array.isArray(o.party) && o.party.length >= 2 ? o : null; } catch (e) { return null; }
 }
+// a journey that can be continued. A lost challenge's save (over) stays only as a marker, which the cloud syncs like
+// any save (cloud.js reads readSave), so neither this device nor another can bring that journey back.
+export const journey = (slot) => { const o = readSave(slot); return o && !o.over ? o : null; };
 // the journeys saved on this device, the one played last first
-export const saves = () => SLOTS.map((slot) => ({ slot, o: readSave(slot) })).filter((s) => s.o).sort((a, b) => (b.o.savedAt || 0) - (a.o.savedAt || 0));
+export const saves = () => SLOTS.map((slot) => ({ slot, o: journey(slot) })).filter((s) => s.o).sort((a, b) => (b.o.savedAt || 0) - (a.o.savedAt || 0));
 export function load(slot = saves()[0]?.slot) {
-  const o = slot && readSave(slot);
+  const o = slot && journey(slot);
   if (!o) return false;
   try {
     const party = o.party.map(Mon.from), roster = (o.roster || []).map(Mon.from);
@@ -351,6 +362,7 @@ export function load(slot = saves()[0]?.slot) {
     if (v < 5) migrateV5(o);
     if (v < 6) migrateV6(o);
     if (v < 7) migrateV7([...party, ...roster]);
+    if (v < 8) migrateV8(o);
     Object.assign(S, FRESH(), o, { party, roster, slot }); // the key it was read from names its journey
     delete S.savedAt;
     return true;
@@ -361,13 +373,16 @@ export const LEGENDS = new Set([144, 145, 146, 150, 151, 243, 244, 245, 249, 250
   480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493]);
 // the final forms of the 600-total lines: as bosses they fight a tier below the legends (see Dungeon bossTier)
 export const PSEUDO = new Set([149, 248, 373, 376, 445]);
-// difficulty: a shift to every foe's level, boss HP and the damage foes deal. Challenge plays at Normal strength, but a
-// wipe ends the challenge and legendary Pokémon never join; it opens once any ending has been seen (prefs.ended).
+// difficulty: a shift to every foe's level, boss HP, the damage foes deal and an edge (stat) on every foe's HP and
+// stats. Normal, Hard and Challenge field the same levels (quests.js foeLevels); Hard's foes, bosses included, have 25%
+// more HP and every stat, and their blasts (a share of the team's HP) hit 25% harder. Challenge plays at Normal
+// strength, but a wipe before the ending ends the journey for good (quests.js atStake) and legendary Pokémon never
+// join; it opens once any ending has been seen (prefs.ended).
 export const MODES = {
-  easy: { lv: -2, hp: 0.8, dmg: 0.75 },
-  normal: { lv: 0, hp: 1, dmg: 1 },
-  hard: { lv: 2, hp: 1.25, dmg: 1.25 },
-  challenge: { lv: 0, hp: 1, dmg: 1 },
+  easy: { lv: -2, hp: 0.8, dmg: 0.75, stat: 1 },
+  normal: { lv: 0, hp: 1, dmg: 1, stat: 1 },
+  hard: { lv: 0, hp: 1, dmg: 1, stat: 1.25 },
+  challenge: { lv: 0, hp: 1, dmg: 1, stat: 1 },
 };
 export const mode = () => MODES[S.mode] || MODES.normal;
 export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '어려움', challenge: '챌린지' }, { easy: 'Easy', normal: 'Normal', hard: 'Hard', challenge: 'Challenge' });

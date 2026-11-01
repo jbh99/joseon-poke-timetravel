@@ -96,6 +96,8 @@ export const NET = {
     cv.width = 960; cv.height = 540;
     this.cctx = cv.getContext('2d');
     const s = cv.captureStream(30);
+    // pixel art and text: on a slow link or a busy computer the picture loses frames rather than its sharpness
+    for (const t of s.getVideoTracks()) t.contentHint = 'detail';
     for (const t of audioStream()) s.addTrack(t);
     this.media = s;
     return s;

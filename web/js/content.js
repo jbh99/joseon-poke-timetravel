@@ -41,6 +41,8 @@ export const QITEMS = {
   supply: { name: '보급품 꾸러미', desc: '독립군에게 전할 식량과 옷가지.' },
   names: { name: K('이름 명부', 'Name Register'), desc: K('사람들의 본래 이름을 적어 둔 명부의 낱장.', 'A page of the register that keeps people\'s true names.') },
   lastpaper: { name: K('마지막 호 신문', 'Last Issue'), desc: K('1940년 8월 강제로 폐간된 신문의 마지막 호.', 'The final issue of a newspaper forced to close in August 1940.') },
+  // the Bugak herb request's (1392); since 1.10 no Herb is sold, so it is a quest item that only grows there
+  herb: { name: K('약초', 'Herb'), desc: K('궁궐 공사로 다친 일꾼들에게 달여 줄 북악산 약초.', 'A medicinal herb from Mt. Bugak, to brew for the workers hurt building the palace.') },
 };
 
 const JOSEON = [

@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, t
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc } from './game.js';
 import { QITEMS, TELE_TUT, ERAS } from './content.js';
-import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, challenge, loseChallenge, lairDone, spyTick, midWaiting } from './quests.js';
+import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, Town, PEARL, objInView } from './town.js';
 import { tr } from './i18n.js';
 import { tileSet, paintTerrain, hasPmdSprite, pmdHeadroom } from './pmd.js';
@@ -28,6 +28,9 @@ function bossTier(b) {
 }
 // difficulty along the journey: 0 in the first era, 1 in the last. Early floors are sparse and forgiving, late ones crowded and harsh.
 export const curve = () => clamp(S.era / Math.max(1, ERAS.length - 1), 0, 1);
+// a Pokémon fighting for the foe side (wild, boss, summoned, a town battle's constable): the difficulty's edge lifts its
+// HP and every stat (Hard: 25%)
+const foeMon = (sp, lv, o = {}) => new Mon(sp, lv, { ...o, buff: (o.buff || 1) * mode().stat });
 
 // The team's moves land on any foe within SURE_REACH tiles, whichever way their user faces (skillTargets); past that
 // a special move flies LINE_REACH tiles in a line. Foes reach less far: an ordinary foe's line moves FOE_REACH tiles,
@@ -82,7 +85,7 @@ export class Dungeon {
     this.main = ['dungeon', 'battle'].includes(mainStep()?.do) && mainStep().d === dId; // a 'battle' step is a run started in town
     this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting on the last floor (where no other boss waits)
     // a challenge run left unfinished counts as a wipe (quests.js checkRun); the Boss Tower comes after the ending
-    if (challenge() && !def.tower) { S.inRun = dId; save(); }
+    if (atStake() && !def.tower) { S.inRun = dId; save(); }
     // a run of stages starts at the first one still to beat (the finale's guardians stay beaten)
     this.floor = this.startFloor = o.floor || 1 + Math.max(0, (def.stages || []).findIndex((st) => !(st.flag && S.flags[st.flag])));
     this.msgs = [];
@@ -248,16 +251,17 @@ export class Dungeon {
     this.updateVis();
   }
   // A boss: its tier (bossTier) sets its level bonus and multipliers; from 1200 on it also stays ahead of the team's
-  // growth (foeLevels). A boss with `revive` gets back up in a later form (see reviveBoss). A returning legend
+  // growth, at the top of the floor's band (foeLevels) plus its tier's levels. A boss with `revive` gets back up in a
+  // later form (see reviveBoss). A returning legend
   // (b.wander) fights at exactly its new dungeon's level. The second of a pair charges its first blast later.
   spawnBoss(b, [x, y], i = 0) {
     const avg = Math.round((S.party[0].lv + S.party[1].lv) / 2);
     const t = bossTier(b), [, top, scaled] = foeLevels(this.def), up = b.wander ? 0 : t.up;
     let lv = b.wander ? b.lv : clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up) + mode().lv;
-    if (scaled && !b.wander) lv = Math.max(lv, top + 2 + up);
+    if (scaled && !b.wander) lv = Math.max(lv, top + up);
     if (b.lvCap) lv = Math.min(lv, b.lvCap); // Arceus follows the team up to Lv 180
     // b.buff: a boss's own edge on HP and every stat (the finale's three, the town battles' legends), on top of its side's
-    const mon = new Mon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: (b.buff || 1) * (this.def.battle?.foeBuff || 1), moves: b.moves?.map((id) => ({ id })) });
+    const mon = foeMon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: (b.buff || 1) * (this.def.battle?.foeBuff || 1), moves: b.moves?.map((id) => ({ id })) });
     mon.slowT = b.slow || 0;
     const e = this.addEnt(mon, x, y, 'foe');
     e.isBoss = true; e.def = b; e.bphase = 1; e.stagger = 0; e.tele = null;
@@ -290,10 +294,9 @@ export class Dungeon {
   }
   randomItem() {
     const r = Math.random();
-    if (r < 0.32) return { id: 'oran' };
-    if (r < 0.5) return { id: 'stone' };
-    if (r < 0.8) return { id: 'money', n: Math.round(randInt(20, 40) * (1 + S.era * 0.8)) };
-    if (r < 0.88) return { id: 'herb' };
+    if (r < 0.35) return { id: 'oran' };
+    if (r < 0.54) return { id: 'stone' };
+    if (r < 0.87) return { id: 'money', n: Math.round(randInt(20, 40) * (1 + S.era * 0.8)) };
     if (r < 0.95) return { id: 'sitrus' };
     return { id: 'rice' };
   }
@@ -303,7 +306,7 @@ export class Dungeon {
     let lv = clamp(randInt(a, b - 1) + Math.floor((this.floor - 1) / 2), a, b);
     // the first eras never field foes above the team's average level (shifted by the difficulty)
     if (!scaled && curve() < 0.3) lv = Math.min(lv, Math.max(a, Math.round(S.party.reduce((s, m) => s + m.lv, 0) / S.party.length) + mode().lv));
-    const mon = new Mon(choice(this.def.mons), lv, { foe: true });
+    const mon = foeMon(choice(this.def.mons), lv, { foe: true });
     const e = this.addEnt(mon, p[0], p[1], 'foe');
     if (Math.random() < 1 / 48) { mon.shiny = true; e.shiny = true; }
     return e;
@@ -419,7 +422,7 @@ export class Dungeon {
     }
     (B.foes || []).forEach((sp, i) => {
       const [x, y] = this.nearestOpen(...(lay.foesAt?.[i] || lay.enemyAt));
-      const e = this.addEnt(new Mon(sp, randInt(lo, hi), { buff: B.foeBuff, foe: true }), x, y, 'foe');
+      const e = this.addEnt(foeMon(sp, randInt(lo, hi), { buff: B.foeBuff, foe: true }), x, y, 'foe');
       e.alert = true; e.noJoin = true; // constables fight like the era's ordinary foes but don't offer to join
     });
   }
@@ -952,7 +955,7 @@ export class Dungeon {
     for (let i = 0; i < (pool.length ? c.summon || 0 : 0); i++) {
       const [x, y] = this.freeNear(e.x, e.y);
       if (this.entAt(x, y)) continue;
-      const f = this.addEnt(new Mon(choice(pool), Math.max(5, e.mon.lv - 22), { foe: true }), x, y, 'foe');
+      const f = this.addEnt(foeMon(choice(pool), Math.max(5, e.mon.lv - 22), { foe: true }), x, y, 'foe');
       f.summoned = true; f.alert = true;
       this.step(() => this.msg(tr(`${f.mon.name}이(가) 나타났다!`, `${f.mon.name} appeared!`), COL.red), 0.15);
     }
@@ -1023,7 +1026,7 @@ export class Dungeon {
   strike(e, t) {
     const hits = this.ents.filter((a) => a.alive && a.team === 'ally' && t.tiles.has(a.y * W + a.x));
     for (const a of hits) {
-      const d = Math.max(1, Math.round(a.mon.maxhp * t.dmg * mode().dmg));
+      const d = Math.max(1, Math.round(a.mon.maxhp * t.dmg * mode().dmg * mode().stat)); // a stronger foe's blast hits harder (Hard)
       a.mon.hp = Math.max(0, a.mon.hp - d);
       const sleep = t.sleep && a.mon.hp > 0 && !a.mon.status;
       if (sleep) { a.mon.status = 'slp'; a.sleepT = 2; }
@@ -1318,11 +1321,12 @@ export class Dungeon {
   failed() {
     if (this.done) return;
     this.done = true;
+    // a challenge's wipe ends the journey there and then (quests.js atStake); the Boss Tower comes after the ending
+    if (!this.def.tower && atStake()) { endChallenge(); return this.result(tr('모두 쓰러지고 말았다…', 'The whole team fainted...'), false, [overText()]); }
     const lost = Math.floor(S.money * (0.1 + curve() * 0.2)); // early defeats cost little
     S.money -= lost;
     S.party.forEach((m) => { m.hp = Math.max(1, Math.floor(m.maxhp / 2)); m.status = null; });
-    const lostCh = !this.def.tower && loseChallenge() ? [tr('챌린지 실패… 모두 쓰러지고 말았다. 이 여행은 이제 보통 난이도로 이어진다.', 'Challenge failed... the whole team went down. The journey now continues at Normal.')] : [];
-    this.result(tr(`모두 쓰러지고 말았다… 엽전 ${lost}냥을 잃었다.`, `The whole team fainted... and lost ${lost} nyang.`), false, lostCh);
+    this.result(tr(`모두 쓰러지고 말았다… 엽전 ${lost}냥을 잃었다.`, `The whole team fainted... and lost ${lost} nyang.`), false);
   }
   // walking back out the way you came: only from the first floor, at no cost
   leave() {
@@ -1350,9 +1354,11 @@ export class Dungeon {
     this.restoreCrew();
     const items = Object.entries(this.found.items).map(([id, n]) => `${(ITEMS[id] || QITEMS[id]).name}×${n}`).join(', ');
     S.party.forEach((m) => m.restorePP()); // leaving a dungeon, however it ends, refills every move's PP
-    const pp = town ? tr('싸움이 끝나고 숨을 고르니 기술의 PP와 상태 이상이 모두 회복되었다.', 'Catching your breath after the fight, every move\'s PP is restored and status problems are cured.')
+    const pp = S.over ? '' : town ? tr('싸움이 끝나고 숨을 고르니 기술의 PP와 상태 이상이 모두 회복되었다.', 'Catching your breath after the fight, every move\'s PP is restored and status problems are cured.')
       : tr('던전을 나오니 기술의 PP와 상태 이상이 모두 회복되었다.', 'Back outside, every move\'s PP is restored and status problems are cured.');
-    say([{ who: 'narr', text: `${title}\n${tr(`얻은 엽전 ${this.found.money}냥`, `Coins earned: ${this.found.money} nyang`)}${items ? ' · ' + items : ''}\n${pp}` }, ...extra.map((text) => ({ who: 'narr', text }))], () => {
+    const coins = tr(`얻은 엽전 ${this.found.money}냥`, `Coins earned: ${this.found.money} nyang`) + (items ? ' · ' + items : '');
+    say([{ who: 'narr', text: [title, coins, pp].filter(Boolean).join('\n') }, ...extra.map((text) => ({ who: 'narr', text }))], () => {
+      if (S.over) return G.goTitle(); // a challenge that ended: its journey is over (failed)
       S.party.forEach((m) => { m.stages = {}; if (m.hp <= 0) m.hp = 1; });
       if (!town) S.night = !S.night;
       if (ok) jingle('fanfa4');
@@ -1710,11 +1716,15 @@ export class Dungeon {
       ui.text(`${'QWER'[k]} ${d.name}`, bx + 4, by + k * 14, { size: 9, color: m.pp ? COL.ink : '#a99' });
       ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, bx + 142, by + k * 14, { size: 9, align: 'right', color: COL.ink2 });
     });
-    // messages
-    const ms = this.msgs.filter((m) => m.t > 0).slice(-4);
-    if (ms.length) {
-      ui.panel(6, VH - 10 - ms.length * 13 - 6, 300, ms.length * 13 + 8, { accent: false, fill: 'rgba(243,232,207,0.92)' });
-      ms.forEach((m, i) => ui.text(m.text, 12, VH - 10 - ms.length * 13 + i * 13, { size: 9, color: m.color }));
+    // messages: a long one wraps to the panel's 288px of text (worked out once per text; a language switch replaces
+    // it), and the last five lines show
+    const rows = this.msgs.filter((m) => m.t > 0).slice(-4).flatMap((m) => {
+      if (m.wrapOf !== m.text) { m.wrapOf = m.text; m.rows = ui.wrap(m.text, 288, 9); }
+      return m.rows.map((text) => ({ text, color: m.color }));
+    }).slice(-5);
+    if (rows.length) {
+      ui.panel(6, VH - 10 - rows.length * 13 - 6, 300, rows.length * 13 + 8, { accent: false, fill: 'rgba(243,232,207,0.92)' });
+      rows.forEach((r, i) => ui.text(r.text, 12, VH - 10 - rows.length * 13 + i * 13, { size: 9, color: r.color }));
     }
     // minimap (not needed in the one-room boss arena)
     if (this.showMap && !this.arena) {
@@ -1738,7 +1748,7 @@ export class Dungeon {
       ui.panel(VW / 2 - tw / 2, 52, tw, 18, { accent: false, fill: '#ffe9c8' });
       ui.text(txt, VW / 2, 56, { align: 'center', bold: true, color: COL.red });
     }
-    if (!ms.length && prefs.hints) ui.text(touchUI ? tr('패드 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴', 'Pad moves · Z attack · QWER moves · Tab tag · A rest · X menu') : tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8, VH - 12, { size: 9, color: '#fff', shadow: true });
+    if (!rows.length && prefs.hints) ui.text(touchUI ? tr('패드 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴', 'Pad moves · Z attack · QWER moves · Tab tag · A rest · X menu') : tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8, VH - 12, { size: 9, color: '#fff', shadow: true });
   }
   // a boss's bar: name and level (a star per later form), phase pips, HP, and below it what it is about to do
   drawBossBar(b, bx, w, ny) {
