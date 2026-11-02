@@ -5,7 +5,7 @@ is a map container (a/0/0/8: model, walkable grid, building list); a walkable-gr
 fourth is its collision word (WALL: bit 0 a wall, bits 1 and 4 water and the sea's rim; sand, grass, puddles and
 stairs carry other bits and are walked on). Cells of the town's box that belong to another zone (a route at a corner) are drawn too, so the
 picture has no holes, and are never walked on; of the town's own walkable tiles only the largest connected region
-is kept (a pocket behind a ledge cannot be reached on foot). A chunk's zone's area (a/0/1/3) picks the texture set
+is kept (a pocket behind a ledge cannot be reached on foot). Both are drawn dim, so the picture shows the town. A chunk's zone's area (a/0/1/3) picks the texture set
 (a/0/1/4) and the building pack (a/2/2/9, area // 4: the four seasons of an area share one) with its texture set
 (a/1/7/6, same index). The models are drawn with a software rasterizer at TILE pixels a tile, looked at from the
 south and above (OBLIQUE: a unit of height lifts a point OBLIQUE units up the picture), so the fronts of houses show
@@ -43,6 +43,8 @@ TILE = 24                 # picture pixels a tile (the game's TILE)
 UNIT = TILE / 16          # a tile is 16 model units
 OBLIQUE = 0.6             # how far up the picture a unit of height goes
 CHUNK = 512               # model units a chunk
+BOTTOM = 128              # model units of picture below the southern edge, for ground below zero height (Undella's)
+DIM, DIM_ADD = 0.45, np.array([14, 16, 26], np.float32)  # the colour of what lies outside the town: rgb * DIM + DIM_ADD
 # occluder pieces (split_sprite): opaque parts closer than GAP px stay one piece; a piece wider than STRIP px that is
 # less than FILL opaque is cut into STRIP-px strips
 GAP, STRIP, FILL = 6, 128, 0.5
@@ -328,14 +330,16 @@ def render_town(data, name):
     cw, ch = max(cxs) - x0 + 1, max(cys) - y0 + 1
     W, H = cw * 32, ch * 32
     top = 200  # room above the northern edge for tall things
-    cv = Canvas(cw * CHUNK, ch * CHUNK, top)
+    cv = Canvas(cw * CHUNK, ch * CHUNK + BOTTOM, top)
     blocked = np.ones((H, W), bool)
     beyond = np.zeros((H, W), bool)  # walkable tiles of the other zones' cells in the box (ways out lead there)
+    outside = np.zeros((H, W), bool)  # not the town: the other zones' cells and its own pockets out of reach (drawn dim)
     heights = np.full((H, W), -1e9, np.float32)
     blds = []  # (owner id, building id, model name, world x, world z, in the town's own zone)
     missing = set()
     for cx, cy, mid, czone in data.cells(x0, y0, cw, ch):
         own = czone == zone
+        outside[(cy - y0) * 32:(cy - y0 + 1) * 32, (cx - x0) * 32:(cx - x0 + 1) * 32] = not own
         carea = data.zones[czone][1] if czone < len(data.zones) else area  # (the open sea has no zone)
         texset, (pack, pack_tex) = data.texset(carea), data.pack(carea)
         model, perms, bsec = container(data.maps[mid])
@@ -387,7 +391,13 @@ def render_town(data, name):
                     region[ny, nx] = len(sizes) - 1
                     q.append((ny, nx))
     if len(sizes) > 1:
-        blocked |= region != int(np.argmax(sizes))
+        pocket = ~blocked & (region != int(np.argmax(sizes)))
+        blocked |= pocket
+        outside |= pocket
+    # what lies outside the town is drawn dim, the buildings and trees standing there too, so the picture itself shows
+    # where people can go (Icirrus's corner of Route 8 looked like a meadow of the town)
+    dim = (cv.owner >= 0) & outside[np.clip((cv.wz // 16).astype(np.int64), 0, H - 1), np.clip(np.arange(cv.w) // TILE, 0, W - 1)[None, :]]
+    cv.rgb[dim] = cv.rgb[dim] * DIM + DIM_ADD
     # walk heights: probed for walkable tiles; the others take their nearest walkable neighbour's (for occluders)
     walk_h = np.where(heights > -1e8, heights, 0).astype(np.float32)
     base_h = walk_h.copy()
@@ -403,12 +413,20 @@ def render_town(data, name):
                 seen[ny, nx] = True
                 base_h[ny, nx] = base_h[y, x]
                 frontier.append((ny, nx))
-    # crop the picture to what was drawn, keeping tile row 0 at a known picture row (oy)
+    # each walkable tile's lift (how far up the picture people stand on it) counts from the town's lowest walkable
+    # ground, so none is below zero: Undella lies 80 units below the matrix's zero height, and counted from there its
+    # people stood three tiles north of the beach drawn under them. oy is the picture row of tile row 0 on that ground;
+    # the picture is cropped to what was drawn above and runs down to the town's last tile row on it
+    lift_px = np.round(OBLIQUE * walk_h * UNIT).astype(np.int64)
+    shift = int(lift_px[~blocked].min()) if (~blocked).any() else 0
+    lift_px -= shift
     rows = np.nonzero((cv.owner >= 0).any(1))[0]
     crop = int(rows[0]) if len(rows) else 0
-    oy = top * UNIT - crop  # picture row of tile row 0 at height 0
-    rgb = np.clip(cv.rgb[crop:], 0, 255).astype(np.uint8)
-    owner, wz, wy = cv.owner[crop:], cv.wz[crop:], cv.wy[crop:]
+    oy = int(top * UNIT) - crop - shift
+    end = crop + H * TILE + oy
+    assert end <= cv.h, f'{name}: ground {-shift} px below zero height needs a bottom margin over {BOTTOM} units'
+    rgb = np.clip(cv.rgb[crop:end], 0, 255).astype(np.uint8)
+    owner, wz, wy = cv.owner[crop:end], cv.wz[crop:end], cv.wy[crop:end]
     # occluders: every building on its own, tall terrain (trees, cliff faces) row by row, each with the picture row
     # its foot stands on, so people north of it go behind it
     sprites = []
@@ -437,7 +455,6 @@ def render_town(data, name):
     Image.fromarray(rgb).save(os.path.join(OUT, f'{name}.png'), optimize=True)
     Image.fromarray(atlas).save(os.path.join(OUT, f'{name}_obj.png'), optimize=True)
     grid = [''.join('#' if blocked[j, i] else '.' for i in range(W)) for j in range(H)]
-    lift_px = [[int(round(OBLIQUE * walk_h[j, i] * UNIT)) if not blocked[j, i] else 0 for i in range(W)] for j in range(H)]
     doors = []
     for oid, bid, mname, bxw, bzw, own in blds:  # the first walkable tile south of a building's middle is its door
         foot = owner == oid
@@ -455,7 +472,7 @@ def render_town(data, name):
     exits = [[i, j] for j in range(H) for i in range(W) if not blocked[j, i] and out_at(i, j)]
     meta = {
         'name': name, 'zone': zone, 'area': area, 'w': W, 'h': H, 'oy': oy, 'img': [int(rgb.shape[1]), int(rgb.shape[0])],
-        'rows': grid, 'lift': lift_px, 'doors': doors, 'exits': exits,
+        'rows': grid, 'lift': np.where(blocked, 0, lift_px).tolist(), 'doors': doors, 'exits': exits,
         # occluders: atlas x, y, w, h, then picture x, y (tile space: picture y - oy) and the foot row's y
         'objs': [[sx, sy, s[0].shape[1], s[0].shape[0], s[1], round(s[2] - oy), s[3]] for s, (sx, sy) in zip(sprites, pos)],
         'missing_buildings': sorted(missing),

@@ -19,7 +19,12 @@ for path in sorted(glob.glob(os.path.join(SRC, '*.json'))):
     if name == 'index':
         continue
     t = json.load(open(path))
-    lift = [''.join(chr(48 + max(0, min(150, v)) // 2) for v in row) for row in t['lift']]
+    # render.py counts lifts from the town's lowest walkable ground: one out of range is an error, never clamped (a
+    # clamped one draws people away from the ground under them)
+    bad = [v for row in t['lift'] for v in row if not 0 <= v <= 2 * (126 - 48)]
+    if bad:
+        raise SystemExit(f'{name}: lift {bad[0]} px out of range; render the town again')
+    lift = [''.join(chr(48 + v // 2) for v in row) for row in t['lift']]
     towns[name] = {
         'w': t['w'], 'h': t['h'], 'oy': t['oy'], 'img': t['img'], 'rows': t['rows'],
         'lift': lift if any(c != '0' for row in lift for c in row) else None,

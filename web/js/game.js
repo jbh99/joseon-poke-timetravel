@@ -312,8 +312,10 @@ function migrateV8(o) {
   if (n) { o.money = (o.money || 0) + n * HERB_PRICE; delete o.items.herb; }
 }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town. over: a challenge lost (quests.js
-// endChallenge), its save kept only to mark the journey ended. dex: the Pokédex record (dexState)
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '' });
+// endChallenge), its save kept only to mark the journey ended. dex: the Pokédex record (dexState). koreaAt/worldAt:
+// where the line the team is not on was left (main.js toWorld/toKorea); homeParty: the team ashore during a naval
+// battle. A new journey or a loaded save starts from all of these, so nothing carries over from the journey before
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '', koreaAt: null, worldAt: null, homeParty: null });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode });

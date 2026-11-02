@@ -354,7 +354,9 @@ export class Dungeon {
   battleFloor() {
     const B = this.def.battle;
     this.battleTown = this.battleTown || new Town(B.kind || 1, { def: B.town, battle: true });
-    const T = this.battleTown, solid = (x, y) => T.solid[y]?.[x] !== false;
+    // fighters stand on the town's picture without lift, so a Black town's raised ground (Lacunosa's terraces) is
+    // left out of the field: there they would be drawn below the ground they stand on
+    const T = this.battleTown, solid = (x, y) => T.solid[y]?.[x] !== false || (!!T.bwmap && T.liftAt(x, y) > 4);
     let best = null; // the 44x32 window with the most room to fight
     if (B.at) best = { x0: clamp(B.at[0] - W / 2, 0, Math.max(0, T.W - W)), y0: clamp(B.at[1] - H / 2, 0, Math.max(0, T.H - H)) };
     else for (let y0 = 0; y0 <= Math.max(0, T.H - H); y0 += 2) for (let x0 = 0; x0 <= Math.max(0, T.W - W); x0 += 2) {
