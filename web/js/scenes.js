@@ -3,9 +3,10 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, storyDone } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
+import { openPokedex } from './pokedex.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
 
 // Backdrops are painted from PMD Blue Rescue Team chunk sets: a clearing ringed by the set's walls, a pond,
@@ -57,8 +58,7 @@ export class Title {
   }
   // a save in a few words: the year and the time played, ★ once its story has been seen through
   when(o) {
-    const pt = Math.floor((o.playtime || 0) / 60), last = ERAS.length - 1;
-    const done = o.era >= last && o.step >= ERAS[last].main.length;
+    const pt = Math.floor((o.playtime || 0) / 60), done = storyDone(o);
     return `${ERAS[o.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}${done ? ' ★' : ''}`;
   }
   pickSave(list) {
@@ -186,7 +186,8 @@ export class EraCard {
   enter() {
     const e = era();
     this.e = e; this.t = 0;
-    this.fromYear = S.era > 0 ? ERAS[S.era - 1].year : e.year - 30;
+    this.fromYear = G.cardFrom ?? (S.era > 0 ? ERAS[S.era - 1].year : e.year - 30);
+    G.cardFrom = null;
     tileSet(cardOf(e).set);
     playBgm(e.town.bgm, 1.2);
     preloadBgm(e.world);
@@ -243,7 +244,9 @@ export class WorldMap {
   constructor() { this.sel = 0; }
   async enter() {
     this.e = era();
-    this.meta = await loadJSON('data/worldmap.json');
+    // a world era's map is its region's (data/maps.json, tools/geo/worldmaps.py); Korea's is the peninsula
+    this.meta = this.e.map ? (await loadJSON('data/maps.json'))[this.e.map] : await loadJSON('data/worldmap.json');
+    this.mapImg = this.e.map ? `img/map_${this.e.map}.png` : 'img/worldmap.png';
     playBgm(this.e.world);
     this.nodes = this.e.nodes.filter((n) => !n.when || n.when());
     this.sel = Math.max(0, this.nodes.findIndex((n) => n.id === (S.lastNode || 'town')));
@@ -302,6 +305,7 @@ export class WorldMap {
     if (input.hit('menu')) return openMenu([
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('동료 명부', 'Companions'), fn: rosterMenu },
+      { label: tr('도감', 'Pokédex'), fn: openPokedex },
       { label: tr('마을로 돌아가기', 'Back to town'), fn: () => fadeTo(() => G.goTown()) },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
       { label: tr('닫기', 'Close') },
@@ -313,7 +317,7 @@ export class WorldMap {
   draw(c) {
     c.fillStyle = '#3a5f78'; c.fillRect(0, 0, VW, VH);
     if (!this.nodes) return;
-    const im = img('img/worldmap.png');
+    const im = img(this.mapImg || 'img/worldmap.png');
     if (ready(im)) c.drawImage(im, this.cx / MZ, this.cy / MZ, MVW / MZ, VH / MZ, 0, 0, MVW, VH);
     const [tx0, ty0] = this.scr(this.nodes.find((n) => n.id === 'town'));
     c.strokeStyle = 'rgba(90,40,20,0.8)'; c.setLineDash([3, 3]); c.lineWidth = 1;
@@ -418,7 +422,7 @@ export class WorldMap {
     const qy = ny + wrapped2.length * 12 + 10, room = Math.max(1, Math.floor((VH - 22 - qy - 22) / 11));
     const shown = qlines.slice(0, room);
     ui.panel(x, qy, w, 22 + shown.length * 11);
-    ui.text(tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true });
+    ui.text(st?.final && !eraComplete() ? tr('★ 최종 퀘스트', '★ Final Quest') : tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true, color: st?.final && !eraComplete() ? COL.red : undefined });
     shown.forEach((q, i) => ui.text(q.t, x + 8, qy + 19 + i * 11, { size: 9, color: q.c }));
     if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · 끌어서 지도 보기 · 메뉴: 퀘스트 · 동료 · X 마을로', 'Tap a place to go · drag to look · Menu: quests · team · X town') : tr('클릭·↑↓ 장소 · 드래그 지도 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · drag map · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
   }
@@ -458,7 +462,7 @@ export class Ending {
   draw(c) {
     drawBackdrop(c, this.phase === 0 ? 41 : 33, this.phase === 0 ? 5 : 9, 1.05 + this.t * 0.002);
     c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, 0, VW, VH);
-    if (this.phase === 1) S.party.forEach((m, i) => { const im = img(`poke/front/${m.sp}${m.shiny ? 's' : ''}.png`); if (ready(im)) c.drawImage(im, Math.floor(G.time * 2) % 2 * 80, 0, 80, 80, hofX(i) - 48, 70, 96, 96); });
+    if (this.phase === 1) S.party.forEach((m, i) => { const im = img(`poke/front/${m.sp}${m.shiny ? 's' : ''}.png`); if (ready(im)) c.drawImage(im, Math.floor(G.time * 2) % 2 * im.height, 0, im.height, im.height, hofX(i) - 48, 70, 96, 96); });
   }
   drawUI() {
     if (this.phase === 0) {

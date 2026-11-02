@@ -312,17 +312,19 @@ function migrateV8(o) {
   if (n) { o.money = (o.money || 0) + n * HERB_PRICE; delete o.items.herb; }
 }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town. over: a challenge lost (quests.js
-// endChallenge), its save kept only to mark the journey ended
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false });
+// endChallenge), its save kept only to mark the journey ended. dex: the Pokédex record (dexState)
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '' });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode });
   S.party = [new Mon(starter, 6, { shiny: true }), new Mon(partner, 6, { shiny: true })];
+  syncDex();
 }
 export function save() {
   if (S.party.length < 2) return false;
   try {
     const party = (S.homeParty || S.party).filter((m) => !m.loan); // never save a naval crew or loaned Pokémon as the team
+    syncDex();
     localStorage.setItem(slotKey(S.slot), JSON.stringify({ ...S, homeParty: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt: Date.now() }));
     G.onSaved?.(); // the cloud copy follows (cloud.js)
     return true;
@@ -365,14 +367,16 @@ export function load(slot = saves()[0]?.slot) {
     if (v < 8) migrateV8(o);
     Object.assign(S, FRESH(), o, { party, roster, slot }); // the key it was read from names its journey
     delete S.savedAt;
+    syncDex(); // a save from before the Pokédex fills its record in
     return true;
   } catch (e) { console.warn('save load failed', e); return false; }
 }
 
 export const LEGENDS = new Set([144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
-  480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493]);
+  480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493,
+  494, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649]); // the fifth generation's, from Pokémon Black
 // the final forms of the 600-total lines: as bosses they fight a tier below the legends (see Dungeon bossTier)
-export const PSEUDO = new Set([149, 248, 373, 376, 445]);
+export const PSEUDO = new Set([149, 248, 373, 376, 445, 635]);
 // difficulty: a shift to every foe's level, boss HP, the damage foes deal and an edge (stat) on every foe's HP and
 // stats. Normal, Hard and Challenge field the same levels (quests.js foeLevels); Hard's foes, bosses included, have 25%
 // more HP and every stat, and their blasts (a share of the team's HP) hit 25% harder. Challenge plays at Normal
@@ -391,10 +395,26 @@ export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
 export function recruit(mon) {
   // keeps the moves it fought with (bosses have hand-picked sets) with full PP
   const m = new Mon(mon.sp, mon.lv, { shiny: mon.shiny, moves: mon.moves.map((mv) => ({ id: mv.id })) });
+  dexMark(m.sp, 2);
   if (S.party.length < 3) { S.party.push(m); return { m, where: 'party' }; }
   if (S.roster.length >= ROSTER_MAX) return { m, where: 'full' };
   S.roster.push(m);
   return { m, where: 'roster' };
+}
+// The Pokédex record: a character a species, by national number (index 0 unused): 0 not met, 1 seen (fought), 2 caught
+// (it joined the team). A mark only ever goes up.
+export const DEX_N = 649;
+const dexRec = () => (S.dex?.length > DEX_N ? S.dex : (S.dex || '').padEnd(DEX_N + 1, '0'));
+export const dexState = (sp) => +dexRec()[sp] || 0;
+export function dexMark(sp, v) {
+  if (!(sp >= 1 && sp <= DEX_N) || dexState(sp) >= v) return;
+  const r = dexRec();
+  S.dex = r.slice(0, sp) + v + r.slice(sp + 1);
+}
+// every Pokémon on the team or waiting in the roster counts as caught (an evolution too), every one defeated as seen
+export function syncDex() {
+  for (const m of [...(S.homeParty || S.party), ...S.roster]) if (!m.loan) dexMark(m.sp, 2);
+  for (const sp of Object.keys(S.kills || {})) dexMark(+sp, 1);
 }
 export function addItem(id, n = 1) { S.items[id] = (S.items[id] || 0) + n; }
 export function takeItem(id, n = 1) { if ((S.items[id] || 0) < n) return false; S.items[id] -= n; if (!S.items[id]) delete S.items[id]; return true; }

@@ -7,6 +7,7 @@ import { ANCIENT, ANCIENT_QITEMS } from './content_ancient.js';
 import { WAR, WAR_QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK } from './content_war.js';
 import { ERA_1905, ERA_1979, MODERN_QITEMS, addPostWar, addSkyLine, addFinale, spyLog } from './content_modern.js';
 import { addTower } from './content_tower.js';
+import { WORLD, WORLD_QITEMS } from './content_world.js';
 import { S } from './game.js';
 export { FACTIONS, FACTION_TALK, FACTION_PICK };
 export { EN_EXTRA, CELEBI, T };
@@ -959,6 +960,14 @@ Object.assign(QITEMS, ANCIENT_QITEMS, WAR_QITEMS, MODERN_QITEMS);
 const bossOf = (sp) => ERAS.flatMap((e) => Object.values(e.dungeons).flatMap((d) => [d.boss, d.mid])).find((b) => b?.sp === sp);
 addFinale(bossOf);
 addTower(ERA_1979, bossOf);
+// the world line (content_world.js) follows the Korean line's last era (1979) in ERAS: an era past KOREA_LAST is a
+// world era, entered from a cleared Korean era's Time Gate from 1945 on (town.js gateTalk)
+export const KOREA_LAST = ERAS.length - 1;
+ERAS.push(...WORLD);
+ERAS.forEach((e, i) => { e.id = i + 1; });
+Object.assign(QITEMS, WORLD_QITEMS);
+export const isWorld = (i = S.era) => i > KOREA_LAST;
+export const WORLD_FROM = 1945; // the first Korean era whose gate leads out into the world
 
 // shown the first time a boss with telegraphed attacks appears
 export const TELE_TUT = [

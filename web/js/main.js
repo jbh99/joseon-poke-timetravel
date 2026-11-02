@@ -2,9 +2,9 @@
 import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
 import { initData, initSaves, S, save, load, newGame } from './game.js';
-import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK } from './content.js';
+import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
-import { Town, setBuildings, setPearl, townSets } from './town.js';
+import { Town, setBuildings, setPearl, setBW, townSets } from './town.js';
 import { initPmd, tileSet, portraitImage } from './pmd.js';
 import { Dungeon } from './dungeon.js';
 import { Title, EraCard, WorldMap, Ending } from './scenes.js';
@@ -31,6 +31,25 @@ G.nextEra = () => fadeTo(() => {
   setScene(new EraCard());
 }, '#fff', 1.2);
 G.goEnding = () => fadeTo(() => setScene(new Ending()), '#fff', 0.8);
+// The world line (content_world.js): from a cleared Korean era from 1945 on, out into the world where the team left it
+// (its first era, 1860, the first time), and back from the world to the Korean era it came from. Each line keeps
+// its place (S.koreaAt, S.worldAt) while the team is on the other.
+const place = () => ({ era: S.era, step: S.step, eraClear: S.eraClear, townKind: S.townKind });
+G.toWorld = () => fadeTo(() => {
+  G.cardFrom = ERAS[S.era].year;
+  S.koreaAt = place();
+  const w = S.worldAt || { era: KOREA_LAST + 1, step: 0, eraClear: false };
+  Object.assign(S, { era: w.era, step: w.step, eraClear: w.eraClear, night: false, lastNode: 'town', townKind: 1, townPos: null });
+  save();
+  setScene(new EraCard());
+}, '#fff', 1.2);
+G.toKorea = () => fadeTo(() => {
+  S.worldAt = place();
+  const k = S.koreaAt || { era: ERAS.findIndex((e, i) => i <= KOREA_LAST && e.year >= 1945), step: 0, eraClear: false, townKind: 1 };
+  S.koreaAt = null;
+  Object.assign(S, { era: k.era, step: k.step, eraClear: k.eraClear, night: false, lastNode: 'town', townKind: k.townKind || 1, townPos: null });
+  G.goTown();
+}, '#fff', 1.2);
 G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; G.policeBack = null; setScene(new Title()); }); // a fight in town left for the title has no town to go back to
 G.onFirstInput = () => unlockAudio(); // a gamepad button is no page gesture, but it sets the sound up (audio.js)
 G.kao = portraitImage;
@@ -144,7 +163,7 @@ async function boot() {
   try {
     await Promise.all([
       document.fonts.load('11px Galmuri11'), document.fonts.load('11px Galmuri11B'), document.fonts.load('9px Galmuri9'),
-      initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings), loadJSON('data/pearl.json').then(setPearl),
+      initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings), loadJSON('data/pearl.json').then(setPearl), loadJSON('bw/towns/index.json').then(setBW).catch(() => {}),
       loadImages(['poke/front/251.png', ...STARTERS.flatMap((s) => [`poke/front/${s}s.png`, `poke/icon/${s}s.png`])]),
       loadJSON('data/content_en.json').then((t) => {
         const missing = new Set();
@@ -196,6 +215,9 @@ async function boot() {
     drawToasts(real);
     if (fade.a > 0) { s.globalAlpha = fade.a; ui.rect(0, 0, VW, VH, fade.color); s.globalAlpha = 1; }
     NET.frame();
+    // on a phone the pad over the game's corner fades while a dialogue or menu is up (index.html body.dim)
+    const dim = touchUI && G.overlays.length > 0;
+    if (dim !== G.dimmed) { G.dimmed = dim; document.body.classList.toggle('dim', dim); }
   };
   // ?timer=1 keeps the loop running in hidden/background tabs (automated playtests)
   const schedule = params.has('timer') ? (f) => setTimeout(() => f(performance.now()), 16) : requestAnimationFrame.bind(window);

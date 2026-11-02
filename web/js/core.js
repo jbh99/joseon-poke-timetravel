@@ -1,6 +1,6 @@
 // Core: canvas, input, assets, UI drawing, dialogue, scene stack.
 export const VW = 480, VH = 270, TILE = 24;
-export const G = { S: 2, time: 0, real: 0, dt: 0, speed: 1, scene: null, overlays: [] };
+export const G = { S: 2, time: 0, real: 0, dt: 0, speed: 1, scene: null, overlays: [], touchL: 0 };
 
 // player preferences kept per browser (sound, key hints); storage can be blocked, so every access is guarded
 export const prefs = { muted: false, hints: true };
@@ -31,13 +31,23 @@ export function initCanvas() {
   G.lctx.imageSmoothingEnabled = false;
   // fill the browser window (letterboxed 16:9); the backing store matches device pixels so UI text stays sharp
   const fit = () => {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = window.devicePixelRatio || 1, root = document.documentElement.style;
     let w = innerWidth;
-    if (touchUI) { // the pad columns take the sides (inside the safe-area insets body.touch pads itself by); the game fills the middle
+    if (touchUI) {
+      // the game takes the full height at the left (inside the safe-area insets body.touch pads itself by), the pad
+      // lies over its lower-left corner, and the menu button and the action buttons take the strip to its right:
+      // 150-210px, or, with no such strip (a 16:9 or squarer screen), lie over the game's right edge
       const b = getComputedStyle(document.body), inner = w - parseFloat(b.paddingLeft) - parseFloat(b.paddingRight);
-      const pad = Math.round(clamp(inner * 0.16, 104, 170));
-      document.documentElement.style.setProperty('--pad', pad + 'px');
-      w = inner - 2 * pad;
+      const game = Math.min(inner, innerHeight * VW / VH), strip = inner - game, over = strip < 150;
+      const right = over ? Math.round(clamp(inner * 0.18, 120, 170)) : Math.min(strip, 210);
+      document.body.classList.toggle('ovr', over);
+      root.setProperty('--pad', right + 'px');
+      root.setProperty('--gameL', (over ? (inner - game) / 2 : (strip - right) / 2) + 'px');
+      w = game;
+      const dpad = Math.round(clamp(innerHeight * 0.34, 104, 150));
+      root.setProperty('--dpad', dpad + 'px');
+      // what the pad covers of the game's lower-left corner, in game pixels: HUD text there moves right of it
+      G.touchL = Math.ceil((dpad + 18) / (game / VW));
     }
     const css = Math.min(w / VW, innerHeight / VH);
     const S = Math.max(0.5, css * dpr);
@@ -46,6 +56,10 @@ export function initCanvas() {
     screen.style.width = Math.floor(VW * css) + 'px';
     screen.style.height = Math.floor(VH * css) + 'px';
     G.sctx.imageSmoothingEnabled = false;
+    if (touchUI) { // a co-op guest's streamed picture lies exactly over the game
+      const r = screen.getBoundingClientRect();
+      for (const [k, v] of [['--gameX', r.left], ['--gameY', r.top], ['--gameW', r.width], ['--gameH', r.height]]) root.setProperty(k, v + 'px');
+    }
     // the HUD buttons go in the free strip beside or above the game (into the menu panel on touch screens); with no room they fade over it
     const hud = document.getElementById('hud');
     if (hud) hud.className = touchUI ? 'inmenu' : (innerWidth - VW * css) / 2 >= 124 ? 'side' : (innerHeight - VH * css) / 2 >= 36 ? '' : 'over';
@@ -309,8 +323,8 @@ export const ui = {
     this.panel(x, y, size + 4, size + 4, { accent: false, fill: '#fbf5e6' });
     const k = !shiny && G.kao?.(sp);
     if (k && ready(k)) { this.image(k, (emo < k.width / 40 ? emo : 0) * 40, 0, 40, 40, x + 2, y + 2, size, size); return; }
-    const im = img(`poke/front/${sp}${shiny ? 's' : ''}.png`);
-    this.image(im, 8, 6, 64, 64, x + 2, y + 2, size, size);
+    const im = img(`poke/front/${sp}${shiny ? 's' : ''}.png`), f = im.height || 80; // 80px frames (Pearl), 96px (Black)
+    this.image(im, f * 0.1, f * 0.075, f * 0.8, f * 0.8, x + 2, y + 2, size, size);
   },
 };
 

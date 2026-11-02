@@ -452,7 +452,9 @@ class Renderer:
         alive = []
         for v in self.voices:
             if v.phase == 0:
-                v.ampl = (v.attack * v.ampl) >> 8
+                # the Nitro driver scales the attenuation toward zero (-((-a * k) >> 8)); a floor shift on the
+                # negative value stopped at -1 and kept every slow-attack note out of its decay
+                v.ampl = -((-v.ampl * v.attack) >> 8)
                 if v.ampl == 0 or v.attack == 0:
                     v.ampl, v.phase = 0, 1
             elif v.phase == 1:

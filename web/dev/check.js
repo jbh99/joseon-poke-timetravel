@@ -22,6 +22,7 @@ export async function checkAll(opts = {}) {
   const party = S.party.slice(), roster = S.roster.slice();
   const pearl = await (await fetch('/assets/data/pearl.json')).json();
   const pearlFloor = async (code) => !!pearl.floors[code];
+  const maps = await (await fetch('/assets/data/maps.json')).json(), korea = await (await fetch('/assets/data/worldmap.json')).json();
 
   for (let i = 0; i < g.ERAS.length; i++) {
     const e = g.ERAS[i], tag = `${e.year}`;
@@ -44,13 +45,20 @@ export async function checkAll(opts = {}) {
     for (const n of towns.flat()) await spOk(`${tag} npc ${n.id}`, n.sp);
     // world map
     const nodeD = new Set();
-    for (const n of e.nodes) {
+    // a world era's nodes sit on its region's map (data/maps.json), Korea's on the peninsula; in map pixels
+    // (scenes.js WorldMap.pos) two places closer than ~6 px overlap on screen
+    const m = e.map ? maps[e.map] : korea, px = (n) => [(n.lon - m.lon0) / (m.lon1 - m.lon0) * m.w, (m.lat1 - n.lat) / (m.lat1 - m.lat0) * m.h];
+    if (!m) bad(tag, `map ${e.map} missing`);
+    else for (const n of e.nodes) {
       if (n.d) { nodeD.add(n.d); if (!e.dungeons[n.d]) bad(tag, `node ${n.id} → missing dungeon ${n.d}`); }
-      if (n.lon < 123.6 || n.lon > 131.9 || n.lat < 33.1 || n.lat > 42.9) bad(tag, `node ${n.id || n.name} off the map (${n.lon}, ${n.lat})`);
+      const [x, y] = px(n);
+      if (x < 4 || y < 4 || x > m.w - 4 || y > m.h - 4) bad(tag, `node ${n.id || n.name} off the map (${n.lon}, ${n.lat})`);
     }
-    for (const [a, b] of e.nodes.flatMap((a, j) => e.nodes.slice(j + 1).map((b) => [a, b]))) {
-      if (Math.hypot(a.lon - b.lon, a.lat - b.lat) < 0.18) bad(tag, `nodes ${a.id || a.name} and ${b.id || b.name} overlap`);
+    if (m) for (const [a, b] of e.nodes.flatMap((a, j) => e.nodes.slice(j + 1).map((b) => [a, b]))) {
+      const [ax, ay] = px(a), [bx, by] = px(b);
+      if (Math.hypot(ax - bx, ay - by) < 6.3) bad(tag, `nodes ${a.id || a.name} and ${b.id || b.name} overlap`);
     }
+    for (const n of [...(e.nodesS || []), ...(e.nodesN || [])]) if (n.d) nodeD.add(n.d); // 1950: each side's own map
     // dungeons
     for (const [id, d] of Object.entries(e.dungeons)) {
       if (!nodeD.has(id) && !d.fromTown) bad(tag, `dungeon ${id} has no map node`); // fromTown: entered from an NPC in town
@@ -80,7 +88,7 @@ export async function checkAll(opts = {}) {
       if (d.mid && d.mid.floor >= d.floors) bad(tag, `${id} mid-boss floor ${d.mid.floor} not before the last floor ${d.floors}`);
       if (!d.stages && d.floors > 4) bad(tag, `${id} has ${d.floors} floors (every dungeon ends at floor 4 at most)`); // since 1.8
       for (const b of bosses) for (const sg of [b.sig, ...[].concat(b.revive || []).map((r) => r.sig)].filter(Boolean)) {
-        for (const u of sg.use) if (!u?.name || !['roar', 'rend', 'shadow', 'blades', 'pulse', 'void', 'sweep'].includes(u.kind)) bad(tag, `${id} signature move ${u?.name} of unknown kind ${u?.kind}`);
+        for (const u of sg.use) if (!u?.name || !['roar', 'rend', 'shadow', 'blades', 'pulse', 'void', 'sweep', 'storm'].includes(u.kind)) bad(tag, `${id} signature move ${u?.name} of unknown kind ${u?.kind}`);
         if (!Array.isArray(sg.at) || !sg.at.length) bad(tag, `${id} signature move without HP marks`);
       }
       // one legend to a place (a staged dungeon holds its own on purpose: the finale's three, the Boss Tower's pairs),

@@ -2,8 +2,9 @@
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL, TMS, tmPrice, tmFits, moveUsable } from './game.js';
-import { ERAS, QITEMS, CELEBI } from './content.js';
+import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content.js';
 import { tr } from './i18n.js';
+import { openPokedex } from './pokedex.js';
 import { hasPmdSprite, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
 import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons, forgetMenu, moveInfo } from './quests.js';
 
@@ -17,6 +18,9 @@ export function setBuildings(b) { BLD = b; }
 // town and floor layouts rebuilt from Pearl's field data (tools/pearl_maps.py → data/pearl.json)
 export let PEARL = { towns: {}, floors: {} };
 export function setPearl(p) { PEARL = p; }
+// towns drawn from Pokémon Black's own maps (tools/bw/render.py → bw/towns/index.json): picture, walkable grid, lift
+export let BW = { towns: {} };
+export function setBW(b) { BW = b; }
 // wandering villagers per town (rotates by era) and the travel tips they share
 const TOWNFOLK = [[16, 19, 133, 175], [52, 25, 39, 183], [104, 54, 133, 216], [300, 263, 175, 39], [177, 194, 25, 52]];
 const FOLK_TIPS = () => tr([
@@ -92,7 +96,8 @@ export class Town {
     this.def = o.def || (this.kind === 2 ? this.era.town2 : this.era.town);
     this.battle = !!o.battle;
     if (!this.battle) S.townKind = this.kind;
-    this.layout = (this.def.pearl && PEARL.towns[this.def.pearl]) || null;
+    this.bwmap = (this.def.bw && BW.towns[this.def.bw]) || null;
+    this.layout = this.bwmap || (this.def.pearl && PEARL.towns[this.def.pearl]) || null;
     if (this.layout) { this.W = this.layout.w; this.H = this.layout.h; this.OX = 0; }
     else {
       this.W = this.kind === 1 ? 52 : 40; this.H = this.kind === 1 ? 32 : 28;
@@ -272,6 +277,7 @@ export class Town {
   relang() { for (const n of this.npcs) n.name = n.nameFn(); }
 
   build() {
+    if (this.bwmap) return this.buildBW();
     if (this.layout) return this.buildPearl();
     const era = this.era, t = this.def, B = BIOME[t.biome] || BIOME.spring;
     const MW = this.W, MH = this.H, OX = this.OX, main = this.kind === 1;
@@ -570,6 +576,157 @@ export class Town {
     for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) if (ground[y][x] === 'water') this.waterTiles.push(y * MW + x);
     this.prerender();
   }
+  // A town drawn from Pokémon Black's own map (tools/bw/render.py): the picture is the town as the ROM draws it and
+  // the walkable grid is the ROM's. Its buildings and tall terrain are cut-outs drawn in turn with the people, so you
+  // walk behind a house; the ways out are its walkable edges (or its route gates' doors), the inn and the merchant
+  // stand at its Pokémon Center's door, and the Time Gate stands on the open ground nearest the middle of its doors.
+  buildBW() {
+    const L = this.bwmap, era = this.era, t = this.def, main = this.kind === 1;
+    const MW = this.W, MH = this.H, R = rng(era.id * 7919 + this.kind * 131);
+    this.B = BIOME[t.biome] || BIOME.spring;
+    this.solid = L.rows.map((row) => [...row].map((ch) => ch !== '.'));
+    this.ground = L.rows.map((row) => [...row].map((ch) => (ch === '.' ? 'ground' : 'border')));
+    this.objs = []; this.inter = new Map(); this.npcs = []; this.waterTiles = [];
+    const solid = this.solid, walk = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH && !solid[y][x];
+    const atlas = `bw/towns/${t.bw}_obj.png`;
+    // (tx, ty, fw, fd: the tiles its foot covers, for the view test a town battle draws them with)
+    for (const [sx, sy, w, h, x, y, base] of L.objs) this.objs.push({ kind: 'bw', atlas, sx, sy, w, h, x, y, base, tx: Math.floor(x / TILE), ty: Math.floor(base / TILE) - 1, fw: Math.ceil(w / TILE), fd: 1 });
+    // how much of someone standing on a tile (a 24x30 sprite) the occluders drawn after them (a lower foot row) cover:
+    // the occluders are cut to their pixels (tools/bw/render.py), so their boxes stand for what they hide. Nobody is
+    // placed, and the team does not arrive, where over a quarter of them would be hidden behind a house or a gatehouse
+    const covered = new Float32Array(MW * MH);
+    for (const o of this.objs) {
+      const i0 = Math.max(0, Math.floor(o.x / TILE)), i1 = Math.min(MW - 1, Math.ceil((o.x + o.w) / TILE) - 1);
+      const j1 = Math.min(MH - 1, Math.ceil(o.base / TILE) - 2);
+      for (let j = Math.max(0, Math.floor(o.y / TILE) - 1); j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const foot = j * TILE + TILE - this.liftAt(i, j);
+        const w = Math.min(i * TILE + TILE, o.x + o.w) - Math.max(i * TILE, o.x), h = Math.min(foot, o.y + o.h) - Math.max(foot - 30, o.y);
+        if (w > 0 && h > 0) covered[j * MW + i] += w * h;
+      }
+    }
+    const hidden = (x, y) => covered[y * MW + x] > TILE * 30 / 4;
+    // ways out: the walkable edge tiles, else the route gates' doors, else the walkable tile nearest the south edge
+    const doors = L.doors.map(([x, y, model]) => ({ x, y, model }));
+    this.exitTiles = L.exits.length ? L.exits.map(([x, y]) => [x, y]) : doors.filter((d) => /gate/.test(d.model)).map((d) => [d.x, d.y]);
+    if (!this.exitTiles.length) {
+      let best = null;
+      for (let y = MH - 1; y >= 0 && !best; y--) for (let x = 0; x < MW; x++) if (walk(x, y)) { best = [x, y]; break; }
+      this.exitTiles = [best || [MW >> 1, MH - 2]];
+    }
+    const isExit = (x, y) => this.exitTiles.some(([a, b]) => a === x && b === y);
+    const inside = (x, y) => [[0, -1], [-1, 0], [1, 0], [0, 1]].map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => walk(a, b) && !isExit(a, b));
+    // the main way out: the southernmost (then westernmost) exit with a tile of the town itself beside it. A corner of
+    // edge exits has none (Lacunosa's): arriving on it, every step would be a step out of the town again
+    const south = (p, q) => q[1] - p[1] || p[0] - q[0];
+    const mainExit = this.exitTiles.filter(([x, y]) => inside(x, y).length).sort(south)[0] || this.exitTiles.slice().sort(south)[0];
+    // the team arrives on the first tile in from it or, where they would not be seen there, on the nearest tile further
+    // in that shows them, facing on along their way in: not behind a building drawn over it (Opelucid's gatehouse) and
+    // not in the town's lower-left corner, under a phone's pad when the view stops at the town's edges
+    const shown = (x, y) => !hidden(x, y) && !(x < 5 && y > MH - 6);
+    const [ex, ey] = inside(...mainExit)[0] || mainExit;
+    let [sx, sy] = [ex, ey], from = mainExit;
+    if (!shown(ex, ey)) {
+      const came = new Map([[ey * MW + ex, mainExit]]), q = [[ex, ey]];
+      for (let k = 0; k < q.length; k++) {
+        const [x, y] = q[k];
+        if (shown(x, y)) { [sx, sy] = [x, y]; from = came.get(y * MW + x); break; }
+        for (const [a, b] of inside(x, y)) if (!came.has(b * MW + a)) { came.set(b * MW + a, [x, y]); q.push([a, b]); }
+      }
+    }
+    this.start = [sx, sy];
+    this.startFace = sy < from[1] ? 'up' : sy > from[1] ? 'down' : sx < from[0] ? 'left' : 'right';
+    const near = inside(sx, sy).filter(([a, b]) => !(a === sx && b === sy)); // where the partner stands: behind, in sight
+    this.behind = from === mainExit ? near[0] || [sx, sy] : [from, ...near].find(([a, b]) => !hidden(a, b)) || from;
+    const reach = new Set([sy * MW + sx]), rq = [[sx, sy]];
+    for (let k = 0; k < rq.length; k++) {
+      const [x, y] = rq[k];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy; if (walk(a, b) && !reach.has(b * MW + a)) { reach.add(b * MW + a); rq.push([a, b]); } }
+    }
+    const reachable = (x, y) => reach.has(y * MW + x);
+    const fronts = doors.filter((d) => walk(d.x, d.y) && reachable(d.x, d.y) && !/gate|sign/.test(d.model));
+    const mid = fronts.length ? fronts.reduce((a, d) => [a[0] + d.x / fronts.length, a[1] + d.y / fronts.length], [0, 0]) : [MW / 2, MH / 2];
+    const free = (x, y, w, h) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!walk(i, j) || isExit(i, j) || !reachable(i, j) || fronts.some((d) => d.x === i && d.y === j)) return false; return true; };
+    this.gate = null;
+    const people = !this.battle;
+    if (main && people) {
+      // on the town's own ground level if it has room for it there (a gate on a bridge would sink behind its planks)
+      const lifts = new Map();
+      for (const k of reach) { const v = this.liftAt(k % MW, Math.floor(k / MW)); lifts.set(v, (lifts.get(v) || 0) + 1); }
+      const ground = [...lifts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
+      const flat = (x, y, w, h) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (Math.abs(this.liftAt(i, j) - ground) > 2) return false; return true; };
+      // and clear of the pictures drawn over people (a house, a bridge's planks, a row of trees), which would hide it:
+      // the gate's box (2x2 tiles and the 6 px above them) overlaps no occluder's box. Each tile notes whether an
+      // occluder overlaps it (1) or the 6 px above it (2), so the search reads 4 tiles, whatever the occluder count
+      const hit = new Uint8Array(MW * MH);
+      for (const o of this.objs) {
+        const i0 = Math.max(0, Math.floor(o.x / TILE)), i1 = Math.min(MW - 1, Math.ceil((o.x + o.w) / TILE) - 1);
+        const j1 = Math.min(MH - 1, Math.ceil((o.y + o.h + 6) / TILE) - 1);
+        for (let j = Math.max(0, Math.floor(o.y / TILE)); j <= j1; j++) {
+          const bits = (j * TILE < o.y + o.h ? 1 : 0) | (j * TILE > o.y ? 2 : 0);
+          for (let i = i0; i <= i1; i++) hit[j * MW + i] |= bits;
+        }
+      }
+      const clear = (x, y) => !(hit[y * MW + x] | hit[y * MW + x + 1] | hit[(y + 1) * MW + x] | hit[(y + 1) * MW + x + 1]);
+      let best = null, bd = 1e9;
+      for (const level of [true, false]) {
+        for (let y = 1; y < MH - 2; y++) for (let x = 1; x < MW - 2; x++) {
+          if (!free(x - 1, y - 1, 4, 4) || (level && !(flat(x - 1, y - 1, 4, 4) && clear(x, y)))) continue;
+          const dd = Math.hypot(x + 1 - mid[0], y + 1 - mid[1]);
+          if (dd < bd) { bd = dd; best = [x, y]; }
+        }
+        if (best) break;
+      }
+      if (best) this.gate = { tx: best[0], ty: best[1] };
+    }
+    const center = this.gate ? [this.gate.tx + 1, this.gate.ty + 1] : mid;
+    if (people) {
+      // spots two tiles apart on the reachable ground nearest the middle, off doors and ways out, and never where a
+      // person would cut the town in two (a narrow way, a bridge): every other free tile stays reachable from the start
+      const taken = new Set();
+      const open = (x, y) => walk(x, y) && !this.onGate(x, y) && !taken.has(y * MW + x);
+      const room = (skip) => { // free tiles reachable from the start, with the tile `skip` taken too
+        const seen = new Set([sy * MW + sx]), q = [[sx, sy]];
+        for (let k = 0; k < q.length; k++) {
+          const [x, y] = q[k];
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy, i = b * MW + a; if (i !== skip && !seen.has(i) && open(a, b)) { seen.add(i); q.push([a, b]); } }
+        }
+        return seen.size;
+      };
+      let left = room(-1);
+      const keepsWay = (x, y) => open(x, y) && !hidden(x, y) && !(x === sx && y === sy) && !(x === this.behind[0] && y === this.behind[1]) && room(y * MW + x) === left - 1;
+      const stand = (p) => { taken.add(p[1] * MW + p[0]); left--; return p; };
+      const pool = [...reach].map((k) => [k % MW, Math.floor(k / MW)])
+        .filter(([x, y]) => !isExit(x, y) && !this.onGate(x, y) && !fronts.some((d) => d.x === x && d.y === y))
+        .sort((p, q) => Math.hypot(p[0] - center[0], p[1] - center[1]) - Math.hypot(q[0] - center[0], q[1] - center[1]) + (R() - 0.5) * 0.5);
+      const nextSpot = () => {
+        for (const [x, y] of pool) {
+          if ([...taken].some((k) => Math.abs((k % MW) - x) + Math.abs(Math.floor(k / MW) - y) < 2) || !keepsWay(x, y)) continue;
+          return stand([x, y]);
+        }
+        return null;
+      };
+      const spot = (...ps) => { for (const p of ps) if (p && keepsWay(...p)) return stand(p); return nextSpot(); };
+      const put = (n, name, p) => (p ? this.addNpc(n, name, null, p) : this.addNpc(n, name, center));
+      const pc = doors.find((d) => /^pc_/.test(d.model) && walk(d.x, d.y)), at = (d, dx) => (d && walk(d.x + dx, d.y) ? [d.x + dx, d.y] : null);
+      (main ? era.npcs : t.npcs || []).forEach((n) => put(n, null, nextSpot()));
+      if (main) spySuspects().forEach((n) => put(n, null, nextSpot()));
+      const r = this.roles();
+      put(r.inn, r.innName, spot(pc && [pc.x, pc.y]));
+      put(r.shop, r.shopName, spot(at(pc, 2), at(pc, -2)));
+      put(r.tm, r.tmName, spot(at(pc, 4), at(pc, -4)));
+      if (main) put(r.crier, r.crierName, spot(this.gate && [this.gate.tx - 2, this.gate.ty + 1]));
+      r.folk.forEach((n) => put(n, null, nextSpot()));
+    }
+    this.bg = null; // the picture itself (draw)
+  }
+  // how far up the picture people stand on raised ground at (x, y) (tiles, fractions for walking between tiles)
+  liftAt(x, y) {
+    const L = this.bwmap?.lift;
+    if (!L) return 0;
+    const at = (i, j) => { const r = L[clamp(j, 0, this.H - 1)]; return r ? (r.charCodeAt(clamp(i, 0, this.W - 1)) - 48) * 2 : 0; };
+    const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
+    return (at(i, j) * (1 - fx) + at(i + 1, j) * fx) * (1 - fy) + (at(i, j + 1) * (1 - fx) + at(i + 1, j + 1) * fx) * fy;
+  }
   nearestFree(x, y) {
     const seen = new Set(); const q = [[x, y]];
     while (q.length) {
@@ -584,6 +741,7 @@ export class Town {
   }
   onGate(x, y) { const g = this.gate; return !!g && x >= g.tx && x <= g.tx + 1 && y >= g.ty && y <= g.ty + 1; }
   prerender() {
+    if (this.bwmap) return; // a Black town is its own picture (draw)
     const B = this.B;
     const sets = [tileSet(B.set), tileSet(B.road0), tileSet(B.plaza0)];
     if (sets.some((t) => !t.meta || !ready(t.im))) return; // chunk sets still loading; draw() retries
@@ -810,9 +968,27 @@ export class Town {
   }
   gateTalk() {
     if (!eraComplete()) return say([{ who: 'narr', text: tr('희미하게 빛나는 시간의 문이다. 이 시대의 소원을 이루면 열릴 것 같다.', 'A faintly glowing Time Gate. It should open once this era\'s wish comes true.') }]);
-    if (S.era >= ERAS.length - 1) return say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: tr('여기가 여행의 끝이야. 엔딩으로 갈까?', 'This is the end of our journey. Shall we go to the ending?'), choices: tr(['간다', '조금 더 있을래'], ['Let\'s go', 'Stay a bit longer']), onChoice: (i) => { if (i === 0) G.goEnding(); } }]);
-    const next = ERAS[S.era + 1];
-    say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text: tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까?`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"?`), choices: tr(['간다', '아직'], ['Go', 'Not yet']), onChoice: (i) => { if (i === 0) G.nextEra(); } }]);
+    // the choices: on the Korean line the next era (at its end, the ending) and, from 1945 on, the world; on the world
+    // line its next era and the way back to Korea
+    const opts = [], next = ERAS[S.era + 1];
+    let text;
+    if (isWorld()) {
+      if (S.era < ERAS.length - 1) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
+      opts.push([tr('한국으로 돌아가기', 'Back to Korea'), () => G.toKorea()]);
+      text = S.era < ERAS.length - 1 ? tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까? 한국으로 돌아갈 수도 있어.`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"? We can also go back to Korea.`)
+        : tr('세계 여행의 끝이야. 이제 한국으로 돌아가자!', 'This is the end of the world journey. Let\'s go back to Korea now!');
+    } else {
+      if (S.era === KOREA_LAST) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
+      else opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
+      text = S.era === KOREA_LAST ? tr('여기가 여행의 끝이야. 엔딩으로 갈까?', 'This is the end of our journey. Shall we go to the ending?')
+        : tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까?`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"?`);
+      if (this.era.year >= WORLD_FROM) {
+        opts.push([tr('세계로 (1860 ~ 1945)', 'Out into the world (1860–1945)'), () => G.toWorld()]);
+        text += tr(' …아니면 바다 건너 세계로 나가 볼래? 베이징 조약부터 두 번의 세계 대전까지, 세계가 겪은 시간이 기다리고 있어.', ' ...Or shall we go out across the sea into the world? From the Convention of Peking to two world wars, the world\'s own history is waiting.');
+      }
+    }
+    opts.push([tr('아직', 'Not yet'), () => {}]);
+    say([{ who: CELEBI, name: tr('세레비', 'Celebi'), text, choices: opts.map((o) => o[0]), onChoice: (i) => opts[i]?.[1]() }]);
   }
   innMenu(npc) {
     const name = npc?.name || tr('주막', 'Inn');
@@ -864,6 +1040,7 @@ export class Town {
   openMain() {
     openMenu([
       { label: tr('포켓몬', 'Pokémon'), fn: partyMenu }, { label: tr('동료 명부', 'Companions'), fn: rosterMenu }, { label: tr('도구', 'Items'), fn: () => itemMenu(null) }, { label: tr('퀘스트', 'Quests'), fn: questMenu },
+      { label: tr('도감', 'Pokédex'), fn: openPokedex },
       { label: tr('기록하기', 'Save'), fn: () => { S.townPos = [this.px, this.py]; const ok = save(); S.townPos = null; sfx(ok ? 'confirm' : 'cancel'); toast(ok ? tr('기록을 남겼다.', 'Game saved.') : tr('기록 실패: 브라우저 저장소를 확인하세요.', 'Save failed: check browser storage.'), ok ? COL.ink : COL.red); } },
       { label: tr('세계 지도로', 'World map'), fn: () => this.leave() },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
@@ -879,7 +1056,10 @@ export class Town {
     if (!this.bg) this.prerender();
     c.fillStyle = '#20301c'; c.fillRect(0, 0, VW, VH);
     c.save(); c.translate(-Math.round(camX), -Math.round(camY));
-    if (this.bg) drawSeen(c, this.bg, Math.round(camX), Math.round(camY));
+    if (this.bwmap) { // the town's picture, tile row 0 at its row oy
+      const im = img(`bw/towns/${this.def.bw}.png`), oy = this.bwmap.oy, x0 = Math.max(0, Math.floor(camX)), y0 = Math.max(0, Math.floor(camY + oy));
+      if (ready(im)) { const w = Math.min(im.width - x0, VW + 1), h = Math.min(im.height - y0, VH + 1); if (w > 0 && h > 0) c.drawImage(im, x0, y0, w, h, x0, y0 - oy, w, h); }
+    } else if (this.bg) drawSeen(c, this.bg, Math.round(camX), Math.round(camY));
     // water shimmer
     if (this.layout) {
       c.fillStyle = 'rgba(255,255,255,0.3)';
@@ -891,25 +1071,27 @@ export class Town {
     }
     if (this.gate) this.drawGate(c);
     const list = [];
-    for (const o of this.objs) if (objInView(o, camX, camY)) list.push({ base: o.base, draw: () => {
+    for (const o of this.objs) if (o.atlas ? o.x + o.w >= camX && o.x <= camX + VW && o.y + o.h >= camY && o.y <= camY + VH : objInView(o, camX, camY)) list.push({ base: o.base, draw: () => {
+      if (o.atlas) { const at = img(o.atlas); if (ready(at)) c.drawImage(at, o.sx, o.sy, o.w, o.h, o.x, o.y, o.w, o.h); return; }
       const im = img(o.img);
       if (!ready(im)) return;
       if (o.prop) c.drawImage(im, Math.round(o.tx * TILE + (o.fw * TILE - im.width) / 2), Math.round((o.ty + o.fd) * TILE - im.height + 2));
       else c.drawImage(im, o.x, o.y + (o.bob != null ? Math.round(Math.sin(G.time * 1.5 + o.bob) * 1.5) : 0));
     } });
     for (const n of this.npcs) list.push({ base: n.vy * TILE + TILE, draw: () => {
-      if (n.role === 'meteor') this.drawMeteor(c, n.vx * TILE + 12, n.vy * TILE + TILE);
-      else drawMon(c, n.sp, false, n.vx * TILE + 12, n.vy * TILE + TILE, { facing: n.face, phase: n.phase, moving: Math.abs(n.x - n.vx) + Math.abs(n.y - n.vy) > 0.05 });
-      const mark = this.markOf(n), mx = n.vx * TILE + 12, my = n.vy * TILE - 12;
+      const ny = n.vy * TILE + TILE - this.liftAt(n.vx, n.vy);
+      if (n.role === 'meteor') this.drawMeteor(c, n.vx * TILE + 12, ny);
+      else drawMon(c, n.sp, false, n.vx * TILE + 12, ny, { facing: n.face, phase: n.phase, moving: Math.abs(n.x - n.vx) + Math.abs(n.y - n.vy) > 0.05 });
+      const mark = this.markOf(n), mx = n.vx * TILE + 12, my = ny - TILE - 12;
       if (mark === 'main' || mark === 'side' || mark === 'alarm') this.drawMark(c, mx, my, '!', mark === 'main' ? COL.red : mark === 'alarm' ? '#e0702a' : COL.blue);
       else if (mark) this.drawSign(c, mx, my, mark);
     } });
     const a = S.party[0];
     for (const [f, k] of [[this.mate, 2], [this.partner, 1]]) { // each follower shows its team slot (who)
       const m = f && S.party[f.who];
-      if (m) list.push({ base: f.vy * TILE + TILE - k, draw: () => drawMon(c, m.spr, m.shiny, f.vx * TILE + 12, f.vy * TILE + TILE, { face: f.dir, facing: f.face === 'right' ? 'right' : 'left', moving: this.moving, phase: k }) });
+      if (m) list.push({ base: f.vy * TILE + TILE - k, draw: () => drawMon(c, m.spr, m.shiny, f.vx * TILE + 12, f.vy * TILE + TILE - this.liftAt(f.vx, f.vy), { face: f.dir, facing: f.face === 'right' ? 'right' : 'left', moving: this.moving, phase: k }) });
     }
-    list.push({ base: this.vy * TILE + TILE, draw: () => drawMon(c, a.spr, a.shiny, this.vx * TILE + 12, this.vy * TILE + TILE, { face: this.face, facing: this.face === 'right' ? 'right' : this.face === 'left' ? 'left' : this.lastH || 'left', moving: this.moving }) });
+    list.push({ base: this.vy * TILE + TILE, draw: () => drawMon(c, a.spr, a.shiny, this.vx * TILE + 12, this.vy * TILE + TILE - this.liftAt(this.vx, this.vy), { face: this.face, facing: this.face === 'right' ? 'right' : this.face === 'left' ? 'left' : this.lastH || 'left', moving: this.moving }) });
     if (this.face === 'left' || this.face === 'right') this.lastH = this.face;
     list.sort((p, q) => p.base - q.base).forEach((d) => d.draw());
     c.restore();
@@ -1000,10 +1182,10 @@ export class Town {
     if (goal) {
       const lines = ui.wrap(goal, 170, 9);
       ui.panel(VW - 186, 6, 180, 17 + lines.length * 11); // room below the last row for its descenders
-      ui.text(tr('▶ 목표', '▶ Goal'), VW - 180, 11, { size: 9, color: COL.red, bold: true });
+      ui.text(mainStep()?.final && !eraComplete() ? tr('★ 최종 퀘스트', '★ Final Quest') : tr('▶ 목표', '▶ Goal'), VW - 180, 11, { size: 9, color: COL.red, bold: true });
       lines.forEach((l, i) => ui.text(l, VW - 180, 22 + i * 11, { size: 9 }));
     }
-    ui.text(tr(`${S.money}냥`, `${S.money} nyang`), 14, VH - 16, { size: 9, color: '#fff', shadow: true });
+    ui.text(tr(`${S.money}냥`, `${S.money} nyang`), 14 + G.touchL, VH - 16, { size: 9, color: '#fff', shadow: true });
     if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 게임 메뉴 · Tab 교대 · 메뉴: 퀘스트 · 동료', 'Z talk · X game menu · Tab lead · Menu: quests · team') : tr('Z 조사 · X 메뉴 · Tab 교대 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · Tab lead · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
   }
 }

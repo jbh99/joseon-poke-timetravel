@@ -277,7 +277,7 @@ export const ERA_1979 = {
       { who: CELEBI, name: K('세레비', 'Celebi'), text: K('612년부터 1980년까지, 모든 시대의 시간이 그곳으로 모이고 있어. 그런데 산길을 펄기아와 디아루가가 지키고 있대.', 'From 612 to 1980, the time of every era is gathering there. But Palkia and Dialga are guarding the mountain path.') },
       { who: CELEBI, name: K('세레비', 'Celebi'), text: K('둘을 진정시키면 천계의 피리가 나타날 거야. 창기둥에서 그 피리를 불면… 아르세우스에게 가는 계단이 열려.', 'Calm them both and the Azure Flute will appear. Play it at the Spear Pillar... and the stairs to Arceus will open.') },
       { who: 'partner', text: K('여기까지 함께 온 모두의 마음을 보여 주자. 마지막 여행이야!', 'Let\'s show it the hearts of everyone who came this far with us. Our last journey!') }] },
-    { do: 'dungeon', d: 'origin', log: K('천관산에서 펄기아와 디아루가를 넘어, 천계의 피리로 아르세우스를 만나자 (마지막 퀘스트)', 'On Mt. Coronet, get past Palkia and Dialga, then meet Arceus with the Azure Flute (the last quest)') },
+    { do: 'dungeon', d: 'origin', final: true, log: K('천관산에서 펄기아와 디아루가를 넘어, 천계의 피리로 아르세우스를 만나자 (마지막 퀘스트)', 'On Mt. Coronet, get past Palkia and Dialga, then meet Arceus with the Azure Flute (the last quest)') },
   ],
   outro: [
     { who: 'narr', text: K('긴 겨울을 지나, 사람들은 스스로의 힘으로 민주주의를 되찾았다.', 'After a long winter, the people won back democracy by their own strength.') },

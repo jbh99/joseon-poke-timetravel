@@ -27,26 +27,36 @@
   #hud.side { flex-direction: column; align-items: stretch; }
   #hud.over { opacity: 0.4; transition: opacity 0.2s; }
   #hud.over:hover, #hud.over:focus-within { opacity: 1; }
-  /* touch screens (phones, the Android app): an 8-way pad and the buttons sit in columns beside the game,
-     and every button carries its keyboard letter so the on-screen key hints read the same */
+  /* touch screens (phones, the Android app): the game takes the screen's full height at the left (core.js fit).
+     The 8-way pad lies over its lower-left corner, and only it takes touches there; the menu button and the action
+     buttons take the strip to the right of the game, or lie over its right edge when the screen has no such strip
+     (body.ovr). While a dialogue or menu is open the pad fades (body.dim). Every button carries its keyboard letter
+     so the on-screen key hints read the same. */
   #touch { display: none; }
-  body.touch { padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); box-sizing: border-box;
+  body.touch { padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); box-sizing: border-box; justify-content: flex-start;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  body.touch #screen { margin-left: var(--gameL, 0px); }
   body.touch #touch { display: block; }
   .pad { position: fixed; z-index: 6; top: 0; bottom: 0; width: var(--pad, 140px); box-sizing: border-box; padding: 8px 7px 12px;
     display: flex; flex-direction: column; justify-content: space-between; touch-action: none; }
-  #pad-l { left: env(safe-area-inset-left, 0px); }
-  #pad-r { right: env(safe-area-inset-right, 0px); }
+  #pad-l { left: calc(env(safe-area-inset-left, 0px) + var(--gameL, 0px)); width: auto; justify-content: flex-end; gap: 10px;
+    padding: 0 0 max(10px, env(safe-area-inset-bottom)) 12px; pointer-events: none; transition: opacity 0.15s; }
+  #pad-l > * { pointer-events: auto; }
+  body.dim #pad-l { opacity: 0.3; }
+  #pad-r { right: env(safe-area-inset-right, 0px); gap: 6px; }
+  body.ovr #pad-r { opacity: 0.8; }
   #touch button { font: 15px 'Galmuri11B', sans-serif; color: var(--ink); background: rgba(243,232,207,0.9); border: 2px solid var(--ink);
     border-radius: 10px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
     touch-action: none; box-shadow: 0 2px 0 rgba(0,0,0,0.45); }
   #touch button small { font: 9px 'Galmuri9', sans-serif; color: var(--ink2); margin-top: 2px; }
   #touch button.on { background: var(--gold); transform: translateY(2px); box-shadow: none; }
-  /* right column: ⇧ Tab A on top like shoulder buttons, the moves as a DraStic-style diamond (Q up, W left, E right,
-     R down), X and Z below it. The menu button keeps to the top of the left column, apart from the diamond. */
+  /* right column: the menu button across its top (the screen's top-right corner, apart from the diamond), ⇧ Tab A
+     below it like shoulder buttons, the moves as a DraStic-style diamond (Q up, W left, E right, R down), X and Z at
+     the bottom under the right thumb. The diamond shrinks on a short screen so X and Z stay on it. */
   #touch .minis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
   #touch .minis button { height: 36px; font-size: 12px; }
   #touch .moves { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 2px; width: min(100%, 156px); aspect-ratio: 1; align-self: center; }
+  #touch .moves { width: min(100%, 156px, calc(100dvh - 200px)); }
   #touch .moves button { border-radius: 50%; font-size: 18px; }
   #touch .moves .q { grid-area: 1 / 2; } #touch .moves .w { grid-area: 2 / 1; } #touch .moves .e { grid-area: 2 / 3; } #touch .moves .r { grid-area: 3 / 2; }
   #touch .acts { position: relative; height: 92px; }
@@ -54,10 +64,10 @@
   #touch .acts .a { right: 0; bottom: 0; width: 64px; height: 64px; background: rgba(178,53,43,0.92); color: #fff4dc; }
   #touch .acts .a small { color: #ffe0c8; }
   #touch .acts .b { left: 0; top: 0; width: 54px; height: 54px; }
-  #touch .menu { height: 44px; flex-direction: row; gap: 9px; font-size: 15px; }
+  #touch .menu { height: 34px; flex: none; padding: 0 12px; flex-direction: row; gap: 8px; font-size: 13px; background: rgba(243,232,207,0.72); }
   #touch .menu i { display: block; width: 16px; height: 2px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; }
-  #dpad { position: relative; align-self: center; width: min(calc(var(--pad, 140px) - 10px), 150px); aspect-ratio: 1; border-radius: 50%;
-    background: rgba(243,232,207,0.16); border: 2px solid rgba(243,232,207,0.55); touch-action: none; }
+  #dpad { position: relative; width: var(--dpad, 128px); aspect-ratio: 1; border-radius: 50%;
+    background: rgba(20,16,24,0.22); border: 2px solid rgba(243,232,207,0.6); touch-action: none; }
   #dpad span { position: absolute; color: rgba(243,232,207,0.85); font: 16px sans-serif; transform: translate(-50%, -50%); pointer-events: none; }
   #dpad .u { left: 50%; top: 15%; } #dpad .d { left: 50%; top: 85%; } #dpad .l { left: 15%; top: 50%; } #dpad .r { left: 85%; top: 50%; }
   #dpad i { position: absolute; left: 50%; top: 50%; width: 38%; height: 38%; margin: -19% 0 0 -19%; border-radius: 50%;
@@ -80,7 +90,7 @@
   #tmenu .game button:disabled { opacity: 0.4; cursor: default; }
   #tmenu header button { min-height: 0; width: 36px; height: 30px; padding: 0; }
   body.app #btn-full { display: none; }
-  body.touch #mp-video { inset: 0 calc(var(--pad, 140px) + env(safe-area-inset-right, 0px)) 0 calc(var(--pad, 140px) + env(safe-area-inset-left, 0px)); width: auto; height: auto; }
+  body.touch #mp-video { inset: auto; left: var(--gameX, 0px); top: var(--gameY, 0px); width: var(--gameW, 100vw); height: var(--gameH, 100vh); }
   /* roster search box (core.js askText): game paper and ink, near the top so a phone keyboard doesn't cover it */
   #ask { position: fixed; left: 50%; top: max(12%, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 30; width: min(360px, 86vw);
     background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,0.45); padding: 12px 14px;
@@ -186,10 +196,10 @@
 </div>
 <div id="touch">
   <div id="pad-l" class="pad">
-    <button type="button" id="btn-tmenu" class="menu"><i></i><span data-lang="ko">메뉴</span><span data-lang="en" hidden>Menu</span></button>
     <div id="dpad"><span class="u">▲</span><span class="l">◀</span><span class="r">▶</span><span class="d">▼</span><i></i></div>
   </div>
   <div id="pad-r" class="pad">
+    <button type="button" id="btn-tmenu" class="menu"><i></i><span data-lang="ko">메뉴</span><span data-lang="en" hidden>Menu</span></button>
     <div class="minis">
       <button type="button" data-k="shift">⇧<small data-lang="ko">방향만</small><small data-lang="en" hidden>Face</small></button>
       <button type="button" data-k="tag">Tab<small data-lang="ko">태그</small><small data-lang="en" hidden>Tag</small></button>
@@ -251,7 +261,7 @@
         </div>
       </div>
       <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 지도를 끌거나(드래그) 휠을 굴려 둘러볼 수 있어요. 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리, 아래쪽 조작키 안내 보이기/숨기기, 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
-      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽에는 드라스틱처럼 <b>십자 모양으로 놓인 기술 버튼 Q · W · E · R</b>(위 · 왼쪽 · 오른쪽 · 아래)과 Z 확인 · X 취소 · ⇧ 방향만 바꾸기 · Tab 태그 · A 쉬기 버튼이 있어요. X는 마을과 던전에서 게임 메뉴도 엽니다. <b>메뉴</b> 버튼은 십자 버튼과 따로 왼쪽 위에 있고, 누르면 게임 메뉴 · 퀘스트 · 동료 · 던전 지도와 소리 · 속도 · 멀티 · 구글 로그인 · 언어 · 가이드가 한 화면에 열립니다. 메뉴 · 대화 · 장소는 화면을 직접 눌러 고를 수 있고(긴 목록은 손가락으로 끌어 넘기기), 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다. 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). 메뉴 안의 <b>구글 로그인</b> 버튼으로 로그인하면 세이브(난이도마다 하나씩)가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
+      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽에는 드라스틱처럼 <b>십자 모양으로 놓인 기술 버튼 Q · W · E · R</b>(위 · 왼쪽 · 오른쪽 · 아래)과 Z 확인 · X 취소 · ⇧ 방향만 바꾸기 · Tab 태그 · A 쉬기 버튼이 있어요. X는 마을과 던전에서 게임 메뉴도 엽니다. <b>메뉴</b> 버튼은 십자 버튼과 따로 오른쪽 버튼 줄 맨 위에 있고, 누르면 게임 메뉴 · 퀘스트 · 동료 · 던전 지도와 소리 · 속도 · 멀티 · 구글 로그인 · 언어 · 가이드가 한 화면에 열립니다. 메뉴 · 대화 · 장소는 화면을 직접 눌러 고를 수 있고(긴 목록은 손가락으로 끌어 넘기기), 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다. 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). 메뉴 안의 <b>구글 로그인</b> 버튼으로 로그인하면 세이브(난이도마다 하나씩)가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
       <p class="get-app"><b>안드로이드 앱 받기</b>: 휴대폰 크롬에서 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">APK 내려받기</a>를 누르고, 다 받으면 파일을 열어 설치합니다. 경고 창이 뜨면 '다운로드' → '설정'에서 '이 출처 허용' 켜기 → '설치' 순서로 누르면 돼요. 자세한 방법은 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">릴리스 페이지</a>에 있어요.</p>
       <p>화면 옆 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
 
@@ -264,6 +274,8 @@
         <li><b>놓친 전설</b>: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 그 던전의 마지막 층에서, 그 던전의 적과 같은 레벨로 기다려요. 또 놓치면 그다음 시대로 옮겨 갑니다. 전설이 없는 던전에만 나타나서, 자리가 모자라면 그다음 시대로 미뤄져요.</li>
         <li><b>던전</b>: 그래픽은 「포켓몬 불가사의 던전 파랑구조대」의 던전 지형과 포켓몬 스프라이트를 씁니다. 층마다 지형이 무작위로 바뀌어요.</li>
         <li>메인 퀘스트를 끝내면 광장의 <b>시간의 문</b>이 열리고 다음 시대로 넘어갑니다.</li>
+        <li><b>세계 모드</b>: 1945년 광복 뒤의 시간의 문에서 「세계로」를 고르면 1860년부터 1945년까지 세계 시대(청일 · 러일 전쟁, 제1 · 2차 세계 대전)를 여행합니다. 마을은 포켓몬스터 블랙의 실제 마을, 마지막 퀘스트는 큐레무 3페이즈 최종 결전이에요.</li>
+        <li><b>도감</b>: X 메뉴 → 도감. 전국 · 신오(4세대) · 하나(5세대) 순서로 보고, Z로 펄 도감과 블랙 도감 페이지를 바꿉니다. 만난 포켓몬은 발견, 동료가 되면 포획으로 기록돼요.</li>
       </ul>
       <div class="tip"><b>해전 (물 타입만 출전)</b>: 살수대첩, 기벌포, 흥화진, 진포, 한산도·명량·노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 <b>물 타입 포켓몬만</b> 배에 오릅니다. 파티와 동료 명부의 물 타입이 자동으로 출전하고, 모자라면 수군이 물 포켓몬을 빌려줍니다. 첫 시대에서 리아코와 물짱이를 선물로 받아요.</div>
 
@@ -391,7 +403,7 @@
         </div>
       </div>
       <p><b>Mouse</b>: click a place on the world map to go there (drag the map or roll the mouse wheel to look around), and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound and the on-screen key hints on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
-      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons). On the right, the <b>move buttons Q · W · E · R sit in a cross</b> as on DraStic (up · left · right · down), with Z OK · X back · ⇧ face only · Tab tag · A rest; X also opens the game menu in town and in dungeons. The <b>Menu</b> button stands apart at the top left and opens one panel with the game menu, quests, team and dungeon map, and sound, speed, co-op, Google login, language and the guide. Tap menus, dialogue and places on the screen to pick them (drag a long list with a finger to scroll it), and tap a move in the dungeon's move list at the bottom right to use it. Drag the world map with a finger to look around; the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> in the menu to keep your saves (one per difficulty) in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
+      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons). On the right, the <b>move buttons Q · W · E · R sit in a cross</b> as on DraStic (up · left · right · down), with Z OK · X back · ⇧ face only · Tab tag · A rest; X also opens the game menu in town and in dungeons. The <b>Menu</b> button stands apart at the top of the right-hand buttons and opens one panel with the game menu, quests, team and dungeon map, and sound, speed, co-op, Google login, language and the guide. Tap menus, dialogue and places on the screen to pick them (drag a long list with a finger to scroll it), and tap a move in the dungeon's move list at the bottom right to use it. Drag the world map with a finger to look around; the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> in the menu to keep your saves (one per difficulty) in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
       <p class="get-app"><b>Get the Android app</b>: open <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">the APK download</a> in Chrome on the phone, then open the file to install it. Past the warnings, tap Download, turn on "Allow from this source" in Settings, then Install; the <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">release page</a> has the full steps.</p>
       <p>The <b>English / 한국어</b> button beside the screen switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
 
@@ -404,6 +416,8 @@
         <li><b>Missed legends</b>: a legendary Pokémon that did not join you in its era (never met, or let go) comes back in another dungeon of the next era, on its last floor, at the level of that dungeon's foes. Miss it again and it moves on to the era after. It only comes to a dungeon with no legend of its own, so when there is no free one it waits for the next era.</li>
         <li><b>Dungeons</b> use the terrain and Pokémon sprites of Pokémon Mystery Dungeon: Blue Rescue Team. Floors change every time.</li>
         <li>Finish the main quest and the <b>Time Gate</b> in the square opens to the next era.</li>
+        <li><b>World line</b>: after liberation in 1945, choose "Out into the world" at the Time Gate to travel the world's eras from 1860 to 1945 (the Sino-Japanese and Russo-Japanese wars, both world wars). Its towns are Pokémon Black's real towns, and its last quest is the three-phase battle with Kyurem.</li>
+        <li><b>Pokédex</b>: X menu → Pokédex. Browse the national, Sinnoh (Gen 4) and Unova (Gen 5) orders; Z switches between a Pokémon's Pearl and Black pages. Pokémon you meet are recorded as seen, and as caught once they join.</li>
       </ul>
       <div class="tip"><b>Naval battles (Water types only)</b>: fights on the water (Salsu, Gibeolpo, Heunghwajin, Jinpo, Hansan, Myeongnyang, Noryang, Incheon, the Taedong) only take <b>Water-type Pokémon</b> aboard. Water types from your team and roster board automatically, and the navy lends some if you are short. You get Totodile and Mudkip in the first era.</div>
 

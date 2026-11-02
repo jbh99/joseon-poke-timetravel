@@ -40,6 +40,8 @@ export function bindStory(root, table, missing) {
   walk(root);
 }
 function applyStory() { for (const [o, k, ko, en] of slots) o[k] = EN ? en : ko; }
+// a Korean word with its subject particle: 이 after a final consonant (불꽃이), 가 after a vowel (바위가)
+export const iga = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return w + (c >= 0 && c < 11172 && !(c % 28) ? '가' : '이'); };
 export function setNames(pairs) { NAMES = pairs.filter(([a, b]) => a && b && a !== b).sort((p, q) => q[0].length - p[0].length); }
 
 // Flip one already-built string to the current language: exact pairs first, then names inside it.

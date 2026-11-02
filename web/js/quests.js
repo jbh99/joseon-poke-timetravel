@@ -1,7 +1,7 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText, fadeTo, shuffle } from './core.js';
 import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, MAX_LV, teamPP } from './game.js';
-import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI } from './content.js';
+import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI, KOREA_LAST, isWorld } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
 import { tr } from './i18n.js';
 import { iconPath } from './pmd.js';
@@ -9,6 +9,9 @@ import { iconPath } from './pmd.js';
 export const era = () => ERAS[S.era];
 export const mainStep = () => era().main[S.step];
 export const eraComplete = () => S.step >= era().main.length;
+// the Korean story seen through: its last era (1979) cleared, here or before a trip out into the world (S.koreaAt)
+export const storyDone = (o = S) => (o.era === KOREA_LAST && o.step >= ERAS[KOREA_LAST].main.length)
+  || (o.koreaAt?.era === KOREA_LAST && o.koreaAt.step >= ERAS[KOREA_LAST].main.length);
 // ---------------------------------------------------------------- foe levels and difficulty
 // A dungeon's foe levels as [lowest, highest, scaled]. Before 1200, and while the team's best is at most Lv 20, the band
 // is the designed one; from then on it runs 5 to 7 levels above the team's strongest Pokémon, never below the design
@@ -25,7 +28,7 @@ export const challenge = () => S.mode === 'challenge';
 // A challenge stakes the whole journey until its story is seen through (★): the first wipe, or a run left in the
 // middle of a dungeon, ends it for good, and the next challenge starts from the beginning (1.10). Its save stays
 // behind marked over (game.js journey), so neither this device nor its cloud copy brings the journey back.
-export const atStake = () => challenge() && !(S.era >= ERAS.length - 1 && eraComplete());
+export const atStake = () => challenge() && !storyDone();
 export function endChallenge() { S.over = true; S.inRun = null; save(); }
 export const overText = () => tr('챌린지 실패… 이 여행은 여기서 끝났다. 챌린지는 처음부터 다시 시작해야 한다.', 'Challenge failed... This journey is over: a challenge starts again from the very beginning.');
 // continuing a challenge save that was left in the middle of a dungeon counts as that run's wipe: true when it ended
@@ -125,7 +128,8 @@ export async function advanceMain() {
     jingle('fanfa5');
     await say([{ who: 251, name: tr('세레비', 'Celebi'), text: tr(`시간의 꽃잎이 빛나고 있어! ${era().year}년의 꽃잎을 되찾았어. 광장의 "시간의 문"이 열렸을 거야!`, `The petal is shining! We got back the petal of ${era().year}. The Time Gate in the square should be open now!`) }]);
     G.gainAll?.(Math.round(80 * (S.era + 1) ** 1.6), tr('꽃잎의 힘', 'Power of the petal'));
-  } else toast(tr('새 목표: ', 'New goal: ') + st.log, COL.blue);
+  } else if (st.final) toast(tr('★ 최종 퀘스트: ', '★ Final quest: ') + st.log, COL.red); // a line's last battle (content: final)
+  else toast(tr('새 목표: ', 'New goal: ') + st.log, COL.blue);
 }
 
 // a step that runs by itself left waiting (1950 opens with a scene; a save that stopped on one, e.g. one added later to
@@ -348,7 +352,11 @@ async function pickQuest(q) {
 }
 
 export function trackerText() {
-  if (eraComplete()) return S.era >= ERAS.length - 1 ? tr('여행 완료! 시간의 문에서 세레비와 이야기하자', 'Journey complete! Talk to Celebi at the Time Gate') : tr('시간의 문이 열렸다! 광장의 문으로 가자', 'The Time Gate is open! Head to the gate in the square');
+  if (eraComplete()) {
+    if (S.era === KOREA_LAST) return tr('여행 완료! 시간의 문에서 세레비와 이야기하자', 'Journey complete! Talk to Celebi at the Time Gate');
+    if (isWorld() && S.era === ERAS.length - 1) return tr('세계 여행 완료! 시간의 문에서 한국으로 돌아가자', 'World journey complete! Head back to Korea through the Time Gate');
+    return tr('시간의 문이 열렸다! 광장의 문으로 가자', 'The Time Gate is open! Head to the gate in the square');
+  }
   const st = mainStep();
   return st && talkTown(st) === 2 ? `${st.log} (${era().town2.name})` : st?.log;
 }
@@ -434,7 +442,7 @@ class Evolution {
     const c = ui.c;
     c.save();
     if (this.stage === 0) c.filter = `brightness(${1 + Math.min(4, this.t)})`;
-    ui.image(im, 0, 0, 80, 80, VW / 2 - 80, 50, 160, 160);
+    ui.image(im, 0, 0, im.height || 80, im.height || 80, VW / 2 - 80, 50, 160, 160);
     c.restore();
     ui.panel(20, VH - 50, VW - 40, 38);
     ui.text(this.stage === 0 ? tr(`……어라? ${DEX.species[this.from].name}의 모습이…!`, `What? ${DEX.species[this.from].name} is evolving!`) : tr(`축하합니다! ${DEX.species[this.from].name}은(는) ${DEX.species[this.to].name}(으)로 진화했다!`, `Congratulations! ${DEX.species[this.from].name} evolved into ${DEX.species[this.to].name}!`), 32, VH - 37);
@@ -702,7 +710,8 @@ function useItem(id, dungeon) {
 export function questMenu() {
   const out = [];
   const st = mainStep();
-  out.push({ label: tr(`[메인] ${eraComplete() ? '시대 완료 — 시간의 문으로!' : st?.log}`, `[Main] ${eraComplete() ? 'Era complete — to the Time Gate!' : st?.log}`) });
+  const head = st?.final && !eraComplete() ? tr('[★ 최종]', '[★ Final]') : tr('[메인]', '[Main]');
+  out.push({ label: `${head} ${eraComplete() ? tr('시대 완료 — 시간의 문으로!', 'Era complete — to the Time Gate!') : st?.log}` });
   for (const q of era().side) {
     const s = sideState(q);
     if (s === 'open') continue;
