@@ -79,7 +79,8 @@ const PATTERNS = {
 };
 
 export class Dungeon {
-  // def: a fight that no era lists (Town.policeDef); o.floor: the floor to start on (the Boss Tower's checkpoint)
+  // def: a fight that no era lists (Town.policeDef); o.floor: the floor to start on (the Boss Tower's checkpoint);
+  // o.crew: a naval battle's crew as picked on the world map (boardCrew)
   constructor(dId, def = era().dungeons[dId], o = {}) {
     this.dId = dId;
     this.def = def;
@@ -95,13 +96,14 @@ export class Dungeon {
     this.turnNo = 0;
     this.found = { money: 0, items: {} };
     this.showMap = true;
-    if (this.def.water) this.boardCrew();
+    if (this.def.water) this.boardCrew(o.crew);
     this.newFloor();
   }
-  // naval battles: only Water-type Pokémon go aboard (party first, then the roster); the navy lends a crew when short
-  boardCrew() {
+  // naval battles: only Water-type Pokémon go aboard, the ones the player picked on the world map in the order picked
+  // (quests.js crewMenu; o.crew), or without a pick the team's own; the navy lends a crew when short of two
+  boardCrew(picked) {
     S.homeParty = S.party;
-    const crew = [...S.party, ...S.roster.slice().sort((a, b) => b.lv - a.lv)].filter((m) => m.types.includes(11)).slice(0, 3);
+    const crew = (picked || S.party).filter((m) => m.types.includes(11)).slice(0, 3);
     const avg = Math.round(S.party.reduce((s, m) => s + m.lv, 0) / S.party.length);
     this.loaned = [];
     for (const sp of this.def.loan || [158, 258]) {

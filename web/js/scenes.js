@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, storyDone } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, storyDone, crewMenu } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { openPokedex } from './pokedex.js';
@@ -343,6 +343,8 @@ export class WorldMap {
       if (top) return say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층)에 들어갈까? 지난번에 ${top}층까지 올랐다.`, `Enter the ${d.name}? (${d.floors} floors) Last time you cleared floor ${top}.`),
         choices: tr(['1층부터', `${top + 1}층부터`, '그만두기'], ['From floor 1', `From floor ${top + 1}`, 'Not now']), onChoice: (i) => { if (i < 2) fadeTo(() => G.goDungeon(n.d, undefined, { floor: i ? top + 1 : 1 })); } }]);
       const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${d.floors} floors · legendary Pokémon`) : tr(`${d.floors}층 · 적 레벨 ${lo}~${hi}`, `${d.floors} floors · foes Lv ${lo}-${hi}`);
+      // a naval battle: who goes aboard is picked first (quests.js crewMenu), and the run sets out from that list
+      if (d.water) return crewMenu(`${d.name} (${what})`, (crew) => fadeTo(() => G.goDungeon(n.d, undefined, { crew })));
       say([{ who: 'narr', text: tr(`${d.name} (${what})에 들어갈까?`, `Enter ${d.name}? (${what})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('menu')) return openMenu([
@@ -491,16 +493,18 @@ export class Ending {
     this.credits = [
       ...tr(['— 포켓몬스터 조선 시간여행 —', '', '612 살수대첩 · 660 황산벌 · 668 평양성 · 676 기벌포 해전', '1019 귀주대첩 · 1232 처인성 · 1251 팔만대장경', '1380 진포 대첩 · 1388 위화도 회군',
         '1392 조선 건국 · 1446 훈민정음 반포', '1592 임진왜란 · 1598 노량 해전 · 1636 병자호란', '1796 수원 화성 완공 · 1866 병인양요 · 1871 신미양요',
-        '1897 대한제국 선포 · 1905 을사늑약 · 1907 헤이그 특사', '1919 3·1 운동 · 1920 청산리 대첩 · 1940 한국광복군 창설', '1945년 8월 15일 광복', '1950 – 1953 한국 전쟁 · 정전', '1979 10·26 · 12·12 · 1980 서울의 봄', '', '', '함께한 포켓몬'],
+        '1897 대한제국 선포 · 1905 을사늑약 · 1907 헤이그 특사', '1919 3·1 운동 · 1920 청산리 대첩 · 1940 한국광복군 창설', '1945년 8월 15일 광복', '1950 – 1953 한국 전쟁 · 정전', '1979 10·26 · 12·12 · 1980 서울의 봄', '',
+        '— 세계 —', '1860 베이징 조약 · 1894 청일 전쟁 · 1904 러일 전쟁', '1914 – 1918 제1차 세계 대전 · 1919 파리 강화 회의', '1939 – 1945 제2차 세계 대전', '', '', '함께한 포켓몬'],
       ['— Pokémon Joseon Time Travel —', '', '612 Salsu · 660 Hwangsanbeol · 668 Pyongyang · 676 Gibeolpo', '1019 Gwiju · 1232 Cheoin Fortress · 1251 Tripitaka Koreana', '1380 Jinpo · 1388 Wihwado retreat',
         '1392 Joseon founded · 1446 Hunminjeongeum proclaimed', '1592 Imjin War · 1598 Noryang · 1636 Qing invasion', '1796 Hwaseong Fortress · 1866 French and 1871 U.S. expeditions',
-        '1897 Korean Empire proclaimed · 1905 Eulsa Treaty · 1907 Hague envoys', '1919 March 1st Movement · 1920 Battle of Cheongsanri · 1940 Korean Liberation Army', 'Liberation, August 15, 1945', '1950 – 1953 Korean War · armistice', '1979 October 26 · December 12 · 1980 Seoul Spring', '', '', 'Your team']),
+        '1897 Korean Empire proclaimed · 1905 Eulsa Treaty · 1907 Hague envoys', '1919 March 1st Movement · 1920 Battle of Cheongsanri · 1940 Korean Liberation Army', 'Liberation, August 15, 1945', '1950 – 1953 Korean War · armistice', '1979 October 26 · December 12 · 1980 Seoul Spring', '',
+        '— The world —', '1860 Convention of Peking · 1894 Sino-Japanese War · 1904 Russo-Japanese War', '1914 – 1918 First World War · 1919 Paris Peace Conference', '1939 – 1945 Second World War', '', '', 'Your team']),
       ...S.party.map((m) => `${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`), ...(S.roster.length ? [tr(`그리고 동료 ${S.roster.length}마리`, `and ${S.roster.length} more companions`)] : []), '', '',
-      ...tr(['원작 그래픽 · 음악', '포켓몬스터 펄 (ROM에서 추출, 직접 렌더링)', '포켓몬 불가사의 던전 파랑구조대 (던전 · 스프라이트 · 초상화)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
-        '건물 · 거북선 · 판옥선', 'Blender 5.2 절차적 모델링', '', '글꼴', 'Galmuri (OFL)', '', '',
+      ...tr(['원작 그래픽 · 음악', '포켓몬스터 펄 (ROM에서 추출, 직접 렌더링)', '포켓몬 불가사의 던전 파랑구조대 (던전 · 스프라이트 · 초상화)', '포켓몬스터 블랙 (세계 모드의 마을 · 음악 · 5세대 포켓몬)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
+        '건물 · 거북선 · 판옥선', 'Blender 5.2 절차적 모델링', '', '세계 지도', 'Natural Earth', '', '글꼴', 'Galmuri (OFL)', '', '',
         '역사를 잊은 민족에게 미래는 없다', '', '', '플레이해 주셔서 감사합니다!'],
-      ['Original graphics · music', 'Pokémon Pearl (extracted from the ROM, rendered here)', 'Pokémon Mystery Dungeon: Blue Rescue Team (dungeons · sprites · portraits)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
-        'Buildings · turtle ship · panokseon', 'Blender 5.2 procedural models', '', 'Font', 'Galmuri (OFL)', '', '',
+      ['Original graphics · music', 'Pokémon Pearl (extracted from the ROM, rendered here)', 'Pokémon Mystery Dungeon: Blue Rescue Team (dungeons · sprites · portraits)', 'Pokémon Black (world-line towns · music · fifth-generation Pokémon)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
+        'Buildings · turtle ship · panokseon', 'Blender 5.2 procedural models', '', 'World maps', 'Natural Earth', '', 'Font', 'Galmuri (OFL)', '', '',
         'A people that forgets its history has no future', '', '', 'Thank you for playing!']),
     ];
   }
@@ -521,7 +525,7 @@ export class Ending {
       this.credits.forEach((l, i) => ui.text(l, VW / 2, y0 + i * 22, { align: 'center', bold: i === 0, color: i === 0 ? '#ffe9a8' : '#fff', shadow: '#000' }));
     } else {
       ui.text(tr('명예의 전당', 'Hall of Fame'), VW / 2, 24, { align: 'center', bold: true, color: '#ffe9a8', shadow: '#000' });
-      ui.text(tr('612 → 1980 시간여행 완주!', 'Journey from 612 to 1980 complete!'), VW / 2, 42, { align: 'center', color: '#fff', shadow: '#000' });
+      ui.text(tr('612 → 1980, 세계 1860 → 1945 시간여행 완주!', 'Journey from 612 to 1980 and the world from 1860 to 1945 complete!'), VW / 2, 42, { align: 'center', color: '#fff', shadow: '#000' });
       ui.text(S.mode === 'challenge' ? tr('챌린지 달성! 한 번도 전멸하지 않고 완주했다', 'Challenge complete! Not a single wipe all the way') : tr(`난이도: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`, `Difficulty: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`), VW / 2, 56, { align: 'center', size: 9, color: S.mode === 'challenge' ? '#ffe27a' : '#ddd', shadow: '#000' });
       S.party.forEach((m, i) => { ui.text(`${m.name}  Lv.${m.lv}`, hofX(i), 176, { align: 'center', bold: true, color: '#fff', shadow: '#000' }); });
       const pt = Math.floor(S.playtime / 60);

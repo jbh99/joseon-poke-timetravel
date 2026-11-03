@@ -139,7 +139,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 1940 | 민족 말살 통치 | 경성(1940) / 충칭 · 임시정부 | 반전세계 | **기라티나** |
 | 1945 | 광복 | 서울 | 시간의 틈 · 얄타·포츠담 회담과 분단(이야기) · 진영 선택 | **펄기아** |
 | 1950 | 한국 전쟁 | 진영에 따라 다름 | 서울 시가전, 낙동강, 해전, 장진호, 판문점, 하늘기둥 · 두원 운석터(서울 시가전 뒤) | 그란돈/가이오가, **한카리아스**, **보만다**, 레쿠쟈 · 테오키스 |
-| 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **천관산(마지막 퀘스트)**, 보스 탑(엔딩 뒤) | **다크라이**, 강화된 **펄기아 · 디아루가**, **아르세우스(팀 레벨)** |
+| 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **천관산(마지막 퀘스트)**, 보스 탑(아르세우스 뒤) | **다크라이**, 강화된 **펄기아 · 디아루가**, **아르세우스(팀 레벨)** |
 
 ## 세계 모드
 
@@ -148,7 +148,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **들어가기**: 1945년 광복 뒤, 한국 시대의 시간의 문에서 **「세계로」**를 고릅니다. 처음 들어가면 1860년부터 시작합니다.
 - **한국과 오가기**: 세계 시대의 시간의 문에서는 언제든 **「한국으로 돌아가기」**를 고를 수 있습니다. 한국 이야기와 세계 이야기는 각자 멈춘 곳을 기억해서, 다시 넘어가면 떠났던 시대부터 이어집니다. 새 여행을 시작하면 세계 모드도 1860년부터 다시 시작합니다(1.11에서는 게임을 끄지 않고 새 여행을 시작하면 앞 여행의 위치를 물려받아, 세계 모드가 1915년부터 열리거나 새 챌린지가 전멸해도 끝나지 않았습니다).
 - **난이도**: 처음부터 적이 내 팀에서 가장 높은 레벨보다 5~7 레벨 높고, 초반 배려가 없습니다. 어려움(+25%)과 챌린지(전멸하면 여행이 끝남) 규칙도 그대로입니다.
-- **마을**: 그 시대의 도시를 「포켓몬스터 블랙」의 실제 마을 11곳 가운데 하나로 그렸습니다. 롬의 지도 · 건물 · 이동 데이터를 그대로 읽어서 걸을 수 있는 곳이 원작과 같습니다. 1.12부터 마을 밖(다른 도로의 구역, 걸어서 닿을 수 없는 빈터)은 어둡게 그려서 갈 수 있는 곳이 한눈에 보입니다.
+- **마을**: 그 시대의 도시를 「포켓몬스터 블랙」의 실제 마을 11곳 가운데 하나로 그렸습니다. 롬의 지도 · 건물 · 이동 데이터를 그대로 읽어서 걸을 수 있는 곳이 원작과 같습니다. 1.12부터 마을 밖(다른 도로의 구역, 걸어서 닿을 수 없는 빈터)은 어둡게 그려서 갈 수 있는 곳이 한눈에 보입니다. 1.13부터 마을의 포켓몬은 서로 **두 칸 이상** 떨어져 서고, 서 있거나 돌아다니는 자리 옆으로 길이 **두 칸 폭**은 남도록 비켜 섭니다(1.12까지는 자리가 모자라면 시간의 문 둘레에 몰려 서서, 좁은 바닷가 마을에서는 길을 막기도 했습니다). 어느 마을에서든 사람이 길을 끊거나 두 칸 길을 한 칸으로 좁히지 않습니다.
 - **세계 지도**: Natural Earth 지도 데이터로 그린 동아시아 · 유럽 · 태평양 지도입니다.
 - **포켓몬**: 5세대 포켓몬 156종이 블랙의 그림 · 아이콘 · 울음소리 · 능력치 · 기술로 세계 시대의 던전에 나옵니다. 배경 음악도 블랙의 음악입니다.
 
@@ -197,6 +197,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 ### 세계 모드의 전설과 최종 보스
 - **5세대 전설**: 레시라무는 런던 대공습의 마을 전투에서, 나머지는 각자 둥지의 3층에서 2페이즈로 싸웁니다. 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. 블랙 롬에는 케르디오의 각오의 모습과 토네로스 · 볼트로스 · 랜드로스의 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
 - **최종 보스 큐레무**: 1945년의 마지막 퀘스트입니다. 베를린이 그대로 싸움터가 되어 큐레무 → 블랙큐레무 → 화이트큐레무 3페이즈로 싸웁니다. 모든 능력치가 천관산 아르세우스보다 20% 높고, 얼음 · 번개 · 불꽃이 몇 턴씩 떨어집니다. 이기면 항복과 해방의 이야기로 세계 모드가 끝납니다.
+- **엔딩 (1.13부터)**: 한국 이야기의 **아르세우스(1979)**와 세계 모드의 **큐레무(1945)**를 **모두** 쓰러뜨려야 엔딩이 열립니다. 나중에 끝낸 쪽의 시간의 문에서 「엔딩으로」를 고르고, 한쪽만 끝냈다면 세레비가 남은 쪽으로 안내합니다. 엔딩의 크레디트와 명예의 전당에도 세계 모드가 함께 나옵니다. 1.12까지 아르세우스만으로 엔딩을 연 기록은 그대로 엔딩을 본 것으로 칩니다(★, 챌린지 달성).
 - **동료**: 전설도, 던전의 일반 보스도 이기면 동료로 맞이할 수 있습니다 (일반 보스는 1.12부터. 챌린지에서는 전설만 동료가 되지 않음).
 
 ## 게임 요소
@@ -228,14 +229,14 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 ### 천관산 (마지막 퀘스트)과 보스 탑 (보스 모드)
 - **천관산**: 1979년 12·12 뒤 장흥의 천관산을 오릅니다. 들어가자마자 **펄기아**, 다음 층에서 **디아루가**가 길을 막습니다. 둘 다 이야기 때보다 **체력과 공격이 30% 더 강하고**, 예고 공격과 전용기를 **1.5배쯤 자주** 씁니다. 1.8부터 천관산의 **펄기아 · 디아루가 · 아르세우스**는 **체력과 모든 능력치가 20%** 더 오릅니다(보스 탑의 능력치는 그대로). 1.7에서 펄기아 2페이즈 도중 게임이 멈추던 문제(오리진폼이 부를 졸개가 없는 던전에서 오류가 나던 것)도 고쳤습니다. 둘을 모두 쓰러뜨리면 **천계의 피리**가 나타나고, 「포켓몬스터 펄」 롬의 실제 지도로 만든 **창기둥** 꼭대기 제단에서 피리를 불면 빛의 계단이 내려옵니다. 계단을 오른 **시작의 방**(역시 펄의 지도)에서 **아르세우스**가 기다리다가, 가까이 다가가면 깨어납니다. 한 번 쓰러뜨린 펄기아·디아루가는 다시 싸우지 않고, 다음 도전은 남은 단계부터 시작합니다.
-- **보스 탑**: 엔딩까지 보면 1979년 지도(강원도)에 **보스 탑**이 생깁니다. 10층 내내 야생 포켓몬 없이 전설의 포켓몬과만 싸웁니다.
+- **보스 탑**: 1979년의 마지막 퀘스트(아르세우스)를 마치면 1979년 지도(강원도)에 **보스 탑**이 생깁니다. 10층 내내 야생 포켓몬 없이 전설의 포켓몬과만 싸웁니다.
   - 1~5층: 서로의 약점을 덮어 주는 준전설이 **둘씩** 나옵니다. 썬더·프리져, 파이어·스이쿤, 엠라이트·아그놈, 라티아스·라티오스, 레지아이스·히드런 (이야기 때의 능력 그대로). 둘이 함께 나와도 예고 공격은 한 번에 하나씩 옵니다.
   - 6~9층: **뮤츠 · 디아루가 · 펄기아 · 기라티나**가 한 마리씩, 기존보다 **15% 더 강하게**.
   - 10층: **아르세우스**, 역시 15% 더 강하게.
   - 탑의 포켓몬은 **잡을 수 없습니다**. 층을 오를 때마다 HP · PP · 상태 이상이 모두 회복되고, 다음에 들어갈 때는 지난번에 깬 층 다음부터 이어서 오를 수 있습니다. 보스 레벨은 아르세우스처럼 팀 레벨을 따라갑니다.
 
 ### 해전 (물 타입만 참가)
-살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 파티와 동료 명부의 물 타입이 자동으로 타고, 모자라면 수군이 빌려줍니다. 첫 시대에 리아코와 물짱이를 받습니다.
+살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 1.13부터 지도에서 해전을 고르면 팀과 동료 명부의 물 타입 목록이 열리고, 배에 태울 포켓몬을 **최대 3마리 직접 고릅니다**(고른 순서대로 앞장섬). 팀의 물 타입은 미리 골라져 있고, 목록은 **팀 먼저 · 레벨 높은 순 · 가나다 순**으로 정렬할 수 있습니다. 2마리보다 적게 고르면 모자란 자리를 수군이 빌려주고, 물 타입이 하나도 없으면 바로 2마리를 빌려줍니다. 1.12까지는 팀의 물 타입과 명부에서 레벨이 가장 높은 물 타입이 저절로 탔습니다. 첫 시대에 리아코와 물짱이를 받습니다.
 
 ### 새로 생긴 이야기와 장치
 - **마을 표시**: 빨간 `!`는 메인 퀘스트, 파란 `!`는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), 엽전 표지는 장사꾼, 국밥 표지는 주막 주인, 보라색 디스크 표지는 기술머신 상인입니다.
@@ -264,7 +265,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 쓰러뜨린 야생 포켓몬은 **35%** 확률(이로치는 70%)로 동료가 되고 싶어 합니다. **보스와 전설의 포켓몬은 이기면 반드시** 동료로 맞이할 수 있습니다.
 - 파티는 주인공·파트너·동료 1마리, 모두 3마리입니다. 나머지는 **동료 명부**(최대 500마리)에서 기다리며 경험치를 절반씩 받습니다.
 - **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 명부 위쪽의 팀에서 하나를 고르면 서로 자리를 바꾸고, 명부의 포켓몬을 고르면 리더·파트너·동료 중 원하는 자리와 교체합니다. 명부의 동료는 던전에서 불러올 수 없습니다.
-- **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 · 도감 번호 · 이름 순입니다.
+- **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 높은 순 · 도감 번호 순 · 가나다 순입니다.
 - **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
 - **최대 레벨 180**: 포켓몬은 본편의 100에서 멈추지 않고 Lv 180까지 오릅니다. 아르세우스도 팀 레벨을 따라 최대 Lv 180이 됩니다.
 - **기술 배우기**: 레벨이 올라 새 기술을 배울 때 기술이 이미 4개면, 본편 포켓몬처럼 **잊을 기술을 고르거나 배우지 않을** 수 있습니다. 마을에서 X 메뉴 → **포켓몬** → Z → **기술 배우기**를 고르면 지금 레벨까지 배우는 기술을 언제든 배웁니다. 잊었거나 건너뛴 기술도 여기서 다시 배우고, 앞으로 배울 기술과 그 레벨도 볼 수 있습니다.
@@ -283,7 +284,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 셋이 모두 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다 (챌린지에서는 그 여행이 끝납니다).
 - 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 **55%** + 상태 이상 회복), 주먹밥(HP 80 + 상태 이상 회복), 인삼(PP 회복), 탈출 부적, 돌팔매, 기력의 조각(1000냥: 쓰러진 포켓몬을 HP 절반으로 되살림, 던전 한 번에 하나).
 - 1.10부터 상태 이상만 고치는 **약초**는 팔지 않고 던전 바닥에도 떨어져 있지 않습니다 (가지고 있던 약초는 한 개에 40냥으로 돌려받습니다). 1392년 「북악산 약초 캐기」 의뢰의 약초는 그 의뢰 동안 북악산에서만 나는 의뢰 물건입니다.
-- **기술머신**: 마을마다 보라색 디스크 표지를 단 **기술머신 상인**이 있습니다. 4세대 기술머신 가운데 이 게임에서 쓸 수 있는 55개를 팔고, 사는 자리에서 바로 가르쳐 줍니다(기술이 4개면 하나를 잊음). 센 기술(위력 80 이상)은 3000냥, 나머지는 1000냥입니다. 포켓몬 자신의 타입, 레벨업으로 배우는 기술의 타입, 노말 타입 기술머신을 쓸 수 있습니다.
+- **기술머신**: 마을마다 보라색 디스크 표지를 단 **기술머신 상인**이 있습니다. 4세대 기술머신 가운데 이 게임에서 쓸 수 있는 55개를 팔고, 사는 자리에서 바로 가르쳐 줍니다(기술이 4개면 하나를 잊음). 센 기술(위력 80 이상)은 15000냥, 나머지는 10000냥입니다 (1.13부터, 전에는 3000냥 · 1000냥). 포켓몬 자신의 타입, 레벨업으로 배우는 기술의 타입, 노말 타입 기술머신을 쓸 수 있습니다.
 
 ### 난이도
 초반 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며, 회복도 느려집니다. 보스는 시대가 갈수록 더 강해지고, 후반 전설은 회복 도구와 타입 상성을 챙겨야 이길 수 있습니다.
@@ -389,6 +390,7 @@ docs/screenshots/       README 스크린샷
   - The First World War: 1914 Sarajevo (Nacrene City): Zoroark, Braviary · 1914 the Marne, Paris (Nimbasa City): Conkeldurr, Krookodile · 1915 Gallipoli (Nuvema Town): Carracosta, Crustle · 1916 Verdun and the Somme (Icirrus City): Klinklang, Aggron, **Cobalion** (optional) · 1916 Jutland, Scapa Flow (Driftveil City): Swanna, Kingdra, **Tornadus** (optional) · 1918 the Armistice, Compiègne (Accumula Town): Scolipede, Bisharp, **Virizion** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): Reuniclus, Cofagrigus.
   - The Second World War: 1939 Danzig (Nacrene City): Escavalier, Eelektross · 1940 Dunkirk (Driftveil City): Kingler, Jellicent, **Keldeo** (optional) · 1940 the Blitz, London (Mistralton City): Archeops, and **Reshiram** in a town battle · 1941 Moscow (Opelucid City): Seismitoad, Vanilluxe, **Landorus** (optional) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): Mantine, Sharpedo · 1942 Leningrad (Nacrene City): Cryogonal, **Meloetta** · 1942 El Alamein, Alexandria (Undella Town): Darmanitan, **Victini** · 1943 Stalingrad and Kursk (Icirrus City): Durant, **Genesect** · 1944 Normandy (Nuvema Town): **Zekrom**, Krookodile · 1944 Leyte Gulf, Tacloban (Undella Town): Jellicent, Gyarados, **Thundurus** (optional) · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.13: the ending opens only once both Arceus (1979) and Kyurem (1945, the world line) are beaten, at the Time Gate of whichever line you finish last (a save that opened it with Arceus alone before keeps it). A naval battle opens a list of your team's and roster's Water types: pick up to three yourself, sorted by team, level or A–Z (the roster sorts by level and A–Z as well); until 1.12 the highest levels boarded by themselves. Town people stand two free tiles apart and never cut a way or narrow one below two tiles, standing or wandering (the world line's towns had crowded them round the gate, and in two seaside towns cut the way). TMs cost 15000 nyang for strong moves and 10000 for the rest.
   - 1.12: Black towns drawn below the map's zero height (Weihaiwei and the other Undella eras, Compiègne, Verdun, Stalingrad, the Driftveil eras) stood people up to three tiles away from the ground drawn under them, so the beach looked blocked and the way was hard to find: their pictures now line up with where you walk, and what lies outside a town is drawn dim. Places that crowd one another on a world map are spread apart (a dot and a line keep their true spot), every place picks by a click or tap on its marker or name, and an arrow key goes to the nearest place that way. World-line bosses join when beaten, as Korea's do. The battle for Seoul leaves the 1950 map once won (entering it again had frozen the game on a black screen), a new journey no longer carries the last journey's place on the world line (a challenge started after a trip abroad could not be lost, and its first trip abroad began in 1915), and Kyurem's fight in Berlin keeps to the town's ground level.
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
@@ -412,7 +414,7 @@ docs/screenshots/       README 스크린샷
   - 1.7: Dialga, Palkia, Giratina and Mewtwo have 30% more HP and 15% more attack (Arceus keeps 1.5's +10% HP); Palkia uses Hydro Pump and a stronger Spacial Rend (more, longer rifts); Giratina's first form takes turns with five warning attacks and two signature moves. The last quest climbs Mt. Coronet: a stronger Palkia, then Dialga (30% stronger again, their attacks about 1.5x as often), whose light becomes the Azure Flute; played at the Spear Pillar's altar (Pearl's own map) it brings down the stairs to the Hall of Origin, where Arceus waits. After the ending, the Boss Tower (Boss Mode) holds ten floors of legends only: lesser legends in pairs that cover each other's weaknesses, then Mewtwo, Dialga, Palkia and Giratina alone and 15% stronger, and Arceus 15% stronger at the top; none can be caught, every floor restores the team, and a later visit can start above the last floor cleared. In town battles your teammates and troops fight on their own instead of following you.
   - 1.5: Dialga, Palkia, Giratina and Arceus have 10% more HP. Legends use signature moves, once in their first phase and two or three times in their second: Dialga's Roar of Time (its HP back to 10 seconds before, the team -20% HP), Palkia's Spacial Rend (the arena closes in, rifts erupt from the floor), Giratina's Shadow Force (out of a teammate's shadow; it also knows Aura Sphere), Groudon's Precipice Blades and Kyogre's Origin Pulse. Darkrai fights in three phases with Dark Void (sleep), Shadow Force and Dark Pulse.
   - Phones: the moves sit in a DraStic-style cross (Q up, W left, E right, R down), and a separate Menu button opens one panel with the game menu, quests, team, dungeon map and the settings. Menus scroll with a finger, and a tap on the dungeon's move list uses that move.
-  - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 3000 nyang for strong attacks (power 80+), 1000 for the rest; a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
+  - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 15000 nyang for strong attacks (power 80+), 10000 for the rest (1.13; were 3000 and 1000); a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
   - From 1200 on, foes stand 5 to 7 levels above your strongest Pokémon (Normal, Hard and Challenge alike) and bosses have 30% more HP.
   - Easy, Normal and Hard difficulty (Hard: every foe, bosses included, has 25% more HP and stats); Challenge (after any ending) means no wipes (a wipe ends the journey for good) and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey).
   - Water-only naval battles; pick a side in the Korean War.

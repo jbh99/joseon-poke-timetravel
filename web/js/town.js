@@ -6,7 +6,7 @@ import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content
 import { tr } from './i18n.js';
 import { openPokedex } from './pokedex.js';
 import { hasPmdSprite, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
-import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons, forgetMenu, moveInfo } from './quests.js';
+import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons, forgetMenu, moveInfo, endingOpen } from './quests.js';
 
 // occupied towns (1910-1944) have constables on patrol (Town.patrols); the independence army's base and the
 // Provisional Government in Chongqing (police: false) are out of their reach
@@ -115,6 +115,7 @@ export class Town {
     const [qx, qy] = this.layout && !restored ? this.behind : this.besideFree(this.px, this.py);
     this.partner = { x: qx, y: qy, fx: qx, fy: qy, vx: qx, vy: qy, face: 'up', who: 1 };
     this.mate = null;
+    if (!this.battle) this.settle();
     this.pairs = [];
     if (!this.battle && policed(this.era, this.def)) this.patrols();
   }
@@ -277,6 +278,10 @@ export class Town {
   relang() { for (const n of this.npcs) n.name = n.nameFn(); }
 
   build() {
+    this.buildMap();
+    this.gap = this.bwmap ? 3 : 2; // how close people may stand to one another (roomFor), a Black town two free tiles
+  }
+  buildMap() {
     if (this.bwmap) return this.buildBW();
     if (this.layout) return this.buildPearl();
     const era = this.era, t = this.def, B = BIOME[t.biome] || BIOME.spring;
@@ -605,6 +610,7 @@ export class Town {
       }
     }
     const hidden = (x, y) => covered[y * MW + x] > TILE * 30 / 4;
+    this.hiddenAt = hidden; // nobody wanders behind a building either (standable)
     // ways out: the walkable edge tiles, else the route gates' doors, else the walkable tile nearest the south edge
     const doors = L.doors.map(([x, y, model]) => ({ x, y, model }));
     this.exitTiles = L.exits.length ? L.exits.map(([x, y]) => [x, y]) : doors.filter((d) => /gate/.test(d.model)).map((d) => [d.x, d.y]);
@@ -680,32 +686,22 @@ export class Town {
     }
     const center = this.gate ? [this.gate.tx + 1, this.gate.ty + 1] : mid;
     if (people) {
-      // spots two tiles apart on the reachable ground nearest the middle, off doors and ways out, and never where a
-      // person would cut the town in two (a narrow way, a bridge): every other free tile stays reachable from the start
-      const taken = new Set();
-      const open = (x, y) => walk(x, y) && !this.onGate(x, y) && !taken.has(y * MW + x);
-      const room = (skip) => { // free tiles reachable from the start, with the tile `skip` taken too
-        const seen = new Set([sy * MW + sx]), q = [[sx, sy]];
-        for (let k = 0; k < q.length; k++) {
-          const [x, y] = q[k];
-          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy, i = b * MW + a; if (i !== skip && !seen.has(i) && open(a, b)) { seen.add(i); q.push([a, b]); } }
-        }
-        return seen.size;
-      };
-      let left = room(-1);
-      const keepsWay = (x, y) => open(x, y) && !hidden(x, y) && !(x === sx && y === sy) && !(x === this.behind[0] && y === this.behind[1]) && room(y * MW + x) === left - 1;
-      const stand = (p) => { taken.add(p[1] * MW + p[0]); left--; return p; };
-      const pool = [...reach].map((k) => [k % MW, Math.floor(k / MW)])
-        .filter(([x, y]) => !isExit(x, y) && !this.onGate(x, y) && !fronts.some((d) => d.x === x && d.y === y))
+      // spots on the reachable ground nearest the middle, off doors and ways out, two free tiles from anyone else and
+      // never where a person would cut a way or narrow one below two tiles (roomFor). A town short of such room gets
+      // people one free tile apart, then side by side, then (a way one tile wide left as it is) anywhere off the ways.
+      // (Up to 1.12 the first person who found no spot was put in the middle unchecked, and a count went wrong so every
+      // later one followed: the world line's towns were crowded around their gates and two were cut in half.)
+      const taken = new Set(), busy = (x, y) => taken.has(y * MW + x);
+      const stand = (p) => { taken.add(p[1] * MW + p[0]); return p; };
+      // a spot asked for by name (the inn by the Pokémon Center's door) may be a door; the rest keep off doors
+      const fine = (x, y) => reachable(x, y) && !isExit(x, y) && !hidden(x, y) && !(x === sx && y === sy) && !(x === this.behind[0] && y === this.behind[1]);
+      const pool = [...reach].map((k) => [k % MW, Math.floor(k / MW)]).filter(([x, y]) => fine(x, y) && !fronts.some((d) => d.x === x && d.y === y))
         .sort((p, q) => Math.hypot(p[0] - center[0], p[1] - center[1]) - Math.hypot(q[0] - center[0], q[1] - center[1]) + (R() - 0.5) * 0.5);
       const nextSpot = () => {
-        for (const [x, y] of pool) {
-          if ([...taken].some((k) => Math.abs((k % MW) - x) + Math.abs(Math.floor(k / MW) - y) < 2) || !keepsWay(x, y)) continue;
-          return stand([x, y]);
-        }
+        for (const [gap, wide] of [[3, true], [2, true], [1, true], [1, false]]) for (const [x, y] of pool) if (this.roomFor(x, y, busy, gap, wide)) return stand([x, y]);
         return null;
       };
-      const spot = (...ps) => { for (const p of ps) if (p && keepsWay(...p)) return stand(p); return nextSpot(); };
+      const spot = (...ps) => { for (const p of ps) if (p && fine(...p) && this.roomFor(p[0], p[1], busy, 3)) return stand(p); return nextSpot(); };
       const put = (n, name, p) => (p ? this.addNpc(n, name, null, p) : this.addNpc(n, name, center));
       const pc = doors.find((d) => /^pc_/.test(d.model) && walk(d.x, d.y)), at = (d, dx) => (d && walk(d.x + dx, d.y) ? [d.x + dx, d.y] : null);
       (main ? era.npcs : t.npcs || []).forEach((n) => put(n, null, nextSpot()));
@@ -781,6 +777,68 @@ export class Town {
     if (BG_CACHE.size > 3) BG_CACHE.delete(BG_CACHE.keys().next().value); // up to ~9 MB each (a 64x64 Pearl town)
   }
 
+  // Can someone stand on (x, y) and leave the town's ways as they are (1.13)? Nobody else within gap - 1 tiles of it
+  // (Chebyshev; busy(x, y): someone else stands there), the open tiles around it still reach one another (no way is
+  // cut) and, `wide`, a 2x2 walker that could pass it still can: a way two tiles wide stays two tiles wide, however
+  // short (two people at both mouths of a short passage leave one tile on each side). The searches stay near (x, y)
+  // unless a way really is cut.
+  roomFor(x, y, busy, gap = 1, wide = true) {
+    const W = this.W, H = this.H;
+    const free = (a, b) => a >= 0 && b >= 0 && a < W && b < H && !this.solid[b][a] && !this.onGate(a, b) && !busy(a, b);
+    if (!free(x, y)) return false;
+    for (let b = y - gap + 1; b < y + gap; b++) for (let a = x - gap + 1; a < x + gap; a++) if ((a !== x || b !== y) && busy(a, b)) return false;
+    const open = (a, b) => (a !== x || b !== y) && free(a, b);
+    const four = (a, b) => [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]];
+    if (!this.linked(four(x, y).filter(([a, b]) => open(a, b)), open)) return false;
+    if (!wide) return true;
+    const sq = (a, b, ok) => ok(a, b) && ok(a + 1, b) && ok(a, b + 1) && ok(a + 1, b + 1); // a 2x2 square by its top-left tile
+    const keep = (a, b) => sq(a, b, open), near = new Map();
+    for (const [a, b] of [[x - 1, y - 1], [x, y - 1], [x - 1, y], [x, y]]) if (sq(a, b, free)) for (const [c, d] of four(a, b)) if (keep(c, d)) near.set(d * W + c, [c, d]);
+    return this.linked([...near.values()], keep);
+  }
+  // do the cells ps (tiles, or 2x2 squares by their top-left tile) still reach one another over cells where ok(a, b)?
+  // The search from the first stops as soon as it has met them all
+  linked(ps, ok) {
+    if (ps.length < 2) return true;
+    const W = this.W, key = ([a, b]) => b * W + a, want = new Set(ps.map(key));
+    const seen = new Set([key(ps[0])]), q = [ps[0]];
+    let left = want.size - 1;
+    for (let k = 0; k < q.length && left > 0; k++) {
+      const [x, y] = q[k];
+      for (const p of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) { const j = key(p); if (!seen.has(j) && ok(p[0], p[1])) { seen.add(j); q.push(p); if (want.has(j)) left--; } }
+    }
+    return left === 0;
+  }
+  // where a person may stand at all: off the ways out, the team, a building's front and (a Black town) the tiles a
+  // building hides
+  standable(x, y) {
+    return !this.exitTiles?.some(([a, b]) => a === x && b === y) && !(x === this.px && y === this.py) && !this.follower(x, y)
+      && !this.inter?.has(y * this.W + x) && !this.hiddenAt?.(x, y);
+  }
+  // whoever was put where a way would be cut or narrowed below two tiles (a town's set places, or a Black town short of
+  // room) steps to the nearest tile that leaves the ways as they are, so nobody blocks a road (1.13)
+  settle() {
+    const W = this.W, at = new Map(this.npcs.map((n) => [n.y * W + n.x, n]));
+    for (const n of this.npcs) {
+      const busy = (x, y) => { const o = at.get(y * W + x); return !!o && o !== n; };
+      if (this.roomFor(n.x, n.y, busy)) continue;
+      const seen = new Set([n.y * W + n.x]), q = [[n.x, n.y]];
+      let to = null;
+      for (let k = 0; k < q.length && !to && seen.size < 600; k++) {
+        const [x, y] = q[k];
+        for (const [a, b] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+          const j = b * W + a;
+          if (seen.has(j) || this.solid[b]?.[a] !== false || this.onGate(a, b)) continue;
+          seen.add(j); q.push([a, b]);
+          if (!to && !busy(a, b) && this.standable(a, b) && this.roomFor(a, b, busy, 2)) to = [a, b];
+        }
+      }
+      if (!to) continue;
+      at.delete(n.y * W + n.x);
+      n.x = n.vx = n.hx = to[0]; n.y = n.vy = n.hy = to[1];
+      at.set(n.y * W + n.x, n);
+    }
+  }
   blocked(x, y, ignorePartner = true) {
     if (x < 0 || y < 0 || x >= this.W || y >= this.H) return true;
     if (this.solid[y][x]) return true;
@@ -791,7 +849,9 @@ export class Town {
   update(dt) {
     if (G.overlays.length) return;
     if (!fade.cb) for (const pr of this.pairs) this.patrolStep(pr, dt);
-    // NPC wandering
+    // NPC wandering: only onto tiles that leave every way open and two tiles wide, keeping the town's distance from
+    // the others (roomFor, this.gap), off doors and ways out (standable)
+    let at = null;
     for (const n of this.npcs) {
       n.vx += (n.x - n.vx) * Math.min(1, dt * 8); n.vy += (n.y - n.vy) * Math.min(1, dt * 8);
       if (!n.wander) continue;
@@ -800,7 +860,10 @@ export class Town {
         n.t = 1.5 + Math.random() * 3;
         const [dx, dy] = choice([[1, 0], [-1, 0], [0, 1], [0, -1]]);
         const nx = n.x + dx, ny = n.y + dy;
-        if (Math.abs(nx - n.hx) <= n.wander && Math.abs(ny - n.hy) <= n.wander && !this.blocked(nx, ny) && !(nx === this.px && ny === this.py) && !this.follower(nx, ny)) {
+        if (!at) at = new Set(this.npcs.map((o) => o.y * this.W + o.x));
+        const busy = (x, y) => (x !== n.x || y !== n.y) && at.has(y * this.W + x);
+        if (Math.abs(nx - n.hx) <= n.wander && Math.abs(ny - n.hy) <= n.wander && this.standable(nx, ny) && this.roomFor(nx, ny, busy, this.gap)) {
+          at.delete(n.y * this.W + n.x); at.add(ny * this.W + nx);
           n.x = nx; n.y = ny; n.face = dx > 0 ? 'right' : dx < 0 ? 'left' : n.face;
         }
       }
@@ -968,23 +1031,28 @@ export class Town {
   }
   gateTalk() {
     if (!eraComplete()) return say([{ who: 'narr', text: tr('희미하게 빛나는 시간의 문이다. 이 시대의 소원을 이루면 열릴 것 같다.', 'A faintly glowing Time Gate. It should open once this era\'s wish comes true.') }]);
-    // the choices: on the Korean line the next era (at its end, the ending) and, from 1945 on, the world; on the world
-    // line its next era and the way back to Korea
-    const opts = [], next = ERAS[S.era + 1];
+    // the choices: on the Korean line the next era and, from 1945 on, the world; on the world line its next era and the
+    // way back to Korea. The ending waits at the end of both lines until both are seen through, Arceus in 1979 and
+    // Kyurem in 1945 (1.13, quests.js endingOpen), and is offered at whichever end the team stands
+    const opts = [], next = ERAS[S.era + 1], ending = endingOpen();
     let text;
     if (isWorld()) {
       if (S.era < ERAS.length - 1) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
+      else if (ending) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
       opts.push([tr('한국으로 돌아가기', 'Back to Korea'), () => G.toKorea()]);
       text = S.era < ERAS.length - 1 ? tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까? 한국으로 돌아갈 수도 있어.`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"? We can also go back to Korea.`)
-        : tr('세계 여행의 끝이야. 이제 한국으로 돌아가자!', 'This is the end of the world journey. Let\'s go back to Korea now!');
+        : ending ? tr('세계 여행도 끝났어! 아르세우스도 큐레무도 만났으니, 이제 엔딩으로 갈까? 한국으로 돌아갈 수도 있어.', 'The world journey is over too! We\'ve met both Arceus and Kyurem. Shall we go to the ending now? We can also go back to Korea.')
+        : tr('세계 여행의 끝이야. 이제 한국으로 돌아가자! 1979년의 아르세우스까지 만나면 엔딩이야.', 'This is the end of the world journey. Let\'s go back to Korea now! Once we meet Arceus in 1979, the ending awaits.');
     } else {
-      if (S.era === KOREA_LAST) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
-      else opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
-      text = S.era === KOREA_LAST ? tr('여기가 여행의 끝이야. 엔딩으로 갈까?', 'This is the end of our journey. Shall we go to the ending?')
-        : tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까?`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"?`);
+      const last = S.era === KOREA_LAST;
+      if (last && ending) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
+      else if (!last) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
+      text = !last ? tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까?`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"?`)
+        : ending ? tr('여기가 여행의 끝이야. 엔딩으로 갈까?', 'This is the end of our journey. Shall we go to the ending?')
+        : tr('아르세우스를 만났어! 하지만 엔딩은 아직이야. 바다 건너 세계로 나가, 제2차 세계 대전 끝의 큐레무까지 만나야 해.', 'We met Arceus! But the ending has to wait: out across the sea, Kyurem waits at the end of the Second World War.');
       if (this.era.year >= WORLD_FROM) {
         opts.push([tr('세계로 (1860 ~ 1945)', 'Out into the world (1860–1945)'), () => G.toWorld()]);
-        text += tr(' …아니면 바다 건너 세계로 나가 볼래? 베이징 조약부터 두 번의 세계 대전까지, 세계가 겪은 시간이 기다리고 있어.', ' ...Or shall we go out across the sea into the world? From the Convention of Peking to two world wars, the world\'s own history is waiting.');
+        if (!last || ending) text += tr(' …아니면 바다 건너 세계로 나가 볼래? 베이징 조약부터 두 번의 세계 대전까지, 세계가 겪은 시간이 기다리고 있어.', ' ...Or shall we go out across the sea into the world? From the Convention of Peking to two world wars, the world\'s own history is waiting.');
       }
     }
     opts.push([tr('아직', 'Not yet'), () => {}]);
@@ -1018,7 +1086,7 @@ export class Town {
         } };
       }), { title: tr(`${no} ${name} · 누구에게?`, `${no} ${name} · Teach whom?`), x: 150, y: 70, w: 210 });
     };
-    say([{ who: npc.sp, name: npc.name, text: tr('기술머신 보고 가세요! 사는 자리에서 바로 가르쳐 드려요. 센 기술은 3000냥, 나머지는 1000냥이에요.', 'TMs for sale! I teach the move right where you buy it. Strong moves are 3000 nyang, the rest 1000.') }], () => openMenu(stock.map(({ move, no }) => {
+    say([{ who: npc.sp, name: npc.name, text: tr('기술머신 보고 가세요! 사는 자리에서 바로 가르쳐 드려요. 센 기술은 15000냥, 나머지는 10000냥이에요.', 'TMs for sale! I teach the move right where you buy it. Strong moves are 15000 nyang, the rest 10000.') }], () => openMenu(stock.map(({ move, no }) => {
       const d = DEX.moves[move], can = S.party.filter((m) => learns(m, move)).map((m) => m.name);
       return { label: `${no} ${d.name}`, right: tr(`${tmPrice(move)}냥`, `${tmPrice(move)} ny`), fn: () => teach(move, no),
         desc: `${moveInfo(move)} · ${can.length ? tr(`배울 수 있다: ${can.join(', ')}`, `Can learn: ${can.join(', ')}`) : tr('파티에 배울 수 있는 포켓몬이 없다', 'No one in the team can learn it')}` };

@@ -3,15 +3,25 @@ import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, set
 import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, MAX_LV, teamPP } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI, KOREA_LAST, isWorld } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
-import { tr } from './i18n.js';
+import { tr, LANG } from './i18n.js';
 import { iconPath } from './pmd.js';
 
 export const era = () => ERAS[S.era];
 export const mainStep = () => era().main[S.step];
 export const eraComplete = () => S.step >= era().main.length;
-// the Korean story seen through: its last era (1979) cleared, here or before a trip out into the world (S.koreaAt)
-export const storyDone = (o = S) => (o.era === KOREA_LAST && o.step >= ERAS[KOREA_LAST].main.length)
-  || (o.koreaAt?.era === KOREA_LAST && o.koreaAt.step >= ERAS[KOREA_LAST].main.length);
+// a line's last era cleared, here or where the team left that line (S.koreaAt, S.worldAt)
+const cleared = (o, i, left) => (o.era === i && o.step >= ERAS[i].main.length) || (left?.era === i && left.step >= ERAS[i].main.length);
+export const koreaDone = (o = S) => cleared(o, KOREA_LAST, o.koreaAt); // Arceus, 1979's last quest
+export const worldDone = (o = S) => cleared(o, ERAS.length - 1, o.worldAt); // Kyurem, the world line's 1945
+// the ending opens once both lines are seen through, Arceus in 1979 and Kyurem in 1945 (1.13; until 1.12 Arceus alone
+// opened it), at the Time Gate at the end of either line (town.js gateTalk)
+export const endingOpen = (o = S) => koreaDone(o) && worldDone(o);
+// the story seen through: the ending is open, or the journey opened it before 1.13 by Arceus alone. Such a journey
+// keeps its ending (its challenge stays won, its ★ stays): load marks it (flags.oldEnding, G.upgradeSave below), and a
+// save on the title's list is read as stored
+const oldEnding = (o) => !!o.flags?.oldEnding || (o !== S && (o.v || 1) < 9 && koreaDone(o));
+export const storyDone = (o = S) => endingOpen(o) || oldEnding(o);
+G.upgradeSave = (o) => { if (koreaDone(o)) o.flags = { ...o.flags, oldEnding: true }; };
 // ---------------------------------------------------------------- foe levels and difficulty
 // A dungeon's foe levels as [lowest, highest, scaled]. Before 1200, and while the team's best is at most Lv 20, the band
 // is the designed one; from then on it runs 5 to 7 levels above the team's strongest Pokémon, never below the design
@@ -353,8 +363,9 @@ async function pickQuest(q) {
 
 export function trackerText() {
   if (eraComplete()) {
-    if (S.era === KOREA_LAST) return tr('여행 완료! 시간의 문에서 세레비와 이야기하자', 'Journey complete! Talk to Celebi at the Time Gate');
-    if (isWorld() && S.era === ERAS.length - 1) return tr('세계 여행 완료! 시간의 문에서 한국으로 돌아가자', 'World journey complete! Head back to Korea through the Time Gate');
+    const done = tr('여행 완료! 시간의 문에서 세레비와 이야기하자', 'Journey complete! Talk to Celebi at the Time Gate');
+    if (S.era === KOREA_LAST) return endingOpen() ? done : tr('아르세우스를 만났다! 시간의 문으로 세계에 나가 큐레무를 만나자', 'You met Arceus! Go out into the world through the Time Gate and meet Kyurem');
+    if (isWorld() && S.era === ERAS.length - 1) return endingOpen() ? done : tr('세계 여행 완료! 시간의 문에서 한국으로 돌아가자', 'World journey complete! Head back to Korea through the Time Gate');
     return tr('시간의 문이 열렸다! 광장의 문으로 가자', 'The Time Gate is open! Head to the gate in the square');
   }
   const st = mainStep();
@@ -581,17 +592,19 @@ function matches(m, q) {
   if (['이로치', 'shiny', '★'].includes(k)) return m.shiny;
   return m.types.some((t) => DEX.types[t].toLowerCase() === k);
 }
+// names in the reader's alphabet: 가나다 in Korean, A to Z in English
+const byName = (a, b) => a.name.localeCompare(b.name, LANG);
 function rosterView() {
   const list = S.roster.filter((m) => matches(m, view.q));
-  if (view.sort === 'level') list.sort((a, b) => b.lv - a.lv);
+  if (view.sort === 'level') list.sort((a, b) => b.lv - a.lv || byName(a, b));
   else if (view.sort === 'dex') list.sort((a, b) => a.sp - b.sp);
-  else if (view.sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+  else if (view.sort === 'name') list.sort(byName);
   return list;
 }
 const monRow = (m) => ({ label: `${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`, right: m.types.map((t) => DEX.types[t]).join('/'),
   desc: `HP ${m.hp}/${m.maxhp} · ${tr('기술', 'Moves')}: ${m.moves.map((mv) => DEX.moves[mv.id].name).join(', ')}` });
 export function rosterMenu(sel = 0) {
-  const sortName = tr({ joined: '들어온 순', level: '레벨 높은 순', dex: '도감 번호 순', name: '이름 순' }, { joined: 'Joined', level: 'Level', dex: 'Dex no.', name: 'Name' });
+  const sortName = tr({ joined: '들어온 순', level: '레벨 높은 순', dex: '도감 번호 순', name: '가나다 순' }, { joined: 'Joined', level: 'Level', dex: 'Dex no.', name: 'A–Z' });
   const list = rosterView();
   const items = [
     { label: tr('찾기', 'Search'), right: view.q ? `"${view.q}"` : tr('이름 · 타입 · 번호', 'name · type · no.'), desc: tr('이름 일부, 초성(ㄹㄱㅇ), 타입(드래곤), 도감 번호(445), 이로치로 찾을 수 있다.', 'Search by part of a name, a type (Dragon), a dex number (445) or "shiny".'),
@@ -635,6 +648,44 @@ function rosterPick(m, row) {
     }
     rosterMenu(row);
   } }]);
+}
+
+// A naval battle's crew (a dungeon with `water`, entered from the world map): the player picks who goes aboard, up to
+// three Water-type Pokémon from the team and the roster, the first picked leading (1.13; until 1.12 the team's Water
+// types went first and the roster's highest levels filled the rest by themselves). The team's own Water types start
+// picked; the list sorts with the team first, by level or 가나다. Fewer than two aboard, the navy lends the rest
+// (Dungeon.boardCrew). `what`: the dungeon's name and size, `go(crew)`: set out
+const CREW_SORTS = ['team', 'level', 'name'];
+const crewView = { sort: 'team' };
+export function crewMenu(what, go, picked = null, sel = 0) {
+  const water = [...S.party, ...S.roster].filter((m) => m.types.includes(11));
+  if (!water.length) return go([]); // nobody to pick: the navy lends a crew
+  if (!picked) picked = S.party.filter((m) => m.types.includes(11)).slice(0, 3);
+  if (crewView.sort === 'level') water.sort((a, b) => b.lv - a.lv || byName(a, b));
+  else if (crewView.sort === 'name') water.sort(byName);
+  const again = (row) => crewMenu(what, go, picked, row), team = new Set(S.party);
+  const sortName = tr({ team: '팀 먼저', level: '레벨 높은 순', name: '가나다 순' }, { team: 'Team first', level: 'Level', name: 'A–Z' });
+  const items = [
+    { label: tr('출발!', 'Set out!'), right: tr(`${picked.length}/3마리`, `${picked.length}/3`),
+      desc: tr(`${what}에 나선다. 고른 순서대로 배에 오르고 첫 번째가 앞장선다.${picked.length < 2 ? ' 모자란 자리는 수군이 빌려준다.' : ''}`,
+        `Set out for ${what}. They board in the order picked, the first leading.${picked.length < 2 ? ' The navy lends the rest.' : ''}`),
+      fn: () => { if (picked.length) return go(picked); toast(tr('배에 태울 포켓몬을 한 마리 이상 골라야 한다.', 'Pick at least one Pokémon to go aboard.'), COL.red); again(0); } },
+    { label: tr('정렬', 'Sort'), right: sortName[crewView.sort], desc: tr('목록을 늘어놓는 순서를 바꾼다.', 'Change the order of the list.'),
+      fn: () => { crewView.sort = CREW_SORTS[(CREW_SORTS.indexOf(crewView.sort) + 1) % CREW_SORTS.length]; again(1); } },
+  ];
+  const top = items.length;
+  water.forEach((m, k) => {
+    const n = picked.indexOf(m);
+    items.push({ ...monRow(m), label: `${n >= 0 ? `[${n + 1}]` : '[  ]'} ${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`, right: `${m.types.map((t) => DEX.types[t]).join('/')}${team.has(m) ? tr(' · 팀', ' · team') : ''}`,
+      fn: () => {
+        if (n >= 0) picked.splice(n, 1);
+        else if (picked.length >= 3) toast(tr('배에는 세 마리까지 탈 수 있다.', 'Only three can go aboard.'), COL.red);
+        else picked.push(m);
+        again(top + k);
+      } });
+  });
+  items.push({ label: tr('그만두기', 'Not now'), desc: tr('해전에 나서지 않는다.', 'Stay ashore.') });
+  openMenu(items, { title: tr(`해전 출전 · 물 타입 (${picked.length}/3)`, `Naval crew · Water types (${picked.length}/3)`), desc: true, x: 70, y: 30, w: 340, sel: Math.min(sel, items.length - 1) });
 }
 
 // settings shared by the town and dungeon menus; each pick reopens the list on the same row
