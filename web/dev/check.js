@@ -45,18 +45,14 @@ export async function checkAll(opts = {}) {
     for (const n of towns.flat()) await spOk(`${tag} npc ${n.id}`, n.sp);
     // world map
     const nodeD = new Set();
-    // a world era's nodes sit on its region's map (data/maps.json), Korea's on the peninsula; in map pixels
-    // (scenes.js WorldMap.pos) two places closer than ~6 px overlap on screen
+    // a world era's nodes sit on its region's map (data/maps.json), Korea's on the peninsula, in map pixels (scenes.js
+    // WorldMap.pos; places that crowd one another are spread apart on screen by WorldMap.spot)
     const m = e.map ? maps[e.map] : korea, px = (n) => [(n.lon - m.lon0) / (m.lon1 - m.lon0) * m.w, (m.lat1 - n.lat) / (m.lat1 - m.lat0) * m.h];
     if (!m) bad(tag, `map ${e.map} missing`);
     else for (const n of e.nodes) {
       if (n.d) { nodeD.add(n.d); if (!e.dungeons[n.d]) bad(tag, `node ${n.id} → missing dungeon ${n.d}`); }
       const [x, y] = px(n);
       if (x < 4 || y < 4 || x > m.w - 4 || y > m.h - 4) bad(tag, `node ${n.id || n.name} off the map (${n.lon}, ${n.lat})`);
-    }
-    if (m) for (const [a, b] of e.nodes.flatMap((a, j) => e.nodes.slice(j + 1).map((b) => [a, b]))) {
-      const [ax, ay] = px(a), [bx, by] = px(b);
-      if (Math.hypot(ax - bx, ay - by) < 6.3) bad(tag, `nodes ${a.id || a.name} and ${b.id || b.name} overlap`);
     }
     for (const n of [...(e.nodesS || []), ...(e.nodesN || [])]) if (n.d) nodeD.add(n.d); // 1950: each side's own map
     // dungeons

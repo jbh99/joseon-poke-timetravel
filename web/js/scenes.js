@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, storyDone } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, storyDone, crewMenu } from './quests.js';
 import { drawMon, BLD } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { openPokedex } from './pokedex.js';
@@ -239,7 +239,7 @@ export class EraCard {
 }
 
 // ---------------------------------------------------------------- world map
-const MZ = 2, MVW = 316;
+const MZ = 2, MVW = 316, GAP = 12; // GAP: room kept between two places' markers and names
 export class WorldMap {
   constructor() { this.sel = 0; }
   async enter() {
@@ -252,14 +252,42 @@ export class WorldMap {
     this.sel = Math.max(0, this.nodes.findIndex((n) => n.id === (S.lastNode || 'town')));
     const n = this.nodes[this.sel];
     [this.cx, this.cy] = this.camFor(n);
-    [this.tx, this.ty] = this.pos(n);
+    [this.tx, this.ty] = this.spot(n);
   }
   pos(n) { // map pixel coordinates at 1x
     const m = this.meta || { lon0: 123.5, lon1: 132, lat0: 33, lat1: 43, w: 300, h: 445 };
     return [(n.lon - m.lon0) / (m.lon1 - m.lon0) * m.w, (m.lat1 - n.lat) / (m.lat1 - m.lat0) * m.h];
   }
-  scr(n) { const [x, y] = this.pos(n); return [x * MZ - this.cx, y * MZ - this.cy]; }
-  camFor(n) { const [x, y] = this.pos(n); return this.clampCam(x * MZ - MVW / 2, y * MZ - VH / 2); }
+  // where a place's marker stands (map pixels at MZ): on its true spot, unless an era's places crowd one another there
+  // (Gallipoli's town, strait and cove sat within 30 px, too close to pick by click, tap or arrow key); then markers
+  // and names are pushed apart until none overlap, and a line leads from a moved marker to its true spot
+  spot(n) {
+    if (this.layLang !== LANG) { this.lay = this.layout(); this.layLang = LANG; }
+    const p = this.lay.get(n);
+    return [p.x, p.y];
+  }
+  layout() {
+    const m = this.meta || { w: 300, h: 445 }, W = m.w * MZ, H = m.h * MZ;
+    // each place's box: its marker (and legend badges above it) and its name below
+    const P = this.nodes.map((n) => {
+      const [x, y] = this.pos(n), legs = n.d ? legendsAt(n.d).length : 0;
+      return { n, x0: x * MZ, y0: y * MZ, x: x * MZ, y: y * MZ, w: Math.max(30, ui.measure(n.name, 9) + 8, legs * 26 + 6), top: legs ? 42 : 14, bottom: 22 };
+    });
+    for (let it = 0, moved = true; moved && it < 300; it++) {
+      moved = false;
+      for (let a = 0; a < P.length; a++) for (let b = a + 1; b < P.length; b++) { // two overlapping boxes part along the shorter way out
+        const A = P[a], B = P[b], ya = A.y + (A.bottom - A.top) / 2, yb = B.y + (B.bottom - B.top) / 2;
+        const ox = (A.w + B.w) / 2 + GAP - Math.abs(A.x - B.x), oy = (A.top + A.bottom + B.top + B.bottom) / 2 + GAP - Math.abs(ya - yb);
+        if (ox <= 0 || oy <= 0) continue;
+        moved = true;
+        if (ox < oy) { const s = (Math.sign(A.x - B.x) || -1) * ox / 2; A.x += s; B.x -= s; } else { const s = (Math.sign(ya - yb) || -1) * oy / 2; A.y += s; B.y -= s; }
+      }
+      for (const p of P) { p.x = clamp(p.x, p.w / 2 + 2, W - p.w / 2 - 2); p.y = clamp(p.y, p.top + 2, H - p.bottom - 2); }
+    }
+    return new Map(P.map((p) => [p.n, p]));
+  }
+  scr(n) { const [x, y] = this.spot(n); return [x - this.cx, y - this.cy]; }
+  camFor(n) { const [x, y] = this.spot(n); return this.clampCam(x - MVW / 2, y - VH / 2); }
   clampCam(cx, cy) { const m = this.meta || { w: 300, h: 445 }; return [clamp(cx, 0, m.w * MZ - MVW), clamp(cy, 0, m.h * MZ - VH)]; }
   get padKeys() { return ['menu', 'quest', 'party']; } // what the touch menu panel offers here (core.js initMenu)
   tags(n) {
@@ -271,22 +299,37 @@ export class WorldMap {
   }
   update(dt) {
     if (!this.nodes || G.overlays.length) return;
-    const k = this.nodes.length, sel0 = this.sel;
-    if (input.repeat('down') || input.repeat('right')) { this.sel = (this.sel + 1) % k; sfx('cursor'); }
-    if (input.repeat('up') || input.repeat('left')) { this.sel = (this.sel + k - 1) % k; sfx('cursor'); }
-    // a click on a place (its icon or name) picks it and goes there, like Z
+    const sel0 = this.sel;
+    // an arrow key goes to the nearest place that way: one within 45° of it before any further off to the side (from
+    // Gallipoli's town ↓ is the strait below, not the cove to the left), and among those sideways counts twice
+    const dir = input.repeat('right') ? [1, 0] : input.repeat('left') ? [-1, 0] : input.repeat('down') ? [0, 1] : input.repeat('up') ? [0, -1] : null;
+    if (dir) {
+      const [x0, y0] = this.spot(this.nodes[this.sel]);
+      let best = -1, bs = Infinity;
+      this.nodes.forEach((m, i) => {
+        const [x, y] = this.spot(m), ahead = (x - x0) * dir[0] + (y - y0) * dir[1], aside = Math.abs((x - x0) * dir[1] - (y - y0) * dir[0]);
+        const s = ahead + aside * 2 + (aside > ahead ? 1e6 : 0);
+        if (i !== this.sel && ahead > 0 && s < bs) { bs = s; best = i; }
+      });
+      if (best >= 0) { this.sel = best; sfx('cursor'); }
+    }
+    // a click or tap on a place (its marker, badge or name) picks it and goes there, like Z
     let go = false;
     const c = input.tap(0, 0, MVW, VH);
     if (c) {
-      let best = -1, bd = 18;
-      this.nodes.forEach((m, i) => { const [x, y] = this.scr(m); const d = Math.hypot(x - c.x, y + 5 - c.y); if (d < bd) { bd = d; best = i; } });
+      let best = -1, bd = 24;
+      this.nodes.forEach((m, i) => {
+        const p = this.lay.get(m), [x, y] = this.scr(m);
+        const d = Math.abs(c.x - x) <= p.w / 2 && c.y >= y - p.top && c.y <= y + p.bottom ? 0 : Math.hypot(x - c.x, y + 5 - c.y);
+        if (d < bd) { bd = d; best = i; }
+      });
       if (best >= 0) { if (best !== this.sel) sfx('cursor'); this.sel = best; go = true; }
     }
     // dragging the map (or the mouse wheel) looks around freely; picking a place brings the camera back to it
     if (this.sel !== sel0) this.free = false;
     if (input.pan.x || input.pan.y) { this.free = true; [this.cx, this.cy] = this.clampCam(this.cx - input.pan.x, this.cy - input.pan.y); }
     const n = this.nodes[this.sel];
-    const [x, y] = this.pos(n), [cx, cy] = this.camFor(n);
+    const [x, y] = this.spot(n), [cx, cy] = this.camFor(n);
     this.tx += (x - this.tx) * Math.min(1, dt * 8); this.ty += (y - this.ty) * Math.min(1, dt * 8);
     if (!this.free) { this.cx += (cx - this.cx) * Math.min(1, dt * 6); this.cy += (cy - this.cy) * Math.min(1, dt * 6); }
     if (input.hit('ok') || go) {
@@ -300,6 +343,8 @@ export class WorldMap {
       if (top) return say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층)에 들어갈까? 지난번에 ${top}층까지 올랐다.`, `Enter the ${d.name}? (${d.floors} floors) Last time you cleared floor ${top}.`),
         choices: tr(['1층부터', `${top + 1}층부터`, '그만두기'], ['From floor 1', `From floor ${top + 1}`, 'Not now']), onChoice: (i) => { if (i < 2) fadeTo(() => G.goDungeon(n.d, undefined, { floor: i ? top + 1 : 1 })); } }]);
       const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${d.floors} floors · legendary Pokémon`) : tr(`${d.floors}층 · 적 레벨 ${lo}~${hi}`, `${d.floors} floors · foes Lv ${lo}-${hi}`);
+      // a naval battle: who goes aboard is picked first (quests.js crewMenu), and the run sets out from that list
+      if (d.water) return crewMenu(`${d.name} (${what})`, (crew) => fadeTo(() => G.goDungeon(n.d, undefined, { crew })));
       say([{ who: 'narr', text: tr(`${d.name} (${what})에 들어갈까?`, `Enter ${d.name}? (${what})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('menu')) return openMenu([
@@ -323,6 +368,13 @@ export class WorldMap {
     c.strokeStyle = 'rgba(90,40,20,0.8)'; c.setLineDash([3, 3]); c.lineWidth = 1;
     for (const n of this.nodes) if (n.d) { const [x, y] = this.scr(n); c.beginPath(); c.moveTo(tx0, ty0); c.lineTo(x, y); c.stroke(); }
     c.setLineDash([]);
+    // a marker moved off its place (spot) keeps a line to a dot on its true spot
+    for (const n of this.nodes) {
+      const p = this.lay.get(n), [x, y] = this.scr(n), x0 = Math.round(p.x0 - this.cx), y0 = Math.round(p.y0 - this.cy);
+      if (Math.hypot(p.x - p.x0, p.y - p.y0) < 4) continue;
+      c.strokeStyle = 'rgba(40,24,12,0.9)'; c.beginPath(); c.moveTo(x0 + 0.5, y0 + 0.5); c.lineTo(x + 0.5, y + 0.5); c.stroke();
+      c.fillStyle = '#2a1a10'; c.fillRect(x0 - 2, y0 - 2, 5, 5); c.fillStyle = '#f0d890'; c.fillRect(x0 - 1, y0 - 1, 3, 3);
+    }
     // three passes: place markers, then legend badges above them, then names and quest tags on top so they stay readable
     const at = this.nodes.map((n) => this.scr(n).map(Math.round));
     this.nodes.forEach((n, i) => {
@@ -353,7 +405,7 @@ export class WorldMap {
       });
     });
     const [a, b, m3] = S.party;
-    const px = this.tx * MZ - this.cx, py = this.ty * MZ - this.cy;
+    const px = this.tx - this.cx, py = this.ty - this.cy;
     if (m3) drawMon(c, m3.spr, m3.shiny, px - 26, py, { moving: true, phase: 2 });
     drawMon(c, b.spr, b.shiny, px - 10, py + 2, { moving: true, phase: 1 });
     drawMon(c, a.spr, a.shiny, px + 8, py + 4, { moving: true });
@@ -416,7 +468,8 @@ export class WorldMap {
     // quests
     const qs = [];
     const st = mainStep();
-    qs.push({ t: eraComplete() ? tr('시간의 문이 열렸다!', 'The Time Gate is open!') : st?.log, c: COL.red });
+    const mainLog = eraComplete() ? tr('시간의 문이 열렸다!', 'The Time Gate is open!') : st?.log; // a scene step (1950's opening) has none
+    if (mainLog) qs.push({ t: mainLog, c: COL.red });
     for (const q of activeSides()) qs.push({ t: `${q.title}${q.d ? ' — ' + (this.e.dungeons[q.d]?.name || '') : ''}`, c: COL.blue });
     const qlines = qs.flatMap((q) => ui.wrap('· ' + q.t, w - 16, 9).map((t) => ({ t, c: q.c })));
     const qy = ny + wrapped2.length * 12 + 10, room = Math.max(1, Math.floor((VH - 22 - qy - 22) / 11));
@@ -424,7 +477,7 @@ export class WorldMap {
     ui.panel(x, qy, w, 22 + shown.length * 11);
     ui.text(st?.final && !eraComplete() ? tr('★ 최종 퀘스트', '★ Final Quest') : tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true, color: st?.final && !eraComplete() ? COL.red : undefined });
     shown.forEach((q, i) => ui.text(q.t, x + 8, qy + 19 + i * 11, { size: 9, color: q.c }));
-    if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · 끌어서 지도 보기 · 메뉴: 퀘스트 · 동료 · X 마을로', 'Tap a place to go · drag to look · Menu: quests · team · X town') : tr('클릭·↑↓ 장소 · 드래그 지도 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/↑↓ place · drag map · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
+    if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · 끌어서 지도 보기 · 메뉴: 퀘스트 · 동료 · X 마을로', 'Tap a place to go · drag to look · Menu: quests · team · X town') : tr('클릭·방향키 장소 · 드래그 지도 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/arrows place · drag map · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
   }
 }
 
@@ -440,16 +493,18 @@ export class Ending {
     this.credits = [
       ...tr(['— 포켓몬스터 조선 시간여행 —', '', '612 살수대첩 · 660 황산벌 · 668 평양성 · 676 기벌포 해전', '1019 귀주대첩 · 1232 처인성 · 1251 팔만대장경', '1380 진포 대첩 · 1388 위화도 회군',
         '1392 조선 건국 · 1446 훈민정음 반포', '1592 임진왜란 · 1598 노량 해전 · 1636 병자호란', '1796 수원 화성 완공 · 1866 병인양요 · 1871 신미양요',
-        '1897 대한제국 선포 · 1905 을사늑약 · 1907 헤이그 특사', '1919 3·1 운동 · 1920 청산리 대첩 · 1940 한국광복군 창설', '1945년 8월 15일 광복', '1950 – 1953 한국 전쟁 · 정전', '1979 10·26 · 12·12 · 1980 서울의 봄', '', '', '함께한 포켓몬'],
+        '1897 대한제국 선포 · 1905 을사늑약 · 1907 헤이그 특사', '1919 3·1 운동 · 1920 청산리 대첩 · 1940 한국광복군 창설', '1945년 8월 15일 광복', '1950 – 1953 한국 전쟁 · 정전', '1979 10·26 · 12·12 · 1980 서울의 봄', '',
+        '— 세계 —', '1860 베이징 조약 · 1894 청일 전쟁 · 1904 러일 전쟁', '1914 – 1918 제1차 세계 대전 · 1919 파리 강화 회의', '1939 – 1945 제2차 세계 대전', '', '', '함께한 포켓몬'],
       ['— Pokémon Joseon Time Travel —', '', '612 Salsu · 660 Hwangsanbeol · 668 Pyongyang · 676 Gibeolpo', '1019 Gwiju · 1232 Cheoin Fortress · 1251 Tripitaka Koreana', '1380 Jinpo · 1388 Wihwado retreat',
         '1392 Joseon founded · 1446 Hunminjeongeum proclaimed', '1592 Imjin War · 1598 Noryang · 1636 Qing invasion', '1796 Hwaseong Fortress · 1866 French and 1871 U.S. expeditions',
-        '1897 Korean Empire proclaimed · 1905 Eulsa Treaty · 1907 Hague envoys', '1919 March 1st Movement · 1920 Battle of Cheongsanri · 1940 Korean Liberation Army', 'Liberation, August 15, 1945', '1950 – 1953 Korean War · armistice', '1979 October 26 · December 12 · 1980 Seoul Spring', '', '', 'Your team']),
+        '1897 Korean Empire proclaimed · 1905 Eulsa Treaty · 1907 Hague envoys', '1919 March 1st Movement · 1920 Battle of Cheongsanri · 1940 Korean Liberation Army', 'Liberation, August 15, 1945', '1950 – 1953 Korean War · armistice', '1979 October 26 · December 12 · 1980 Seoul Spring', '',
+        '— The world —', '1860 Convention of Peking · 1894 Sino-Japanese War · 1904 Russo-Japanese War', '1914 – 1918 First World War · 1919 Paris Peace Conference', '1939 – 1945 Second World War', '', '', 'Your team']),
       ...S.party.map((m) => `${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`), ...(S.roster.length ? [tr(`그리고 동료 ${S.roster.length}마리`, `and ${S.roster.length} more companions`)] : []), '', '',
-      ...tr(['원작 그래픽 · 음악', '포켓몬스터 펄 (ROM에서 추출, 직접 렌더링)', '포켓몬 불가사의 던전 파랑구조대 (던전 · 스프라이트 · 초상화)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
-        '건물 · 거북선 · 판옥선', 'Blender 5.2 절차적 모델링', '', '글꼴', 'Galmuri (OFL)', '', '',
+      ...tr(['원작 그래픽 · 음악', '포켓몬스터 펄 (ROM에서 추출, 직접 렌더링)', '포켓몬 불가사의 던전 파랑구조대 (던전 · 스프라이트 · 초상화)', '포켓몬스터 블랙 (세계 모드의 마을 · 음악 · 5세대 포켓몬)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
+        '건물 · 거북선 · 판옥선', 'Blender 5.2 절차적 모델링', '', '세계 지도', 'Natural Earth', '', '글꼴', 'Galmuri (OFL)', '', '',
         '역사를 잊은 민족에게 미래는 없다', '', '', '플레이해 주셔서 감사합니다!'],
-      ['Original graphics · music', 'Pokémon Pearl (extracted from the ROM, rendered here)', 'Pokémon Mystery Dungeon: Blue Rescue Team (dungeons · sprites · portraits)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
-        'Buildings · turtle ship · panokseon', 'Blender 5.2 procedural models', '', 'Font', 'Galmuri (OFL)', '', '',
+      ['Original graphics · music', 'Pokémon Pearl (extracted from the ROM, rendered here)', 'Pokémon Mystery Dungeon: Blue Rescue Team (dungeons · sprites · portraits)', 'Pokémon Black (world-line towns · music · fifth-generation Pokémon)', '© Nintendo · Creatures · GAME FREAK · Chunsoft', '',
+        'Buildings · turtle ship · panokseon', 'Blender 5.2 procedural models', '', 'World maps', 'Natural Earth', '', 'Font', 'Galmuri (OFL)', '', '',
         'A people that forgets its history has no future', '', '', 'Thank you for playing!']),
     ];
   }
@@ -470,7 +525,7 @@ export class Ending {
       this.credits.forEach((l, i) => ui.text(l, VW / 2, y0 + i * 22, { align: 'center', bold: i === 0, color: i === 0 ? '#ffe9a8' : '#fff', shadow: '#000' }));
     } else {
       ui.text(tr('명예의 전당', 'Hall of Fame'), VW / 2, 24, { align: 'center', bold: true, color: '#ffe9a8', shadow: '#000' });
-      ui.text(tr('612 → 1980 시간여행 완주!', 'Journey from 612 to 1980 complete!'), VW / 2, 42, { align: 'center', color: '#fff', shadow: '#000' });
+      ui.text(tr('612 → 1980, 세계 1860 → 1945 시간여행 완주!', 'Journey from 612 to 1980 and the world from 1860 to 1945 complete!'), VW / 2, 42, { align: 'center', color: '#fff', shadow: '#000' });
       ui.text(S.mode === 'challenge' ? tr('챌린지 달성! 한 번도 전멸하지 않고 완주했다', 'Challenge complete! Not a single wipe all the way') : tr(`난이도: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`, `Difficulty: ${MODE_NAMES()[S.mode] || MODE_NAMES().normal}`), VW / 2, 56, { align: 'center', size: 9, color: S.mode === 'challenge' ? '#ffe27a' : '#ddd', shadow: '#000' });
       S.party.forEach((m, i) => { ui.text(`${m.name}  Lv.${m.lv}`, hofX(i), 176, { align: 'center', bold: true, color: '#fff', shadow: '#000' }); });
       const pt = Math.floor(S.playtime / 60);

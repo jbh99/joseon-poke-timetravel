@@ -1,8 +1,10 @@
 # 포켓몬 조선 시간여행
 
-**고구려 살수대첩(612)부터 1979년 12·12까지, 20개 시대를 여행하는 「포켓몬 불가사의 던전」풍 비공식 팬게임**
+**고구려 살수대첩(612)부터 1979년 12·12까지 한국사 20개 시대, 그리고 1860년부터 1945년까지 세계사 21개 시대를 여행하는 「포켓몬 불가사의 던전」풍 비공식 팬게임**
 
 세레비와 함께 부서진 「시간의 꽃」 꽃잎 20장을 찾아 한반도의 역사 속을 여행합니다. 각 시대 사람들과 포켓몬의 소원을 들어주면 꽃잎이 다시 빛나고, 다음 시대로 가는 시간의 문이 열립니다. 이야기는 실제 역사의 흐름을 따라갑니다.
+
+광복(1945) 뒤에는 한국 이야기와 따로, 청일 · 러일 전쟁과 두 차례의 세계 대전을 지나는 **[세계 모드](#세계-모드)**가 열립니다. 세계 시대의 마을은 「포켓몬스터 블랙」의 실제 마을이고, 5세대 포켓몬 156종이 나옵니다.
 
 > 이 게임은 닌텐도·크리처스·게임프리크·스파이크 춘소프트와 관계없는 **비상업 팬게임**입니다. 아래 [저작권 고지](#저작권-고지)를 꼭 읽어 주세요.
 
@@ -106,7 +108,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
    - **장터**: 도구 사고팔기
    - **방(榜)**: 의뢰 게시판
    - 많은 시대에 큰 중심 마을과 함께 **두 번째 마을**이 있습니다.
-3. **세계 지도**: 마을 출구로 나가면 열립니다. 클릭하거나 방향키로 장소를 고르고, 마우스로 끌거나(드래그) 휠을 굴려 지도를 둘러봅니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, 금색 테두리 안의 포켓몬은 그곳에 있는 전설의 포켓몬입니다.
+3. **세계 지도**: 마을 출구로 나가면 열립니다. 장소를 클릭(터치)하거나, 방향키를 누르면 그 방향에서 가장 가까운 장소로 옮겨 갑니다. 마우스로 끌거나(드래그) 휠을 굴려 지도를 둘러봅니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, 금색 테두리 안의 포켓몬은 그곳에 있는 전설의 포켓몬입니다. 1.12부터 서로 가까이 붙은 장소는 표시와 이름이 겹치지 않게 벌려 놓고, 실제 위치는 작은 점과 선으로 이어 줍니다.
 4. **던전**: 층마다 지형이 무작위로 만들어지는 턴제 던전입니다. 계단을 찾아 내려가고, 마지막 층의 보스를 쓰러뜨립니다.
 5. 메인 퀘스트를 끝내면 광장의 **시간의 문**이 열리고 다음 시대로 넘어갑니다.
 6. 마을에 돌아올 때마다 **자동 저장**됩니다. 저장은 브라우저(localStorage)에 남으니 같은 브라우저에서 **이어하기**를 고르세요.
@@ -137,15 +139,70 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 1940 | 민족 말살 통치 | 경성(1940) / 충칭 · 임시정부 | 반전세계 | **기라티나** |
 | 1945 | 광복 | 서울 | 시간의 틈 · 얄타·포츠담 회담과 분단(이야기) · 진영 선택 | **펄기아** |
 | 1950 | 한국 전쟁 | 진영에 따라 다름 | 서울 시가전, 낙동강, 해전, 장진호, 판문점, 하늘기둥 · 두원 운석터(서울 시가전 뒤) | 그란돈/가이오가, **한카리아스**, **보만다**, 레쿠쟈 · 테오키스 |
-| 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **천관산(마지막 퀘스트)**, 보스 탑(엔딩 뒤) | **다크라이**, 강화된 **펄기아 · 디아루가**, **아르세우스(팀 레벨)** |
+| 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **천관산(마지막 퀘스트)**, 보스 탑(아르세우스 뒤) | **다크라이**, 강화된 **펄기아 · 디아루가**, **아르세우스(팀 레벨)** |
+
+## 세계 모드
+
+**1860년 베이징 조약부터 1945년 제2차 세계 대전의 끝까지, 세계사 21개 시대.** 한국 이야기와 따로 이어지는 두 번째 여행입니다.
+
+- **들어가기**: 1945년 광복 뒤, 한국 시대의 시간의 문에서 **「세계로」**를 고릅니다. 처음 들어가면 1860년부터 시작합니다.
+- **한국과 오가기**: 세계 시대의 시간의 문에서는 언제든 **「한국으로 돌아가기」**를 고를 수 있습니다. 한국 이야기와 세계 이야기는 각자 멈춘 곳을 기억해서, 다시 넘어가면 떠났던 시대부터 이어집니다. 새 여행을 시작하면 세계 모드도 1860년부터 다시 시작합니다(1.11에서는 게임을 끄지 않고 새 여행을 시작하면 앞 여행의 위치를 물려받아, 세계 모드가 1915년부터 열리거나 새 챌린지가 전멸해도 끝나지 않았습니다).
+- **난이도**: 처음부터 적이 내 팀에서 가장 높은 레벨보다 5~7 레벨 높고, 초반 배려가 없습니다. 어려움(+25%)과 챌린지(전멸하면 여행이 끝남) 규칙도 그대로입니다.
+- **마을**: 그 시대의 도시를 「포켓몬스터 블랙」의 실제 마을 11곳 가운데 하나로 그렸습니다. 롬의 지도 · 건물 · 이동 데이터를 그대로 읽어서 걸을 수 있는 곳이 원작과 같습니다. 1.12부터 마을 밖(다른 도로의 구역, 걸어서 닿을 수 없는 빈터)은 어둡게 그려서 갈 수 있는 곳이 한눈에 보입니다. 1.13부터 마을의 포켓몬은 서로 **두 칸 이상** 떨어져 서고, 서 있거나 돌아다니는 자리 옆으로 길이 **두 칸 폭**은 남도록 비켜 섭니다(1.12까지는 자리가 모자라면 시간의 문 둘레에 몰려 서서, 좁은 바닷가 마을에서는 길을 막기도 했습니다). 어느 마을에서든 사람이 길을 끊거나 두 칸 길을 한 칸으로 좁히지 않습니다.
+- **세계 지도**: Natural Earth 지도 데이터로 그린 동아시아 · 유럽 · 태평양 지도입니다.
+- **포켓몬**: 5세대 포켓몬 156종이 블랙의 그림 · 아이콘 · 울음소리 · 능력치 · 기술로 세계 시대의 던전에 나옵니다. 배경 음악도 블랙의 음악입니다.
+
+| 세계 지도 (1916 베르됭과 솜) | 웨이하이웨이 (물결마을) | 둥지의 전설 (제크로무) |
+|---|---|---|
+| ![세계 모드 지도](docs/screenshots/world_map.jpg) | ![웨이하이웨이](docs/screenshots/world_town.jpg) | ![제크로무](docs/screenshots/world_boss.jpg) |
+
+### 개항과 제국주의 (1860–1905)
+
+| 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
+|---|---|---|---|---|
+| 1860 | 베이징 조약 | 베이징 (쌍용시티) | 불타는 원명원, 우수리강 국경 | 액스라이즈, 툰베어 |
+| 1894 | 청일 전쟁 | 웨이하이웨이 (물결마을) | 풍도 앞바다(해전), 황해 해전(해전) | 탱탱겔, 갸라도스 |
+| 1904 | 러일 전쟁 | 뤼순 (물풍경시티) | 제물포 해전(해전), 203고지, 쓰시마 해전(해전) · 뤼순 요새 암벽(선택) | 늑골라, 몰드류, 고래왕 · **테라키온** |
+
+### 제1차 세계 대전 (1914–1919)
+
+| 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
+|---|---|---|---|---|
+| 1914 | 사라예보 사건 | 사라예보 (칠보시티) | 라틴 다리 골목, 발칸 산길 | 조로아크, 워글 |
+| 1914 | 마른 전투 | 파리 (뇌문시티) | 마른 강 전선, 무인 지대 | 노보청, 악비아르 |
+| 1915 | 갈리폴리 전투 | 갈리폴리 (마름꽃마을) | 다르다넬스 해협(해전), 안작 만 절벽 | 늑골라, 암팰리스 |
+| 1916 | 베르됭과 솜 | 베르됭 (설화시티) | 두오몽 요새, 솜 강 참호 · 보 요새의 강철 숲(선택) | 기기기어르, 보스로라 · **코바르온** |
+| 1916 | 유틀란트 해전 | 스캐파 플로 (물풍경시티) | 북해의 안개(해전), 유틀란트 해전(해전) · 북해의 폭풍 구름(선택) | 스완나, 킹드라 · **토네로스** |
+| 1918 | 휴전 | 콩피에뉴 (넝쿨마을) | 콩피에뉴 숲, 마지막 날의 전선 · 아르곤 숲 깊은 곳(선택) | 펜드라, 절각참 · **비리디온** |
+| 1919 | 파리 강화 회의 | 파리 · 베르사유 (성신시티) | 거울의 방, 센 강 다리 밑 | 란쿨루스, 데스니칸 |
+
+### 제2차 세계 대전 (1939–1945)
+
+| 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
+|---|---|---|---|---|
+| 1939 | 제2차 세계 대전의 시작 | 단치히 · 그단스크 (칠보시티) | 베스테르플라테, 단치히 우체국 | 슈바르고, 저리더프 |
+| 1940 | 됭케르크 철수 | 됭케르크 (물풍경시티) | 됭케르크 방파제, 영국 해협(해전) · 이제르 강 물길(선택) | 킹크랩, 탱탱겔 · **케르디오** |
+| 1940 | 런던 대공습 | 런던 (궐수시티) | 비긴 힐 비행장, 대공습의 밤(마을 전투) | 아케오스, **레시라무** |
+| 1941 | 모스크바 전투 | 모스크바 (쌍용시티) | 라스푸티차의 진흙길, 모스크바 근교 설원 · 보로디노 들판(선택) | 두빅굴, 배바닐라 · **랜드로스** |
+| 1942 | 진주만과 미드웨이 | 호놀룰루 (물결마을) | 진주만(해전), 미드웨이 해전(해전) | 만타인, 샤크니아 |
+| 1942 | 레닌그라드 포위전 | 레닌그라드 (칠보시티) | 라도가 호수 얼음길, 얼어붙은 연주회장 | 프리지오, **메로엣타** |
+| 1942 | 엘알라메인 전투 | 알렉산드리아 (물결마을) | 「악마의 정원」 지뢰밭, 모래 언덕의 V 유적 | 불비달마, **비크티니** |
+| 1943 | 스탈린그라드와 쿠르스크 | 스탈린그라드 (설화시티) | 트랙터 공장, 프로호롭카 전차 평원 | 아이앤트, **게노세크트** |
+| 1944 | 노르망디 상륙 작전 | 노르망디 · 바이외 (마름꽃마을) | 해협 위의 폭풍, 오마하 해변 | **제크로무**, 악비아르 |
+| 1944 | 레이테 만 해전 | 타클로반 · 레이테 (물결마을) | 수리가오 해협(해전), 사마르 앞바다(해전) · 필리핀 해의 뇌운(선택) | 탱탱겔, 갸라도스 · **볼트로스** |
+| 1945 | 제2차 세계 대전의 끝 | 베를린 (보배마을) | 얼어붙은 폐허, **얼어붙은 도시(마을 전투, 최종 퀘스트)** | 삼삼드래, **큐레무 (3페이즈)** |
+
+(선택)은 메인 퀘스트와 상관없이 들어가는 전설의 둥지입니다. 굵은 글씨는 전설의 포켓몬입니다.
+
+### 세계 모드의 전설과 최종 보스
+- **5세대 전설**: 레시라무는 런던 대공습의 마을 전투에서, 나머지는 각자 둥지의 3층에서 2페이즈로 싸웁니다. 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. 블랙 롬에는 케르디오의 각오의 모습과 토네로스 · 볼트로스 · 랜드로스의 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
+- **최종 보스 큐레무**: 1945년의 마지막 퀘스트입니다. 베를린이 그대로 싸움터가 되어 큐레무 → 블랙큐레무 → 화이트큐레무 3페이즈로 싸웁니다. 모든 능력치가 천관산 아르세우스보다 20% 높고, 얼음 · 번개 · 불꽃이 몇 턴씩 떨어집니다. 이기면 항복과 해방의 이야기로 세계 모드가 끝납니다.
+- **엔딩 (1.13부터)**: 한국 이야기의 **아르세우스(1979)**와 세계 모드의 **큐레무(1945)**를 **모두** 쓰러뜨려야 엔딩이 열립니다. 나중에 끝낸 쪽의 시간의 문에서 「엔딩으로」를 고르고, 한쪽만 끝냈다면 세레비가 남은 쪽으로 안내합니다. 엔딩의 크레디트와 명예의 전당에도 세계 모드가 함께 나옵니다. 1.12까지 아르세우스만으로 엔딩을 연 기록은 그대로 엔딩을 본 것으로 칩니다(★, 챌린지 달성).
+- **동료**: 전설도, 던전의 일반 보스도 이기면 동료로 맞이할 수 있습니다 (일반 보스는 1.12부터. 챌린지에서는 전설만 동료가 되지 않음).
 
 ## 게임 요소
 
-### 세계 모드 · 포켓몬스터 블랙 · 도감 (1.11)
-- **세계 모드**: 1945년 광복 뒤 광장의 시간의 문에서 「세계로」를 고르면, 1860년 베이징 조약부터 1945년 제2차 세계 대전의 끝까지 21개 시대(청일 · 러일 전쟁의 해전, 사라예보 사건, 제1 · 2차 세계 대전)를 여행합니다. 세계 시대의 시간의 문에서는 언제든 한국으로 돌아올 수 있어요. 처음부터 레벨이 높고 초심자 배려가 없습니다.
-- **실제 마을과 지도**: 세계 시대의 마을은 포켓몬스터 블랙의 실제 마을 11곳(마름꽃마을 · 넝쿨마을 · 성신시티 · 칠보시티 · 뇌문시티 · 물풍경시티 · 궐수시티 · 설화시티 · 쌍용시티 · 보배마을 · 물결마을)을 롬의 지도 · 건물 · 이동 데이터로 그린 것이고, 세계 지도는 Natural Earth 지도 데이터로 그린 동아시아 · 유럽 · 태평양 지도입니다.
-- **5세대 포켓몬 156종**: 블랙의 그림 · 아이콘 · 울음소리 · 능력치 · 기술로 세계 시대 던전에 나옵니다. 레시라무는 런던 마을 전투, 제크로무 · 비크티니 · 게노세크트 · 메로엣타 · 코바르온 · 테라키온 · 비리디온 · 케르디오 · 토네로스 · 볼트로스 · 랜드로스는 각자 둥지 3층의 2페이즈 보스입니다. 전용기를 쓰면 몇 턴 동안 맵 곳곳에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나 땅이 갈라집니다.
-- **최종 보스 큐레무**: 제2차 세계 대전의 마지막 퀘스트에서 큐레무 → 블랙큐레무 → 화이트큐레무 3페이즈로 싸웁니다. 천관산 아르세우스보다 모든 능력치가 20% 높습니다.
+### 도감 (1.11)
 - **도감**: X 메뉴 → 도감. 전국(1~649) · 신오(4세대, 펄) · 하나(5세대, 블랙) 도감 순서로 보고, 포켓몬마다 펄 도감과 블랙 도감 페이지(그림 · 분류 · 설명)를 바꿔 볼 수 있습니다. 만난 포켓몬은 「발견」, 동료가 된 포켓몬은 「포획」으로 기록되고, 「전체 보기」로 모든 페이지를 열 수 있어요. 그림을 누르면 울음소리가 납니다.
 - 배경 음악은 포켓몬스터 블랙의 음악으로 바뀌었고, 휴대폰에서는 십자 패드가 게임 화면 안으로 들어가 화면이 커졌고, 메뉴 버튼은 오른쪽 버튼 줄 맨 위로 옮겼습니다.
 
@@ -172,14 +229,14 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 ### 천관산 (마지막 퀘스트)과 보스 탑 (보스 모드)
 - **천관산**: 1979년 12·12 뒤 장흥의 천관산을 오릅니다. 들어가자마자 **펄기아**, 다음 층에서 **디아루가**가 길을 막습니다. 둘 다 이야기 때보다 **체력과 공격이 30% 더 강하고**, 예고 공격과 전용기를 **1.5배쯤 자주** 씁니다. 1.8부터 천관산의 **펄기아 · 디아루가 · 아르세우스**는 **체력과 모든 능력치가 20%** 더 오릅니다(보스 탑의 능력치는 그대로). 1.7에서 펄기아 2페이즈 도중 게임이 멈추던 문제(오리진폼이 부를 졸개가 없는 던전에서 오류가 나던 것)도 고쳤습니다. 둘을 모두 쓰러뜨리면 **천계의 피리**가 나타나고, 「포켓몬스터 펄」 롬의 실제 지도로 만든 **창기둥** 꼭대기 제단에서 피리를 불면 빛의 계단이 내려옵니다. 계단을 오른 **시작의 방**(역시 펄의 지도)에서 **아르세우스**가 기다리다가, 가까이 다가가면 깨어납니다. 한 번 쓰러뜨린 펄기아·디아루가는 다시 싸우지 않고, 다음 도전은 남은 단계부터 시작합니다.
-- **보스 탑**: 엔딩까지 보면 1979년 지도(강원도)에 **보스 탑**이 생깁니다. 10층 내내 야생 포켓몬 없이 전설의 포켓몬과만 싸웁니다.
+- **보스 탑**: 1979년의 마지막 퀘스트(아르세우스)를 마치면 1979년 지도(강원도)에 **보스 탑**이 생깁니다. 10층 내내 야생 포켓몬 없이 전설의 포켓몬과만 싸웁니다.
   - 1~5층: 서로의 약점을 덮어 주는 준전설이 **둘씩** 나옵니다. 썬더·프리져, 파이어·스이쿤, 엠라이트·아그놈, 라티아스·라티오스, 레지아이스·히드런 (이야기 때의 능력 그대로). 둘이 함께 나와도 예고 공격은 한 번에 하나씩 옵니다.
   - 6~9층: **뮤츠 · 디아루가 · 펄기아 · 기라티나**가 한 마리씩, 기존보다 **15% 더 강하게**.
   - 10층: **아르세우스**, 역시 15% 더 강하게.
   - 탑의 포켓몬은 **잡을 수 없습니다**. 층을 오를 때마다 HP · PP · 상태 이상이 모두 회복되고, 다음에 들어갈 때는 지난번에 깬 층 다음부터 이어서 오를 수 있습니다. 보스 레벨은 아르세우스처럼 팀 레벨을 따라갑니다.
 
 ### 해전 (물 타입만 참가)
-살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 파티와 동료 명부의 물 타입이 자동으로 타고, 모자라면 수군이 빌려줍니다. 첫 시대에 리아코와 물짱이를 받습니다.
+살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 1.13부터 지도에서 해전을 고르면 팀과 동료 명부의 물 타입 목록이 열리고, 배에 태울 포켓몬을 **최대 3마리 직접 고릅니다**(고른 순서대로 앞장섬). 팀의 물 타입은 미리 골라져 있고, 목록은 **팀 먼저 · 레벨 높은 순 · 가나다 순**으로 정렬할 수 있습니다. 2마리보다 적게 고르면 모자란 자리를 수군이 빌려주고, 물 타입이 하나도 없으면 바로 2마리를 빌려줍니다. 1.12까지는 팀의 물 타입과 명부에서 레벨이 가장 높은 물 타입이 저절로 탔습니다. 첫 시대에 리아코와 물짱이를 받습니다.
 
 ### 새로 생긴 이야기와 장치
 - **마을 표시**: 빨간 `!`는 메인 퀘스트, 파란 `!`는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), 엽전 표지는 장사꾼, 국밥 표지는 주막 주인, 보라색 디스크 표지는 기술머신 상인입니다.
@@ -197,7 +254,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **조정**: 독 피해 절반(매 턴 최대 HP의 1/32), 파이어·프리져 체력과 피해 20% 하향.
 
 ### 진영 선택과 그란돈 · 가이오가
-1945년 광복 뒤 나라가 갈라질 때 **민주주의 남한**과 **공산주의 북한** 가운데 진영을 고릅니다. 진영마다 1950년의 마을, 동료, 이야기, 해전 던전이 달라집니다. 1950년 서울 시가전에서 북쪽에는 **그란돈**, 남쪽에는 **가이오가**가 서고(내 쪽 전설은 동료로 함께 싸우고, 다른 쪽 전설이 보스), 이기면 내 쪽 전설만 **주홍구슬/쪽빛구슬**과 함께 동료가 됩니다 (다른 쪽은 얻을 수 없고 전투가 끝나면 다시 만날 수 없습니다). 구슬을 던전에서 쓰면 **원시회귀**해 그 던전이 끝날 때까지 능력이 30% 오르고, 낙동강 전선에서는 그란돈이, 인천 앞바다에서는 가이오가가 능력 +20%를 받습니다.
+1945년 광복 뒤 나라가 갈라질 때 **민주주의 남한**과 **공산주의 북한** 가운데 진영을 고릅니다. 진영마다 1950년의 마을, 동료, 이야기, 해전 던전이 달라집니다. 1950년 서울 시가전에서 북쪽에는 **그란돈**, 남쪽에는 **가이오가**가 서고(내 쪽 전설은 동료로 함께 싸우고, 다른 쪽 전설이 보스), 이기면 내 쪽 전설만 **주홍구슬/쪽빛구슬**과 함께 동료가 됩니다 (다른 쪽은 얻을 수 없고 전투가 끝나면 다시 만날 수 없습니다). 이긴 뒤에는 세계 지도에서 「서울 · 1950년 6월」이 사라집니다(1.11까지는 다시 들어가면 화면이 까맣게 멈췄습니다). 구슬을 던전에서 쓰면 **원시회귀**해 그 던전이 끝날 때까지 능력이 30% 오르고, 낙동강 전선에서는 그란돈이, 인천 앞바다에서는 가이오가가 능력 +20%를 받습니다.
 
 | 진영 | 마을 | 함께하는 포켓몬 |
 |---|---|---|
@@ -208,7 +265,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 쓰러뜨린 야생 포켓몬은 **35%** 확률(이로치는 70%)로 동료가 되고 싶어 합니다. **보스와 전설의 포켓몬은 이기면 반드시** 동료로 맞이할 수 있습니다.
 - 파티는 주인공·파트너·동료 1마리, 모두 3마리입니다. 나머지는 **동료 명부**(최대 500마리)에서 기다리며 경험치를 절반씩 받습니다.
 - **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 명부 위쪽의 팀에서 하나를 고르면 서로 자리를 바꾸고, 명부의 포켓몬을 고르면 리더·파트너·동료 중 원하는 자리와 교체합니다. 명부의 동료는 던전에서 불러올 수 없습니다.
-- **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 · 도감 번호 · 이름 순입니다.
+- **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 높은 순 · 도감 번호 순 · 가나다 순입니다.
 - **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
 - **최대 레벨 180**: 포켓몬은 본편의 100에서 멈추지 않고 Lv 180까지 오릅니다. 아르세우스도 팀 레벨을 따라 최대 Lv 180이 됩니다.
 - **기술 배우기**: 레벨이 올라 새 기술을 배울 때 기술이 이미 4개면, 본편 포켓몬처럼 **잊을 기술을 고르거나 배우지 않을** 수 있습니다. 마을에서 X 메뉴 → **포켓몬** → Z → **기술 배우기**를 고르면 지금 레벨까지 배우는 기술을 언제든 배웁니다. 잊었거나 건너뛴 기술도 여기서 다시 배우고, 앞으로 배울 기술과 그 레벨도 볼 수 있습니다.
@@ -227,7 +284,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 셋이 모두 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다 (챌린지에서는 그 여행이 끝납니다).
 - 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 **55%** + 상태 이상 회복), 주먹밥(HP 80 + 상태 이상 회복), 인삼(PP 회복), 탈출 부적, 돌팔매, 기력의 조각(1000냥: 쓰러진 포켓몬을 HP 절반으로 되살림, 던전 한 번에 하나).
 - 1.10부터 상태 이상만 고치는 **약초**는 팔지 않고 던전 바닥에도 떨어져 있지 않습니다 (가지고 있던 약초는 한 개에 40냥으로 돌려받습니다). 1392년 「북악산 약초 캐기」 의뢰의 약초는 그 의뢰 동안 북악산에서만 나는 의뢰 물건입니다.
-- **기술머신**: 마을마다 보라색 디스크 표지를 단 **기술머신 상인**이 있습니다. 4세대 기술머신 가운데 이 게임에서 쓸 수 있는 55개를 팔고, 사는 자리에서 바로 가르쳐 줍니다(기술이 4개면 하나를 잊음). 센 기술(위력 80 이상)은 3000냥, 나머지는 1000냥입니다. 포켓몬 자신의 타입, 레벨업으로 배우는 기술의 타입, 노말 타입 기술머신을 쓸 수 있습니다.
+- **기술머신**: 마을마다 보라색 디스크 표지를 단 **기술머신 상인**이 있습니다. 4세대 기술머신 가운데 이 게임에서 쓸 수 있는 55개를 팔고, 사는 자리에서 바로 가르쳐 줍니다(기술이 4개면 하나를 잊음). 센 기술(위력 80 이상)은 15000냥, 나머지는 10000냥입니다 (1.13부터, 전에는 3000냥 · 1000냥). 포켓몬 자신의 타입, 레벨업으로 배우는 기술의 타입, 노말 타입 기술머신을 쓸 수 있습니다.
 
 ### 난이도
 초반 시대는 적이 적게 나오고 약하게 때리며 HP도 빨리 찹니다. 시대가 지날수록 적이 많아지고 세지며, 회복도 느려집니다. 보스는 시대가 갈수록 더 강해지고, 후반 전설은 회복 도구와 타입 상성을 챙겨야 이길 수 있습니다.
@@ -274,6 +331,8 @@ web/                    게임 본체 (이 폴더가 그대로 배포됩니다)
   js/core.js            캔버스, 입력(키보드·마우스·터치), 대화창, 메뉴
   js/game.js            포켓몬·기술·도구 데이터, 저장/불러오기
   js/content*.js        20개 시대의 이야기, 마을, 던전, 보스, 의뢰 (content_modern.js: 1905·1979와 1945 이후의 레지·라티)
+  js/content_world.js   세계 모드 21개 시대 (content_w1.js 1860–1919, content_w2.js 1939–1945, content_wkit.js 5세대 전설과 도우미)
+  js/pokedex.js         도감 (전국 · 신오 · 하나, 펄 · 블랙 페이지)
   js/dungeon.js         턴제 던전, 전투, 보스 패턴, 2페이즈, 태그
   js/town.js            마을과 NPC
   js/scenes.js          타이틀, 시대 카드, 세계 지도, 엔딩
@@ -282,13 +341,17 @@ web/                    게임 본체 (이 폴더가 그대로 배포됩니다)
   js/pmd.js             불가사의 던전 스프라이트와 지형 타일 그리기
   js/net.js, netui.js   멀티플레이 (PeerJS)
   js/audio.js           배경음악, 울음소리, 효과음
-mobile/                 안드로이드 앱 (Capacitor 8): 전체 화면·가로 고정·뒤로 가기 처리, 아이콘
   assets/               스프라이트, 지형, 음악, 데이터
   dev/                  자동 플레이 봇과 콘텐츠 점검 스크립트 (배포에서 제외)
+mobile/                 안드로이드 앱 (Capacitor 8): 전체 화면·가로 고정·뒤로 가기 처리, 아이콘
 tools/                  롬에서 그래픽·음악·데이터를 추출한 스크립트 (롬 파일은 포함하지 않음)
   pearl_maps.py         펄 롬의 마을·신전 배치(이동 칸, 건물, 문, NPC 자리)와 도감 몸무게 → assets/data/pearl.json, dex.json
   make_portraits.py     롬에 얼굴이 없는 레지 3총사·레지기가스의 초상화 (펄 전투 그림에서 잘라 냄)
   pmd/extract_pmd.py    파랑구조대 그래픽 (forms 모드: 테오키스 어택·디펜스·스피드폼 스프라이트)
+  bw/render.py          블랙 롬의 마을 11곳: 지도 모델을 그린 그림, 이동 칸과 높이, 건물 앞뒤 가림, 마을 밖 어둡게 (bw_index.py가 한 파일로 묶음)
+  bw/sprites.py 등      블랙의 5세대 그림 · 아이콘(sprites.py), 울음소리(cries.py), 음악(render_bw_bgm.py), 능력치(dexdata.py)
+  geo/worldmaps.py      세계 모드의 동아시아 · 유럽 · 태평양 지도 (Natural Earth)
+  pokedex.py            펄 · 블랙 도감 문장과 분류 → assets/data/pokedex.json
 docs/screenshots/       README 스크린샷
 ```
 
@@ -314,7 +377,7 @@ docs/screenshots/       README 스크린샷
 
 ## English
 
-**Pokémon Joseon Time Travel** is an unofficial, non-commercial Mystery Dungeon-style fan game. With Celebi, you travel through eighteen eras of Korean history, from Goguryeo's Battle of Salsu (612) to the Korean War armistice (1953), and win back the eighteen petals of the Flower of Time.
+**Pokémon Joseon Time Travel** is an unofficial, non-commercial Mystery Dungeon-style fan game. With Celebi, you travel through twenty eras of Korean history, from Goguryeo's Battle of Salsu (612) to December 12, 1979, and win back the twenty petals of the Flower of Time. After liberation (1945) a separate **world line** opens: 21 eras of world history, from the Convention of Peking (1860) to the end of the Second World War, set in the real towns of Pokémon Black.
 
 - **Play**: https://joseon-poke-timetravel.netlify.app or https://jbh99.github.io/joseon-poke-timetravel/ in a desktop browser (phones get on-screen buttons). The **English / 한국어** button switches the language live.
 - **Controls**:
@@ -322,7 +385,13 @@ docs/screenshots/       README 스크린샷
   - Tab tags the next teammate in; A (hold) rests; J opens and closes the quest list.
   - P opens the companion roster outside dungeons: search it (name, type, dex number), sort it, and swap anyone into any team slot; 1/2/3 set the game speed.
   - The mouse picks places on the world map, dialogue choices and menu rows; dragging or the wheel scrolls the map.
+- **World line (1860–1945)**: after liberation, a Korean era's Time Gate offers "To the world"; a world era's Time Gate leads back to Korea at any time, and each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legends; (optional) marks a legend's lair off the main quest.
+  - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: Haxorus, Beartic · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): Jellicent, Gyarados · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill, the rock walls of the forts (optional): Carracosta, Excadrill, Wailord, **Terrakion**.
+  - The First World War: 1914 Sarajevo (Nacrene City): Zoroark, Braviary · 1914 the Marne, Paris (Nimbasa City): Conkeldurr, Krookodile · 1915 Gallipoli (Nuvema Town): Carracosta, Crustle · 1916 Verdun and the Somme (Icirrus City): Klinklang, Aggron, **Cobalion** (optional) · 1916 Jutland, Scapa Flow (Driftveil City): Swanna, Kingdra, **Tornadus** (optional) · 1918 the Armistice, Compiègne (Accumula Town): Scolipede, Bisharp, **Virizion** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): Reuniclus, Cofagrigus.
+  - The Second World War: 1939 Danzig (Nacrene City): Escavalier, Eelektross · 1940 Dunkirk (Driftveil City): Kingler, Jellicent, **Keldeo** (optional) · 1940 the Blitz, London (Mistralton City): Archeops, and **Reshiram** in a town battle · 1941 Moscow (Opelucid City): Seismitoad, Vanilluxe, **Landorus** (optional) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): Mantine, Sharpedo · 1942 Leningrad (Nacrene City): Cryogonal, **Meloetta** · 1942 El Alamein, Alexandria (Undella Town): Darmanitan, **Victini** · 1943 Stalingrad and Kursk (Icirrus City): Durant, **Genesect** · 1944 Normandy (Nuvema Town): **Zekrom**, Krookodile · 1944 Leyte Gulf, Tacloban (Undella Town): Jellicent, Gyarados, **Thundurus** (optional) · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.13: the ending opens only once both Arceus (1979) and Kyurem (1945, the world line) are beaten, at the Time Gate of whichever line you finish last (a save that opened it with Arceus alone before keeps it). A naval battle opens a list of your team's and roster's Water types: pick up to three yourself, sorted by team, level or A–Z (the roster sorts by level and A–Z as well); until 1.12 the highest levels boarded by themselves. Town people stand two free tiles apart and never cut a way or narrow one below two tiles, standing or wandering (the world line's towns had crowded them round the gate, and in two seaside towns cut the way). TMs cost 15000 nyang for strong moves and 10000 for the rest.
+  - 1.12: Black towns drawn below the map's zero height (Weihaiwei and the other Undella eras, Compiègne, Verdun, Stalingrad, the Driftveil eras) stood people up to three tiles away from the ground drawn under them, so the beach looked blocked and the way was hard to find: their pictures now line up with where you walk, and what lies outside a town is drawn dim. Places that crowd one another on a world map are spread apart (a dot and a line keep their true spot), every place picks by a click or tap on its marker or name, and an arrow key goes to the nearest place that way. World-line bosses join when beaten, as Korea's do. The battle for Seoul leaves the 1950 map once won (entering it again had frozen the game on a black screen), a new journey no longer carries the last journey's place on the world line (a challenge started after a trip abroad could not be lost, and its first trip abroad began in 1915), and Kyurem's fight in Berlin keeps to the town's ground level.
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
   - Arceus (its level follows the team's, up to Lv 180) is the last quest, after December 12, 1979: it turns golden for a second phase, where Judgment starts raining round blasts all over the field, and rises a third time in rainbow light (Attack +10%, Defense +20%) to swing Hyper Beam round a full circle three times; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
@@ -345,7 +414,7 @@ docs/screenshots/       README 스크린샷
   - 1.7: Dialga, Palkia, Giratina and Mewtwo have 30% more HP and 15% more attack (Arceus keeps 1.5's +10% HP); Palkia uses Hydro Pump and a stronger Spacial Rend (more, longer rifts); Giratina's first form takes turns with five warning attacks and two signature moves. The last quest climbs Mt. Coronet: a stronger Palkia, then Dialga (30% stronger again, their attacks about 1.5x as often), whose light becomes the Azure Flute; played at the Spear Pillar's altar (Pearl's own map) it brings down the stairs to the Hall of Origin, where Arceus waits. After the ending, the Boss Tower (Boss Mode) holds ten floors of legends only: lesser legends in pairs that cover each other's weaknesses, then Mewtwo, Dialga, Palkia and Giratina alone and 15% stronger, and Arceus 15% stronger at the top; none can be caught, every floor restores the team, and a later visit can start above the last floor cleared. In town battles your teammates and troops fight on their own instead of following you.
   - 1.5: Dialga, Palkia, Giratina and Arceus have 10% more HP. Legends use signature moves, once in their first phase and two or three times in their second: Dialga's Roar of Time (its HP back to 10 seconds before, the team -20% HP), Palkia's Spacial Rend (the arena closes in, rifts erupt from the floor), Giratina's Shadow Force (out of a teammate's shadow; it also knows Aura Sphere), Groudon's Precipice Blades and Kyogre's Origin Pulse. Darkrai fights in three phases with Dark Void (sleep), Shadow Force and Dark Pulse.
   - Phones: the moves sit in a DraStic-style cross (Q up, W left, E right, R down), and a separate Menu button opens one panel with the game menu, quests, team, dungeon map and the settings. Menus scroll with a finger, and a tap on the dungeon's move list uses that move.
-  - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 3000 nyang for strong attacks (power 80+), 1000 for the rest; a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
+  - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 15000 nyang for strong attacks (power 80+), 10000 for the rest (1.13; were 3000 and 1000); a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
   - From 1200 on, foes stand 5 to 7 levels above your strongest Pokémon (Normal, Hard and Challenge alike) and bosses have 30% more HP.
   - Easy, Normal and Hard difficulty (Hard: every foe, bosses included, has 25% more HP and stats); Challenge (after any ending) means no wipes (a wipe ends the journey for good) and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey).
   - Water-only naval battles; pick a side in the Korean War.

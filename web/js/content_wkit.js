@@ -18,8 +18,8 @@ export const talk = (p, log, ...lines) => ({ do: 'talk', npc: p.id, log, say: sa
 export const go = (d, log) => ({ do: 'dungeon', d, log });
 export const scene = (...say) => ({ do: 'scene', say });
 
-// an ordinary dungeon boss (not a legend): its blast, its lines
-export const boss = (sp, lv, moves, tele, say, after, o = {}) => ({ sp, lv, lvMin: lv - 6, lvUp: 4, hp: 2.3, atk: 0.98, cap: 0.33, bgm: 'ba_gym', moves, tele, say, after, noJoin: true, ...o });
+// an ordinary dungeon boss (not a legend): its blast, its lines. Beaten, it asks to join like the Korean line's bosses
+export const boss = (sp, lv, moves, tele, say, after, o = {}) => ({ sp, lv, lvMin: lv - 6, lvUp: 4, hp: 2.3, atk: 0.98, cap: 0.33, bgm: 'ba_gym', moves, tele, say, after, ...o });
 export const blast = (name, type, pats, o = {}) => ({ name, every: 3, dmg: 0.36, pats, type, ...o });
 
 // one era: the town (a Black town by bw), the map nodes from the dungeons' `at`, the town battle on its own town.

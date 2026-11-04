@@ -150,8 +150,9 @@ const BASE_NODES = [
   { id: 'panmun', name: K('판문점 · 시간의 틈', 'Panmunjom · Rift'), lon: 126.68, lat: 37.95, d: 'panmun' },
   { mark: true, name: K('38도선', '38th Parallel'), lon: 127.8, lat: 38.0, text: K('1945년 미국과 소련이 나누어 맡기로 한 경계선. 1953년 정전 뒤에는 군사분계선이 되었다.', 'The line the US and USSR agreed to divide at in 1945. After the 1953 armistice the Military Demarcation Line replaced it.') },
 ];
-// built once (not per call) so the translation binder sees the same objects the world map draws
-const SEOUL_NODE = { id: 'seoul1950', name: BATTLE_TOWN.name, lon: 127.12, lat: 37.62, d: 'seoul1950' };
+// built once (not per call) so the translation binder sees the same objects the world map draws. The battle is fought
+// once: its place leaves the map when it is won (entered again, the town had no boss and no foes left to fight)
+const SEOUL_NODE = { id: 'seoul1950', name: BATTLE_TOWN.name, lon: 127.12, lat: 37.62, d: 'seoul1950', when: () => S.step <= side().main.indexOf(BATTLE_STEPS[1]) };
 const NODES_S = [{ id: 'town', name: SOUTH.town.name, lon: 129.04, lat: 35.1 }, { id: 'town2', name: SOUTH.town2.name, lon: 128.6, lat: 35.87, town: 2 },
   { id: 'incheon', name: K('인천 앞바다', 'Off Incheon'), lon: 126.4, lat: 37.45, d: 'incheon' }, SEOUL_NODE, ...BASE_NODES];
 const NODES_N = [{ id: 'town', name: NORTH.town.name, lon: 125.75, lat: 39.02 }, { id: 'town2', name: NORTH.town2.name, lon: 127.62, lat: 39.83, town: 2 },

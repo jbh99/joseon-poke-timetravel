@@ -253,12 +253,13 @@ export const ITEMS = {
 };
 export const SHOP = ['oran', 'sitrus', 'rice', 'stone', 'escape', 'ginseng', 'revive'];
 // Gen 4 TM01-TM92 by move id. A villager in every town deals in them (town.js tmMenu), selling the ones the dungeons can
-// use and teaching the move on the spot: strong attacks (power 80 and up) cost 3000 nyang, the rest 1000.
+// use and teaching the move on the spot: strong attacks (power 80 and up) cost 15000 nyang, the rest 10000 (1.13; were
+// 3000 and 1000).
 export const TMS = [264, 337, 352, 347, 46, 92, 258, 339, 331, 237, 241, 269, 58, 59, 63, 113, 182, 240, 202, 219, 218, 76, 231,
   85, 87, 89, 216, 91, 94, 247, 280, 104, 115, 351, 53, 188, 201, 126, 317, 332, 259, 263, 290, 156, 213, 168, 211, 285, 289,
   315, 355, 411, 412, 206, 362, 374, 451, 203, 406, 409, 261, 318, 373, 153, 421, 371, 278, 416, 397, 148, 444, 419, 86, 360,
   14, 446, 244, 445, 399, 157, 404, 214, 363, 398, 138, 447, 207, 365, 369, 164, 430, 433];
-export const tmPrice = (move) => (DEX.moves[move].cat !== 2 && DEX.moves[move].power >= 80 ? 3000 : 1000);
+export const tmPrice = (move) => (DEX.moves[move].cat !== 2 && DEX.moves[move].power >= 80 ? 15000 : 10000);
 // who can use a TM: a move of its own types, of a type its level-up list already uses, or a Normal move. An
 // approximation of the games' TM table, which sits in the ROM's personal data and is not extracted (extract_data.py).
 export function tmFits(mon, move) {
@@ -277,7 +278,7 @@ const SAVE_KEY = 'joseon-poke-save-v1', slotKey = (slot) => (slot === 'normal' ?
 export const slotOf = (o) => (SLOTS.includes(o?.slot) ? o.slot : o?.flags?.challengeLost ? 'challenge' : SLOTS.includes(o?.mode) ? o.mode : 'normal');
 // v2 added six eras before 1392: older saves move forward by that many eras (levels are lifted on load, see quests.liftLevels);
 // v3 added 1940 in front of 1945, so a save in 1945 or the Korean War moves one era on
-const SAVE_V = 8, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
+const SAVE_V = 9, OLD_ERA_SHIFT = 6, ERA_1940 = 15;
 // v4 put 1905 between 1887 and 1919 (index 13), and opened the Korean War (v3 index 17) with the battle for Seoul
 const ERA_1905 = 13, WAR_V3 = 17, WAR_NEW_STEPS = 2;
 function migrateV4(o) {
@@ -312,8 +313,10 @@ function migrateV8(o) {
   if (n) { o.money = (o.money || 0) + n * HERB_PRICE; delete o.items.herb; }
 }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town. over: a challenge lost (quests.js
-// endChallenge), its save kept only to mark the journey ended. dex: the Pokédex record (dexState)
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '' });
+// endChallenge), its save kept only to mark the journey ended. dex: the Pokédex record (dexState). koreaAt/worldAt:
+// where the line the team is not on was left (main.js toWorld/toKorea); homeParty: the team ashore during a naval
+// battle. A new journey or a loaded save starts from all of these, so nothing carries over from the journey before
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '', koreaAt: null, worldAt: null, homeParty: null });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode });
@@ -365,6 +368,7 @@ export function load(slot = saves()[0]?.slot) {
     if (v < 6) migrateV6(o);
     if (v < 7) migrateV7([...party, ...roster]);
     if (v < 8) migrateV8(o);
+    if (v < 9) G.upgradeSave?.(o); // v9 (1.13): the ending waits for Kyurem too; an ending opened before stays (quests.js)
     Object.assign(S, FRESH(), o, { party, roster, slot }); // the key it was read from names its journey
     delete S.savedAt;
     syncDex(); // a save from before the Pokédex fills its record in
