@@ -1060,9 +1060,9 @@ export class Town {
     if (!eraComplete()) return say([{ who: 'narr', text: tr('희미하게 빛나는 시간의 문이다. 이 시대의 소원을 이루면 열릴 것 같다.', 'A faintly glowing Time Gate. It should open once this era\'s wish comes true.') }]);
     // the choices: on the Korean line the next era and, from 1945 on, the world; on the world line its next era and the
     // way back to Korea. The ending waits at the end of both lines until both are seen through, Arceus in 1979 and
-    // Kyurem in 1945 (1.13, quests.js endingOpen), and is offered at whichever end the team stands
-    // a journey that opened the ending with Arceus alone before 1.13 (flags.oldEnding, quests.js) keeps it at 1979
-    const opts = [], next = ERAS[S.era + 1], ending = endingOpen(), kept = !ending && !!S.flags.oldEnding;
+    // Kyurem in 1945 (1.13, quests.js endingOpen), and is offered at whichever end the team stands. Nothing else leads
+    // to it: since 1.15 a journey that opened it with Arceus alone before 1.13 goes out to Kyurem too
+    const opts = [], next = ERAS[S.era + 1], ending = endingOpen();
     let text;
     if (isWorld()) {
       if (S.era < ERAS.length - 1) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
@@ -1073,11 +1073,10 @@ export class Town {
         : tr('세계 여행의 끝이야. 이제 한국으로 돌아가자! 1979년의 아르세우스까지 만나면 엔딩이야.', 'This is the end of the world journey. Let\'s go back to Korea now! Once we meet Arceus in 1979, the ending awaits.');
     } else {
       const last = S.era === KOREA_LAST;
-      if (last && (ending || kept)) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
+      if (last && ending) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
       else if (!last) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
       text = !last ? tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까?`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"?`)
         : ending ? tr('여기가 여행의 끝이야. 엔딩으로 갈까?', 'This is the end of our journey. Shall we go to the ending?')
-        : kept ? tr('아르세우스를 만났어! 엔딩으로 갈까? 바다 건너 세계로 나가, 제2차 세계 대전 끝의 큐레무를 만나러 갈 수도 있어.', 'We met Arceus! Shall we go to the ending? We can also go out across the sea, where Kyurem waits at the end of the Second World War.')
         : tr('아르세우스를 만났어! 하지만 엔딩은 아직이야. 바다 건너 세계로 나가, 제2차 세계 대전 끝의 큐레무까지 만나야 해.', 'We met Arceus! But the ending has to wait: out across the sea, Kyurem waits at the end of the Second World War.');
       if (this.era.year >= WORLD_FROM) {
         opts.push([tr('세계로 (1860 ~ 1945)', 'Out into the world (1860–1945)'), () => G.toWorld()]);

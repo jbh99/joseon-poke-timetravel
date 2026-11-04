@@ -14,14 +14,10 @@ const cleared = (o, i, left) => (o.era === i && o.step >= ERAS[i].main.length) |
 export const koreaDone = (o = S) => cleared(o, KOREA_LAST, o.koreaAt); // Arceus, 1979's last quest
 export const worldDone = (o = S) => cleared(o, ERAS.length - 1, o.worldAt); // Kyurem, the world line's 1945
 // the ending opens once both lines are seen through, Arceus in 1979 and Kyurem in 1945 (1.13; until 1.12 Arceus alone
-// opened it), at the Time Gate at the end of either line (town.js gateTalk)
+// opened it), at the Time Gate at the end of either line (town.js gateTalk). It is the story's end for everything else
+// too: the title's ★ and a challenge's stake. A journey that opened the ending with Arceus alone before 1.13 needs
+// Kyurem as well (1.15; 1.13 and 1.14 let it keep its ending)
 export const endingOpen = (o = S) => koreaDone(o) && worldDone(o);
-// the story seen through: the ending is open, or the journey opened it before 1.13 by Arceus alone. Such a journey
-// keeps its ending (its challenge stays won, its ★ stays): load marks it (flags.oldEnding, G.upgradeSave below), and a
-// save on the title's list is read as stored
-const oldEnding = (o) => !!o.flags?.oldEnding || (o !== S && (o.v || 1) < 9 && koreaDone(o));
-export const storyDone = (o = S) => endingOpen(o) || oldEnding(o);
-G.upgradeSave = (o) => { if (koreaDone(o)) o.flags = { ...o.flags, oldEnding: true }; };
 // ---------------------------------------------------------------- foe levels and difficulty
 // A dungeon's foe levels as [lowest, highest, scaled]. Before 1200, and while the team's best is at most Lv 20, the band
 // is the designed one; from then on it runs 5 to 7 levels above the team's strongest Pokémon, never below the design
@@ -38,7 +34,7 @@ export const challenge = () => S.mode === 'challenge';
 // A challenge stakes the whole journey until its story is seen through (★): the first wipe, or a run left in the
 // middle of a dungeon, ends it for good, and the next challenge starts from the beginning (1.10). Its save stays
 // behind marked over (game.js journey), so neither this device nor its cloud copy brings the journey back.
-export const atStake = () => challenge() && !storyDone();
+export const atStake = () => challenge() && !endingOpen();
 export function endChallenge() { S.over = true; S.inRun = null; save(); }
 export const overText = () => tr('챌린지 실패… 이 여행은 여기서 끝났다. 챌린지는 처음부터 다시 시작해야 한다.', 'Challenge failed... This journey is over: a challenge starts again from the very beginning.');
 // continuing a challenge save that was left in the middle of a dungeon counts as that run's wipe: true when it ended

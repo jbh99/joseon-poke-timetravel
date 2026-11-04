@@ -1362,7 +1362,8 @@ export class Dungeon {
   failed() {
     if (this.done) return;
     this.done = true;
-    // a challenge's wipe ends the journey there and then (quests.js atStake); the Boss Tower comes after the ending
+    // a challenge's wipe ends the journey there and then (quests.js atStake); the Boss Tower (open once Arceus is
+    // met) never does
     if (!this.def.tower && atStake()) { endChallenge(); return this.result(tr('모두 쓰러지고 말았다…', 'The whole team fainted...'), false, [overText()]); }
     const lost = Math.floor(S.money * (0.1 + curve() * 0.2)); // early defeats cost little
     S.money -= lost;

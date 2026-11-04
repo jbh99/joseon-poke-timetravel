@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, storyDone, crewMenu } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, crewMenu } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { openPokedex } from './pokedex.js';
@@ -56,9 +56,9 @@ export class Title {
       this.menu = openMenu(items, { x: VW / 2 - 85, y: 196, w: 170, onCancel: () => { this.started = false; } });
     }
   }
-  // a save in a few words: the year and the time played, ★ once its story has been seen through
+  // a save in a few words: the year and the time played, ★ once its ending is open (Arceus and Kyurem beaten)
   when(o) {
-    const pt = Math.floor((o.playtime || 0) / 60), done = storyDone(o);
+    const pt = Math.floor((o.playtime || 0) / 60), done = endingOpen(o);
     return `${ERAS[o.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}${done ? ' ★' : ''}`;
   }
   pickSave(list) {

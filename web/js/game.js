@@ -373,7 +373,9 @@ export function load(slot = saves()[0]?.slot) {
     if (v < 6) migrateV6(o);
     if (v < 7) migrateV7([...party, ...roster]);
     if (v < 8) migrateV8(o);
-    if (v < 9) G.upgradeSave?.(o); // v9 (1.13): the ending waits for Kyurem too; an ending opened before stays (quests.js)
+    // v9 (1.13): the ending waits for Kyurem too. 1.13 and 1.14 marked a journey that had opened it with Arceus alone
+    // (flags.oldEnding) and let it keep that ending; since 1.15 every journey needs Kyurem (quests.js endingOpen)
+    if (o.flags) delete o.flags.oldEnding;
     Object.assign(S, FRESH(), o, { party, roster, slot }); // the key it was read from names its journey
     delete S.savedAt;
     syncDex(); // a save from before the Pokédex fills its record in
