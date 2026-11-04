@@ -1,11 +1,11 @@
 // Boot and main loop.
-import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
+import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
 import { initData, initSaves, S, save, load, newGame } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
-import { Town, setBuildings, setPearl, setBW, townSets } from './town.js';
-import { initPmd, tileSet, portraitImage } from './pmd.js';
+import { Town, setBuildings, setPearl, setBW, townSets, townPictures } from './town.js';
+import { initPmd, tileSet, portraitImage, spriteReady } from './pmd.js';
 import { Dungeon } from './dungeon.js';
 import { Title, EraCard, WorldMap, Ending } from './scenes.js';
 import { onDungeonClear, resumeSteps } from './quests.js';
@@ -16,12 +16,29 @@ import { initCloud } from './cloud.js';
 // coming back to town autosaves (after any quest progress the dungeon unlocked) and cures every status problem; a
 // story step that plays by itself and has not played yet (1950 opens with a scene, a save made just before one) plays
 G.goTown = (kind) => {
+  // the towns' own assets, still loading behind the title on a slow line (boot), come first
+  if (G.townAssets) { holdFade(G.townAssets.then(() => G.goTown(kind))); return; }
+  // a Black town's picture is loaded and decoded first, while the screen stays dark (holdFade): on a slow line the town
+  // stood for seconds with no ground under it, and decoding it on its first frame stalled a phone
+  const pics = townPictures(kind).filter((p) => !prepped.has(p));
+  if (pics.length) { holdFade(prepImages(pics).then(() => enterTown(kind))); return; }
+  enterTown(kind);
+};
+const enterTown = (kind) => {
   for (const m of [...S.party, ...S.roster]) m.status = null;
-  setScene(new Town(kind));
+  const t = new Town(kind);
+  setScene(t);
+  // the people's and the team's sprites load and decode while the screen is still dark, and the town is drawn once
+  // there: its first frames on screen no longer stall (a phone hitched 0.1-0.4 s entering a town the first time). What
+  // the town plays on arrival waits for that too, so no question opens under the dark screen
+  // (the arrival's autosave too, unless a cleared dungeon's news comes first and saves after it)
+  const sheets = [...new Set([...t.npcs.map((n) => n.sp), ...S.party.map((m) => m.spr)])].map((sp) => spriteReady(sp));
   const d = G.pendingClear;
   G.pendingClear = null;
-  if (d) setTimeout(async () => { await onDungeonClear(d); save(); }, 450);
-  else { save(); setTimeout(resumeSteps, 450); }
+  holdFade(Promise.all(sheets).then(() => { if (G.scene === t) t.draw(G.lctx); if (!d) save(); })).finally(() => {
+    if (d) setTimeout(async () => { await onDungeonClear(d); save(); }, 450);
+    else setTimeout(resumeSteps, 450);
+  });
 };
 G.goWorld = () => setScene(new WorldMap());
 G.goDungeon = (d, def, o) => setScene(new Dungeon(d, def, o)); // def: a fight no era lists (Town.policeDef); o.floor: where to start, o.crew: who boards for a naval battle
@@ -163,7 +180,7 @@ async function boot() {
   try {
     await Promise.all([
       document.fonts.load('11px Galmuri11'), document.fonts.load('11px Galmuri11B'), document.fonts.load('9px Galmuri9'),
-      initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings), loadJSON('data/pearl.json').then(setPearl), loadJSON('bw/towns/index.json').then(setBW).catch(() => {}),
+      initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings), loadJSON('data/pearl.json').then(setPearl), tileSet(41).ready,
       loadImages(['poke/front/251.png', ...STARTERS.flatMap((s) => [`poke/front/${s}s.png`, `poke/icon/${s}s.png`])]),
       loadJSON('data/content_en.json').then((t) => {
         const missing = new Set();
@@ -173,8 +190,12 @@ async function boot() {
     ]);
   } catch (e) { status.textContent = tr('불러오기 실패: ', 'Failed to load: ') + e.message; throw e; }
   initLang();
-  const man = await loadJSON('data/manifest.json');
-  await Promise.all([loadImages(['bld', 'prop'].flatMap((k) => man[k].map((n) => `${k}/${n}.png`))), ...townSets().map((id) => tileSet(id).ready)]);
+  // what only the towns need (their buildings, props and ground chunk sets, the Black towns' index: ~0.7 MB in 70
+  // requests) loads behind the title instead of before it; G.goTown waits for it on a line too slow to have it by then
+  G.townAssets = Promise.all([
+    loadJSON('bw/towns/index.json').then(setBW).catch(() => {}),
+    loadJSON('data/manifest.json').then((man) => Promise.all([loadImages(['bld', 'prop'].flatMap((k) => man[k].map((n) => `${k}/${n}.png`))), ...townSets().map((id) => tileSet(id).ready)])),
+  ]).catch((e) => console.warn('town assets', e)).then(() => { G.townAssets = null; }); // a failure must not hold a town's way in forever
   status.remove();
   if (APP) unlockAudio(); // the app may start sound without a tap, so the title music plays at once
   setScene(new Title());
@@ -214,6 +235,7 @@ async function boot() {
     for (const o of G.overlays) o.drawUI();
     drawToasts(real);
     if (fade.a > 0) { s.globalAlpha = fade.a; ui.rect(0, 0, VW, VH, fade.color); s.globalAlpha = 1; }
+    if (fade.hold && fade.a >= 1 && G.real - fade.since > 0.4) ui.text(tr('불러오는 중…', 'Loading…'), VW / 2, VH / 2 - 6, { align: 'center', color: fade.color === '#000' ? '#e8dcc0' : COL.ink });
     NET.frame();
     // on a phone the pad over the game's corner fades while a dialogue or menu is up (index.html body.dim)
     const dim = touchUI && G.overlays.length > 0;

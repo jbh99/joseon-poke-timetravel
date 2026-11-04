@@ -35,7 +35,15 @@ const FOLK_TIPS = () => tr([
   'Companions resting in the roster train too and get half the experience.', 'Some eras have two towns on the world map. Go visit the other one!',
 ]);
 
+// the pictures a Black town is drawn from (its picture and its cut-outs) for the era's town of that kind, as the Town
+// constructor picks it: main.js has them loaded and decoded before the town is entered, the world map asks early
+export function townPictures(kind = S.townKind || 1, e = ERAS[S.era]) {
+  const def = kind === 2 && e?.town2 ? e.town2 : e?.town;
+  return def?.bw && BW.towns[def.bw] ? [`bw/towns/${def.bw}.png`, `bw/towns/${def.bw}_obj.png`] : [];
+}
+
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+const TOWN_DIRS = ['left', 'right', 'up', 'down'], STEP = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
 const BG_CACHE = new Map(); // painted town grounds, most recently used last (Town.prerender)
 // whether a building or prop can show in the view at (vx, vy) (pixels, town coordinates). Images reach at most about
 // eight tiles beside and above their footprint (the palace is 199x185), so the rest is skipped instead of drawn off-screen.
@@ -847,7 +855,10 @@ export class Town {
     return false;
   }
   update(dt) {
-    if (G.overlays.length) return;
+    if (G.overlays.length) { this.tapDir = null; return; }
+    // arrows: the one pressed last leads while it is held (holding ← and pressing ↑ turns up; up to 1.13 left beat
+    // right beat up beat down), and one pressed while a step plays out, however briefly, takes the next step
+    for (const k of TOWN_DIRS) if (input.pressed.has(k)) { this.dirs = (this.dirs || []).filter((d) => d !== k).concat(k); this.tapDir = k; }
     if (!fade.cb) for (const pr of this.pairs) this.patrolStep(pr, dt);
     // NPC wandering: only onto tiles that leave every way open and two tiles wide, keeping the town's distance from
     // the others (roomFor, this.gap), off doors and ways out (standable)
@@ -884,13 +895,17 @@ export class Town {
     for (const k of ['ok', 'cancel', 'menu', 'quest', 'party', 'tag']) if (input.hit(k)) this.queued = k;
     if (!this.moving && !fade.cb) {
       const k = this.queued; this.queued = null;
+      if (k) this.tapDir = null; // Z (or a menu) pressed with an arrow mid-step: the talk or menu, not a step after it
       if (k === 'ok') return this.interact();
       if (k === 'cancel' || k === 'menu') return this.openMain();
       if (k === 'quest') return questMenu();
       if (k === 'party') return rosterMenu();
       if (k === 'tag') return this.tag();
-      let dx = 0, dy = 0;
-      if (input.isDown('left')) { dx = -1; this.face = 'left'; } else if (input.isDown('right')) { dx = 1; this.face = 'right'; } else if (input.isDown('up')) { dy = -1; this.face = 'up'; } else if (input.isDown('down')) { dy = 1; this.face = 'down'; }
+      this.dirs = (this.dirs || []).filter((d) => input.isDown(d));
+      const dir = this.tapDir || this.dirs.at(-1);
+      this.tapDir = null;
+      const [dx, dy] = dir ? STEP[dir] : [0, 0];
+      if (dir) this.face = dir;
       if (dx || dy) {
         const nx = this.px + dx, ny = this.py + dy;
         const exit = this.layout ? this.exitTiles.some(([ex, ey]) => ex === nx && ey === ny) // a Pearl town: walking into a gate door
@@ -906,7 +921,7 @@ export class Town {
             if (hit === 1) { this.partner = Q; this.mate = P; }
           } else { P.x = ox; P.y = oy; if (Q) this.trail(Q, P.fx, P.fy, P); }
           for (const f of F) this.turn(f);
-        } else if (input.pressed.size) sfx('bump');
+        } else if (TOWN_DIRS.some((k) => input.pressed.has(k))) sfx('bump');
       }
     }
   }
@@ -970,7 +985,9 @@ export class Town {
       return onTalk(npc, this);
     }
     if (this.onGate(fx, fy)) return this.gateTalk();
-    const o = this.inter.get(fy * this.W + fx);
+    // a house, the inn, the board, the landmark: the one whose footprint you face, and a ship out on the water a few
+    // tiles that way. (Up to 1.13 only the empty tile in front of a building answered, so facing one said nothing.)
+    const o = this.talkable(fx, fy) || this.shipAhead();
     if (o) {
       if (o.kind === 'board') return boardMenu();
       if (o.kind === 'inn') return this.innMenu();
@@ -978,6 +995,16 @@ export class Town {
       if (o.kind === 'house') return say([{ who: 'narr', text: choice(tr(['문이 굳게 닫혀 있다. 안에서 밥 짓는 냄새가 난다.', '창호지 너머로 두런두런 이야기 소리가 들린다.', '"지금은 바쁘니 나중에 오시오!"', '문 앞에 짚신 두 켤레가 가지런히 놓여 있다.'], ['The door is shut tight. Rice is cooking inside.', 'Murmured voices drift through the paper window.', '"We\'re busy right now, come back later!"', 'Two pairs of straw sandals sit neatly by the door.'])) }]);
       if (o.kind === 'ship') return say([{ who: 'narr', text: o.name === 'geobukseon' ? tr('거북선이다. 등판의 쇠못이 번뜩인다.', 'A turtle ship. The iron spikes on its back glint.') : o.name === 'panokseon' ? tr('판옥선이다. 2층 갑판 위로 깃발이 나부낀다.', 'A panokseon. Flags flutter above its two decks.') : tr('작은 나룻배가 물결에 흔들린다.', 'A little ferry boat bobs on the waves.') }]);
     }
+  }
+  talkable(x, y) { return this.objs.find((o) => o.kind !== 'deco' && o.kind !== 'bw' && x >= o.tx && x < o.tx + o.fw && y >= o.ty && y < o.ty + o.fd) || null; }
+  shipAhead() {
+    const [dx, dy] = STEP[this.face] || [0, 1];
+    for (let k = 1; k <= 4; k++) {
+      const x = this.px + dx * k, y = this.py + dy * k, o = this.talkable(x, y);
+      if (o) return o.kind === 'ship' ? o : null;
+      if (this.ground?.[y]?.[x] !== 'water') return null;
+    }
+    return null;
   }
   // the post-war Regi line starts here: Registeel stands asleep in town (data in content_modern.js)
   regiTalk(npc) {
@@ -1034,7 +1061,8 @@ export class Town {
     // the choices: on the Korean line the next era and, from 1945 on, the world; on the world line its next era and the
     // way back to Korea. The ending waits at the end of both lines until both are seen through, Arceus in 1979 and
     // Kyurem in 1945 (1.13, quests.js endingOpen), and is offered at whichever end the team stands
-    const opts = [], next = ERAS[S.era + 1], ending = endingOpen();
+    // a journey that opened the ending with Arceus alone before 1.13 (flags.oldEnding, quests.js) keeps it at 1979
+    const opts = [], next = ERAS[S.era + 1], ending = endingOpen(), kept = !ending && !!S.flags.oldEnding;
     let text;
     if (isWorld()) {
       if (S.era < ERAS.length - 1) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
@@ -1045,10 +1073,11 @@ export class Town {
         : tr('세계 여행의 끝이야. 이제 한국으로 돌아가자! 1979년의 아르세우스까지 만나면 엔딩이야.', 'This is the end of the world journey. Let\'s go back to Korea now! Once we meet Arceus in 1979, the ending awaits.');
     } else {
       const last = S.era === KOREA_LAST;
-      if (last && ending) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
+      if (last && (ending || kept)) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
       else if (!last) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
       text = !last ? tr(`시간의 문이 열렸어! ${next.year}년 "${next.title}"의 시대로 갈까?`, `The Time Gate is open! Shall we go to ${next.year}, the era of "${next.title}"?`)
         : ending ? tr('여기가 여행의 끝이야. 엔딩으로 갈까?', 'This is the end of our journey. Shall we go to the ending?')
+        : kept ? tr('아르세우스를 만났어! 엔딩으로 갈까? 바다 건너 세계로 나가, 제2차 세계 대전 끝의 큐레무를 만나러 갈 수도 있어.', 'We met Arceus! Shall we go to the ending? We can also go out across the sea, where Kyurem waits at the end of the Second World War.')
         : tr('아르세우스를 만났어! 하지만 엔딩은 아직이야. 바다 건너 세계로 나가, 제2차 세계 대전 끝의 큐레무까지 만나야 해.', 'We met Arceus! But the ending has to wait: out across the sea, Kyurem waits at the end of the Second World War.');
       if (this.era.year >= WORLD_FROM) {
         opts.push([tr('세계로 (1860 ~ 1945)', 'Out into the world (1860–1945)'), () => G.toWorld()]);
@@ -1087,16 +1116,17 @@ export class Town {
       }), { title: tr(`${no} ${name} · 누구에게?`, `${no} ${name} · Teach whom?`), x: 150, y: 70, w: 210 });
     };
     say([{ who: npc.sp, name: npc.name, text: tr('기술머신 보고 가세요! 사는 자리에서 바로 가르쳐 드려요. 센 기술은 15000냥, 나머지는 10000냥이에요.', 'TMs for sale! I teach the move right where you buy it. Strong moves are 15000 nyang, the rest 10000.') }], () => openMenu(stock.map(({ move, no }) => {
-      const d = DEX.moves[move], can = S.party.filter((m) => learns(m, move)).map((m) => m.name);
+      const d = DEX.moves[move], can = () => S.party.filter((m) => learns(m, move)).map((m) => m.name); // who still can, after each lesson
       return { label: `${no} ${d.name}`, right: tr(`${tmPrice(move)}냥`, `${tmPrice(move)} ny`), fn: () => teach(move, no),
-        desc: `${moveInfo(move)} · ${can.length ? tr(`배울 수 있다: ${can.join(', ')}`, `Can learn: ${can.join(', ')}`) : tr('파티에 배울 수 있는 포켓몬이 없다', 'No one in the team can learn it')}` };
-    }), { title: tr(`기술머신 · ${S.money}냥`, `TMs · ${S.money} nyang`), desc: true, keep: true, x: 110, y: 30, w: 260 }));
+        desc: () => `${moveInfo(move)} · ${can().length ? tr(`배울 수 있다: ${can().join(', ')}`, `Can learn: ${can().join(', ')}`) : tr('파티에 배울 수 있는 포켓몬이 없다', 'No one in the team can learn it')}` };
+    }), { title: () => tr(`기술머신 · ${S.money}냥`, `TMs · ${S.money} nyang`), desc: true, keep: true, x: 110, y: 30, w: 260 })); // the money on show follows each purchase
   }
   shopMenu(npc) {
-    const buy = () => openMenu(SHOP.map((id) => ({ label: ITEMS[id].name, right: tr(`${ITEMS[id].price}냥`, `${ITEMS[id].price} ny`), desc: tr(`${ITEMS[id].desc} (보유 ${countItem(id)})`, `${ITEMS[id].desc} (have ${countItem(id)})`), fn: () => {
+    // the money in the title and the count in the bag follow each purchase (the menu stays open)
+    const buy = () => openMenu(SHOP.map((id) => ({ label: ITEMS[id].name, right: tr(`${ITEMS[id].price}냥`, `${ITEMS[id].price} ny`), desc: () => tr(`${ITEMS[id].desc} (보유 ${countItem(id)})`, `${ITEMS[id].desc} (have ${countItem(id)})`), fn: () => {
       if (S.money < ITEMS[id].price) { toast(tr('엽전이 모자라다.', 'Not enough coins.'), COL.red); sfx('cancel'); return; }
       S.money -= ITEMS[id].price; addItem(id); sfx('pick'); toast(tr(`${ITEMS[id].name}을(를) 샀다! (남은 돈 ${S.money}냥)`, `Bought ${ITEMS[id].name}! (${S.money} nyang left)`));
-    } })), { title: tr(`장터 · ${S.money}냥`, `Market · ${S.money} nyang`), desc: true, keep: true, x: 150, y: 30, w: 200 });
+    } })), { title: () => tr(`장터 · ${S.money}냥`, `Market · ${S.money} nyang`), desc: true, keep: true, x: 150, y: 30, w: 200 });
     const sell = () => {
       const ids = Object.keys(S.items).filter((id) => ITEMS[id] && !ITEMS[id].key); // key items (the orbs) are never sold
       if (!ids.length) return toast(tr('팔 물건이 없다.', 'Nothing to sell.'));
@@ -1119,7 +1149,11 @@ export class Town {
   leave() { fadeTo(() => G.goWorld()); }
 
   draw(c) {
-    const camX = clamp(this.vx * TILE + 12 - VW / 2, 0, this.W * TILE - VW), camY = clamp(this.vy * TILE + 12 - VH / 2, 0, this.H * TILE - VH);
+    // the camera follows the team where it is drawn: on a Black town's raised ground that is up the picture by the lift,
+    // and the view may rise as far into the picture's top margin (up to 1.13 it framed the flat place, so on Compiègne's
+    // hill the team stood near the screen's top edge and in the top rows partly above it)
+    const L = this.bwmap ? Math.min(this.liftAt(this.vx, this.vy), this.bwmap.oy) : 0;
+    const camX = clamp(this.vx * TILE + 12 - VW / 2, 0, this.W * TILE - VW), camY = clamp(this.vy * TILE + 12 - L - VH / 2, -L, this.H * TILE - VH);
     this.cam = [camX, camY];
     if (!this.bg) this.prerender();
     c.fillStyle = '#20301c'; c.fillRect(0, 0, VW, VH);
@@ -1138,8 +1172,8 @@ export class Town {
       for (let i = 0; i < 40; i++) { const x = (i * 97 + Math.floor(G.time * 12) * 3) % (this.W * TILE), y = (this.H - 6) * TILE + (i * 53) % (5 * TILE); c.fillRect(x, y, 6, 1); }
     }
     if (this.gate) this.drawGate(c);
-    const list = [];
-    for (const o of this.objs) if (o.atlas ? o.x + o.w >= camX && o.x <= camX + VW && o.y + o.h >= camY && o.y <= camY + VH : objInView(o, camX, camY)) list.push({ base: o.base, draw: () => {
+    const list = [], near = [];
+    for (const o of this.objs) if (o.atlas ? o.x + o.w >= camX && o.x <= camX + VW && o.y + o.h >= camY && o.y <= camY + VH : objInView(o, camX, camY)) near.push(o), list.push({ base: o.base, draw: () => {
       if (o.atlas) { const at = img(o.atlas); if (ready(at)) c.drawImage(at, o.sx, o.sy, o.w, o.h, o.x, o.y, o.w, o.h); return; }
       const im = img(o.img);
       if (!ready(im)) return;
@@ -1154,14 +1188,19 @@ export class Town {
       if (mark === 'main' || mark === 'side' || mark === 'alarm') this.drawMark(c, mx, my, '!', mark === 'main' ? COL.red : mark === 'alarm' ? '#e0702a' : COL.blue);
       else if (mark) this.drawSign(c, mx, my, mark);
     } });
-    const a = S.party[0];
+    const a = S.party[0], team = [];
     for (const [f, k] of [[this.mate, 2], [this.partner, 1]]) { // each follower shows its team slot (who)
       const m = f && S.party[f.who];
-      if (m) list.push({ base: f.vy * TILE + TILE - k, draw: () => drawMon(c, m.spr, m.shiny, f.vx * TILE + 12, f.vy * TILE + TILE - this.liftAt(f.vx, f.vy), { face: f.dir, facing: f.face === 'right' ? 'right' : 'left', moving: this.moving, phase: k }) });
+      if (m) team.push({ base: f.vy * TILE + TILE - k, x: f.vx * TILE + 12, y: f.vy * TILE + TILE - this.liftAt(f.vx, f.vy), draw: (o) => drawMon(c, m.spr, m.shiny, f.vx * TILE + 12, f.vy * TILE + TILE - this.liftAt(f.vx, f.vy), { face: f.dir, facing: f.face === 'right' ? 'right' : 'left', moving: this.moving, phase: k, ...o }) });
     }
-    list.push({ base: this.vy * TILE + TILE, draw: () => drawMon(c, a.spr, a.shiny, this.vx * TILE + 12, this.vy * TILE + TILE - this.liftAt(this.vx, this.vy), { face: this.face, facing: this.face === 'right' ? 'right' : this.face === 'left' ? 'left' : this.lastH || 'left', moving: this.moving }) });
+    team.push({ base: this.vy * TILE + TILE, x: this.vx * TILE + 12, y: this.vy * TILE + TILE - this.liftAt(this.vx, this.vy), draw: (o) => drawMon(c, a.spr, a.shiny, this.vx * TILE + 12, this.vy * TILE + TILE - this.liftAt(this.vx, this.vy), { face: this.face, facing: this.face === 'right' ? 'right' : this.face === 'left' ? 'left' : this.lastH || 'left', moving: this.moving, ...o }) });
     if (this.face === 'left' || this.face === 'right') this.lastH = this.face;
+    for (const t of team) list.push({ base: t.base, draw: () => t.draw() });
     list.sort((p, q) => p.base - q.base).forEach((d) => d.draw());
+    // the team behind a roof, a gatehouse or a row of trees shows through it faintly (up to 1.13 it vanished there, in
+    // Paris for 16 steps): drawn again half see-through over what was drawn after it. Where nothing covers it, the
+    // second picture lies exactly on the first and changes nothing
+    for (const t of team) if (near.some((o) => o.base > t.base && this.covers(o, t.x, t.y))) t.draw({ alpha: 0.5, noShadow: true });
     c.restore();
     if (this.B.tint) { c.fillStyle = this.B.tint; c.fillRect(0, 0, VW, VH); }
     if (S.night) {
@@ -1174,6 +1213,17 @@ export class Town {
       }
       c.restore();
     }
+  }
+  // whether a building or prop's picture overlaps someone standing with their feet at (x, foot) (a sprite about 24x30)
+  covers(o, x, foot) {
+    let r;
+    if (o.atlas) r = [o.x, o.y, o.w, o.h];
+    else {
+      const im = img(o.img);
+      if (!ready(im)) return false;
+      r = o.prop ? [o.tx * TILE + (o.fw * TILE - im.width) / 2, (o.ty + o.fd) * TILE - im.height + 2, im.width, im.height] : [o.x, o.y, im.width, im.height];
+    }
+    return r[0] < x + 12 && r[0] + r[2] > x - 12 && r[1] < foot - 4 && r[1] + r[3] > foot - 34;
   }
   isQuestNpc(n) {
     const st = mainStep();
@@ -1222,7 +1272,10 @@ export class Town {
     c.fillStyle = '#fff'; c.fillRect(x - 1, by - 3, 2, 4); c.fillRect(x - 1, by + 2, 2, 2);
   }
   drawGate(c) {
-    const x = this.gate.tx * TILE, y = this.gate.ty * TILE, open = eraComplete();
+    // on a Black town's raised ground the gate stands up the picture with the people on it (liftAt): up to 1.13 it was
+    // drawn at its tiles' flat place, three tiles below where it opens in Compiègne, Verdun and Stalingrad
+    const lift = Math.round(this.liftAt(this.gate.tx + 0.5, this.gate.ty + 0.5));
+    const x = this.gate.tx * TILE, y = this.gate.ty * TILE - lift, open = eraComplete();
     const cx = x + TILE, cy = y + TILE;
     c.save();
     c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(cx, cy + 14, 22, 7, 0, 0, Math.PI * 2); c.fill();
@@ -1242,11 +1295,16 @@ export class Town {
   }
   drawUI() {
     // header & tracker
-    const era = this.era;
-    ui.panel(6, 6, 150, 30);
-    ui.text(tr(`${era.year}년 · ${era.title}`, `${era.year} · ${era.title}`), 14, 12, { bold: true });
-    ui.text(this.def.name + (S.night ? tr(' (밤)', ' (night)') : ''), 14, 24, { size: 9, color: COL.ink2 });
-    const goal = trackerText();
+    const era = this.era, goal = trackerText();
+    // the era's title in a box as wide as it needs, up to the goal box, wrapping beyond that (up to 1.13 a fixed 150 px
+    // box, which 30 English and 7 Korean titles ran out of)
+    const room = (goal ? VW - 186 : VW) - 18, head = tr(`${era.year}년 · ${era.title}`, `${era.year} · ${era.title}`);
+    let heads = ui.wrap(head, room - 16, 11, true);
+    if (heads.length > 2) heads = [heads[0], ui.fit(heads.slice(1).join(' '), room - 16, 11, true)];
+    const sub = ui.fit(this.def.name + (S.night ? tr(' (밤)', ' (night)') : ''), room - 16, 9);
+    ui.panel(6, 6, Math.min(room, Math.max(150, ui.measure(sub, 9) + 16, ...heads.map((l) => ui.measure(l, 11, true) + 16))), 18 + heads.length * 12);
+    heads.forEach((l, i) => ui.text(l, 14, 12 + i * 12, { bold: true }));
+    ui.text(sub, 14, 12 + heads.length * 12, { size: 9, color: COL.ink2 });
     if (goal) {
       const lines = ui.wrap(goal, 170, 9);
       ui.panel(VW - 186, 6, 180, 17 + lines.length * 11); // room below the last row for its descenders

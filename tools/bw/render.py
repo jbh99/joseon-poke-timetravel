@@ -45,6 +45,10 @@ OBLIQUE = 0.6             # how far up the picture a unit of height goes
 CHUNK = 512               # model units a chunk
 BOTTOM = 128              # model units of picture below the southern edge, for ground below zero height (Undella's)
 DIM, DIM_ADD = 0.45, np.array([14, 16, 26], np.float32)  # the colour of what lies outside the town: rgb * DIM + DIM_ADD
+# floors the ROM walls off although they look like the town's own paving (tile boxes x, y, w, h): drawn dim like what
+# lies outside the town, so the picture offers no way that is not there. Accumula's strip below the railing in its
+# south-west was drawn bright and walked into nothing (1.14)
+WALLED = {'accumula': [(0, 29, 20, 3)]}
 # occluder pieces (split_sprite): opaque parts closer than GAP px stay one piece; a piece wider than STRIP px that is
 # less than FILL opaque is cut into STRIP-px strips
 GAP, STRIP, FILL = 6, 128, 0.5
@@ -394,6 +398,8 @@ def render_town(data, name):
         pocket = ~blocked & (region != int(np.argmax(sizes)))
         blocked |= pocket
         outside |= pocket
+    for x, y, w, h in WALLED.get(name, []):
+        outside[y:y + h, x:x + w] |= blocked[y:y + h, x:x + w]
     # what lies outside the town is drawn dim, the buildings and trees standing there too, so the picture itself shows
     # where people can go (Icirrus's corner of Route 8 looked like a meadow of the town)
     dim = (cv.owner >= 0) & outside[np.clip((cv.wz // 16).astype(np.int64), 0, H - 1), np.clip(np.arange(cv.w) // TILE, 0, W - 1)[None, :]]

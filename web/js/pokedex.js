@@ -4,7 +4,7 @@
 // shows follows the journey (game.js dexState): a Pokémon not met yet is a shadow, one seen shows its picture, name,
 // category and types, one caught its whole page. "Show all" opens every page.
 import { G, VW, VH, input, ui, COL, img, ready, loadJSON, clamp, prefs, setPref, touchUI } from './core.js';
-import { tr } from './i18n.js';
+import { tr, EN } from './i18n.js';
 import { DEX, TYPE_COLORS, DEX_N, dexState, syncDex } from './game.js';
 import { cry } from './audio.js';
 
@@ -46,12 +46,16 @@ export class Pokedex {
     this.done = false;
     this.gen = prefs.dexGen === 4 ? 4 : 5;
     loadJSON('data/pokedex.json').then((d) => { this.data = d; }, () => { this.failed = true; });
+    this.lang();
     this.count();
   }
   count() {
     this.seen = 0; this.caught = 0;
     for (let sp = 1; sp <= DEX_N; sp++) { const v = dexState(sp); if (v) this.seen++; if (v === 2) this.caught++; }
   }
+  // the English pages load the first time the Pokédex is open in English (here or after a language switch)
+  lang() { if (EN && !this.en && !this.enLoading) { this.enLoading = true; loadJSON('data/pokedex_en.json').then((d) => { this.en = d; }, () => { this.enLoading = false; }); } }
+  relang() { this.lang(); }
   list() { const L = TABS[at.tab].list; return L ? this.data[L] : null; }
   get n() { return this.list()?.length ?? DEX_N; }
   spAt(i) { return this.list()?.[i] ?? i + 1; }
@@ -134,7 +138,9 @@ export class Pokedex {
   }
   drawPage(sp) {
     const x = 186, y = 34, w = 286, e = this.data.e[sp], d = DEX.species[sp], show = this.shown(sp);
-    const gen = this.gen === 4 && sp <= LAST4 ? 4 : 5, [cat, text] = gen === 4 ? [e[0], e[1]] : [e[2], e[3]];
+    // in English the pages read from the English translation of the ROM's Korean texts (pokedex_en.json), once loaded
+    const t = (EN && this.en?.e[sp]) || e;
+    const gen = this.gen === 4 && sp <= LAST4 ? 4 : 5, [cat, text] = gen === 4 ? [t[0], t[1]] : [t[2], t[3]];
     ui.panel(x, y, w, 222, { fill: '#fbf3dd' });
     // the two games' pages
     this.genBoxes = [[4, [x + 8, y + 7, 92, 14]], [5, [x + 104, y + 7, 100, 14]]];

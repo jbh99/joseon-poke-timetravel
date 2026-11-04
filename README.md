@@ -47,7 +47,7 @@
 
 ### 앱 화면과 조작
 
-- **화면**: 가로 화면 고정 · 전체 화면. 가운데에 게임, 왼쪽에 이동 패드, 오른쪽에 버튼이 놓여 게임 화면을 가리지 않습니다.
+- **화면**: 가로 화면 고정 · 전체 화면. 가운데에 게임, 왼쪽에 이동 패드, 오른쪽에 버튼이 놓여 게임 화면을 가리지 않습니다. 16:9나 태블릿처럼 네모난 화면에서는 게임 화면이 조금 좁아져 버튼 자리를 비웁니다(1.14).
 - **이동 패드**(왼쪽 아래 원): 손가락을 대고 밀면 그쪽으로 움직입니다. 던전에서는 대각선까지 8방향입니다.
 - **버튼**: 키보드와 같은 글자가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다.
 
@@ -56,7 +56,7 @@
   | **Z** 확인 · **X** 취소 | 조사·대화·공격·결정 / 취소 (마을과 던전에서는 게임 메뉴) |
   | **Q W E R** (십자 배치) | 던전에서 기술 1~4. 드라스틱처럼 위 Q · 왼쪽 W · 오른쪽 E · 아래 R |
   | **⇧** 방향만 | 누른 채로 패드를 밀면 제자리에서 방향만 바꿉니다 |
-  | **Tab** 태그 · **A** 쉬기 | 조종할 포켓몬 교대 / 누르고 있으면 턴 넘기기 |
+  | **Tab** 태그 · **A** 쉬기 | 조종할 포켓몬 교대 / 누르고 있으면 턴 넘기기 (계단 위에서는 계단을 다시 물어요) |
   | 왼쪽 위 **메뉴** | 십자 버튼과 따로 있는 버튼. 게임 메뉴 · 퀘스트 · 동료 · 던전 지도와 소리 · 속도(1→2→3배) · 멀티 · 구글 로그인 · English · 가이드를 한 화면에 엽니다 |
 
 - 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수 있고, 긴 목록은 손가락으로 끌어 넘깁니다. 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다.
@@ -197,13 +197,13 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 ### 세계 모드의 전설과 최종 보스
 - **5세대 전설**: 레시라무는 런던 대공습의 마을 전투에서, 나머지는 각자 둥지의 3층에서 2페이즈로 싸웁니다. 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. 블랙 롬에는 케르디오의 각오의 모습과 토네로스 · 볼트로스 · 랜드로스의 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
 - **최종 보스 큐레무**: 1945년의 마지막 퀘스트입니다. 베를린이 그대로 싸움터가 되어 큐레무 → 블랙큐레무 → 화이트큐레무 3페이즈로 싸웁니다. 모든 능력치가 천관산 아르세우스보다 20% 높고, 얼음 · 번개 · 불꽃이 몇 턴씩 떨어집니다. 이기면 항복과 해방의 이야기로 세계 모드가 끝납니다.
-- **엔딩 (1.13부터)**: 한국 이야기의 **아르세우스(1979)**와 세계 모드의 **큐레무(1945)**를 **모두** 쓰러뜨려야 엔딩이 열립니다. 나중에 끝낸 쪽의 시간의 문에서 「엔딩으로」를 고르고, 한쪽만 끝냈다면 세레비가 남은 쪽으로 안내합니다. 엔딩의 크레디트와 명예의 전당에도 세계 모드가 함께 나옵니다. 1.12까지 아르세우스만으로 엔딩을 연 기록은 그대로 엔딩을 본 것으로 칩니다(★, 챌린지 달성).
+- **엔딩 (1.13부터)**: 한국 이야기의 **아르세우스(1979)**와 세계 모드의 **큐레무(1945)**를 **모두** 쓰러뜨려야 엔딩이 열립니다. 나중에 끝낸 쪽의 시간의 문에서 「엔딩으로」를 고르고, 한쪽만 끝냈다면 세레비가 남은 쪽으로 안내합니다. 엔딩의 크레디트와 명예의 전당에도 세계 모드가 함께 나옵니다. 1.12까지 아르세우스만으로 엔딩을 연 기록은 그대로 엔딩을 본 것으로 칩니다(★, 챌린지 달성). 그런 기록은 1979년 시간의 문에서도 엔딩으로 갈 수 있습니다(1.14).
 - **동료**: 전설도, 던전의 일반 보스도 이기면 동료로 맞이할 수 있습니다 (일반 보스는 1.12부터. 챌린지에서는 전설만 동료가 되지 않음).
 
 ## 게임 요소
 
 ### 도감 (1.11)
-- **도감**: X 메뉴 → 도감. 전국(1~649) · 신오(4세대, 펄) · 하나(5세대, 블랙) 도감 순서로 보고, 포켓몬마다 펄 도감과 블랙 도감 페이지(그림 · 분류 · 설명)를 바꿔 볼 수 있습니다. 만난 포켓몬은 「발견」, 동료가 된 포켓몬은 「포획」으로 기록되고, 「전체 보기」로 모든 페이지를 열 수 있어요. 그림을 누르면 울음소리가 납니다.
+- **도감**: X 메뉴 → 도감. 전국(1~649) · 신오(4세대, 펄) · 하나(5세대, 블랙) 도감 순서로 보고, 포켓몬마다 펄 도감과 블랙 도감 페이지(그림 · 분류 · 설명)를 바꿔 볼 수 있습니다. 만난 포켓몬은 「발견」, 동료가 된 포켓몬은 「포획」으로 기록되고, 「전체 보기」로 모든 페이지를 열 수 있어요. 그림을 누르면 울음소리가 납니다. 영어 모드에서는 분류와 설명이 영어로 나옵니다(1.14, 롬의 한국어 설명을 옮긴 것).
 - 배경 음악은 포켓몬스터 블랙의 음악으로 바뀌었고, 휴대폰에서는 십자 패드가 게임 화면 안으로 들어가 화면이 커졌고, 메뉴 버튼은 오른쪽 버튼 줄 맨 위로 옮겼습니다.
 
 ### 전설의 포켓몬과 보스
@@ -236,7 +236,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
   - 탑의 포켓몬은 **잡을 수 없습니다**. 층을 오를 때마다 HP · PP · 상태 이상이 모두 회복되고, 다음에 들어갈 때는 지난번에 깬 층 다음부터 이어서 오를 수 있습니다. 보스 레벨은 아르세우스처럼 팀 레벨을 따라갑니다.
 
 ### 해전 (물 타입만 참가)
-살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 1.13부터 지도에서 해전을 고르면 팀과 동료 명부의 물 타입 목록이 열리고, 배에 태울 포켓몬을 **최대 3마리 직접 고릅니다**(고른 순서대로 앞장섬). 팀의 물 타입은 미리 골라져 있고, 목록은 **팀 먼저 · 레벨 높은 순 · 가나다 순**으로 정렬할 수 있습니다. 2마리보다 적게 고르면 모자란 자리를 수군이 빌려주고, 물 타입이 하나도 없으면 바로 2마리를 빌려줍니다. 1.12까지는 팀의 물 타입과 명부에서 레벨이 가장 높은 물 타입이 저절로 탔습니다. 첫 시대에 리아코와 물짱이를 받습니다.
+살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 1.13부터 지도에서 해전을 고르면 팀과 동료 명부의 물 타입 목록이 열리고, 배에 태울 포켓몬을 **최대 3마리 직접 고릅니다**(고른 순서대로 앞장섬). 팀의 물 타입은 미리 골라져 있고, 목록은 **팀 먼저 · 레벨 높은 순 · 가나다 순**으로 정렬할 수 있습니다. 2마리보다 적게 고르면 모자란 자리를 수군이 빌려주고, 물 타입이 하나도 없으면 바로 2마리를 빌려줍니다. 1.12까지는 팀의 물 타입과 명부에서 레벨이 가장 높은 물 타입이 저절로 탔습니다. 첫 시대에 리아코와 물짱이를 받습니다. 1.14부터 수군이 빌려주는 승무원은 팀에서 가장 높은 레벨로, 그 레벨에 맞게 진화한 모습(예: Lv 80 장크로다일)으로 옵니다.
 
 ### 새로 생긴 이야기와 장치
 - **마을 표시**: 빨간 `!`는 메인 퀘스트, 파란 `!`는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), 엽전 표지는 장사꾼, 국밥 표지는 주막 주인, 보라색 디스크 표지는 기술머신 상인입니다.
@@ -309,6 +309,13 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동, Z 공격, QWER 기술, A 쉬기). 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 고친 점 (1.14)
+- **흑 마을**: 지대가 높은 콩피에뉴 · 베르됭 · 스탈린그라드에서 시간의 문이 실제 자리보다 3칸쯤 아래에 그려지던 것을 맞췄고, 카메라도 높은 땅 위의 팀을 화면 가운데에 둡니다. 지붕이나 가로등 뒤에 선 팀은 반투명하게 비쳐 보입니다. 콩피에뉴 남서쪽의 들어갈 수 없는 포장길은 어둡게 그렸습니다. 처음 들어가는 마을은 그림을 다 받고 미리 풀어 둔 뒤 화면이 밝아집니다(느린 회선에서 땅이 비어 보이거나 휴대폰이 잠깐 멈추던 것).
+- **조작**: 마을에서는 마지막에 누른 방향키가 이기고(← 를 누른 채 ↑ 를 누르면 위로), 걷는 중에 짧게 누른 방향도 다음 걸음으로 이어집니다. 던전에서는 아주 짧은 탭도 한 칸 가고, 2 · 3배속에서 탭 한 번에 두 칸 가던 것을 고쳤습니다(A 쉬기도 같음). 계단 위에서 A나 「발밑 / 쉬기」를 고르면 계단을 다시 묻습니다. 세계 지도의 방향키는 그쪽 45°, 없으면 60° 안의 장소로만 옮겨 가고 그 밖으로는 튀지 않습니다.
+- **휴대폰 · 태블릿**: 16:9나 4:3처럼 네모난 화면에서는 게임 화면이 조금 좁아져 오른쪽 버튼 줄이 게임을 가리지 않고, 버튼 사이 빈 곳은 터치를 가로채지 않습니다(도감 닫기 · 메뉴 · 목표 상자 · 기술 PP). PC 창이 게임과 같은 비율이면 HUD 버튼을 화면 위 띠로 옮깁니다.
+- **그 밖**: 한국 마을의 집 · 주막 · 게시판 · 명소 · 배에 말을 걸 수 있고, 장터 · 기술머신 메뉴의 보유 금액이 살 때마다 바뀝니다. 1.12까지 아르세우스만으로 엔딩을 연 기록은 1979년 시간의 문에서 엔딩으로 갈 수 있습니다. 해전에서 수군이 빌려주는 승무원은 팀 최고 레벨로, 그 레벨에 맞게 진화한 모습으로 옵니다(유틀란트 해전이 높은 레벨에서 1층에서 지던 것). 긴 시대 제목 · 던전 이름이 칸을 넘치지 않고, 타이틀의 난이도 설명창 밑으로 저작권 글자가 비치지 않습니다. 영어 도감, "1 floor" 표기, 약초 퀘스트 중인 예전 기록의 약초, 저장 테스트 도구도 고쳤습니다.
+- **첫 로딩**: 글꼴을 게임에 쓰는 글자(와 흔히 쓰는 한글 2,350자)만 남겨 1.08MB → 0.14MB로 줄였고(`tools/subset_fonts.py`, 빌드가 빠진 글자를 검사), 마을에만 필요한 그림은 타이틀 뒤에서 받습니다. 타이틀까지의 요청은 101개 → 45개입니다.
 
 ## 직접 실행하기
 
@@ -390,6 +397,7 @@ docs/screenshots/       README 스크린샷
   - The First World War: 1914 Sarajevo (Nacrene City): Zoroark, Braviary · 1914 the Marne, Paris (Nimbasa City): Conkeldurr, Krookodile · 1915 Gallipoli (Nuvema Town): Carracosta, Crustle · 1916 Verdun and the Somme (Icirrus City): Klinklang, Aggron, **Cobalion** (optional) · 1916 Jutland, Scapa Flow (Driftveil City): Swanna, Kingdra, **Tornadus** (optional) · 1918 the Armistice, Compiègne (Accumula Town): Scolipede, Bisharp, **Virizion** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): Reuniclus, Cofagrigus.
   - The Second World War: 1939 Danzig (Nacrene City): Escavalier, Eelektross · 1940 Dunkirk (Driftveil City): Kingler, Jellicent, **Keldeo** (optional) · 1940 the Blitz, London (Mistralton City): Archeops, and **Reshiram** in a town battle · 1941 Moscow (Opelucid City): Seismitoad, Vanilluxe, **Landorus** (optional) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): Mantine, Sharpedo · 1942 Leningrad (Nacrene City): Cryogonal, **Meloetta** · 1942 El Alamein, Alexandria (Undella Town): Darmanitan, **Victini** · 1943 Stalingrad and Kursk (Icirrus City): Durant, **Genesect** · 1944 Normandy (Nuvema Town): **Zekrom**, Krookodile · 1944 Leyte Gulf, Tacloban (Undella Town): Jellicent, Gyarados, **Thundurus** (optional) · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.14 (fixes): the Time Gate stands where it opens on raised Black-town ground (Compiègne, Verdun, Stalingrad) and the camera centers the team there; the team shows through roofs; Compiègne's walled-off paving is drawn dim; a Black town's picture is loaded and decoded behind the dark screen before you enter. Town arrows: the last one pressed wins and a tap mid-step takes the next step; dungeon taps are one step at any speed (and A one rest), and A or "Ground / Rest" on the stairs asks about them again; world map arrows stay within 45° (then 60°) instead of jumping aside. On 16:9 and squarer touch screens the game narrows so the right-hand buttons no longer cover it or take its taps; a desktop window of the game's own shape gets a HUD strip on top. Korean towns' houses, inn, board, landmark and ships answer again; the market and TM menus show the money left; a pre-1.13 ending journey can go to the ending from the 1979 gate; the navy's sailors come fully grown at your best level (Jutland was lost on floor 1 at high levels); long era titles and dungeon names fit; the Pokédex reads in English in English mode; fonts cut to the characters used (1.08 MB to 0.14 MB, tools/subset_fonts.py) and town assets load after the title (101 to 45 requests before it).
   - 1.13: the ending opens only once both Arceus (1979) and Kyurem (1945, the world line) are beaten, at the Time Gate of whichever line you finish last (a save that opened it with Arceus alone before keeps it). A naval battle opens a list of your team's and roster's Water types: pick up to three yourself, sorted by team, level or A–Z (the roster sorts by level and A–Z as well); until 1.12 the highest levels boarded by themselves. Town people stand two free tiles apart and never cut a way or narrow one below two tiles, standing or wandering (the world line's towns had crowded them round the gate, and in two seaside towns cut the way). TMs cost 15000 nyang for strong moves and 10000 for the rest.
   - 1.12: Black towns drawn below the map's zero height (Weihaiwei and the other Undella eras, Compiègne, Verdun, Stalingrad, the Driftveil eras) stood people up to three tiles away from the ground drawn under them, so the beach looked blocked and the way was hard to find: their pictures now line up with where you walk, and what lies outside a town is drawn dim. Places that crowd one another on a world map are spread apart (a dot and a line keep their true spot), every place picks by a click or tap on its marker or name, and an arrow key goes to the nearest place that way. World-line bosses join when beaten, as Korea's do. The battle for Seoul leaves the 1950 map once won (entering it again had frozen the game on a black screen), a new journey no longer carries the last journey's place on the world line (a challenge started after a trip abroad could not be lost, and its first trip abroad began in 1915), and Kyurem's fight in Berlin keeps to the town's ground level.
   - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.

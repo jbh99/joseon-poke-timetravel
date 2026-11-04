@@ -1,10 +1,10 @@
 // Title, starter selection, era transition cards, world map and ending.
-import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI } from './core.js';
+import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI, prepImages } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
 import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, storyDone, crewMenu } from './quests.js';
-import { drawMon, BLD } from './town.js';
+import { drawMon, BLD, townPictures } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { openPokedex } from './pokedex.js';
 import { tr, EN, LANG, setLang } from './i18n.js';
@@ -114,7 +114,8 @@ export class Title {
     ui.c.restore();
     ui.text(tr('612 → 1980 · 시간의 꽃과 아르세우스', '612 → 1980 · The Flower of Time and Arceus'), VW / 2, y + 32, { align: 'center', size: 9, color: '#fff', shadow: true });
     if (!this.started && Math.floor(this.t * 2) % 2) ui.text(touchUI ? tr('화면을 누르거나 Z를 누르세요', 'Tap the screen or press Z') : tr('Z 키 또는 Enter를 누르세요', 'Press Z or Enter'), VW / 2, 206, { align: 'center', color: '#fff', shadow: true });
-    ui.text(tr('팬메이드 비공식 게임 · 원작 © Nintendo / Creatures / GAME FREAK', 'Unofficial fan game · Pokémon © Nintendo / Creatures / GAME FREAK'), VW / 2, VH - 11, { align: 'center', size: 9, color: '#ddd', shadow: true });
+    // the notice at the foot of the screen gives way to a menu's description or a question, which would half cover it
+    if (!G.overlays.some((o) => o.lines || o.o?.desc)) ui.text(tr('팬메이드 비공식 게임 · 원작 © Nintendo / Creatures / GAME FREAK', 'Unofficial fan game · Pokémon © Nintendo / Creatures / GAME FREAK'), VW / 2, VH - 11, { align: 'center', size: 9, color: '#ddd', shadow: true });
   }
 }
 
@@ -182,6 +183,9 @@ export class Intro {
 }
 
 // ---------------------------------------------------------------- era card
+// the era's Black towns' pictures start loading (and decoding) on its card and its world map, well before they are
+// entered (main.js goTown waits for them, behind the dark screen, if they are not ready by then)
+const preloadTowns = () => prepImages([...new Set([...townPictures(1), ...townPictures(2)])]);
 export class EraCard {
   enter() {
     const e = era();
@@ -189,6 +193,7 @@ export class EraCard {
     this.fromYear = G.cardFrom ?? (S.era > 0 ? ERAS[S.era - 1].year : e.year - 30);
     G.cardFrom = null;
     tileSet(cardOf(e).set);
+    preloadTowns();
     playBgm(e.town.bgm, 1.2);
     preloadBgm(e.world);
     this.talked = false;
@@ -239,11 +244,13 @@ export class EraCard {
 }
 
 // ---------------------------------------------------------------- world map
+const floorsEn = (n) => `${n} floor${n === 1 ? '' : 's'}`; // "1 floor", not "1 floors"
 const MZ = 2, MVW = 316, GAP = 12; // GAP: room kept between two places' markers and names
 export class WorldMap {
   constructor() { this.sel = 0; }
   async enter() {
     this.e = era();
+    preloadTowns();
     // a world era's map is its region's (data/maps.json, tools/geo/worldmaps.py); Korea's is the peninsula
     this.meta = this.e.map ? (await loadJSON('data/maps.json'))[this.e.map] : await loadJSON('data/worldmap.json');
     this.mapImg = this.e.map ? `img/map_${this.e.map}.png` : 'img/worldmap.png';
@@ -290,6 +297,20 @@ export class WorldMap {
   camFor(n) { const [x, y] = this.spot(n); return this.clampCam(x - MVW / 2, y - VH / 2); }
   clampCam(cx, cy) { const m = this.meta || { w: 300, h: 445 }; return [clamp(cx, 0, m.w * MZ - MVW), clamp(cy, 0, m.h * MZ - VH)]; }
   get padKeys() { return ['menu', 'quest', 'party']; } // what the touch menu panel offers here (core.js initMenu)
+  // the place an arrow from place i goes to (update), or -1
+  toward(i, dir) {
+    const [x0, y0] = this.spot(this.nodes[i]);
+    for (const cone of [1, Math.sqrt(3)]) { // tan 45°, tan 60°
+      let best = -1, bs = Infinity;
+      this.nodes.forEach((m, j) => {
+        const [x, y] = this.spot(m), ahead = (x - x0) * dir[0] + (y - y0) * dir[1], aside = Math.abs((x - x0) * dir[1] - (y - y0) * dir[0]);
+        const s = ahead + aside * 2;
+        if (j !== i && ahead > 0 && aside <= ahead * cone && s < bs) { bs = s; best = j; }
+      });
+      if (best >= 0) return best;
+    }
+    return -1;
+  }
   tags(n) {
     const st = mainStep(), out = [];
     if (n.d && st?.do === 'dungeon' && st.d === n.d) out.push('main');
@@ -300,17 +321,12 @@ export class WorldMap {
   update(dt) {
     if (!this.nodes || G.overlays.length) return;
     const sel0 = this.sel;
-    // an arrow key goes to the nearest place that way: one within 45° of it before any further off to the side (from
-    // Gallipoli's town ↓ is the strait below, not the cove to the left), and among those sideways counts twice
+    // an arrow key goes to the nearest place that way: one within 45° of it (from Gallipoli's town ↓ is the strait
+    // below, not the cove to the left), else one within 60°, sideways counting twice; with none that way the cursor
+    // stays (up to 1.13 it then jumped to a place off to the side or far away)
     const dir = input.repeat('right') ? [1, 0] : input.repeat('left') ? [-1, 0] : input.repeat('down') ? [0, 1] : input.repeat('up') ? [0, -1] : null;
     if (dir) {
-      const [x0, y0] = this.spot(this.nodes[this.sel]);
-      let best = -1, bs = Infinity;
-      this.nodes.forEach((m, i) => {
-        const [x, y] = this.spot(m), ahead = (x - x0) * dir[0] + (y - y0) * dir[1], aside = Math.abs((x - x0) * dir[1] - (y - y0) * dir[0]);
-        const s = ahead + aside * 2 + (aside > ahead ? 1e6 : 0);
-        if (i !== this.sel && ahead > 0 && s < bs) { bs = s; best = i; }
-      });
+      const best = this.toward(this.sel, dir);
       if (best >= 0) { this.sel = best; sfx('cursor'); }
     }
     // a click or tap on a place (its marker, badge or name) picks it and goes there, like Z
@@ -340,9 +356,9 @@ export class WorldMap {
       if (d.needs && !d.needs.every((sp) => S.party.some((m) => m.sp === sp))) return say([{ who: 'narr', text: d.needsText }]);
       // the Boss Tower: from its first floor, or from above the highest floor cleared on an earlier visit
       const top = d.tower ? S.flags.towerTop || 0 : 0;
-      if (top) return say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층)에 들어갈까? 지난번에 ${top}층까지 올랐다.`, `Enter the ${d.name}? (${d.floors} floors) Last time you cleared floor ${top}.`),
+      if (top) return say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층)에 들어갈까? 지난번에 ${top}층까지 올랐다.`, `Enter the ${d.name}? (${floorsEn(d.floors)}) Last time you cleared floor ${top}.`),
         choices: tr(['1층부터', `${top + 1}층부터`, '그만두기'], ['From floor 1', `From floor ${top + 1}`, 'Not now']), onChoice: (i) => { if (i < 2) fadeTo(() => G.goDungeon(n.d, undefined, { floor: i ? top + 1 : 1 })); } }]);
-      const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${d.floors} floors · legendary Pokémon`) : tr(`${d.floors}층 · 적 레벨 ${lo}~${hi}`, `${d.floors} floors · foes Lv ${lo}-${hi}`);
+      const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${floorsEn(d.floors)} · legendary Pokémon`) : tr(`${d.floors}층 · 적 레벨 ${lo}~${hi}`, `${floorsEn(d.floors)} · foes Lv ${lo}-${hi}`);
       // a naval battle: who goes aboard is picked first (quests.js crewMenu), and the run sets out from that list
       if (d.water) return crewMenu(`${d.name} (${what})`, (crew) => fadeTo(() => G.goDungeon(n.d, undefined, { crew })));
       say([{ who: 'narr', text: tr(`${d.name} (${what})에 들어갈까?`, `Enter ${d.name}? (${what})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
@@ -446,10 +462,10 @@ export class WorldMap {
       const legs = legendsAt(n.d).filter((sp) => sp !== w).map((sp) => DEX.species[sp].name).join(' · ');
       const [lo, hi] = foeLevels(d);
       if (d.tower) {
-        lines2.push(tr(`${fl}층 · 보스 모드`, `${fl} floors · Boss Mode`), tr('층마다 전설의 포켓몬만 기다린다. 잡을 수는 없다.', 'Only legendary Pokémon wait, floor after floor. None can be caught.'));
+        lines2.push(tr(`${fl}층 · 보스 모드`, `${floorsEn(fl)} · Boss Mode`), tr('층마다 전설의 포켓몬만 기다린다. 잡을 수는 없다.', 'Only legendary Pokémon wait, floor after floor. None can be caught.'));
         if (S.flags.towerTop) lines2.push(tr(`지난번에 ${S.flags.towerTop}층까지 올랐다`, `Last time: cleared floor ${S.flags.towerTop}`));
         if (S.flags.towerClears) lines2.push(tr(`꼭대기까지 ${S.flags.towerClears}번 올랐다`, `Reached the top ${S.flags.towerClears} time(s)`));
-      } else lines2.push(d.stages ? tr(`${fl}층 · 전설의 포켓몬`, `${fl} floors · legendary Pokémon`) : tr(`${fl}층 · 적 Lv ${lo}~${hi}`, `${fl} floors · foes Lv ${lo}-${hi}`));
+      } else lines2.push(d.stages ? tr(`${fl}층 · 전설의 포켓몬`, `${floorsEn(fl)} · legendary Pokémon`) : tr(`${fl}층 · 적 Lv ${lo}~${hi}`, `${floorsEn(fl)} · foes Lv ${lo}-${hi}`));
       if (d.water) lines2.push(tr('[해전] 물 타입 포켓몬만 출전한다', '[Naval] Only Water-type Pokémon can fight'));
       if (w) lines2.push(tr(`★ 지난 시대에 놓친 ${DEX.species[w].name}이(가) ${fl}층에서 기다린다! (Lv ${hi})`, `★ ${DEX.species[w].name}, missed in an earlier era, waits on floor ${fl}! (Lv ${hi})`));
       // a lair's keeper waits until met; one that is no legend (Tyranitar) is only something strong

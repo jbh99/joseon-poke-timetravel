@@ -16,7 +16,7 @@ function clearSaves() { for (const s of ['easy', 'normal', 'hard', 'challenge'])
 
 // local slots: an older save moves to its journey's key, a new journey at another difficulty keeps the finished one
 export async function slots() {
-  const g = window.__game, { G, S } = g, game = await import('/js/game.js'), log = [];
+  const g = window.__game, { G, S } = g, game = await import('/js/game.js'), content = await import('/js/content.js'), log = [];
   const check = (what, ok) => log.push(`${ok ? 'ok' : 'FAIL'} ${what}`);
   clearSaves();
   // a Hard save from 1.6 sits under the Normal key
@@ -27,7 +27,9 @@ export async function slots() {
   // a finished Normal story, then a new Easy journey: both stay
   clearSaves();
   const last = g.ERAS.length - 1;
-  localStorage.setItem(KEY, JSON.stringify(oldSave({ era: last, step: g.ERAS[last].main.length, savedAt: 2000 })));
+  // (since 1.13 the story is seen through with both lines done: Arceus in Korea's 1979 and Kyurem at the world's end)
+  const kl = content.KOREA_LAST, koreaAt = { era: kl, step: g.ERAS[kl].main.length, eraClear: true, townKind: 1 };
+  localStorage.setItem(KEY, JSON.stringify(oldSave({ era: last, step: g.ERAS[last].main.length, eraClear: true, koreaAt, v: 9, savedAt: 2000 })));
   game.initSaves();
   check('old Normal save stays under the Normal key', !!game.readSave('normal'));
   game.newGame(387, 390, 'easy');
@@ -94,7 +96,9 @@ export function fakeDrive() {
   return drive;
 }
 
-// cloud sync of several journeys, against the fake Drive. Needs a page whose cloud panel is signed out at load.
+// cloud sync of several journeys, against the fake Drive. Needs a fresh page whose cloud panel is signed out at load
+// (a link left by an earlier run loads Google's real sign-in script first) and whose G.onSaved is the game's own (playtest
+// helpers that silence it stop the upload after a save).
 export async function cloud() {
   const g = window.__game, { G, S } = g, game = await import('/js/game.js'), log = [];
   const check = (what, ok) => log.push(`${ok ? 'ok' : 'FAIL'} ${what}`);
@@ -127,6 +131,7 @@ export async function cloud() {
   check(`Normal taken from the cloud while Hard plays (era ${game.readSave('normal')?.era})`, game.readSave('normal')?.savedAt === 5000 && !reloaded && location.href === before);
   check('Hard still the journey in play', S.slot === 'hard' && game.readSave('hard')?.slot === 'hard');
   // another device moves the Hard journey on too: the play in progress here is not taken away, the player is asked
+  if (!hard) return { ok: false, log, calls: drive.calls }; // nothing to go on with
   const hid = hard.id, h = JSON.parse(drive.files.get(hid).text);
   drive.edit(hid, { ...h, savedAt: Date.now() + 60000, era: 3 });
   G.onSaved(); await sleep(3300); // the after-save sync, without a new save here

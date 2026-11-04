@@ -1,5 +1,5 @@
 // PMD Blue Rescue Team graphics (exported by tools/pmd/extract_pmd.py): 8-direction sprites, portraits, dungeon chunk sets.
-import { G, img, ready, loadJSON } from './core.js';
+import { G, img, ready, loadJSON, loadImages } from './core.js';
 
 let INDEX = { spr: [], kao: [], tiles: [] };
 let HAVE = { spr: new Set(), kao: new Set(), tiles: new Set() };
@@ -23,6 +23,13 @@ function sprite(sp) {
   sprites.set(sp, s);
   loadJSON(`pmd/spr/${sp}.json`).then((m) => { s.meta = m; }).catch(() => { s.failed = true; });
   return s;
+}
+// a Pokémon's sheet loaded and decoded (and its frame data in), for a scene to have before it shows (main.js goTown):
+// one first drawn the frame it arrives stalls a phone for a moment
+export function spriteReady(sp) {
+  if (!HAVE.spr.has(sp)) return loadImages([iconPath(sp)]); // a Gen 4 Pokémon is drawn from its box icon
+  const s = sprite(sp);
+  return Promise.all([loadJSON(`pmd/spr/${sp}.json`).then((m) => { s.meta = m; }, () => {}), loadImages([`pmd/spr/${sp}.png`]).then(([im]) => (im.naturalWidth && im.decode ? im.decode().catch(() => {}) : null))]).then(() => s);
 }
 // shiny colours: the sheet recoloured once through the exported colour map
 function shinySheet(s) {

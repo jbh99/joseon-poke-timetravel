@@ -13,6 +13,7 @@ import { NET } from './net.js';
 // the floor's size in tiles: 44x32, unless a Pearl floor needs more room (fixedFloor sets it per floor)
 let W = 44, H = 32;
 const DIRS8 = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+const DIR_OF = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
 const faceName = (d) => (d[0] > 0 ? 'right' : d[0] < 0 ? 'left' : null);
 const RECRUIT_RATE = 0.35; // wild Pokémon asking to join after fainting (shiny: 70%; legendaries: always)
 // Boss tiers. Legends (birds, lake trio, Lugia, the Sinnoh legends...) are a tier above: +3 levels, 3.2x HP, harder hits,
@@ -100,15 +101,20 @@ export class Dungeon {
     this.newFloor();
   }
   // naval battles: only Water-type Pokémon go aboard, the ones the player picked on the world map in the order picked
-  // (quests.js crewMenu; o.crew), or without a pick the team's own; the navy lends a crew when short of two
+  // (quests.js crewMenu; o.crew), or without a pick the team's own; the navy lends a crew when short of two. Its sailors
+  // come at the level of the team's best, as grown as that level makes them (Totodile at Lv 60 is a Feraligatr): the
+  // foes follow the team ashore (quests.js foeLevels), and up to 1.13 a strong team got babies at its average level,
+  // which lost the Battle of Jutland on its first floor every time
   boardCrew(picked) {
     S.homeParty = S.party;
     const crew = (picked || S.party).filter((m) => m.types.includes(11)).slice(0, 3);
-    const avg = Math.round(S.party.reduce((s, m) => s + m.lv, 0) / S.party.length);
+    const top = Math.max(...S.party.map((m) => m.lv));
     this.loaned = [];
     for (const sp of this.def.loan || [158, 258]) {
       if (crew.length >= 2) break;
-      const m = new Mon(sp, avg); m.loan = true; crew.push(m); this.loaned.push(m);
+      let s = sp;
+      for (let e = DEX.species[s].evo; e && e[0] === 4 && top >= e[1]; e = DEX.species[s].evo) s = e[2]; // level-up evolutions
+      const m = new Mon(s, top); m.loan = true; crew.push(m); this.loaned.push(m);
     }
     S.party = crew;
   }
@@ -1458,14 +1464,17 @@ export class Dungeon {
     if (this.timeFx) { this.timeFx.t -= dt; if (this.timeFx.t <= 0) this.timeFx = null; }
     if (this.lightFx) { this.lightFx.t -= dt; if (this.lightFx.t <= 0) this.lightFx = null; }
     if (this.shake) this.shake = Math.max(0, this.shake - dt);
-    // X/C/M/J/Tab/P pressed while a turn plays out wait for it instead of being dropped
+    // X/C/M/J/Tab/P pressed while a turn plays out wait for it instead of being dropped; so do an arrow or A tapped
+    // then, however briefly (the step or the rest follows once the turn is over)
     for (const k of ['cancel', 'menu', 'map', 'quest', 'tag', 'party']) if (input.hit(k)) this.latch = k;
+    for (const k of ['left', 'right', 'up', 'down']) if (input.pressed.has(k)) { const d = input.dir(); this.tapDir = d.dx || d.dy ? [d.dx, d.dy] : DIR_OF[k]; }
+    if (input.pressed.has('rest')) this.restTap = true;
     if (this.cur) { this.cur.t -= dt; if (this.cur.t <= 0) this.cur = null; return; }
     if (this.queue.length) { const s = this.queue.shift(); s.fn(); this.cur = { t: s.dur }; return; }
     if (this.pendingMates?.length && !G.overlays.length) { this.resumeTurn(); return; }
     if (G.overlays.length || this.done) return;
     if (this.bossIntro) {
-      this.bossIntro = false; this.latch = null;
+      this.bossIntro = false; this.latch = null; this.tapDir = null; this.restTap = false;
       const b = this.boss.def;
       playBgm(b.bgm || 'ba_gym', 0.4); cry(b.sp);
       const L = lines(this.stage?.say || b.say || []); // a Boss Tower floor introduces its pair in its own words
@@ -1473,9 +1482,9 @@ export class Dungeon {
       say(L);
       return;
     }
-    if (this.pendingFlute) { this.pendingFlute = false; this.latch = null; return this.playFlute(); }
+    if (this.pendingFlute) { this.pendingFlute = false; this.latch = null; this.tapDir = null; this.restTap = false; return this.playFlute(); }
     if (this.pendingStairs) {
-      this.pendingStairs = false; this.latch = null;
+      this.pendingStairs = false; this.latch = null; this.tapDir = null; this.restTap = false;
       // a tower or a mountain (def.climb) goes up, and the Azure Flute's stairs of light up into the sky
       const text = this.floor >= this.def.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?')
         : this.lit ? tr('하늘로 이어진 빛의 계단이다. 올라갈까?', 'A stairway of light into the sky. Climb it?')
@@ -1493,16 +1502,41 @@ export class Dungeon {
     if (t && L.n) return this.playerAct('move-skill', clamp(Math.floor((t.y - L.y) / 14), 0, L.n - 1));
     for (let k = 0; k < 4; k++) if (input.hit('m' + (k + 1))) return this.playerAct('move-skill', k);
     if (input.hit('ok')) return this.playerAct('basic');
-    if (input.isDown('rest')) { if (!this.restT || G.time > this.restT) { this.restT = G.time + 0.12; return this.playerAct('wait'); } return; }
+    // A: a press rests a turn at once (on the stairs it asks about them again, like the menu's 발밑); held, the team
+    // goes on resting, but only once it has been held a moment in real time, so a tap is one turn at 2x and 3x speed
+    // too (up to 1.13 the hold counted in game time, and a tap at 3x rested two or three turns)
+    if (this.restTap || input.isDown('rest')) {
+      const fresh = this.restTap;
+      this.restTap = false;
+      if (fresh) { this.restFrom = G.real; if (this.underfoot()) return; }
+      if (fresh || (G.real - this.restFrom >= 0.25 && G.time > (this.restT || 0))) { this.restT = G.time + 0.12; return this.playerAct('wait'); }
+      return;
+    }
+    // arrows: a step at once (after a moment, in real time, for the second key of a diagonal); held on, the team walks
+    // on once it has been held a moment, so a tap is one step at 2x and 3x speed too (up to 1.13 the hold counted in
+    // game time and a tap at 3x walked two tiles); a tap let go before its step, or made while a turn played out,
+    // still takes its step (up to 1.13 one shorter than 0.05 s was lost)
     const { dx, dy } = input.dir();
     if (dx || dy) {
-      if (!this.dirSince) this.dirSince = G.time;
-      if (!(dx && dy) && G.time - this.dirSince < 0.045) return; // grace period for diagonals
-      if (input.isDown('shift')) { this.player.face = [dx, dy]; return; }
+      if (!this.dirSince) { this.dirSince = G.real; this.stepped = false; }
+      if (!this.stepped) this.tapDir = [dx, dy];
+      if (!(dx && dy) && G.real - this.dirSince < 0.045) return;
+      if (input.isDown('shift')) { this.player.face = [dx, dy]; this.stepped = true; this.tapDir = null; return; }
+      if (this.stepped && G.real - this.dirSince < 0.22) return;
       if (this.nextMoveAt && G.time < this.nextMoveAt) return;
-      this.nextMoveAt = G.time + 0.13;
-      this.playerAct('move', [dx, dy]);
-    } else { this.dirSince = 0; this.nextMoveAt = 0; }
+      this.nextMoveAt = G.time + 0.13; this.stepped = true; this.tapDir = null;
+      return this.playerAct('move', [dx, dy]);
+    }
+    const tap = this.tapDir;
+    this.dirSince = 0; this.nextMoveAt = 0; this.stepped = false; this.tapDir = null;
+    if (tap) { if (input.isDown('shift')) this.player.face = tap; else this.playerAct('move', tap); }
+  }
+  // what lies underfoot asks again (the stairs, the altar of the Azure Flute): true when it did
+  underfoot() {
+    const p = this.player, on = (t) => t && p.x === t[0] && p.y === t[1];
+    if (on(this.stairs)) { this.pendingStairs = true; return true; }
+    if (this.altar && !this.lit && on(this.altar)) { this.pendingFlute = true; return true; }
+    return false;
   }
   get padKeys() { return this.arena ? ['menu', 'quest'] : ['menu', 'quest', 'map']; } // the touch menu panel's game buttons
   // the move list in the bottom-right corner (drawUI), whose rows a tap uses like Q W E R
@@ -1514,7 +1548,7 @@ export class Dungeon {
       { label: tr('포켓몬', 'Pokémon'), fn: () => partyMenu({ dungeon: true }) },
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('도감', 'Pokédex'), fn: openPokedex },
-      { label: tr('발밑 / 쉬기', 'Rest a turn'), fn: () => this.playerAct('wait') },
+      { label: tr('발밑 / 쉬기', 'Ground / Rest'), fn: () => this.underfoot() || this.playerAct('wait') }, // on the stairs: take them?
       { label: tr('던전에서 나가기', 'Leave the dungeon'), right: this.def.police ? tr('싸우는 중', 'Mid-fight') : this.floor === this.startFloor ? '' : tr('들어온 층에서만', 'First floor only'), disabled: this.floor !== this.startFloor || !!this.def.police, fn: () => say([{ who: 'narr', text: tr('아직 들어온 층이라 왔던 길로 되돌아 나갈 수 있다. 던전에서 나갈까?', 'Still on the floor you came in on, you can walk back out the way you came. Leave the dungeon?'), choices: tr(['나간다', '그만둔다'], ['Leave', 'Stay']), onChoice: (i) => { if (i === 0) this.leave(); } }]) },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
       quitItem(true, () => this.restoreCrew()),
@@ -1746,7 +1780,9 @@ export class Dungeon {
     const allies = team.slice().sort((a, b) => at(a) - at(b)); // party order; the one in control is marked
     ui.panel(6, 6, 176, 18 + allies.length * 22);
     const foesLeft = this.def.battle && this.ents.filter((e) => e.alive && e.team === 'foe').length;
-    ui.text(this.def.battle ? tr(`${this.def.name}  남은 적 ${foesLeft}`, `${this.def.name}  Foes left ${foesLeft}`) : this.stage?.name ? this.title : tr(`${this.def.name}  ${this.floor}층`, `${this.def.name}  F${this.floor}`), 12, 12, { size: 9, color: COL.red, bold: true }); // below the dancheong stripe
+    // below the dancheong stripe; a name too long for the panel (49 English ones) is cut short, the floor kept
+    const tail = this.def.battle ? tr(`  남은 적 ${foesLeft}`, `  Foes left ${foesLeft}`) : this.stage?.name ? '' : tr(`  ${this.floor}층`, `  F${this.floor}`);
+    ui.text(ui.fit(this.def.battle ? this.def.name : this.title, 164 - ui.measure(tail, 9, true), 9, true) + tail, 12, 12, { size: 9, color: COL.red, bold: true });
     allies.forEach((e, i) => {
       const m = e.mon, y = 24 + i * 22;
       if (e.isPlayer) drawBadge(ui.c, 8, y - 1, BADGE_S);

@@ -306,11 +306,16 @@ function migrateV6(o) { o.wander = null; }
 // v7 doubled the team's PP (PP_MUL): every move keeps the share of its PP it had left
 function migrateV7(mons) { for (const m of mons) for (const mv of m.moves) mv.pp = Math.min(m.maxPP(mv.id), mv.pp * PP_MUL); }
 // v8 dropped the Herb, the one item that did nothing but cure status (Sitrus and Rice Balls still cure): the herbs in
-// the bag are paid back at the shop's price ('herb' is now only a quest item)
-const HERB_PRICE = 40;
+// the bag are paid back at the shop's price ('herb' is now only a quest item). A journey in the middle of the 1392
+// Bugak request keeps the herbs it gathered for it, up to the three asked for (up to 1.13 they were paid back too, and
+// the request had to be gathered again)
+const HERB_PRICE = 40, HERB_ASKED = { e1a: 3 };
 function migrateV8(o) {
   const n = o.items?.herb || 0;
-  if (n) { o.money = (o.money || 0) + n * HERB_PRICE; delete o.items.herb; }
+  if (!n) return;
+  const keep = Math.min(n, Math.max(0, ...Object.entries(HERB_ASKED).map(([id, k]) => (o.side?.[id] === 'active' ? k : 0))));
+  o.money = (o.money || 0) + (n - keep) * HERB_PRICE;
+  if (keep) o.items.herb = keep; else delete o.items.herb;
 }
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town. over: a challenge lost (quests.js
 // endChallenge), its save kept only to mark the journey ended. dex: the Pokédex record (dexState). koreaAt/worldAt:

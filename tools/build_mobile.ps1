@@ -7,6 +7,11 @@ param([switch]$NoGradle, [switch]$Release)
 # native tools report through exit codes (checked below); Gradle's SDK warnings on stderr must not abort the build
 $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $PSScriptRoot
+# the web fonts are cut to the characters the game shows (tools/subset_fonts.py): new text must not ship without
+# its glyphs, so a stale cut stops the build
+$env:PYTHONIOENCODING = 'utf-8'
+& python (Join-Path $root 'tools\subset_fonts.py') --check
+if ($LASTEXITCODE) { throw 'web fonts lack characters the game uses: run python tools/subset_fonts.py' }
 $mobile = Join-Path $root 'mobile'
 $www = Join-Path $mobile 'www'
 $skipDirs = @((Join-Path $root 'web\dev'), (Join-Path $root 'web\assets\tiles'))

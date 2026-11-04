@@ -1,5 +1,10 @@
 ﻿# Build the Netlify publish folder: web/ minus the dev playtest helpers, plus Netlify headers.
 $root = Split-Path -Parent $PSScriptRoot
+# the web fonts are cut to the characters the game shows (tools/subset_fonts.py): new text must not ship without
+# its glyphs, so a stale cut stops the build
+$env:PYTHONIOENCODING = 'utf-8'
+& python (Join-Path $root 'tools\subset_fonts.py') --check
+if ($LASTEXITCODE) { throw 'web fonts lack characters the game uses: run python tools/subset_fonts.py' }
 $dist = Join-Path $root 'dist'
 # assets/tiles and the era / title / ending paintings were AI-made; PMD chunk sets and backdrops replaced them
 $skipDirs = @('dev', (Join-Path $root 'web\assets\tiles'))

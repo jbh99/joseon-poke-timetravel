@@ -32,24 +32,32 @@ export function initCanvas() {
   // fill the browser window (letterboxed 16:9); the backing store matches device pixels so UI text stays sharp
   const fit = () => {
     const dpr = window.devicePixelRatio || 1, root = document.documentElement.style;
-    let w = innerWidth;
+    let w = innerWidth, hudTop = false;
     if (touchUI) {
       // the game takes the full height at the left (inside the safe-area insets body.touch pads itself by), the pad
       // lies over its lower-left corner, and the menu button and the action buttons take the strip to its right:
-      // 150-210px, or, with no such strip (a 16:9 or squarer screen), lie over the game's right edge
+      // 150-210px. A 16:9 or squarer screen has no such strip beside a full-height game, so the game narrows until the
+      // column fits beside it (up to 1.13 the column lay over the game's right edge and took every tap meant for the
+      // game there: closing the Pokédex, a menu's rows, the goal box, the dungeon's PP)
       const b = getComputedStyle(document.body), inner = w - parseFloat(b.paddingLeft) - parseFloat(b.paddingRight);
-      const game = Math.min(inner, innerHeight * VW / VH), strip = inner - game, over = strip < 150;
-      const right = over ? Math.round(clamp(inner * 0.18, 120, 170)) : Math.min(strip, 210);
-      document.body.classList.toggle('ovr', over);
+      const full = Math.min(inner, innerHeight * VW / VH), roomy = inner - full >= 150;
+      const right = roomy ? Math.min(inner - full, 210) : Math.round(clamp(inner * 0.18, 120, 170));
+      const game = roomy ? full : Math.min(full, inner - right);
       root.setProperty('--pad', right + 'px');
-      root.setProperty('--gameL', (over ? (inner - game) / 2 : (strip - right) / 2) + 'px');
+      root.setProperty('--gameL', (inner - game - right) / 2 + 'px');
       w = game;
       const dpad = Math.round(clamp(innerHeight * 0.34, 104, 150));
       root.setProperty('--dpad', dpad + 'px');
       // what the pad covers of the game's lower-left corner, in game pixels: HUD text there moves right of it
       G.touchL = Math.ceil((dpad + 18) / (game / VW));
     }
-    const css = Math.min(w / VW, innerHeight / VH);
+    let css = Math.min(w / VW, innerHeight / VH);
+    // a window of the game's own shape (960x540, a 16:9 screen in full) has no strip beside or above the game for the
+    // HUD buttons, which then lay faded over the goal box: the game gives up a strip at the top for them instead
+    // (a window too narrow for their row keeps them faded over the game)
+    const side = (k) => (innerWidth - VW * k) / 2 >= 124, above = (k) => (innerHeight - VH * k) / 2 >= 36;
+    if (!touchUI && !side(css) && !above(css) && innerWidth >= 720) { css = Math.min(w / VW, (innerHeight - 40) / VH); hudTop = !side(css); }
+    screen.style.marginTop = hudTop ? '40px' : '';
     const S = Math.max(0.5, css * dpr);
     G.S = S;
     screen.width = Math.round(VW * S); screen.height = Math.round(VH * S);
@@ -62,7 +70,7 @@ export function initCanvas() {
     }
     // the HUD buttons go in the free strip beside or above the game (into the menu panel on touch screens); with no room they fade over it
     const hud = document.getElementById('hud');
-    if (hud) hud.className = touchUI ? 'inmenu' : (innerWidth - VW * css) / 2 >= 124 ? 'side' : (innerHeight - VH * css) / 2 >= 36 ? '' : 'over';
+    if (hud) hud.className = touchUI ? 'inmenu' : side(css) ? 'side' : hudTop || above(css) ? '' : 'over';
   };
   addEventListener('resize', fit);
   fit();
@@ -240,14 +248,18 @@ export function img(path) {
 export function loadImages(paths) {
   return Promise.all(paths.map((p) => new Promise((res) => {
     const im = img(p);
-    if (im.complete && im.naturalWidth) return res(im);
-    im.onload = () => res(im);
-    im.onerror = () => { console.warn('missing', p); res(im); };
+    if (im.complete) { if (!im.naturalWidth) console.warn('missing', p); return res(im); }
+    // listeners, not onload: a picture already asked for elsewhere (preloaded from the world map) may have its own
+    im.addEventListener('load', () => res(im), { once: true });
+    im.addEventListener('error', () => { console.warn('missing', p); res(im); }, { once: true });
   })));
 }
-export async function loadJSON(path) {
-  if (!jsons.has(path)) jsons.set(path, await (await fetch('assets/' + path)).json());
-  return jsons.get(path);
+// one fetch a file, however many ask for it at once (a sprite's frame data is asked for by its first draw and by
+// spriteReady); a failed one is forgotten so a later call tries again
+export function loadJSON(path) {
+  let p = jsons.get(path);
+  if (!p) { p = fetch('assets/' + path).then((r) => r.json()); jsons.set(path, p); p.catch(() => jsons.delete(path)); }
+  return p;
 }
 export const ready = (im) => im && im.complete && im.naturalWidth > 0;
 // the part of a big prerendered map (a town is up to ~2300x1900 px) inside the view at (vx, vy), drawn at its own place:
@@ -291,12 +303,20 @@ export const ui = {
     return c.measureText(s).width;
   },
   measure(s, size = 11, bold = false) { this.c.font = this.font(size, bold); return this.c.measureText(s).width; },
-  wrap(s, maxW, size = 11) {
+  // the longest start of s that fits maxW, ending in … when cut (a long English place name in a narrow box)
+  fit(s, maxW, size = 11, bold = false) {
+    s = String(s);
+    if (this.measure(s, size, bold) <= maxW) return s;
+    let lo = 0, hi = s.length;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (this.measure(s.slice(0, m).trimEnd() + '…', size, bold) <= maxW) lo = m; else hi = m - 1; }
+    return s.slice(0, lo).trimEnd() + '…';
+  },
+  wrap(s, maxW, size = 11, bold = false) {
     const out = [];
     for (const para of String(s).split('\n')) {
       let line = '';
       for (const ch of para) {
-        if (this.measure(line + ch, size) > maxW && line) {
+        if (this.measure(line + ch, size, bold) > maxW && line) {
           // break at the last space when possible
           const sp = line.lastIndexOf(' ');
           if (sp > 0 && ch !== ' ') { out.push(line.slice(0, sp)); line = line.slice(sp + 1) + ch; } else { out.push(line); line = ch === ' ' ? '' : ch; }
@@ -419,12 +439,18 @@ export function say(lines, onDone) {
   });
 }
 
-// generic vertical menu overlay
+// generic vertical menu overlay. A title or a row's desc may be a function, read each time it is drawn, for text that
+// changes while the menu stays open (the market's money after a purchase, the count of an item in the bag)
+const shown = (v) => (typeof v === 'function' ? v() : v);
 export class Menu {
   constructor(items, o = {}) {
     this.items = items; this.sel = o.sel || 0; this.o = o; this.done = false;
   }
-  relang(sw) { for (const it of this.items) { it.label = sw(it.label); it.right = sw(it.right); it.desc = sw(it.desc); } if (this.o.title) this.o.title = sw(this.o.title); }
+  relang(sw) {
+    const keep = (v) => (typeof v === 'function' ? v : sw(v)); // a function follows the language by itself
+    for (const it of this.items) { it.label = sw(it.label); it.right = sw(it.right); it.desc = keep(it.desc); }
+    if (this.o.title) this.o.title = keep(this.o.title);
+  }
   update() {
     const n = this.items.length;
     if (input.repeat('up')) { this.sel = (this.sel + n - 1) % n; G.sfx?.('cursor'); }
@@ -454,7 +480,9 @@ export class Menu {
     G.sfx?.('confirm'); this.done = !this.o.keep; it.fn?.(); this.o.onPick?.(it, this.sel);
   }
   drawUI() {
-    const o = this.o, w = o.w || Math.max(90, ...this.items.map((i) => ui.measure(i.label) + 34));
+    const o = this.o, title = o.title && ui.fit(shown(o.title), VW - 22, 11, true), tw = title ? ui.measure(title, 11, true) + 14 : 0;
+    // a menu sized by its rows grows to its title (a dungeon's long English name) as far as the screen allows
+    const w = o.w || Math.min(VW - 16, Math.max(90, tw, ...this.items.map((i) => ui.measure(i.label) + 34)));
     const x = o.x ?? VW - w - 8, y = o.y ?? (o.title ? 24 : 8); // a title tab sits above the list, so keep it on screen
     // long lists (roster, items) scroll so they never run off the screen
     const n = this.items.length, rows = Math.min(n, Math.max(3, Math.floor((VH - y - (o.desc ? 50 : 14) - 12) / 16)));
@@ -462,7 +490,7 @@ export class Menu {
     const h = rows * 16 + 12;
     this.box = { x, y, w, h, rows, top };
     ui.panel(x, y, w, h);
-    if (o.title) { ui.panel(x, y - 15, ui.measure(o.title, 11, true) + 14, 16, { accent: false, fill: COL.ink2 }); ui.text(o.title, x + 7, y - 12, { color: '#fff4dc', bold: true }); }
+    if (title) { const tx = Math.max(4, Math.min(x, VW - 4 - tw)); ui.panel(tx, y - 15, tw, 16, { accent: false, fill: COL.ink2 }); ui.text(title, tx + 7, y - 12, { color: '#fff4dc', bold: true }); }
     this.items.slice(top, top + rows).forEach((it, j) => {
       const k = top + j;
       ui.text((k === this.sel ? '▶ ' : '   ') + it.label, x + 8, y + 8 + j * 16, { color: it.disabled ? '#9a8a76' : COL.ink });
@@ -470,7 +498,7 @@ export class Menu {
     });
     if (top > 0) ui.text('▲', x + w - 12, y - 1, { size: 9, color: COL.red });
     if (top + rows < n) ui.text('▼', x + w - 12, y + h - 10, { size: 9, color: COL.red });
-    if (o.desc) { const d = this.items[this.sel]?.desc; if (d) { ui.panel(8, VH - 40, VW - 16, 32); ui.wrap(d, VW - 36, 11).slice(0, 2).forEach((l, i) => ui.text(l, 16, VH - 33 + i * 13)); } }
+    if (o.desc) { const d = shown(this.items[this.sel]?.desc); if (d) { ui.panel(8, VH - 40, VW - 16, 32); ui.wrap(d, VW - 36, 11).slice(0, 2).forEach((l, i) => ui.text(l, 16, VH - 33 + i * 13)); } }
   }
 }
 export function openMenu(items, o) { const m = new Menu(items, o); G.overlays.push(m); return m; }
@@ -520,12 +548,26 @@ export function setScene(s) {
   G.scene = s;
   s.enter?.();
 }
-export const fade = { a: 0, target: 0, speed: 3, color: '#000', cb: null };
+// hold: the screen stays as dark as it is while something the next scene needs still loads (holdFade), then fades in
+export const fade = { a: 0, target: 0, speed: 3, color: '#000', cb: null, hold: 0, since: 0 };
 export function fadeTo(cb, color = '#000', speed = 3) {
   fade.target = 1; fade.color = color; fade.speed = speed;
   fade.cb = () => { try { cb?.(); } finally { fade.target = 0; } }; // a scene change that fails still fades back in (main.js reports it)
 }
+export function holdFade(p) {
+  if (!fade.hold++) fade.since = G.real;
+  return Promise.resolve(p).finally(() => { fade.hold--; });
+}
 export function updateFade(dt) {
   if (fade.a < fade.target) { fade.a = Math.min(1, fade.a + dt * fade.speed); if (fade.a >= 1 && fade.cb) { const cb = fade.cb; fade.cb = null; cb(); } }
-  else if (fade.a > fade.target) fade.a = Math.max(0, fade.a - dt * fade.speed);
+  else if (fade.a > fade.target && !fade.hold) fade.a = Math.max(0, fade.a - dt * fade.speed);
+}
+// pictures ready to draw: loaded and decoded off the main thread, so their first frame on screen does not stall to
+// decode them (a Black town's picture is up to ~2000 px square)
+export const prepped = new Set();
+export function prepImages(paths) {
+  return loadImages(paths).then((ims) => Promise.all(ims.map(async (im, i) => {
+    if (im.naturalWidth && im.decode) await im.decode().catch(() => {});
+    prepped.add(paths[i]);
+  })));
 }
