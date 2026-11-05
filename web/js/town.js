@@ -5,7 +5,7 @@ import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORME
 import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content.js';
 import { tr } from './i18n.js';
 import { openPokedex } from './pokedex.js';
-import { hasPmdSprite, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
+import { hasPmdSprite, pmdFailed, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
 import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons, forgetMenu, moveInfo, endingOpen } from './quests.js';
 
 // occupied towns (1910-1944) have constables on patrol (Town.patrols); the independence army's base and the
@@ -52,8 +52,9 @@ export const objInView = (o, vx, vy) => (o.tx + o.fw + 9) * TILE >= vx && (o.tx 
 export function drawMon(c, sp, shiny, x, y, o = {}) {
   // x, y = tile-centre bottom in pixels
   if (!o.noShadow) { c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(x, y - 5, 8 * (o.scale || 1), 3 * (o.scale || 1), 0, 0, Math.PI * 2); c.fill(); }
-  // Gen 1-3: PMD Blue Rescue Team sprites (8 directions); Gen 4: the Pearl box icon
-  if (hasPmdSprite(sp)) {
+  // Gen 1-3: PMD Blue Rescue Team sprites (8 directions); Gen 4, and a sheet that could not be loaded for now: the
+  // Pearl box icon
+  if (hasPmdSprite(sp) && !pmdFailed(sp)) {
     const dir = o.dir ?? pmdDir(o.face || o.facing || 'down');
     const anim = o.anim || (o.hurt ? 'hurt' : 'walk');
     const t = o.t ?? G.time * (o.moving ? 1 : 0.55) + (o.phase || 0);

@@ -105,7 +105,7 @@ export const W1940B = era({
   ],
   dungeons: {
     airfield: { name: K('비긴 힐 비행장', 'Biggin Hill Airfield'), at: [0.2, 51.15], tiles: T.flat, floors: 3, lv: P(12), bgm: 'd_05',
-      mons: [519, 520, 521, 527, 528, 566, 567, 587, 627, 628, 629, 630],
+      mons: [519, 520, 521, 527, 528, 566, 567, 587, 607, 627, 628, 629, 630], // 607 Litwick: the embers of the bombing (side w40b)
       boss: boss(567, P(12)[1] + 3, [157, 403, 512, 337], blast(K('아크로바트', 'Acrobatics'), 2, ['cross', 'far', 'x', 'rows']),
         [N('폭격으로 패인 활주로 위를 아케오스가 날아다니고 있다. 조종사들이 출격하지 못한다!', 'Archeops is flying over a runway cratered by bombs. The pilots can\'t take off!')],
         [{ who: 567, text: K('…케오! (아케오스는 날개를 접고 격납고 지붕에 내려앉았다.)', '...Keo! (Archeops folds its wings and lands on the hangar roof.)') }]) },

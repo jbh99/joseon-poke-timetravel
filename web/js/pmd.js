@@ -1,5 +1,5 @@
 // PMD Blue Rescue Team graphics (exported by tools/pmd/extract_pmd.py): 8-direction sprites, portraits, dungeon chunk sets.
-import { G, img, ready, loadJSON, loadImages } from './core.js';
+import { G, img, ready, failed, loadJSON, loadImages } from './core.js';
 
 let INDEX = { spr: [], kao: [], tiles: [] };
 let HAVE = { spr: new Set(), kao: new Set(), tiles: new Set() };
@@ -15,21 +15,31 @@ const DIR = { '0,1': 0, '1,1': 1, '1,0': 2, '1,-1': 3, '0,-1': 4, '-1,-1': 5, '-
 export const pmdDir = (f) => (Array.isArray(f) ? DIR[`${Math.sign(f[0])},${Math.sign(f[1])}`] ?? 0
   : { down: 0, right: 2, up: 4, left: 6 }[f] ?? 0);
 
+// A sheet and its frame data, asked for again on every use while either is missing: core.js retries a failed file
+// (1.16; a Pokémon whose sheet or frame data had failed once was not drawn for the rest of the session). failed: the
+// last try for the frame data failed (pmdFailed: town.js drawMon draws the box icon meanwhile)
 const sprites = new Map();
 function sprite(sp) {
   let s = sprites.get(sp);
-  if (s) return s;
-  s = { meta: null, im: img(`pmd/spr/${sp}.png`), shiny: null };
-  sprites.set(sp, s);
-  loadJSON(`pmd/spr/${sp}.json`).then((m) => { s.meta = m; }).catch(() => { s.failed = true; });
+  if (!s) { s = { meta: null, im: null, shiny: null, png: `pmd/spr/${sp}.png`, json: `pmd/spr/${sp}.json` }; sprites.set(sp, s); }
+  else if (s.meta && ready(s.im)) return s;
+  s.im = img(s.png);
+  if (!s.meta && !s.asking) {
+    s.asking = true;
+    loadJSON(s.json).then((m) => { s.meta = m; s.failed = false; }, () => { s.failed = true; }).finally(() => { s.asking = false; });
+  }
   return s;
 }
+// a sheet that cannot be had for now (its picture's or frame data's round of retries is over): town.js drawMon draws
+// the box icon meanwhile instead of nothing. Asking is a use, so the sheet comes back by itself once the line does
+export const pmdFailed = (sp) => { const s = sprite(sp); return !!s.failed || failed(s.im); };
 // a Pokémon's sheet loaded and decoded (and its frame data in), for a scene to have before it shows (main.js goTown):
 // one first drawn the frame it arrives stalls a phone for a moment
 export function spriteReady(sp) {
   if (!HAVE.spr.has(sp)) return loadImages([iconPath(sp)]); // a Gen 4 Pokémon is drawn from its box icon
   const s = sprite(sp);
-  return Promise.all([loadJSON(`pmd/spr/${sp}.json`).then((m) => { s.meta = m; }, () => {}), loadImages([`pmd/spr/${sp}.png`]).then(([im]) => (im.naturalWidth && im.decode ? im.decode().catch(() => {}) : null))]).then(() => s);
+  return Promise.all([loadJSON(s.json).then((m) => { s.meta = m; s.failed = false; }, () => { s.failed = true; }), loadImages([s.png]).then(([im]) => (im.naturalWidth && im.decode ? im.decode().catch(() => {}) : null))])
+    .then(() => (pmdFailed(sp) ? loadImages([iconPath(sp), iconPath(sp, true)]) : null)).then(() => s); // a sheet that failed shows its icon meanwhile: have that
 }
 // shiny colours: the sheet recoloured once through the exported colour map
 function shinySheet(s) {
@@ -91,13 +101,20 @@ export function pmdAnimLength(sp, anim, dir = 0) {
 export function portraitImage(sp) { return HAVE.kao.has(sp) ? img(`pmd/kao/${sp}.png`) : null; }
 
 // ---------------------------------------------------------------- dungeon chunk sets
+// A chunk set: its picture and its tables, asked for again on every use while either is missing (core.js retries a
+// failed file). `ready` settles once both have arrived or their round of retries is over, and never rejects: it used
+// to wait for the picture only after the tables came, and a picture that had failed before that was never noticed, so
+// the boot (set 41) or every town (G.townAssets) waited forever (1.16). Users check meta and ready(im) before painting.
 const sets = new Map();
 export function tileSet(id) {
   let t = sets.get(id);
-  if (t) return t;
-  t = { im: img(`pmd/tiles/${id}.png`), meta: null };
-  sets.set(id, t);
-  t.ready = loadJSON(`pmd/tiles/${id}.json`).then((m) => { t.meta = m; return new Promise((res) => { if (ready(t.im)) res(); else { t.im.onload = res; t.im.onerror = res; } }); });
+  if (!t) { t = { im: null, meta: null, ready: null, png: `pmd/tiles/${id}.png`, json: `pmd/tiles/${id}.json` }; sets.set(id, t); }
+  else if (t.meta && ready(t.im)) return t;
+  t.im = img(t.png);
+  if (!t.ready || (!t.meta && !t.asking)) {
+    t.asking = true;
+    t.ready = Promise.all([loadJSON(t.json).then((m) => { t.meta = m; }, () => {}), t.im.settled]).then(() => { t.asking = false; });
+  }
   return t;
 }
 // neighbour bits: S, SE, E, NE, N, NW, W, SW
@@ -140,4 +157,5 @@ export function paintTerrain(ctx, set, W, H, at, ox = 0, oy = 0, seed = 1) {
 }
 
 // Pearl box icons have no shiny palette; every species' shiny icon was derived from its shiny battle sprite (tools/extract_sprites.py)
-export const iconPath = (sp, shiny) => `poke/icon/${sp}${shiny ? 's' : ''}.png`;
+// a box icon is per species: a Forme's sprite key ('386a') draws its species' icon
+export const iconPath = (sp, shiny) => `poke/icon/${parseInt(sp, 10)}${shiny ? 's' : ''}.png`;

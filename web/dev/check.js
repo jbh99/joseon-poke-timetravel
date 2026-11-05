@@ -41,6 +41,10 @@ export async function checkAll(opts = {}) {
       if (q.to && !npcIds.has(q.to)) bad(tag, `side ${q.id} delivers to missing npc ${q.to}`);
       if (q.sp) await spOk(`${tag} side ${q.id}`, q.sp);
       if (q.floor && q.d && e.dungeons[q.d] && q.floor > e.dungeons[q.d].floors) bad(tag, `side ${q.id} floor ${q.floor} > ${e.dungeons[q.d].floors}`);
+      // a defeat request's Pokémon must live where it sends the player (1940 London's Litwick lived only in the town
+      // battle, which fields no wild foes)
+      const qd = e.dungeons[q.d];
+      if (q.kind === 'defeat' && qd && (qd.battle || !qd.mons?.includes(q.sp))) bad(tag, `side ${q.id}: ${q.sp} never appears in ${q.d}`);
     }
     for (const n of towns.flat()) await spOk(`${tag} npc ${n.id}`, n.sp);
     // world map

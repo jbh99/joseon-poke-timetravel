@@ -60,10 +60,11 @@ export function lairDone(dId) {
 
 // ---------------------------------------------------------------- missed legends
 // A legendary boss (story or optional) from an era already left behind that never joined comes back in the next era,
-// one floor below the last of one of that era's dungeons, at the dungeon's own level. Side dungeons host first, then
-// naval ones, then story dungeons (outside their story run), but never a place that holds a legend of its own: no map
-// shows two. The plan is fixed when the era is first entered, so a legend keeps its dungeon all era; one met but left
-// behind again moves on to the era after (as does one that found no free place).
+// on the last floor of one of that era's dungeons, at the dungeon's own level (a request's target on that floor still
+// shows: dungeon.js sideSpawns). Side dungeons host first, then naval ones, then story dungeons (outside their story
+// run), but never a place that holds a legend of its own: no map shows two. The plan is fixed when the era is first
+// entered, so a legend keeps its dungeon all era; one met but left behind again moves on to the era after (as does one
+// that found no free place).
 const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final && !b.noWander);
 const holdsLegend = (d) => !!d.legend || !!d.stages || [d.mid, d.boss].some((b) => b && LEGENDS.has(b.sp)); // a lair's keeper, legend or not, holds its last floor
 const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);

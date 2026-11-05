@@ -234,34 +234,69 @@ export function pollGamepads() {
 }
 
 // ---------------------------------------------------------------- assets
+// A file that fails to load is tried again (1.16; until 1.15 a picture or chunk set that failed once stayed missing
+// for the whole session): RETRY seconds apart at once, then, once those failed too, whenever it is asked for again
+// LATER ms or more after its last failure. The callers ask on every use (a draw calls img(), pmd.js sprite/tileSet
+// call it for the pictures they hold), so what is still wanted comes back on its own once the line does.
+const RETRY = [1, 2, 4, 8], LATER = 15000;
 const images = new Map();
 const jsons = new Map();
+// one Image a picture, for every holder: a retry loads it again into that same Image. `im.settled` resolves when it has
+// loaded or the round of retries is over (loadImages waits for it: a failure never holds a scene forever)
+function fetchImage(im, path) {
+  im.tries = 0; im.failedAt = 0;
+  im.settled = new Promise((res) => { im.done = res; });
+  im.src = 'assets/' + path;
+}
 export function img(path) {
   let im = images.get(path);
   if (!im) {
     im = new Image();
-    im.src = 'assets/' + path;
+    im.addEventListener('load', () => im.done());
+    im.addEventListener('error', () => {
+      const wait = RETRY[im.tries++];
+      if (wait) setTimeout(() => { im.src = 'assets/' + path; }, wait * 1000); // setting src again loads it anew
+      else { im.failedAt = performance.now(); im.done(); }
+    });
     images.set(path, im);
-  }
+    fetchImage(im, path);
+  } else if (im.failedAt && performance.now() - im.failedAt >= LATER) fetchImage(im, path);
   return im;
 }
 export function loadImages(paths) {
-  return Promise.all(paths.map((p) => new Promise((res) => {
+  return Promise.all(paths.map((p) => {
     const im = img(p);
-    if (im.complete) { if (!im.naturalWidth) console.warn('missing', p); return res(im); }
-    // listeners, not onload: a picture already asked for elsewhere (preloaded from the world map) may have its own
-    im.addEventListener('load', () => res(im), { once: true });
-    im.addEventListener('error', () => { console.warn('missing', p); res(im); }, { once: true });
-  })));
+    return im.settled.then(() => { if (!im.naturalWidth) console.warn('missing', p); return im; });
+  }));
 }
 // one fetch a file, however many ask for it at once (a sprite's frame data is asked for by its first draw and by
-// spriteReady); a failed one is forgotten so a later call tries again
+// spriteReady), with the same retries as a picture: the promise rejects only when the round of retries is over, and
+// the next call after that waits LATER ms from that failure before it fetches again (until then it gets the failure)
+const getJSON = async (path) => {
+  for (let i = 0; ; i++) {
+    try {
+      const r = await fetch('assets/' + path);
+      if (!r.ok) throw new Error(`${r.status} ${path}`);
+      return await r.json();
+    } catch (e) {
+      if (i >= RETRY.length) throw e;
+      await new Promise((res) => setTimeout(res, RETRY[i] * 1000));
+    }
+  }
+};
 export function loadJSON(path) {
-  let p = jsons.get(path);
-  if (!p) { p = fetch('assets/' + path).then((r) => r.json()); jsons.set(path, p); p.catch(() => jsons.delete(path)); }
-  return p;
+  let j = jsons.get(path);
+  if (!j || (j.failedAt && performance.now() - j.failedAt >= LATER)) {
+    j = { failedAt: 0 };
+    j.p = getJSON(path).catch((e) => { j.failedAt = performance.now(); throw e; });
+    j.p.catch(() => {}); // a caller that only wanted it loaded (a preload) leaves no unhandled rejection behind
+    jsons.set(path, j);
+  }
+  return j.p;
 }
 export const ready = (im) => im && im.complete && im.naturalWidth > 0;
+// a picture whose round of retries is over without it (img() tries it again when it is next wanted LATER on)
+export const failed = (im) => !!im?.failedAt;
 // the part of a big prerendered map (a town is up to ~2300x1900 px) inside the view at (vx, vy), drawn at its own place:
 // the same pixels as drawing it whole, without the browser handling the off-screen rest every frame
 export function drawSeen(c, im, vx, vy) {
@@ -563,11 +598,13 @@ export function updateFade(dt) {
   else if (fade.a > fade.target && !fade.hold) fade.a = Math.max(0, fade.a - dt * fade.speed);
 }
 // pictures ready to draw: loaded and decoded off the main thread, so their first frame on screen does not stall to
-// decode them (a Black town's picture is up to ~2000 px square)
+// decode them (a Black town's picture is up to ~2000 px square). One that failed is not counted, so the next town
+// entry waits for it again (img() tries it again by then)
 export const prepped = new Set();
 export function prepImages(paths) {
   return loadImages(paths).then((ims) => Promise.all(ims.map(async (im, i) => {
-    if (im.naturalWidth && im.decode) await im.decode().catch(() => {});
+    if (!im.naturalWidth) return;
+    if (im.decode) await im.decode().catch(() => {});
     prepped.add(paths[i]);
   })));
 }

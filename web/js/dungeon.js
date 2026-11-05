@@ -240,6 +240,7 @@ export class Dungeon {
       this.boss = this.bosses[0];
       this.bossIntro = !this.stage?.wake; // one waiting in its hall speaks when the team comes near (foeAI)
       if (lay?.battle) this.deployArmies(lay);
+      else if (!this.stage) this.sideSpawns(spot); // a request's target waits on its floor, a boss there or not
     } else if (lay?.battle) this.deployArmies(lay);
     else if (this.stage) { // a stage with no boss (the Spear Pillar): no foes either, only the way on
       this.stairs = lay?.stairs || null;
@@ -286,19 +287,28 @@ export class Dungeon {
     e.waiting = this.stage?.wake || 0;
     return e;
   }
+  // an ordinary floor's quest finds: the story run's quest item (on every floor, or the last before its boss) and the
+  // Pokémon it comes to rescue, then the board's requests (sideSpawns)
   questSpawns(spot) {
     const last = this.floor === this.def.floors || (this.def.boss && this.main && this.floor === this.def.floors - 1);
     const q = this.def.quest;
     if (this.main && q && (q.perFloor || (q.lastFloor && last))) { const p = spot(); if (p) this.items.push({ x: p[0], y: p[1], id: q.item, quest: true }); }
+    const r = this.def.rescue;
+    if (this.main && r && r.floor === this.floor && !S.flags['rescued_main_' + this.dId]) {
+      const p = spot(); if (p) { const e = this.addEnt(new Mon(r.sp, 5), p[0], p[1], 'npc'); e.rescue = { id: 'main_' + this.dId, sp: r.sp }; }
+    }
+    this.sideSpawns(spot);
+  }
+  // the board's requests taken for this dungeon: a sought item on most floors, a Pokémon to rescue on the floor its
+  // request names. A boss floor gets them too (newFloor), since 1.16: a legend missed in an earlier era comes back on
+  // the last floor of a side dungeon, and the rescues waiting there (1019 Gangdong, 1443 Gwanak, 1887 the tramway,
+  // 1919 Namsan, all on floor 3) could not be done until that legend had been met
+  sideSpawns(spot) {
     for (const sq of activeSides(this.dId)) {
       if (sq.kind === 'collect' && Math.random() < 0.85) { const p = spot(); if (p) this.items.push({ x: p[0], y: p[1], id: sq.item, quest: !!QITEMS[sq.item] }); }
       if (sq.kind === 'rescue' && sq.floor === this.floor && !S.flags['rescued_' + sq.id]) {
         const p = spot(); if (p) { const e = this.addEnt(new Mon(sq.sp, 5), p[0], p[1], 'npc'); e.rescue = sq; }
       }
-    }
-    const r = this.def.rescue;
-    if (this.main && r && r.floor === this.floor && !S.flags['rescued_main_' + this.dId]) {
-      const p = spot(); if (p) { const e = this.addEnt(new Mon(r.sp, 5), p[0], p[1], 'npc'); e.rescue = { id: 'main_' + this.dId, sp: r.sp }; }
     }
   }
   randomItem() {
