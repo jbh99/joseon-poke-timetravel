@@ -240,7 +240,13 @@ export class Dungeon {
       this.boss = this.bosses[0];
       this.bossIntro = !this.stage?.wake; // one waiting in its hall speaks when the team comes near (foeAI)
       if (lay?.battle) this.deployArmies(lay);
-      else if (!this.stage) this.sideSpawns(spot); // a request's target waits on its floor, a boss there or not
+      else if (!this.stage) {
+        // a request's target waits on its floor, a boss there or not. The arena's camera stays put and the HUD covers
+        // its rim (the team panel its top-left rows, the boss bar the top, the move list and the log the bottom, a
+        // phone's pad the bottom-left), so there the target waits in the open middle, between the boss and the team
+        const R = rooms[0], mid = { x: R.x + 5, y: R.y + 4, w: R.w - 8, h: R.h - 7 };
+        this.sideSpawns(this.arena ? () => spot([mid]) : spot);
+      }
     } else if (lay?.battle) this.deployArmies(lay);
     else if (this.stage) { // a stage with no boss (the Spear Pillar): no foes either, only the way on
       this.stairs = lay?.stairs || null;
