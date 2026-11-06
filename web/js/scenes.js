@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fade
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
 import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, crewMenu } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, crewMenu, yearOf, shownYear } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { openPokedex } from './pokedex.js';
@@ -59,7 +59,7 @@ export class Title {
   // a save in a few words: the year and the time played, ★ once its ending is open (Arceus and Kyurem beaten)
   when(o) {
     const pt = Math.floor((o.playtime || 0) / 60), done = endingOpen(o);
-    return `${ERAS[o.era]?.year ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}${done ? ' ★' : ''}`;
+    return `${yearOf(o) ?? '?'}${tr('년', '')} · ${Math.floor(pt / 60)}:${String(pt % 60).padStart(2, '0')}${done ? ' ★' : ''}`;
   }
   pickSave(list) {
     const N = MODE_NAMES();
@@ -190,7 +190,7 @@ export class EraCard {
   enter() {
     const e = era();
     this.e = e; this.t = 0;
-    this.fromYear = G.cardFrom ?? (S.era > 0 ? ERAS[S.era - 1].year : e.year - 30);
+    this.fromYear = G.cardFrom ?? (S.era > 0 ? yearOf({ era: S.era - 1, spy: S.spy }) : e.year - 30); // from where the last era ended (the 1920s spy hunt moves it on)
     G.cardFrom = null;
     tileSet(cardOf(e).set);
     preloadTowns();
@@ -252,7 +252,9 @@ export class WorldMap {
     this.e = era();
     preloadTowns();
     // a world era's map is its region's (data/maps.json, tools/geo/worldmaps.py); Korea's is the peninsula
-    this.meta = this.e.map ? (await loadJSON('data/maps.json'))[this.e.map] : await loadJSON('data/worldmap.json');
+    // (its data out of reach after core.js's retries: back to town, not a map with no way out)
+    try { this.meta = this.e.map ? (await loadJSON('data/maps.json'))[this.e.map] : await loadJSON('data/worldmap.json'); }
+    catch (e) { toast(tr('지도를 불러오지 못했다. 잠시 뒤에 다시 열어 보자.', 'Could not load the map. Try again in a moment.'), COL.red); return G.goTown(); }
     this.mapImg = this.e.map ? `img/map_${this.e.map}.png` : 'img/worldmap.png';
     playBgm(this.e.world);
     this.nodes = this.e.nodes.filter((n) => !n.when || n.when());
@@ -370,7 +372,7 @@ export class WorldMap {
       { label: tr('마을로 돌아가기', 'Back to town'), fn: () => fadeTo(() => G.goTown()) },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
       { label: tr('닫기', 'Close') },
-    ], { title: tr(`${this.e.year}년 세계 지도`, `World map, ${this.e.year}`) });
+    ], { title: tr(`${shownYear()}년 세계 지도`, `World map, ${shownYear()}`) });
     if (input.hit('quest')) return questMenu();
     if (input.hit('party')) return rosterMenu(); // companions can be swapped anywhere outside dungeons
     if (input.hit('cancel')) fadeTo(() => G.goTown());
@@ -443,11 +445,11 @@ export class WorldMap {
     if (!this.nodes) return;
     const x = 324, w = VW - x - 8;
     // panels grow with wrapped text (English titles run longer than Korean)
-    const tx = x + 8 + ui.measure(tr(`${this.e.year}년`, `${this.e.year}`), 11, true) + 6;
+    const yearText = tr(`${shownYear()}년`, `${shownYear()}`), tx = x + 8 + ui.measure(yearText, 11, true) + 6;
     const titleL = ui.wrap(this.e.title, x + w - 8 - tx, 11), subL = ui.wrap(this.e.sub, w - 16, 9);
     const h1 = 26 + (titleL.length - 1) * 13 + 11 + subL.length * 11;
     ui.panel(x, 8, w, h1);
-    ui.text(tr(`${this.e.year}년`, `${this.e.year}`), x + 8, 14, { bold: true, color: COL.red });
+    ui.text(yearText, x + 8, 14, { bold: true, color: COL.red });
     titleL.forEach((l, i) => ui.text(l, tx, 14 + i * 13, { bold: true }));
     const yy = 30 + (titleL.length - 1) * 13;
     ui.text(this.e.years, x + 8, yy, { size: 9, color: COL.ink2 });

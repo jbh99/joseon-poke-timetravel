@@ -109,8 +109,8 @@ export async function checkAll(opts = {}) {
       stats.towns++;
       const seen = new Set([t.py * t.W + t.px]), q = [[t.px, t.py]];
       const free = (x, y) => x >= 0 && y >= 0 && x < t.W && y < t.H && !t.solid[y][x] && !t.onGate(x, y) && !t.npcs.some((n) => n.role !== 'police' && n.x === x && n.y === y); // constables walk on
-      // constables: two pairs in every town from 1910 to 1944 but the base and Chongqing, none anywhere else
-      const cops = t.npcs.filter((n) => n.role === 'police').length, want = e.year >= 1910 && e.year < 1945 && (kind === 2 ? e.town2 : e.town).police !== false ? 4 : 0;
+      // constables: three pairs in every town from 1905 to 1944 but the base and Chongqing, none anywhere else
+      const cops = t.npcs.filter((n) => n.role === 'police').length, want = e.year >= 1905 && e.year < 1945 && (kind === 2 ? e.town2 : e.town).police !== false ? 6 : 0;
       if (cops !== want) bad(`${e.year} town${kind}`, `${cops} constables (want ${want})`);
       while (q.length) {
         const [x, y] = q.shift();

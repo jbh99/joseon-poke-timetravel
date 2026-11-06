@@ -294,6 +294,22 @@ export function loadJSON(path) {
   }
   return j.p;
 }
+// The web fonts, with the same retries (1.17: one that failed once ended the boot with "Failed to load"). A face that
+// failed stays failed, so a retry is a new face with the same file. The promise resolves when a font has loaded or
+// its round is over: the game then draws in a system font until a later try brings it.
+export function loadFonts() {
+  const one = (family, file) => new Promise((settled) => {
+    const attempt = (k, p) => p.then(settled, () => {
+      if (k >= RETRY.length) settled();
+      setTimeout(() => {
+        const face = new FontFace(family, `url(assets/fonts/${file}.woff2)`);
+        attempt(k + 1, face.load().then(() => { document.fonts.add(face); }));
+      }, k < RETRY.length ? RETRY[k] * 1000 : LATER);
+    });
+    attempt(0, document.fonts.load(`11px ${family}`));
+  });
+  return Promise.all([one('Galmuri11', 'Galmuri11'), one('Galmuri11B', 'Galmuri11-Bold'), one('Galmuri9', 'Galmuri9')]);
+}
 export const ready = (im) => im && im.complete && im.naturalWidth > 0;
 // a picture whose round of retries is over without it (img() tries it again when it is next wanted LATER on)
 export const failed = (im) => !!im?.failedAt;
@@ -483,7 +499,7 @@ export class Menu {
   }
   relang(sw) {
     const keep = (v) => (typeof v === 'function' ? v : sw(v)); // a function follows the language by itself
-    for (const it of this.items) { it.label = sw(it.label); it.right = sw(it.right); it.desc = keep(it.desc); }
+    for (const it of this.items) { it.label = sw(it.label); it.right = keep(it.right); it.desc = keep(it.desc); }
     if (this.o.title) this.o.title = keep(this.o.title);
   }
   update() {
@@ -516,9 +532,10 @@ export class Menu {
   }
   drawUI() {
     const o = this.o, title = o.title && ui.fit(shown(o.title), VW - 22, 11, true), tw = title ? ui.measure(title, 11, true) + 14 : 0;
-    // a menu sized by its rows grows to its title (a dungeon's long English name) as far as the screen allows
-    const w = o.w || Math.min(VW - 16, Math.max(90, tw, ...this.items.map((i) => ui.measure(i.label) + 34)));
-    const x = o.x ?? VW - w - 8, y = o.y ?? (o.title ? 24 : 8); // a title tab sits above the list, so keep it on screen
+    // a menu sized by its rows grows to its title (a dungeon's long English name) and to the text on both sides of its
+    // rows (until 1.16 only the left: the Revive's HP column ran over the names) as far as the screen allows
+    const w = o.w || Math.min(VW - 16, Math.max(90, tw, ...this.items.map((i) => { const r = shown(i.right); return ui.measure(i.label) + 34 + (r ? ui.measure(r) + 8 : 0); })));
+    const x = Math.max(8, Math.min(o.x ?? VW - w - 8, VW - w - 8)), y = o.y ?? (o.title ? 24 : 8); // a title tab sits above the list, so keep it on screen
     // long lists (roster, items) scroll so they never run off the screen
     const n = this.items.length, rows = Math.min(n, Math.max(3, Math.floor((VH - y - (o.desc ? 50 : 14) - 12) / 16)));
     const top = clamp(this.sel - Math.floor(rows / 2), 0, n - rows);
@@ -527,9 +544,10 @@ export class Menu {
     ui.panel(x, y, w, h);
     if (title) { const tx = Math.max(4, Math.min(x, VW - 4 - tw)); ui.panel(tx, y - 15, tw, 16, { accent: false, fill: COL.ink2 }); ui.text(title, tx + 7, y - 12, { color: '#fff4dc', bold: true }); }
     this.items.slice(top, top + rows).forEach((it, j) => {
-      const k = top + j;
-      ui.text((k === this.sel ? '▶ ' : '   ') + it.label, x + 8, y + 8 + j * 16, { color: it.disabled ? '#9a8a76' : COL.ink });
-      if (it.right) ui.text(it.right, x + w - 8, y + 8 + j * 16, { align: 'right', color: COL.ink2 });
+      // a row too long for a fixed-width menu is cut short rather than run into its right-hand text
+      const k = top + j, right = shown(it.right), room = w - 16 - (right ? ui.measure(right) + 8 : 0);
+      ui.text(ui.fit((k === this.sel ? '▶ ' : '   ') + it.label, room), x + 8, y + 8 + j * 16, { color: it.disabled ? '#9a8a76' : COL.ink });
+      if (right) ui.text(right, x + w - 8, y + 8 + j * 16, { align: 'right', color: COL.ink2 });
     });
     if (top > 0) ui.text('▲', x + w - 12, y - 1, { size: 9, color: COL.red });
     if (top + rows < n) ui.text('▼', x + w - 12, y + h - 10, { size: 9, color: COL.red });

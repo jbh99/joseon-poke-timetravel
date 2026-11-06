@@ -41,7 +41,7 @@ const MEWTWO = { sp: 150, lv: 54, lvMin: 47, lvUp: 4, hp: 3.06, atk: 1.04, cap: 
 
 export const ERA_1905 = {
   year: 1905, years: '1905 – 1907', title: K('을사늑약', 'The Eulsa Treaty'), sub: K('빼앗긴 외교권, 헤이그로 간 특사', 'A stolen sovereignty, envoys to The Hague'),
-  card: { set: T.autumn, mons: [150, 475, 178, 64] }, artProps: ['palace'], inn: 440, shop: 53, police: false,
+  card: { set: T.autumn, mons: [150, 475, 178, 64] }, artProps: ['palace'], inn: 440, shop: 53,
   town: {
     name: K('한성 (1905)', 'Hanseong (1905)'), bgm: 'city05_d', bgmN: 'city05_n', biome: 'spring', landmark: 'palace', pearl: 'C05', // Hearthome: the old capital round its palace
     houses: ['hanok', 'western', 'hanok', 'hanok', 'western', 'choga', 'hanok', 'western'], props: ['persimmon', 'maple', 'lamp', 'pole', 'rickshaw', 'jars', 'lantern'],

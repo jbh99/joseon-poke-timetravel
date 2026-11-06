@@ -1,5 +1,5 @@
 // Boot and main loop.
-import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, toast, COL, prefs } from './core.js';
+import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
 import { initData, initSaves, S, save, load, newGame } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
@@ -179,8 +179,7 @@ async function boot() {
   const status = document.getElementById('status');
   try {
     await Promise.all([
-      document.fonts.load('11px Galmuri11'), document.fonts.load('11px Galmuri11B'), document.fonts.load('9px Galmuri9'),
-      initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings), loadJSON('data/pearl.json').then(setPearl), tileSet(41).ready,
+      loadFonts(), initData(), initAudio(), initPmd(), loadJSON('data/buildings.json').then(setBuildings), loadJSON('data/pearl.json').then(setPearl), tileSet(41).ready,
       loadImages(['poke/front/251.png', ...STARTERS.flatMap((s) => [`poke/front/${s}s.png`, `poke/icon/${s}s.png`])]),
       loadJSON('data/content_en.json').then((t) => {
         const missing = new Set();
@@ -188,7 +187,7 @@ async function boot() {
         if (missing.size) console.warn('untranslated story text', [...missing]);
       }),
     ]);
-  } catch (e) { status.textContent = tr('불러오기 실패: ', 'Failed to load: ') + e.message; throw e; }
+  } catch (e) { status.textContent = `${tr('불러오기 실패: ', 'Failed to load: ')}${e.message} ${tr('(새로고침해 주세요)', '(please reload the page)')}`; throw e; }
   initLang();
   // what only the towns need (their buildings, props and ground chunk sets, the Black towns' index: ~0.7 MB in 70
   // requests) loads behind the title instead of before it; G.goTown waits for it on a line too slow to have it by then

@@ -9,7 +9,7 @@ export const CELEBI = 251;
 // with and `at`, the HP marks (share of the form's max HP) where one goes off: one list, or a few to pick from at random.
 // dmg is a share of max HP, like a telegraphed blast's.
 export const SIG = {
-  roar: { kind: 'roar', name: K('시간의 포효', 'Roar of Time'), type: 8, cut: 0.2, back: 10 }, // HP back to 10 s ago, the team -20%
+  roar: { kind: 'roar', name: K('시간의 포효', 'Roar of Time'), type: 8, cut: 0.33, back: 10 }, // the team -33%; HP back to 10 s ago, plus what it just took from the team
   rend: { kind: 'rend', name: K('공간절단', 'Spacial Rend'), type: 11, dmg: 0.42 }, // the arena shrinks, long rifts erupt all over the floor
   shadow: { kind: 'shadow', name: K('섀도다이브', 'Shadow Force'), type: 7, dmg: 0.34 }, // gone into the dark, out of a shadow
   blades: { kind: 'blades', name: K('단애의 칼', 'Precipice Blades'), type: 4, dmg: 0.34 }, // stone blades along fissures

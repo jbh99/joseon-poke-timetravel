@@ -541,7 +541,7 @@ const JOSEON = [
     dungeons: {
       alley: { name: '경성 뒷골목', tiles: T.alley, floors: 4, lv: [34, 38], mons: [198, 92, 93, 353, 355, 434, 435, 228, 200], bgm: 'd_agito',
         quest: { item: 'declaration', lastFloor: true },
-        boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 2.43, atk: 0.98, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // 1.7: HP +30% and attack +15% (was 1.87 / 0.85)
+        boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 2.673, atk: 0.98, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // 1.7: HP +30% and attack +15% (was 1.87 / 0.85); 1.17: HP +10% (was 2.43)
           tele: { name: K('러스터캐논', 'Flash Cannon'), every: 4, dmg: 0.36, pats: ['cols', 'rows', 'cross', 'quad'], type: 8 },
           sig: { use: [SIG.roar], at: SIG_AT1 }, sigMore: 2, // 1.9: Roar of Time twice as often, in either form (dungeon.js sigPlan)
           revive: origin('#6a9cff', K('디아루가가 쓰러지지 않는다! 시간이 거꾸로 흐르며 오리진폼으로 모습을 바꿨다!', "Dialga won't go down! Time flows backwards as it takes its Origin Forme!"),

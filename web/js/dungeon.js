@@ -1188,23 +1188,26 @@ export class Dungeon {
     const run = e.sigRun, sg = run.sg, m = e.mon;
     if (sg.kind === 'roar') {
       e.sigRun = null;
-      // the HP it had sg.back seconds ago (the oldest kept if the fight is younger), when that was more
-      const log = e.hpLog || [], then = log.filter(([t]) => t <= G.time - sg.back).pop() || log[0] || [G.time, m.hp];
-      const heal = Math.max(0, Math.min(m.maxhp, then[1]) - m.hp);
-      m.hp += heal;
       this.step(() => {
         this.timeFx = { t: 1, x: e.x, y: e.y }; this.shake = 0.7; sfx('warp'); cry(m.sp);
         this.msg(tr(`${m.name}의 ${sg.name}! 시간이 거꾸로 흐른다!`, `${m.name}'s ${sg.name}! Time flows backwards!`), COL.red);
-        if (heal) { this.pop(e, `+${heal}`, COL.green); this.msg(tr(`${m.name}의 상처가 ${sg.back}초 전으로 되돌아갔다! (+${heal})`, `${m.name}'s wounds went back to ${sg.back} seconds ago! (+${heal})`), COL.red); }
       }, 0.7);
       const pct = Math.round(sg.cut * 100);
+      let dealt = 0; // what it really took from the team (a Pokémon can't lose more than it has)
       for (const a of this.ents.filter((x) => x.alive && x.team === 'ally')) {
         const d = Math.max(1, Math.round(a.mon.maxhp * sg.cut));
+        dealt += Math.min(a.mon.hp, d);
         a.mon.hp = Math.max(0, a.mon.hp - d);
         this.step(() => { a.hurt = 0.4; this.pop(a, String(d), '#8ab4ff'); sfx('hit'); }, 0.08);
         if (a.mon.hp <= 0) this.faint(a, e);
       }
       this.step(() => this.msg(tr(`모두 최대 HP의 ${pct}%를 잃었다!`, `Everyone lost ${pct}% of their max HP!`), COL.red), 0.2);
+      // it heals back to the HP it had sg.back seconds ago (the oldest kept if the fight is younger), when that was more,
+      // and on top of that by what the roar just took from the team (1.17)
+      const log = e.hpLog || [], then = log.filter(([t]) => t <= G.time - sg.back).pop() || log[0] || [G.time, m.hp];
+      const heal = Math.min(m.maxhp - m.hp, Math.max(0, Math.min(m.maxhp, then[1]) - m.hp) + dealt);
+      m.hp += heal;
+      if (heal) this.step(() => { this.pop(e, `+${heal}`, COL.green); this.msg(tr(`${m.name}의 상처가 ${sg.back}초 전으로 되돌아가고, 입힌 피해만큼 더 아물었다! (+${heal})`, `${m.name}'s wounds went back to ${sg.back} seconds ago and closed further by the damage it dealt! (+${heal})`), COL.red); }, 0.25);
       e.stagger = 1; // like the real move, it has to recharge
       this.step(() => this.msg(tr(`${m.name}은(는) 반동으로 움직일 수 없다! 지금 공격하면 1.5배!`, `${m.name} must recharge! Attacks deal 1.5x now!`), COL.green), 0.15);
       return true;

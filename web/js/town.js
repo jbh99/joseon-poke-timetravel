@@ -6,12 +6,12 @@ import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content
 import { tr } from './i18n.js';
 import { openPokedex } from './pokedex.js';
 import { hasPmdSprite, pmdFailed, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
-import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, giveMons, forgetMenu, moveInfo, endingOpen } from './quests.js';
+import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, shownYear, giveMons, forgetMenu, moveInfo, endingOpen } from './quests.js';
 
-// occupied towns (1910-1944) have constables on patrol (Town.patrols); the independence army's base and the
+// occupied towns (1905-1944) have constables on patrol (Town.patrols); the independence army's base and the
 // Provisional Government in Chongqing (police: false) are out of their reach
-export const policed = (era, t) => era.year >= 1910 && era.year < 1945 && t.police !== false;
-const TOLL = 100;
+export const policed = (era, t) => era.year >= 1905 && era.year < 1945 && t.police !== false;
+const TOLL = 500, PATROLS = 3; // the constables' demand, and how many pairs walk a town
 let police = null; // the patrols of the town you are in, kept while a fight with one of them plays out (Town.policeFight)
 export let BLD = {};
 export function setBuildings(b) { BLD = b; }
@@ -139,13 +139,13 @@ export class Town {
   }
   follower(x, y) { return [this.partner, this.mate].some((f) => f && f.x === x && f.y === y); }
 
-  // Occupied towns (content.js policed: 1910-1944): two pairs of constables (Mightyena) walk the streets. A pair that
-  // spots you comes over and demands 100 nyang, or a fight right where you stand (policeDef). Either way it leaves you
+  // Occupied towns (policed: 1905-1944): three pairs of constables (Mightyena) walk the streets. A pair that spots you
+  // comes over and demands TOLL nyang, or a fight right where you stand (policeFight). Either way it leaves you
   // alone for the rest of the visit; a pair beaten is gone. Coming back from that fight, everyone is where they were.
   patrols() {
     const key = `${S.era}:${this.kind}`, back = G.policeBack === key && police?.key === key;
     G.policeBack = null;
-    if (!back) police = { key, pairs: [{}, {}] };
+    if (!back) police = { key, pairs: Array.from({ length: PATROLS }, () => ({})) };
     const W = this.W, md = (a, b, x, y) => Math.abs(a - x) + Math.abs(b - y);
     const exit = (x, y) => this.exitTiles.some(([a, b]) => a === x && b === y);
     const open = (x, y) => !this.blocked(x, y) && !exit(x, y) && !(x === this.px && y === this.py) && !this.follower(x, y);
@@ -159,7 +159,7 @@ export class Town {
     police.pairs.forEach((v, k) => {
       if (v.beaten) return;
       let at = back && v.at && open(...v.at) ? v.at : null;
-      for (let far = 12; !at && far >= 0; far -= 4) { // well away from you and the other pair
+      for (let far = 12; !at && far >= 0; far -= 4) { // well away from you and the other pairs
         const ok = roomy.filter(([x, y]) => md(x, y, this.px, this.py) >= far && this.pairs.every((o) => md(x, y, o.lead.x, o.lead.y) >= far * 0.7));
         at = ok[Math.floor(Math.random() * ok.length)];
       }
@@ -232,7 +232,7 @@ export class Town {
     for (let p = prev.get(s[1] * W + s[0]); p && !(p[0] === n.x && p[1] === n.y); p = prev.get(s[1] * W + s[0])) s = p;
     return s;
   }
-  // the stop: 100 nyang, or a fight
+  // the stop: TOLL nyang (all you have, if less), or a fight
   checkpoint(pr) {
     pr.state = 'walk'; pr.calm = G.time + 8; this.queued = null;
     for (const n of [pr.lead, pr.tail]) n.face = this.px > n.x ? 'right' : this.px < n.x ? 'left' : n.face;
@@ -1122,11 +1122,20 @@ export class Town {
     }), { title: () => tr(`기술머신 · ${S.money}냥`, `TMs · ${S.money} nyang`), desc: true, keep: true, x: 110, y: 30, w: 260 })); // the money on show follows each purchase
   }
   shopMenu(npc) {
-    // the money in the title and the count in the bag follow each purchase (the menu stays open)
-    const buy = () => openMenu(SHOP.map((id) => ({ label: ITEMS[id].name, right: tr(`${ITEMS[id].price}냥`, `${ITEMS[id].price} ny`), desc: () => tr(`${ITEMS[id].desc} (보유 ${countItem(id)})`, `${ITEMS[id].desc} (have ${countItem(id)})`), fn: () => {
-      if (S.money < ITEMS[id].price) { toast(tr('엽전이 모자라다.', 'Not enough coins.'), COL.red); sfx('cancel'); return; }
-      S.money -= ITEMS[id].price; addItem(id); sfx('pick'); toast(tr(`${ITEMS[id].name}을(를) 샀다! (남은 돈 ${S.money}냥)`, `Bought ${ITEMS[id].name}! (${S.money} nyang left)`));
-    } })), { title: () => tr(`장터 · ${S.money}냥`, `Market · ${S.money} nyang`), desc: true, keep: true, x: 150, y: 30, w: 200 });
+    // the money in the title, the prices and the count in the bag follow each purchase (the menu stays open). The first
+    // row switches between buying one and buying ten at a time; each visit to the stall starts at one
+    const buy = () => {
+      let qty = 1;
+      openMenu([
+        { label: tr('10개씩 사기', 'Buy 10 at a time'), right: () => (qty > 1 ? tr('켜짐', 'On') : tr('꺼짐', 'Off')), desc: () => tr('누를 때마다 1개씩 사기와 10개씩 사기가 바뀐다.', 'Press to switch between buying one and buying ten at a time.'), fn: () => { qty = qty > 1 ? 1 : 10; } },
+        ...SHOP.map((id) => ({ label: ITEMS[id].name, right: () => tr(`${ITEMS[id].price * qty}냥`, `${ITEMS[id].price * qty} ny`), desc: () => tr(`${ITEMS[id].desc} (보유 ${countItem(id)})`, `${ITEMS[id].desc} (have ${countItem(id)})`), fn: () => {
+          const cost = ITEMS[id].price * qty;
+          if (S.money < cost) { toast(tr('엽전이 모자라다.', 'Not enough coins.'), COL.red); sfx('cancel'); return; }
+          S.money -= cost; addItem(id, qty); sfx('pick');
+          toast(qty > 1 ? tr(`${ITEMS[id].name} ${qty}개를 샀다! (남은 돈 ${S.money}냥)`, `Bought ${qty} × ${ITEMS[id].name}! (${S.money} nyang left)`) : tr(`${ITEMS[id].name}을(를) 샀다! (남은 돈 ${S.money}냥)`, `Bought ${ITEMS[id].name}! (${S.money} nyang left)`));
+        } })),
+      ], { title: () => tr(`장터 · ${S.money}냥${qty > 1 ? ' · 10개씩' : ''}`, `Market · ${S.money} nyang${qty > 1 ? ' · 10 each' : ''}`), desc: true, keep: true, sel: 1, x: 150, y: 30, w: 200 });
+    };
     const sell = () => {
       const ids = Object.keys(S.items).filter((id) => ITEMS[id] && !ITEMS[id].key); // key items (the orbs) are never sold
       if (!ids.length) return toast(tr('팔 물건이 없다.', 'Nothing to sell.'));
@@ -1144,7 +1153,7 @@ export class Town {
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
       quitItem(false, () => { S.townPos = [this.px, this.py]; save(); S.townPos = null; }),
       { label: tr('닫기', 'Close') },
-    ], { title: tr(`${this.era.year}년`, `${this.era.year}`) });
+    ], { title: tr(`${shownYear()}년`, `${shownYear()}`) });
   }
   leave() { fadeTo(() => G.goWorld()); }
 
@@ -1298,7 +1307,7 @@ export class Town {
     const era = this.era, goal = trackerText();
     // the era's title in a box as wide as it needs, up to the goal box, wrapping beyond that (up to 1.13 a fixed 150 px
     // box, which 30 English and 7 Korean titles ran out of)
-    const room = (goal ? VW - 186 : VW) - 18, head = tr(`${era.year}년 · ${era.title}`, `${era.year} · ${era.title}`);
+    const room = (goal ? VW - 186 : VW) - 18, year = shownYear(), head = tr(`${year}년 · ${era.title}`, `${year} · ${era.title}`);
     let heads = ui.wrap(head, room - 16, 11, true);
     if (heads.length > 2) heads = [heads[0], ui.fit(heads.slice(1).join(' '), room - 16, 11, true)];
     const sub = ui.fit(this.def.name + (S.night ? tr(' (밤)', ' (night)') : ''), room - 16, 9);

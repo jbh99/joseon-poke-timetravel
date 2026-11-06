@@ -221,6 +221,11 @@ export function spyTick() {
   return tr(`그사이 1년이 흘렀다. 지금은 ${s.year}년. (${SPY_END}년이 되기 전에 밀정을 찾자!)`, `A year went by meanwhile. It is now ${s.year}. (Find the spy before ${SPY_END}!)`);
 }
 export const spyDue = () => spyActive() && spyState().year >= SPY_END;
+// the year on show (the town's header and menu, the world map, the quest list, a journey on the title's list): the
+// era's, but the hunt moves time on through the 1920s and the era ends in the year the spy was caught (S.spy stays as a
+// record of that year). Until 1.16 the header stayed on 1920 while the hunt's own lines counted the years.
+export const yearOf = (o = S) => (o.spy?.era === o.era ? o.spy.year : ERAS[o.era]?.year);
+export const shownYear = () => (spyActive() ? spyState().year : yearOf());
 async function spyInformant(npc) {
   const s = spyState(), tn = DEX.types[s.type];
   await say([
@@ -246,7 +251,7 @@ async function spyAccuse(npc, town) {
       { who: 'narr', text: tr(`${was}의 모습이 흐물흐물 녹아내리더니… 메타몽이 나타났다! 밀정이다!`, `${was}'s shape melts away... and a Ditto appears! It's the spy!`) },
       { who: 132, name: npc.name, text: tr('…들켰군. 넘긴 정보는 이미 늦었다만, 더는 못 하겠어.', '...Caught. What I passed on is already gone, but I\'m finished now.') },
       { who: 'partner', text: tr('독립군에게 알리자! 이제 작전이 새어 나가지 않을 거야.', 'Let\'s tell the independence army! Our plans won\'t leak anymore.') }]);
-    S.spy = null;
+    S.spy = { era: S.era, year: s.year }; // the hunt is over; the year it reached stays on show (yearOf)
     return advanceMain();
   }
   s.year += 3;
@@ -334,7 +339,7 @@ export function boardMenu() {
   openMenu(qs.map((q) => ({
     label: q.title, right: label(q), desc: tr(`${q.desc}  [보상 ${pay(q)}냥${q.reward.items ? ' + 도구' : ''}] ${sideState(q) === 'active' ? '진행: ' + sideProgress(q) : ''}`, `${q.desc}  [Reward ${pay(q)} nyang${q.reward.items ? ' + items' : ''}] ${sideState(q) === 'active' ? 'Progress: ' + sideProgress(q) : ''}`),
     fn: () => pickQuest(q),
-  })), { title: tr(`방(榜) · ${era().year}년 의뢰`, `Notice board · ${era().year} requests`), desc: true, x: 110, y: 40, w: 260 });
+  })), { title: tr(`방(榜) · ${shownYear()}년 의뢰`, `Notice board · ${shownYear()} requests`), desc: true, x: 110, y: 40, w: 260 });
 }
 async function pickQuest(q) {
   const st = sideState(q);
@@ -522,6 +527,7 @@ class PartyView {
   }
   drawUI() {
     ui.rect(0, 0, VW, VH, COL.dim);
+    ui.rect(0, VH - 15, VW, 15, 'rgba(20,14,10,0.92)'); // the key hints' line, over the scene's own (the town's ran through them)
     // list
     ui.panel(8, 10, 142, 250);
     ui.text(tr('함께하는 포켓몬', 'Your team'), 16, 18, { bold: true, size: 9, color: COL.red });
@@ -766,5 +772,5 @@ export function questMenu() {
     out.push({ label: tr(`[의뢰] ${q.title}`, `[Request] ${q.title}`), right: s === 'done' ? tr('끝남', 'Closed') : s === 'ready' ? tr('보고하기', 'Report') : sideProgress(q), desc: q.desc });
   }
   if (out.length === 1) out.push({ label: tr('맡은 의뢰가 없다. 광장의 방(榜)을 확인하자.', 'No requests taken. Check the notice board in the square.') });
-  openMenu(out, { title: tr(`${era().year}년 · ${era().title}`, `${era().year} · ${era().title}`), desc: true, x: 20, y: 30, w: 440, toggle: 'quest' });
+  openMenu(out, { title: tr(`${shownYear()}년 · ${era().title}`, `${shownYear()} · ${era().title}`), desc: true, x: 20, y: 30, w: 440, toggle: 'quest' });
 }
