@@ -768,7 +768,14 @@ export function quitItem(inDungeon, before) {
     text: staked() ? tr('챌린지 도중에 던전에서 게임을 끝내면 전멸로 처리되어 이 여행이 끝난다(챌린지는 처음부터 다시). 1층이라면 "던전에서 나가기"를 쓰자. 그래도 끝낼까?', 'Quitting a challenge in the middle of a dungeon counts as a wipe and ends this journey (a challenge starts again from the beginning). On floor 1, use "Leave the dungeon" instead. Quit anyway?')
       : inDungeon ? tr('게임을 끝내고 타이틀로 돌아갈까? 던전 안에서 한 일은 저장되지 않고, 마지막으로 마을에 들렀을 때부터 이어진다.', 'Quit to the title screen? What you did in this dungeon is not saved; you will continue from your last visit to town.')
       : tr('기록을 남기고 타이틀로 돌아갈까?', 'Save and return to the title screen?'),
-    choices: tr(['끝낸다', '계속한다'], ['Quit', 'Keep playing']), onChoice: (i) => { if (i === 0) { before?.(); if (staked()) endChallenge(); G.goTitle?.(); } } }]) };
+    choices: tr(['끝낸다', '계속한다'], ['Quit', 'Keep playing']), onChoice: (i) => {
+      if (i) return;
+      const leave = () => { if (staked()) endChallenge(); G.goTitle?.(); };
+      if (before?.() !== false) return leave();
+      // the record could not be written (no room left, a private window): leaving now would lose everything since the last one
+      say([{ who: 'narr', text: tr('기록을 남기지 못했다(저장 공간 부족 등). 지금 나가면 마지막 기록 뒤의 진행을 잃는다.', "The record couldn't be written (no storage space, perhaps). Leaving now loses everything since the last one."),
+        choices: tr(['계속한다', '그래도 나간다'], ['Keep playing', 'Leave anyway']), cancel: false, onChoice: (k) => { if (k === 1) leave(); } }]); // X mashed through the quit question must not leave
+    } }]) };
 }
 
 export function itemMenu(dungeon) {

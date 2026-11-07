@@ -45,10 +45,15 @@ export function era(o) {
 // Signature moves: lightning, fire and ice falling on marked tiles for several turns (dungeon.js 'storm': each
 // turn marks the team's own tiles and spots around, the next turn they strike; nobody can stay put)
 export const WSIG = {
-  bolt: { kind: 'storm', name: K('뇌격', 'Bolt Strike'), type: 13, dmg: 0.3, turns: 4, status: 'par', flash: '#fff3a0', what: K('번개', 'lightning') },
-  flare: { kind: 'storm', name: K('푸른불꽃', 'Blue Flare'), type: 10, dmg: 0.3, turns: 4, status: 'brn', flash: '#8fd8ff', what: K('푸른 불꽃', 'blue fire') },
-  fusionBolt: { kind: 'storm', name: K('크로스썬더', 'Fusion Bolt'), type: 13, dmg: 0.32, turns: 3, status: 'par', spots: 14, flash: '#fff3a0', what: K('번개', 'lightning') },
-  fusionFlare: { kind: 'storm', name: K('크로스플레임', 'Fusion Flare'), type: 10, dmg: 0.32, turns: 3, status: 'brn', spots: 14, flash: '#ffb070', what: K('불꽃', 'fire') },
+  // Reshiram's and Zekrom's ultimates (1.19; Kyurem takes all four). Bolt Strike is lightning on the marked tiles, bolts drawn
+  // falling. Blue Flare falls the same way and its flames stay on the tiles it struck (leave: turns, a share of max HP a
+  // turn). Fusion Flare (rain, dungeon.js updateFire) is no matter of turns: for secs seconds fire falls every `every`
+  // seconds on the one in control and the teammates near it, `fall` seconds after its mark shows, so whoever keeps moving
+  // gets away. Fusion Bolt (hidden) marks nothing: each turn lightning strikes a share of the floor at random.
+  bolt: { kind: 'storm', name: K('뇌격', 'Bolt Strike'), type: 13, dmg: 0.3, turns: 4, status: 'par', spots: 14, flash: '#fff3a0', what: K('번개', 'lightning'), bolts: true },
+  flare: { kind: 'storm', name: K('푸른불꽃', 'Blue Flare'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#8fd8ff', what: K('푸른 불꽃', 'blue fire'), leave: { turns: 5, dmg: 0.08 } },
+  fusionBolt: { kind: 'hidden', name: K('크로스썬더', 'Fusion Bolt'), type: 13, dmg: 0.16, turns: 5, share: 0.25, status: 'par', chance: 0.2, what: K('번개', 'lightning') },
+  fusionFlare: { kind: 'rain', name: K('크로스플레임', 'Fusion Flare'), type: 10, dmg: 0.06, secs: 5, every: 0.55, fall: 0.7, status: 'brn', chance: 0.1, what: K('불길', 'fire') },
   glaciate: { kind: 'storm', name: K('얼다세계', 'Glaciate'), type: 15, dmg: 0.28, turns: 3, status: 'frz', chance: 0.15, flash: '#d8f4ff', what: K('얼음', 'ice') },
   freezeShock: { kind: 'storm', name: K('프리즈볼트', 'Freeze Shock'), type: 15, dmg: 0.34, turns: 4, status: 'par', spots: 12, flash: '#c8e0ff', what: K('얼음 번개', 'frozen lightning') },
   iceBurn: { kind: 'storm', name: K('콜드플레어', 'Ice Burn'), type: 15, dmg: 0.34, turns: 4, status: 'brn', spots: 12, flash: '#ffe0f0', what: K('얼어붙은 불꽃', 'frozen fire') },
@@ -68,6 +73,27 @@ export const WSIG = {
   thunder: { kind: 'storm', name: K('번개', 'Thunder'), type: 13, dmg: 0.3, turns: 4, status: 'par', flash: '#fff3a0', what: K('번개', 'lightning') },
   earthPower: { kind: 'storm', name: K('대지의힘', 'Earth Power'), type: 4, dmg: 0.3, turns: 3, flash: '#e8c070', what: K('땅의 분출', 'eruptions') },
   dragon: SIG.dragon,
+  // the quests' legends (content_wboss.js)
+  sacredFire: { kind: 'storm', name: K('성스러운불꽃', 'Sacred Fire'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#ffd060', what: K('성스러운 불꽃', 'sacred fire') },
+  surf: { kind: 'storm', name: K('파도타기', 'Surf'), type: 11, dmg: 0.28, turns: 3, spots: 10, flash: '#a0d8ff', what: K('파도', 'waves') },
+  aeroblast: { kind: 'sweep', name: K('에어로블라스트', 'Aeroblast'), type: 2, dmg: 0.28 },
+  emotion: { kind: 'pulse', name: K('마음의 파동', 'Wave of Emotion'), type: 14, dmg: 0.3 },
+  will: { kind: 'pulse', name: K('의지의 파동', 'Wave of Will'), type: 14, dmg: 0.3 },
+  eruption: { kind: 'storm', name: K('분화', 'Eruption'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#ff9050', what: K('용암', 'lava') },
+  doom: { kind: 'storm', name: K('파멸의소원', 'Doom Desire'), type: 8, dmg: 0.3, turns: 3, spots: 10, flash: '#fff0b0', what: K('별빛', 'starlight') },
+  memory: { kind: 'storm', name: K('기억의 파편', 'Shards of Memory'), type: 14, dmg: 0.28, turns: 3, spots: 10, flash: '#e0c8ff', what: K('기억의 파편', 'shards of memory') },
+  northWind: { kind: 'storm', name: K('북풍', 'North Wind'), type: 15, dmg: 0.28, turns: 3, spots: 10, flash: '#d8f4ff', what: K('북풍', 'the north wind') },
+  seedFlare: { kind: 'storm', name: K('시드플레어', 'Seed Flare'), type: 12, dmg: 0.3, turns: 3, spots: 10, flash: '#c8f0a0', what: K('꽃씨', 'seeds') },
+  mirror: { kind: 'pulse', name: K('거울의 빛', 'Mirror Light'), type: 14, dmg: 0.3 },
+  moonlight: { kind: 'storm', name: K('달빛', 'Moonlight'), type: 14, dmg: 0.28, turns: 3, spots: 10, flash: '#f0e8ff', what: K('달빛', 'moonlight') },
+  luster: { kind: 'pulse', name: K('라스트버지', 'Luster Purge'), type: 14, dmg: 0.3 },
+  mist: { kind: 'pulse', name: K('미스트볼', 'Mist Ball'), type: 14, dmg: 0.3 },
+  blizzard: { kind: 'storm', name: K('눈보라', 'Blizzard'), type: 15, dmg: 0.28, turns: 3, status: 'frz', chance: 0.15, spots: 10, flash: '#d8f4ff', what: K('눈보라', 'the blizzard') },
+  heatWave: { kind: 'storm', name: K('열풍', 'Heat Wave'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#ffb070', what: K('불바람', 'a wind of fire') },
+  skyBeam: { kind: 'sweep', name: K('화룡점정', 'Dragon Ascent'), type: 2, dmg: 0.3 },
+  iceStorm: { kind: 'storm', name: K('얼음 폭풍', 'Ice Storm'), type: 15, dmg: 0.28, turns: 3, status: 'frz', chance: 0.15, spots: 10, flash: '#d8f4ff', what: K('얼음 폭풍', 'an ice storm') },
+  magma: { kind: 'storm', name: K('마그마스톰', 'Magma Storm'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#ff8040', what: K('용암', 'lava') },
+  psystrike: { kind: 'pulse', name: K('사이코브레이크', 'Psystrike'), type: 14, dmg: 0.32 },
 };
 
 // a legend's second form: harder hits, a fiercer blast in two steps, its signature moves more often
@@ -81,31 +107,57 @@ function rise(o) {
     ] };
 }
 // a legend of the world line: two forms; lairs keep it on their third floor (floors 3), a town battle in town
-const legend = (o) => ({ lvMin: o.lv - 8, lvUp: 4, hp: 3.2, atk: 1.02, cap: 0.34, buff: 1.1, retry: true, noWander: true, ...o });
+export const legend = (o) => ({ lvMin: o.lv - 8, lvUp: 4, hp: 3.2, atk: 1.02, cap: 0.34, buff: 1.1, retry: true, noWander: true, ...o });
 
-export const RESHIRAM = legend({ sp: 643, lv: 66, hp: 2.4, atk: 0.95, buff: 1.2, bgm: 'vs_reshiram', moves: [551, 434, 53, 225],
-  tele: blast(K('용의파동', 'Dragon Pulse'), 16, ['ring', 'cross', 'x', 'near', 'rows']),
-  sig: { use: [WSIG.flare], at: SIG_AT1 },
-  revive: rise({ aura: '#8fd8ff', form: K('진실의 불꽃', 'Flame of Truth'), name: K('크로스플레임', 'Fusion Flare'), type: 10, pats: ['far', 'checker', 'star', 'ring|x'], use: [WSIG.flare, WSIG.fusionFlare],
-    msg: K('레시라무의 꼬리가 하얗게 타오른다! 푸른 불꽃이 하늘을 덮는다!', "Reshiram's tail blazes white! Blue fire covers the sky!") }),
+// Reshiram and Zekrom (1.19): the numbers of Palkia on Mt. Coronet, the stronger of the finale's two guardians
+// (content_modern.js guardian: its HP and attack x1.3, half as quick again, at the team's level up to Lv 180, every stat
+// +20%), and on top of those TOP (+10%) on HP, every stat, the caps on its hits and its blasts. Three phases: in the first
+// only their ordinary moves and an ordinary blast; in the second those and their two ultimates (at HP marks); in the last
+// nothing but the ultimates, one after the other. Joining, they bring the ultimates along (joinMoves).
+const TOP = 1.1;
+const GREAT = { lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 2.86 * 1.3, atk: 0.98 * 1.3, cap: 0.38 * TOP, buff: 1.2 * TOP, sigUp: TOP, pace: 1.5, retry: true, noWander: true };
+const FIERCER = K('힘이 폭주한다! 공격이 더욱 거세진다!', 'Its power runs wild! The attacks grow fiercer still!');
+const firstBlast = (name, type, pats) => [{ name, every: 4, dmg: 0.36 * TOP, stagger: 1, pats, type }];
+const phase2 = (o) => ({ hp: 2 / 3, atk: 1.3, cap: 0.42 * TOP, aura: o.aura, form: o.form, msg: o.msg, line: o.line, sig: { use: o.ults, at: [0.85, 0.6, 0.35] },
+  tele: [
+    { name: o.name, every: 3, dmg: 0.42 * TOP, stagger: 1, pats: o.pats, type: o.type, first: 2 },
+    { at: 0.5, name: o.name, every: 2, dmg: 0.5 * TOP, stagger: 1, pats: [...o.pats, 'quad|target', 'random|cross'], type: o.type, msg: FIERCER },
+  ] });
+const phase3 = (o) => ({ hp: 0.75, atk: 1.1, def: 1.2, cap: 0.44 * TOP, aura: o.aura, form: o.form, msg: o.msg, line: o.line, ult: { use: o.ults } });
+
+export const RESHIRAM = { sp: 643, ...GREAT, bgm: 'vs_reshiram', moves: [406, 53, 225, 126], joinMoves: [551, 558, 406, 53],
+  tele: firstBlast(K('용의파동', 'Dragon Pulse'), 16, ['ring', 'cross', 'x', 'near', 'rows']),
+  revive: [
+    phase2({ aura: '#8fd8ff', form: K('진실의 불꽃', 'Flame of Truth'), name: K('화염방사', 'Flamethrower'), type: 10, pats: ['far', 'checker', 'star', 'ring|x'], ults: [WSIG.fusionFlare, WSIG.flare],
+      msg: K('레시라무의 꼬리가 하얗게 타오른다! 2페이즈, 크로스플레임과 푸른불꽃이 시작된다!', "Reshiram's tail blazes white! Phase two: Fusion Flare and Blue Flare begin!"),
+      line: [{ who: 643, name: K('레시라무', 'Reshiram'), text: K('…거짓은 모두 태워 주마. 하늘에서 쏟아지는 불길을 피할 수 있겠느냐!', '...I will burn away every lie. Can you dodge the fire pouring from the sky?') }] }),
+    phase3({ aura: '#e8f6ff', form: K('백색 불꽃', 'White Flame'), ults: [WSIG.fusionFlare, WSIG.flare],
+      msg: K('레시라무가 다시 일어선다! 3페이즈, 이제 궁극기만 쏟아진다!', 'Reshiram rises again! Phase three: nothing but its ultimates now!'),
+      line: [{ who: 643, name: K('레시라무', 'Reshiram'), text: K('…이 불꽃이 다할 때까지 진실을 묻겠다!', '...I will ask for the truth until this flame burns out!') }] }),
+  ],
   say: [
     N('불타는 런던의 밤하늘에서, 하얀 용이 내려왔다. 폭격의 불길이 그 꼬리의 불꽃과 하나가 되어 거리를 삼킨다.', 'Out of the burning night sky over London, a white dragon came down. The fire of the bombing joins the flame of its tail and swallows the streets.'),
     { who: 643, name: K('레시라무', 'Reshiram'), text: K('…진실은 어디에 있는가. 불길 속에서 서로를 미워하는 너희에게, 지킬 진실이 남아 있는가!', '...Where is the truth? You who hate each other in the flames: is there any truth left for you to protect?') },
-    PT('불길에 이성을 잃었어! 푸른 불꽃이 붉은 칸에 몇 턴이나 떨어질 거야. 발밑을 계속 살피자!', 'The fire has taken its reason! Blue flames will fall on the red tiles for several turns. Keep watching your feet!')],
+    PT('세 번 일어설 거야! 크로스플레임이 오면 위에서 불이 5초 동안 우리를 쫓아와. 멈추지 말고 움직여! 푸른불꽃이 떨어진 자리에는 불꽃이 남으니까 밟지 말고!', 'It will rise three times! When Fusion Flare comes, fire chases us from above for five seconds, so keep moving! And Blue Flare leaves flames where it falls: don\'t step on them!')],
   after: [{ who: 643, name: K('레시라무', 'Reshiram'), text: K('…무너진 집에서 서로를 꺼내 주던 사람들이 보였다. 그것이 너희의 진실이었구나.', '...I saw people pulling one another out of fallen houses. That was your truth.') }],
-  join: K('레시라무가 하얀 날개를 접었다. 진실을 끝까지 지켜보고 싶어 한다!', 'Reshiram folds its white wings. It wants to see the truth through to the end!') });
+  join: K('레시라무가 하얀 날개를 접었다. 진실을 끝까지 지켜보고 싶어 한다!', 'Reshiram folds its white wings. It wants to see the truth through to the end!') };
 
-export const ZEKROM = legend({ sp: 644, lv: 72, bgm: 'vs_zekrom', moves: [550, 434, 85, 337],
-  tele: blast(K('용의파동', 'Dragon Pulse'), 16, ['cross', 'rows', 'x', 'cols', 'near']),
-  sig: { use: [WSIG.bolt], at: SIG_AT1 },
-  revive: rise({ aura: '#ffe24a', form: K('이상의 번개', 'Thunder of Ideals'), name: K('크로스썬더', 'Fusion Bolt'), type: 13, pats: ['checker', 'far', 'quad', 'star|near'], use: [WSIG.bolt, WSIG.fusionBolt],
-    msg: K('제크로무의 꼬리가 발전기처럼 돌아간다! 폭풍 속에서 번개가 쏟아진다!', "Zekrom's tail spins like a generator! Lightning pours out of the storm!") }),
+export const ZEKROM = { sp: 644, ...GREAT, bgm: 'vs_zekrom', moves: [337, 85, 406, 87], joinMoves: [550, 559, 337, 85],
+  tele: firstBlast(K('용의파동', 'Dragon Pulse'), 16, ['cross', 'rows', 'x', 'cols', 'near']),
+  revive: [
+    phase2({ aura: '#ffe24a', form: K('이상의 번개', 'Thunder of Ideals'), name: K('10만볼트', 'Thunderbolt'), type: 13, pats: ['checker', 'far', 'quad', 'star|near'], ults: [WSIG.bolt, WSIG.fusionBolt],
+      msg: K('제크로무의 꼬리가 발전기처럼 돌아간다! 2페이즈, 뇌격과 크로스썬더가 시작된다!', "Zekrom's tail spins like a generator! Phase two: Bolt Strike and Fusion Bolt begin!"),
+      line: [{ who: 644, name: K('제크로무', 'Zekrom'), text: K('…이 폭풍에 맞설 각오가 있느냐. 어디에 떨어질지 모르는 번개까지 견뎌 보아라!', '...Have you the resolve to face this storm? Then endure even the lightning no one can foresee!') }] }),
+    phase3({ aura: '#3a3a5a', form: K('칠흑의 번개', 'Pitch-Black Thunder'), ults: [WSIG.bolt, WSIG.fusionBolt],
+      msg: K('제크로무가 다시 일어선다! 3페이즈, 이제 궁극기만 쏟아진다!', 'Zekrom rises again! Phase three: nothing but its ultimates now!'),
+      line: [{ who: 644, name: K('제크로무', 'Zekrom'), text: K('…이상이 꺾이지 않는다면, 이 번개도 끝까지 받아 내라!', '...If your ideal will not bend, then take this lightning to the very end!') }] }),
+  ],
   say: [
     N('해협 위에 검은 폭풍이 멈춰 서 있다. 구름 한가운데서 검은 용이 번개를 두르고 깨어났다.', 'A black storm stands still over the strait. In the heart of the clouds, a black dragon wakes wrapped in lightning.'),
     { who: 644, name: K('제크로무', 'Zekrom'), text: K('…이상을 품은 자여. 이 폭풍을 넘어 바다를 건너려 하는가. 그 각오를 보여라!', '...You who hold an ideal. Would you cross the sea through this storm? Show me your resolve!') },
-    PT('번개가 몇 턴 동안 붉은 칸에 떨어져! 맞으면 마비될 수도 있어!', 'Lightning will fall on the red tiles for several turns! It can paralyse whoever it hits!')],
+    PT('세 번 일어설 거야! 뇌격은 붉은 칸에 떨어지니까 피할 수 있어. 하지만 크로스썬더는 표시도 없이 아무 데나 떨어져! HP를 넉넉히 채워 두자!', 'It will rise three times! Bolt Strike falls on the red tiles, so it can be dodged. But Fusion Bolt strikes anywhere with no mark at all! Keep your HP topped up!')],
   after: [{ who: 644, name: K('제크로무', 'Zekrom'), text: K('…폭풍이 걷힌다. 내일 아침, 바다는 너희를 건너게 해 줄 것이다.', '...The storm is lifting. Tomorrow morning, the sea will let you cross.') }],
-  join: K('제크로무가 번개를 거두었다. 너희의 이상을 함께 보고 싶어 한다!', 'Zekrom draws its lightning in. It wants to see your ideal with you!') });
+  join: K('제크로무가 번개를 거두었다. 너희의 이상을 함께 보고 싶어 한다!', 'Zekrom draws its lightning in. It wants to see your ideal with you!') };
 
 export const VICTINI = legend({ sp: 494, lv: 70, hp: 2.9, bgm: 'vs_strong', moves: [557, 545, 94, 7],
   tele: blast(K('화염탄', 'Searing Shot'), 10, ['ring', 'near', 'x', 'target']),
@@ -234,12 +286,14 @@ export const LANDORUS = legend({ sp: 645, lv: 77, hp: 3.0, bgm: 'vs_strong', mov
 // The world line's final battle, the last quest of the Second World War: Kyurem, then Black Kyurem, then White Kyurem.
 // Pokémon Black has no picture of the fused formes (Black 2 and White 2 brought them), so they rise in Kyurem's own
 // body with their aura (Black: dark with lightning; White: its pale shiny colours with white fire) and their names.
-// A final boss sets its own numbers (dungeon.js bossTier), Arceus's in the finale (content_modern.js ARCEUS: HP 8.25,
-// attack 0.62, hits capped at 0.28 of a target's HP, every stat +20%) taken 20% higher: every stat (HP with it) once
-// more x1.2 and the caps x1.2; the forms' own HP and attack steps are Arceus's.
+// A final boss sets its own numbers (dungeon.js bossTier). Since 1.19 they stand a step above Reshiram's and Zekrom's: the
+// same HP and attack as GREAT's on a legend's tier, every stat (HP with it) +44% where theirs have +32%, the same blasts
+// from the same ultimates. Its first form fights with its own Blizzard and Glaciate. Black Kyurem takes Reshiram's and
+// Zekrom's ultimates by turns beside its Freeze Shock; White Kyurem does nothing but those ultimates, two at once.
+const LEGEND_HP = 3.2, LEGEND_ATK = 1.2, LEGEND_BLAST = 1.25; // dungeon.js LEGEND_TIER, which a final boss's tier leaves out
 const UP = 1.2;
-export const KYUREM = { sp: 646, lv: 180, lvMin: 72, lvUp: 2, lvCap: 180, hp: 8.25, atk: 0.62, cap: 0.28 * UP, buff: 1.2 * UP, final: true, retry: true, noWander: true,
-  bgm: 'vs_kyurem', moves: [549, 304, 59, 337],
+export const KYUREM = { sp: 646, lv: 180, lvMin: 72, lvUp: 2, lvCap: 180, hp: GREAT.hp * LEGEND_HP, atk: GREAT.atk * LEGEND_ATK, cap: GREAT.cap, buff: 1.2 * UP, sigUp: LEGEND_BLAST * TOP, final: true, retry: true, noWander: true,
+  bgm: 'vs_kyurem', moves: [549, 304, 59, 337], joinMoves: [549, 553, 554, 337], // joining, it keeps Freeze Shock and Ice Burn
   tele: [
     { name: K('눈보라', 'Blizzard'), every: 2, dmg: 0.5, stagger: 1, pats: ['cross', 'x', 'target', 'near', 'ring'], type: 15, first: 2 },
     { at: 0.66, name: K('눈보라', 'Blizzard'), every: 2, dmg: 0.56, stagger: 1, pats: ['star', 'rows', 'cols', 'checker', 'ring', 'quad'], type: 15, summon: 2, summonSp: [614, 615],
@@ -249,28 +303,24 @@ export const KYUREM = { sp: 646, lv: 180, lvMin: 72, lvUp: 2, lvCap: 180, hp: 8.
   ],
   sig: { use: [WSIG.glaciate], at: SIG_AT2[0] },
   revive: [
-    { hp: 2 / 3, atk: 1.35, cap: 0.34 * UP, aura: '#3a46ff', rename: K('블랙큐레무', 'Black Kyurem'), bgm: 'ba_secret2',
-      msg: K('큐레무가 검은 번개를 끌어안았다! 이상의 힘을 삼킨 블랙큐레무다!', 'Kyurem embraces black lightning! It is Black Kyurem, the power of ideals swallowed!'),
-      line: [{ who: 646, name: K('블랙큐레무', 'Black Kyurem'), text: K('…이상도, 진실도, 모두 얼려 주마. 남는 것은 빈 껍데기뿐이다!', '...Ideals, truth, I will freeze them all. Only the empty shell will remain!') }],
-      sig: { use: [WSIG.freezeShock, WSIG.fusionBolt], at: [[0.85, 0.6, 0.35], [0.8, 0.55, 0.3]] },
+    { hp: 2 / 3, atk: 1.35, cap: 0.42 * TOP, aura: '#3a46ff', rename: K('블랙큐레무', 'Black Kyurem'), bgm: 'ba_secret2',
+      msg: K('큐레무가 검은 번개를 끌어안았다! 2페이즈, 이상의 힘을 삼킨 블랙큐레무다!', 'Kyurem embraces black lightning! Phase two: Black Kyurem, the power of ideals swallowed!'),
+      line: [{ who: 646, name: K('블랙큐레무', 'Black Kyurem'), text: K('…이상도, 진실도, 모두 얼려 주마. 레시라무의 불꽃도, 제크로무의 번개도 이 몸의 것이다!', "...Ideals, truth, I will freeze them all. Reshiram's flame and Zekrom's lightning are mine now!") }],
+      sig: { use: [WSIG.fusionFlare, WSIG.bolt, WSIG.flare, WSIG.fusionBolt], at: [0.88, 0.72, 0.56, 0.4, 0.24] },
       tele: [
         { name: K('프리즈볼트', 'Freeze Shock'), every: 2, dmg: 0.5, stagger: 1, pats: ['rows', 'cols', 'cross', 'far', 'checker'], type: 13, first: 2 },
         { at: 0.5, name: K('프리즈볼트', 'Freeze Shock'), every: 1, dmg: 0.56, stagger: 1, pats: ['checker|cross', 'rows|x', 'quad', 'star|near'], type: 13, summon: 2, summonSp: [604, 523] },
       ] },
-    { hp: 0.5, atk: 1.1, def: 1.2, cap: 0.36 * UP, shiny: true, aura: '#fff4e0', rename: K('화이트큐레무', 'White Kyurem'), bgm: 'vs_kyurem',
-      msg: K('큐레무가 하얀 불꽃을 두르고 다시 일어섰다! 진실의 힘을 삼킨 화이트큐레무다!', 'Kyurem rises again wrapped in white fire! It is White Kyurem, the power of truth swallowed!'),
-      line: [{ who: 646, name: K('화이트큐레무', 'White Kyurem'), text: K('…불꽃마저 얼려 버린 이 몸을, 너희가 녹일 수 있겠느냐!', '...This body that froze even the flame. Can you thaw it?') }],
-      sig: { use: [WSIG.iceBurn, WSIG.fusionFlare, WSIG.glaciate], at: [[0.85, 0.65, 0.45, 0.25], [0.8, 0.6, 0.4, 0.2]] },
-      tele: [
-        { name: K('콜드플레어', 'Ice Burn'), every: 2, dmg: 0.56, stagger: 1, pats: ['far', 'ring', 'star', 'quad', 'random'], type: 10, first: 2 },
-        { at: 0.5, name: K('콜드플레어', 'Ice Burn'), every: 1, dmg: 0.62, stagger: 1, pats: ['quad', 'random', 'checker|cross', 'ring|x', 'target|rows'], type: 10, summon: 2, summonSp: [637, 609] },
-      ] },
+    { hp: 0.5, atk: 1.1, def: 1.2, cap: 0.44 * TOP, shiny: true, aura: '#fff4e0', rename: K('화이트큐레무', 'White Kyurem'), bgm: 'vs_kyurem',
+      msg: K('큐레무가 하얀 불꽃을 두르고 다시 일어섰다! 3페이즈, 화이트큐레무가 두 궁극기를 한꺼번에 쓴다!', 'Kyurem rises again wrapped in white fire! Phase three: White Kyurem uses two ultimates at once!'),
+      line: [{ who: 646, name: K('화이트큐레무', 'White Kyurem'), text: K('…불꽃과 번개를 함께 받아 보아라. 이 몸을, 너희가 녹일 수 있겠느냐!', '...Take flame and lightning together. This body: can you thaw it?') }],
+      ult: { use: [[WSIG.fusionFlare, WSIG.bolt], [WSIG.flare, WSIG.fusionBolt], [WSIG.fusionFlare, WSIG.fusionBolt], [WSIG.flare, WSIG.bolt]] } },
   ],
   say: [
     N('1945년 8월, 전쟁이 끝나기 직전. 무너진 도시를 덮은 눈보라 한가운데서 잿빛 용이 얼어붙은 날개를 펼친다.', 'August 1945, on the eve of the war\'s end. In the heart of the blizzard over the ruined city, an ash-grey dragon spreads its frozen wings.'),
     { who: 646, name: K('큐레무', 'Kyurem'), text: K('…나는 텅 빈 것. 전쟁이 지나간 자리에 남는 차가운 빈자리다. 전쟁이 끝나는 이 순간에 세계의 시간을 얼려, 다시는 아무것도 잃지 않게 하겠다.', '...I am the empty one. The cold void that remains where war has passed. I will freeze this world\'s time at the very moment the war ends, so that nothing is ever lost again.') },
     PT('안 돼! 시간이 멈추면 다시 일어설 수도 없어! 지금까지 만난 사람들은 잃어버린 뒤에도 서로를 일으켜 세웠어!', "No! If time stops, nobody can stand up again! Everyone we\'ve met helped each other up even after losing everything!"),
-    C('큐레무는 세 번 일어설 거야. 검은 번개와 하얀 불꽃까지 삼키고! 얼음과 번개와 불꽃이 몇 턴씩 떨어지니까, 붉은 칸을 끝까지 봐!', "Kyurem will rise three times, swallowing black lightning and white fire! Ice, lightning and fire fall for turns at a time, so watch the red tiles to the end!")],
+    C('큐레무는 세 번 일어설 거야. 레시라무와 제크로무의 궁극기까지 삼키고! 마지막에는 두 기술을 한꺼번에 쓰니까, 불길이 쫓아오면 멈추지 말고 붉은 칸을 끝까지 봐!', "Kyurem will rise three times, swallowing Reshiram's and Zekrom's ultimates! At the last it uses two at once, so when fire chases you keep moving, and watch the red tiles to the end!")],
   after: [
     { who: 646, name: K('큐레무', 'Kyurem'), text: K('……차가운 빈자리에도 봄은 오는가. 너희가 녹인 것은 얼음이 아니라, 나였구나.', '......Does spring come even to the cold void? It was not the ice you thawed. It was me.') }],
   join: K('큐레무가 얼음을 털고 조용히 다가왔다. 함께 봄을 보고 싶어 한다!', 'Kyurem shakes off its ice and quietly comes over. It wants to see the spring with you!') };

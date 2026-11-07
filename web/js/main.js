@@ -215,11 +215,14 @@ async function boot() {
     const dt = real * (dev || BASE_SPEED * G.speed);
     last = now;
     G.time += dt; G.real += real; G.dt = dt;
+    G.rdt = dev ? dt : real; // what runs in real seconds (Dungeon.updateFire); a fast-forwarded playtest fast-forwards that too
     if (gamepads) pollGamepads();
     if (S.party.length) S.playtime += real;
     const top = G.overlays[G.overlays.length - 1];
     if (top) { top.update(dt); G.overlays = G.overlays.filter((o) => !o.done); }
-    else if (fade.a < 0.5) G.scene?.update(dt);
+    // a scene change asked for (fade.cb) stops the old scene at once: a second press of Z in the first moments of the fade
+    // could open its menu again on top of the next scene, and from there start the same dungeon twice
+    else if (fade.a < 0.5 && !fade.cb) G.scene?.update(dt);
     updateFade(dt);
     // world
     const c = G.lctx;

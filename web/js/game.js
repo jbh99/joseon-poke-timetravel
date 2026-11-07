@@ -173,7 +173,8 @@ export class Mon {
     if (this.moves.length < 4) this.moves.push(mv); else this.moves[slot] = mv;
   }
   toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined, fleet: this.fleet || undefined }; }
-  static from(o) { return new Mon(o.sp, o.lv, o); }
+  // what a save holds (toJSON) and nothing else: a battle's own numbers (buff, hpMul...) in a damaged save must not reach it
+  static from({ sp, lv, exp, hp, shiny, status, moves, forme, fleet }) { return new Mon(sp, lv, { exp, hp, shiny, status, moves, forme, fleet }); }
 }
 
 // Resolve one move use. Returns {dmg, eff, crit, miss, text[], status, statChange, heal, drain}.
@@ -349,10 +350,20 @@ export function initSaves() {
 }
 // a journey's save as stored, and a whole save from elsewhere (its cloud copy), checked like readSave before it replaces it
 export function saveText(slot) { try { return localStorage.getItem(slotKey(slot)); } catch (e) { return null; } }
-export function replaceSave(text, slot) {
+export function replaceSave(text, slot, eras = Infinity) {
   const o = JSON.parse(text);
-  if (!o || !Array.isArray(o.party) || o.party.length < 2) throw new Error('not a save');
+  if (!saveFits(o, eras)) throw new Error('not a save');
+  // the save it replaces stays one step behind, in case the copy from elsewhere turns out to be the wrong one
+  try { const was = localStorage.getItem(slotKey(slot)); if (was) localStorage.setItem(`${slotKey(slot)}-backup`, was); } catch (e) { /* no room for it: the swap still goes on */ }
   localStorage.setItem(slotKey(slot), text);
+}
+// can this be played? A whole save from elsewhere (a cloud copy that is damaged, or from a newer version of the game) must
+// not replace a good one here: the team and roster are real Pokémon with real moves, the era is one this version has
+export function saveFits(o, eras = Infinity) {
+  const mon = (m) => !!DEX.species[m?.sp] && Number.isInteger(m.lv) && m.lv >= 1 && m.lv <= MAX_LV && Array.isArray(m.moves) && m.moves.length > 0 && m.moves.every((mv) => DEX.moves[mv?.id]);
+  return !!o && (o.v || 1) <= SAVE_V && Array.isArray(o.party) && o.party.length >= 2 && o.party.every(mon)
+    && (o.roster == null || (Array.isArray(o.roster) && o.roster.every(mon)))
+    && Number.isInteger(o.era ?? 0) && (o.era ?? 0) >= 0 && (o.era ?? 0) < eras;
 }
 export function readSave(slot) {
   try { const o = JSON.parse(localStorage.getItem(slotKey(slot))); return o && Array.isArray(o.party) && o.party.length >= 2 ? o : null; } catch (e) { return null; }

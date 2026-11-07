@@ -116,8 +116,11 @@ export class Town {
     const coast = this.def.biome === 'coast';
     if (this.layout) { [this.px, this.py] = this.start; this.face = this.startFace; }
     else { [this.px, this.py] = coast ? [this.W - 3, 17] : [this.OX + 19, this.H - 3]; this.face = coast ? 'left' : 'up'; }
-    const restored = !!S.townPos && !this.battle; // a battlefield (Dungeon) is not where you stand
-    if (restored) { [this.px, this.py] = S.townPos; S.townPos = null; }
+    // where the save left you, unless a battlefield (Dungeon), or unless that spot is no longer ground to stand on (a save
+    // from before a town's map changed, a damaged one): then you arrive as usual instead of standing stuck in a wall
+    const [sx, sy] = (!this.battle && S.townPos) || [], restored = Number.isInteger(sx) && this.solid[sy]?.[sx] === false;
+    if (!this.battle) S.townPos = null;
+    if (restored) { this.px = sx; this.py = sy; }
     this.vx = this.px; this.vy = this.py; this.moving = false; this.moveT = 0;
     // the followers walk in a line behind you: the partner first, then the third member (made in update() when the
     // team has one). `who` is the team slot each one shows; walking into the second one swaps the two (update)
@@ -1171,7 +1174,7 @@ export class Town {
       { label: tr('기록하기', 'Save'), fn: () => { S.townPos = [this.px, this.py]; const ok = save(); S.townPos = null; sfx(ok ? 'confirm' : 'cancel'); toast(ok ? tr('기록을 남겼다.', 'Game saved.') : tr('기록 실패: 브라우저 저장소를 확인하세요.', 'Save failed: check browser storage.'), ok ? COL.ink : COL.red); } },
       { label: tr('세계 지도로', 'World map'), fn: () => this.leave() },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
-      quitItem(false, () => { S.townPos = [this.px, this.py]; save(); S.townPos = null; }),
+      quitItem(false, () => { S.townPos = [this.px, this.py]; const ok = save(); S.townPos = null; return ok; }),
       { label: tr('닫기', 'Close') },
     ], { title: tr(`${shownYear()}년`, `${shownYear()}`) });
   }

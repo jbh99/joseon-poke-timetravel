@@ -23,7 +23,7 @@ const PREF = 'joseon-cloud', TOOK = 'joseon-cloud-took';
 const $ = (id) => document.getElementById(id);
 // files: the Drive copies by journey (undefined = not looked up yet); choice: the player has to pick between this
 // device's save of a journey and the cloud's (newer: only the cloud moved on, but taking it would drop the play in progress)
-const st = { token: null, exp: 0, email: null, files: undefined, choice: null, pending: false, busy: false, msg: '' };
+const st = { token: null, exp: 0, email: null, files: undefined, choice: null, pending: false, busy: false, again: false, msg: '' };
 
 const linked = () => {
   try {
@@ -110,7 +110,7 @@ async function push(slot) {
 // a journey's cloud copy replaces its save on this device
 async function pull(slot) {
   const text = await (await api(`/drive/v3/files/${st.files[slot].id}?alt=media`)).text();
-  replaceSave(text, slot);
+  replaceSave(text, slot, ERAS.length); // a damaged copy, or one from a newer version, throws here and the save on this device stays
   markSynced(slot, JSON.parse(text).savedAt);
   return meta(JSON.parse(text), slot);
 }
@@ -130,17 +130,22 @@ async function sync(auto) {
   const was = linked()?.synced || {}, p = playing(), got = [];
   let sent = 0;
   st.choice = null;
-  for (const slot of SLOTS) {
-    const local = readSave(slot), cloud = st.files[slot]?.appProperties, w = was[slot];
-    if (!cloud) { if (local) { await push(slot); sent++; } continue; }
-    if (local && String(local.savedAt) === cloud.savedAt) { markSynced(slot, cloud.savedAt); continue; }
-    if (local && w && cloud.savedAt === w) { await push(slot); sent++; continue; }
-    if (!local || (w && String(local.savedAt) === w)) {
-      if (auto && slot === p) st.choice ||= { slot, cloud, newer: true };
-      else got.push(await pull(slot));
-      continue;
+  try {
+    for (const slot of SLOTS) {
+      const local = readSave(slot), cloud = st.files[slot]?.appProperties, w = was[slot];
+      if (!cloud) { if (local) { await push(slot); sent++; } continue; }
+      if (local && String(local.savedAt) === cloud.savedAt) { markSynced(slot, cloud.savedAt); continue; }
+      if (local && w && cloud.savedAt === w) { await push(slot); sent++; continue; }
+      if (!local || (w && String(local.savedAt) === w)) {
+        if (auto && slot === p) st.choice ||= { slot, cloud, newer: true };
+        else got.push(await pull(slot));
+        continue;
+      }
+      st.choice ||= { slot, local: meta(local, slot), cloud };
     }
-    st.choice ||= { slot, local: meta(local, slot), cloud };
+  } catch (e) { // a later journey failed: the saves already taken still count (the game in memory must not write over them)
+    if (got.length) took(got);
+    throw e;
   }
   st.pending = false;
   say(st.choice ? '' : sent ? tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud.")
@@ -164,6 +169,7 @@ const ahead = (a, b) => +a.era - +b.era || +a.playtime - +b.playtime;
 function say(msg) { st.msg = msg; }
 function explain(e) {
   const m = String(e?.message || e);
+  if (m === 'not a save') return tr('클라우드의 세이브가 손상됐거나 더 새로운 버전의 것이라 받지 않았어요. 이 기기의 세이브는 그대로예요.', "The cloud save is damaged or from a newer version, so it wasn't taken. The save on this device is untouched.");
   if (m === 'needs-click') return tr('구글 연결이 끊겼어요. 버튼을 한 번 더 눌러 주세요.', 'The Google connection expired. Press the button once more.');
   // the app's Play services status codes: 7 = no connection to Google, 16 = the player backed out
   const code = /^auth (\d+)/.exec(m)?.[1];
@@ -176,16 +182,21 @@ async function run(fn) {
   if (st.busy) return;
   st.busy = true; st.msg = ''; render();
   try { await fn(); } catch (e) { st.msg = explain(e); } finally { st.busy = false; render(); }
+  syncAgain();
 }
+// a save made while the cloud was busy goes up once it is free (up to 1.18 it waited for the next save, or never went)
+function syncAgain() { if (st.again) { st.again = false; setTimeout(autoSync, 500); } }
 // a sync nobody asked for (start, coming back, after a save): quiet unless the player has to choose
 async function autoSync() {
-  if (st.busy || !st.email) return;
+  if (!st.email) return;
+  if (st.busy) { st.again = true; return; }
   st.busy = true;
   try {
     await getToken(false);
     if (st.choice) return;
     await sync(true);
   } catch (e) { st.pending = true; } finally { st.busy = false; render(); }
+  syncAgain();
   if (st.choice) { openPanel(); toast(st.choice.newer ? tr('다른 기기에서 더 진행한 세이브가 있어요', 'Another device went further') : tr('이 기기와 클라우드의 세이브가 달라요', 'This device and the cloud differ'), COL.blue, 4); }
 }
 const signIn = () => run(async () => {

@@ -170,7 +170,7 @@ function initMenu() {
   const panel = document.getElementById('tmenu'), btn = document.getElementById('btn-tmenu');
   panel.querySelector('.slot').append(document.getElementById('hud'));
   const show = (on) => {
-    panel.hidden = !on; btn.classList.toggle('on', on);
+    panel.hidden = !on; btn.classList.toggle('on', on); G.menuOpen = on;
     const keys = G.overlays.length || fade.a > 0 ? [] : G.scene?.padKeys || [];
     if (on) panel.querySelectorAll('button[data-k]').forEach((b) => { b.disabled = !keys.includes(b.dataset.k); });
   };
@@ -605,15 +605,16 @@ export function setScene(s) {
 export const fade = { a: 0, target: 0, speed: 3, color: '#000', cb: null, hold: 0, since: 0 };
 export function fadeTo(cb, color = '#000', speed = 3) {
   fade.target = 1; fade.color = color; fade.speed = speed;
-  fade.cb = () => { try { cb?.(); } finally { fade.target = 0; } }; // a scene change that fails still fades back in (main.js reports it)
+  fade.cb = () => { try { cb?.(); } finally { if (!fade.cb) fade.target = 0; } }; // a scene change that fails still fades back in (main.js reports it); one that asks for another goes on to it
 }
 export function holdFade(p) {
   if (!fade.hold++) fade.since = G.real;
   return Promise.resolve(p).finally(() => { fade.hold--; });
 }
 export function updateFade(dt) {
-  if (fade.a < fade.target) { fade.a = Math.min(1, fade.a + dt * fade.speed); if (fade.a >= 1 && fade.cb) { const cb = fade.cb; fade.cb = null; cb(); } }
+  if (fade.a < fade.target) fade.a = Math.min(1, fade.a + dt * fade.speed);
   else if (fade.a > fade.target && !fade.hold) fade.a = Math.max(0, fade.a - dt * fade.speed);
+  if (fade.a >= 1 && fade.cb) { const cb = fade.cb; fade.cb = null; cb(); } // also when the screen was already dark (a fade asked for during a hold)
 }
 // pictures ready to draw: loaded and decoded off the main thread, so their first frame on screen does not stall to
 // decode them (a Black town's picture is up to ~2000 px square). One that failed is not counted, so the next town

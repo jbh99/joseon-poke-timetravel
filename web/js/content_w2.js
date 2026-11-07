@@ -2,6 +2,7 @@
 // Pokémon Black: Reshiram over London in the Blitz and Kyurem in the last battle (town battles, like Darkrai's
 // December 12), and the lairs of Meloetta, Victini, Genesect and Zekrom (the keeper on the third floor, two forms).
 import { K, T, N, PT, C, person, talk, go, scene, boss, blast, era, RESHIRAM, ZEKROM, VICTINI, GENESECT, MELOETTA, KYUREM, KELDEO, LANDORUS, THUNDURUS } from './content_wkit.js';
+import { WB } from './content_wboss.js';
 
 const P = (k) => [56 + Math.round(k * 1.2), 60 + Math.round(k * 1.2)];
 
@@ -19,15 +20,11 @@ export const W1939 = era({
   ],
   dungeons: {
     westerplatte: { name: K('베스테르플라테', 'Westerplatte'), at: [19.2, 54.38], tiles: T.bastion, floors: 3, lv: P(10), bgm: 'd_06',
-      mons: [624, 625, 599, 600, 532, 533, 524, 525, 627, 629, 551, 552],
-      boss: boss(589, P(10)[1] + 3, [442, 224, 404, 14], blast(K('메가혼', 'Megahorn'), 6, ['cross', 'cols', 'near', 'x']),
-        [N('포탄에 무너진 막사 사이, 슈바르고가 창을 겨누고 수비대를 몰아붙이고 있다!', 'Among barracks shattered by shells, an Escavalier levels its lances and drives at the garrison!')],
-        [{ who: 589, text: K('…철컥. (슈바르고가 창을 내리자, 막사 밑에 갇힌 병사들이 기어 나왔다.)', '...Clank. (As Escavalier lowers its lances, soldiers trapped under the barracks crawl out.)') }]) },
+      mons: [624, 625, 599, 600, 532, 533, 524, 525, 627, 629, 551, 552, 589],
+      boss: WB.westerplatte },
     postoffice: { name: K('단치히 우체국', 'The Danzig Post Office'), at: [18.3, 54.05], tiles: T.warehouse, floors: 3, lv: P(10), bgm: 'd_agito',
-      mons: [599, 600, 568, 569, 509, 510, 527, 528, 607, 608, 587],
-      boss: boss(604, P(10)[1] + 4, [435, 242, 7, 528], blast(K('방전', 'Discharge'), 13, ['ring', 'far', 'x', 'checker']),
-        [N('끊어진 전신선을 따라 저리더프가 우체국 안을 휘감고 있다. 전기가 튀어 아무도 들어갈 수 없다!', 'Eelektross is winding through the post office along the severed telegraph wires. The sparks keep everyone out!')],
-        [{ who: 604, text: K('…찌르륵. (전기가 잦아들자, 우체국 지하실의 직원들이 밖으로 나왔다.)', '...Zzzt. (As the sparks die down, the clerks in the cellar come out.)') }]) },
+      mons: [599, 600, 568, 569, 509, 510, 527, 528, 607, 608, 587, 604],
+      boss: WB.postoffice },
   },
   npcs: [post, wester, child39],
   main: [
@@ -62,14 +59,10 @@ export const W1940A = era({
   dungeons: {
     mole: { name: K('됭케르크 방파제', 'The Dunkirk Mole'), at: [2.8, 51.32], tiles: T.sand, floors: 3, lv: P(11), bgm: 'd_04',
       mons: [557, 558, 551, 552, 278, 279, 580, 581, 594, 98, 99],
-      boss: boss(99, P(11)[1] + 2, [152, 404, 14, 89], blast(K('크랩해머', 'Crabhammer'), 11, ['rows', 'near', 'cross', 'x']),
-        [N('부서진 방파제 위에서 킹크랩이 집게를 휘두르고 있다. 배에 오르려는 사람들의 길이 막혔다!', 'On the broken mole, a Kingler is swinging its claws. The way to the boats is blocked!')],
-        [{ who: 99, text: K('…딸깍. (킹크랩이 바다로 물러나자, 사람들이 줄지어 배에 올랐다.)', '...Click. (As Kingler retreats into the sea, people board the boats in line.)') }]) },
+      boss: WB.mole },
     channel: { name: K('영국 해협', 'The English Channel'), at: [1.5, 51.0], tiles: T.strait, water: true, floors: 3, lv: P(11), bgm: 'd_04',
       mons: [592, 593, 594, 550, 73, 279, 278, 580, 581, 320],
-      boss: boss(593, P(11)[1] + 3, [56, 247, 503, 105], blast(K('하이드로펌프', 'Hydro Pump'), 11, ['cross', 'ring', 'far', 'rows']),
-        [N('해협 한가운데서 탱탱겔이 작은 배들을 끌어당기고 있다! 사람을 가득 실은 배가 기울어진다!', 'In the middle of the Channel, a Jellicent is dragging the little ships down! A boat full of people is listing!')],
-        [{ who: 593, text: K('…부르르. (탱탱겔이 물러나자, 작은 배들이 도버의 하얀 절벽을 향해 나아갔다.)', '...Brrr. (As Jellicent withdraws, the little ships head for the white cliffs of Dover.)') }]) },
+      boss: WB.channel },
     yser: { name: K('이제르 강 물길', 'The Waterways of the Yser'), at: [3.0, 50.9], tiles: T.moss, floors: 3, lv: P(11), legend: true, bgm: 'd_lake', tint: 'rgba(140,200,255,0.08)',
       mons: [535, 536, 537, 550, 594, 580, 581, 515, 516, 501, 502], boss: KELDEO },
   },
@@ -79,7 +72,7 @@ export const W1940A = era({
       K('배가 닿을 수 있는 곳은 무너져 가는 방파제뿐이오. 그런데 거기서 포켓몬이 길을 막고 있소!', 'The only place the ships can reach is the crumbling mole. And a Pokémon is blocking the way there!')),
     go('mole', K('됭케르크 방파제의 길을 열자', 'Clear the way along the Dunkirk mole')),
     talk(skipper, K('작은 배 선장 패리퍼와 이야기하자', 'Talk to Little-Ship Skipper Pelipper'),
-      K('사람을 태웠어요! 그런데 해협에서 무언가가 배를 끌어내린대요. 함께 건너 주세요!', 'We\'ve taken people on! But something in the Channel is pulling boats down. Cross with us!')),
+      K('사람을 태웠어요! 그런데 해협에서 무언가가 물결을 일으켜 배를 뒤흔든대요. 함께 건너 주세요!', 'We\'ve taken people on! But something in the Channel is raising a swell that tips the boats. Cross with us!')),
     go('channel', K('작은 배들과 함께 영국 해협을 건너자 (해전)', 'Cross the English Channel with the little ships (naval battle)')),
     scene(N('9일 동안 크고 작은 배 8백여 척이 오가며 33만 명이 넘는 군인을 구했다.', 'Over nine days some 800 ships large and small went back and forth and saved more than 330,000 soldiers.'),
       N('사람들은 이를 "됭케르크의 기적"이라 불렀다. 그러나 6월, 프랑스는 결국 항복했다.', 'People called it "the miracle of Dunkirk". Yet in June France fell.')),
@@ -106,13 +99,11 @@ export const W1940B = era({
   dungeons: {
     airfield: { name: K('비긴 힐 비행장', 'Biggin Hill Airfield'), at: [0.2, 51.15], tiles: T.flat, floors: 3, lv: P(12), bgm: 'd_05',
       mons: [519, 520, 521, 527, 528, 566, 567, 587, 607, 627, 628, 629, 630], // 607 Litwick: the embers of the bombing (side w40b)
-      boss: boss(567, P(12)[1] + 3, [157, 403, 512, 337], blast(K('아크로바트', 'Acrobatics'), 2, ['cross', 'far', 'x', 'rows']),
-        [N('폭격으로 패인 활주로 위를 아케오스가 날아다니고 있다. 조종사들이 출격하지 못한다!', 'Archeops is flying over a runway cratered by bombs. The pilots can\'t take off!')],
-        [{ who: 567, text: K('…케오! (아케오스는 날개를 접고 격납고 지붕에 내려앉았다.)', '...Keo! (Archeops folds its wings and lands on the hangar roof.)') }]) },
+      boss: WB.airfield },
     // the town battle: London (Mistralton as drawn by Pokémon Black) on fire at night, Reshiram over it
     blitz: { name: K('대공습의 밤 · 런던', 'London, a Night of the Blitz'), tiles: T.street, floors: 1, lv: P(12), fromTown: true, bgm: 'vs_reshiram',
       mons: [607, 608, 609, 631, 554, 555, 636, 637], tint: 'rgba(255,90,40,0.16)',
-      battle: { town: null, foeBuff: 1.15 }, boss: RESHIRAM },
+      battle: { town: null, foeBuff: 1 }, boss: RESHIRAM },
   },
   npcs: [warden, pilot, tube],
   main: [
@@ -148,14 +139,10 @@ export const W1941 = era({
   dungeons: {
     mud: { name: K('라스푸티차의 진흙길', 'The Rasputitsa Mud'), at: [35.5, 55.2], tiles: T.moss, floors: 3, lv: P(13), bgm: 'd_02',
       mons: [535, 536, 537, 618, 551, 552, 590, 591, 194, 195, 422, 423, 588],
-      boss: boss(537, P(13)[1] + 3, [89, 503, 56, 497], blast(K('진흙폭탄', 'Mud Bomb'), 4, ['ring', 'rows', 'checker', 'near']),
-        [N('끝없는 진흙길 한가운데서 두빅굴이 진흙을 튀기며 울고 있다. 피난민들의 수레가 빠져 움직이지 못한다!', 'In the middle of the endless mud, a Seismitoad croaks and sprays mud. The refugees\' carts are stuck fast!')],
-        [{ who: 537, text: K('…개굴. (두빅굴이 늪으로 돌아가자, 수레들이 다시 움직였다.)', '...Ribbit. (As Seismitoad returns to the marsh, the carts move again.)') }]) },
-    snowfield: { name: K('모스크바 근교 설원', 'The Snowfields outside Moscow'), at: [36.8, 56.4], tiles: T.snow, floors: 4, lv: P(13), bgm: 'd_ice', tint: 'rgba(150,200,255,0.10)',
+      boss: WB.mud },
+    snowfield: { name: K('모스크바 근교 설원', 'The Snowfields outside Moscow'), at: [36.8, 56.4], tiles: T.snow, floors: 3, lv: P(13), bgm: 'd_ice', tint: 'rgba(150,200,255,0.10)',
       mons: [613, 614, 582, 583, 584, 615, 215, 461, 220, 221, 473, 478],
-      boss: boss(584, P(13)[1] + 4, [59, 58, 352, 60], blast(K('눈보라', 'Blizzard'), 15, ['rows', 'cols', 'quad', 'far']),
-        [N('영하 40도의 눈보라 속에서 바닐리치가 하늘을 얼리고 있다. 이대로면 모두가 얼어붙는다!', 'In a blizzard at forty below, a Vanilluxe is freezing the sky. Everyone will freeze at this rate!')],
-        [{ who: 584, text: K('…바닐. (눈보라가 잦아들자, 설원 너머로 모스크바의 지붕들이 보였다.)', '...Vanil. (As the blizzard eases, the roofs of Moscow appear beyond the snow.)') }]) },
+      boss: WB.snowfield },
     borodino: { name: K('보로디노 들판', 'The Fields of Borodino'), at: [35.82, 55.52], tiles: T.field, floors: 3, lv: P(13), legend: true, bgm: 'd_04', tint: 'rgba(230,220,200,0.10)',
       mons: [551, 552, 553, 529, 530, 618, 626, 538, 539, 449, 450], boss: LANDORUS },
   },
@@ -192,14 +179,10 @@ export const W1942P = era({
   dungeons: {
     pearl: { name: K('진주만', 'Pearl Harbor'), at: [201.5, 20.75], tiles: T.strait, water: true, floors: 3, lv: P(14), bgm: 'd_04',
       mons: [592, 593, 594, 550, 73, 222, 120, 121, 279, 580, 581, 226],
-      boss: boss(226, P(14)[1] + 3, [403, 56, 58, 239], blast(K('에어슬래시', 'Air Slash'), 2, ['rows', 'cols', 'x', 'ring']),
-        [N('기름이 불타는 항구 위로, 놀란 만타인이 수면을 마구 내리치고 있다. 물에 빠진 수병들이 위험하다!', 'Over a harbour of burning oil, a frightened Mantine is slamming the water. The sailors in the water are in danger!')],
-        [{ who: 226, text: K('…만타. (만타인이 잠잠해지자, 구조선들이 다가갈 수 있게 되었다.)', '...Manta. (Mantine calms, and the rescue boats can draw near.)') }]) },
-    midway: { name: K('미드웨이 해전', 'Battle of Midway'), at: [182.63, 28.21], tiles: T.deepsea, water: true, floors: 4, lv: P(14), bgm: 'ba_dpoke2',
+      boss: WB.pearl },
+    midway: { name: K('미드웨이 해전', 'Battle of Midway'), at: [182.63, 28.21], tiles: T.deepsea, water: true, floors: 3, lv: P(14), bgm: 'ba_dpoke2',
       mons: [130, 565, 593, 319, 321, 73, 550, 230, 567, 521, 628],
-      boss: boss(319, P(14)[1] + 5, [242, 56, 400, 36], blast(K('아쿠아브레이크', 'Aqua Tail'), 11, ['near', 'x', 'cross', 'target']),
-        [N('불타는 항공모함들 사이, 피 냄새를 맡은 샤크니아가 바다를 가르고 있다! 바다에 빠진 이들이 위험하다!', 'Between burning carriers, a Sharpedo that has smelled blood cuts through the sea! Those in the water are in danger!')],
-        [{ who: 319, text: K('…샤크. (샤크니아는 지느러미를 낮추고 먼바다로 사라졌다.)', '...Shark. (Sharpedo lowers its fin and vanishes into the open sea.)') }]) },
+      boss: WB.midway },
   },
   marks: [{ name: K('→ 과달카날', '→ Guadalcanal'), lon: 160.0, lat: 2.0, text: K('남태평양의 섬들에는 강제로 끌려간 조선인들도 비행장 공사와 전투에 동원되었다.', 'On the South Pacific islands, forcibly taken Koreans too were put to work building airfields and sent into battle.') }],
   npcs: [nurse41, code, kor42],
@@ -235,9 +218,7 @@ export const W1942L = era({
   dungeons: {
     ladoga: { name: K('라도가 호수 얼음길', 'The Lake Ladoga Ice Road'), at: [31.5, 60.6], tiles: T.fortsnow, floors: 3, lv: P(15), bgm: 'd_ice', tint: 'rgba(160,210,255,0.10)',
       mons: [613, 614, 582, 583, 584, 615, 87, 91, 131, 225, 471],
-      boss: boss(615, P(15)[1] + 3, [58, 59, 105, 196], blast(K('냉동빔', 'Ice Beam'), 15, ['rows', 'cols', 'x', 'checker']),
-        [N('얼음길 한가운데서 프리지오가 얼음을 깨뜨리고 있다! 식량을 실은 트럭이 호수에 빠지려 한다!', 'In the middle of the ice road, a Cryogonal is cracking the ice! A truck full of food is about to go into the lake!')],
-        [{ who: 615, text: K('…프리지. (얼음이 다시 단단해지자, 트럭들이 도시를 향해 달려갔다.)', '...Frigi. (The ice holds firm again, and the trucks race for the city.)') }]) },
+      boss: WB.ladoga },
     // Meloetta's lair: the empty concert hall, the keeper on the third floor
     philharmonia: { name: K('얼어붙은 연주회장', 'The Frozen Concert Hall'), at: [29.8, 59.6], tiles: T.library, floors: 3, lv: P(15), legend: true, bgm: 'd_lake', tint: 'rgba(200,255,220,0.08)',
       mons: [574, 575, 576, 517, 518, 527, 528, 607, 608, 355, 356], boss: MELOETTA },
@@ -276,9 +257,7 @@ export const W1942E = era({
   dungeons: {
     minefield: { name: K('"악마의 정원" 지뢰밭', 'The "Devil\'s Gardens" Minefields'), at: [28.9, 30.85], tiles: T.sand, floors: 3, lv: P(16), bgm: 'd_05',
       mons: [551, 552, 553, 554, 555, 556, 557, 558, 561, 562, 563, 449, 450, 328, 329],
-      boss: boss(555, P(16)[1] + 3, [394, 7, 280, 89], blast(K('플레어드라이브', 'Flare Blitz'), 10, ['cross', 'near', 'ring', 'x']),
-        [N('지뢰밭 한가운데서 불비달마가 성난 불꽃을 내뿜고 있다! 지뢰가 연달아 터질 것만 같다!', 'In the middle of the minefield a Darmanitan blasts out furious flames! The mines could go off one after another!')],
-        [{ who: 555, text: K('…달마! (불비달마가 불꽃을 거두자, 공병들이 지뢰를 걷어 냈다.)', '...Daruma! (As Darmanitan draws in its flames, the sappers clear the mines.)') }]) },
+      boss: WB.minefield },
     // Victini's lair: the ruins in the dunes where the victory Pokémon is said to live, the keeper on the third floor
     vruins: { name: K('모래 언덕의 V 유적', 'The V Ruins in the Dunes'), at: [28.2, 30.4], tiles: T.temple, floors: 3, lv: P(16), legend: true, bgm: 'd_lake', tint: 'rgba(255,190,90,0.10)',
       mons: [561, 562, 563, 554, 555, 343, 344, 627, 628, 631], boss: VICTINI },
@@ -313,11 +292,9 @@ export const W1943 = era({
     K('1943년 7월, 쿠르스크에서 역사상 가장 큰 전차전이 벌어졌다. 이후 독일은 다시 공세를 펼치지 못했다.', 'In July 1943 the largest tank battle in history was fought at Kursk. After it Germany never again launched a major offensive in the east.'),
   ],
   dungeons: {
-    tractor: { name: K('트랙터 공장', 'The Tractor Factory'), at: [44.45, 49.08], tiles: T.warehouse, floors: 4, lv: P(17), bgm: 'd_06',
+    tractor: { name: K('트랙터 공장', 'The Tractor Factory'), at: [44.45, 49.08], tiles: T.warehouse, floors: 3, lv: P(17), bgm: 'd_06',
       mons: [599, 600, 601, 632, 624, 625, 568, 569, 532, 533, 534, 529, 530, 500],
-      boss: boss(632, P(17)[1] + 4, [404, 442, 98, 89], blast(K('시저크로스', 'X-Scissor'), 6, ['x', 'cross', 'near', 'quad']),
-        [N('무너진 공장 안을 아이앤트 떼가 갉아먹고 있다. 그 우두머리가 강철 턱으로 기둥을 끊어 낸다!', 'A swarm of Durant is eating through the ruined factory. Their leader snaps the pillars with its steel jaws!')],
-        [{ who: 632, text: K('…끼릭. (아이앤트들이 물러가자, 지하에 숨은 노동자들이 빠져나왔다.)', '...Kirik. (As the Durant withdraw, the workers hidden underground get out.)') }]) },
+      boss: WB.tractor },
     // Genesect's lair: the burning tank field at Prokhorovka, the keeper on the third floor
     prokhorovka: { name: K('프로호롭카 전차 평원', 'The Tank Field at Prokhorovka'), at: [36.5, 51.0], tiles: T.plain, floors: 3, lv: P(17), legend: true, bgm: 'd_05', tint: 'rgba(200,120,255,0.08)',
       mons: [599, 600, 601, 624, 625, 632, 589, 616, 617, 597, 598], boss: GENESECT },
@@ -325,7 +302,7 @@ export const W1943 = era({
   npcs: [pav, tank, babush],
   main: [
     talk(pav, K('파블로프의 집 수비대 절각참과 이야기하자', "Talk to Pavlov's House Defender Bisharp"),
-      K('트랙터 공장에 노동자들이 갇혀 있소. 공장은 무너지고, 그 안에서 무엇인가 강철을 갉아먹고 있소!', 'Workers are trapped in the Tractor Factory. It is falling in, and something inside is gnawing through the steel!')),
+      K('트랙터 공장에 노동자들이 갇혀 있소. 공장은 무너지고, 그 안에서 보이지 않는 힘이 강철을 구기고 있소!', 'Workers are trapped in the Tractor Factory. It is falling in, and an unseen force inside is crumpling the steel!')),
     go('tractor', K('트랙터 공장에 갇힌 노동자들을 구하자', 'Rescue the workers trapped in the Tractor Factory')),
     scene(N('1943년 2월, 스탈린그라드의 싸움이 끝났다. 양쪽을 합쳐 2백만 명에 가까운 사람이 죽거나 다쳤다.', 'In February 1943 the fighting at Stalingrad ended. Close to two million people on both sides had been killed or wounded.')),
     talk(tank, K('전차병 기기기어르와 이야기하자', 'Talk to Tank Crewman Klinklang'),
@@ -355,11 +332,9 @@ export const W1944N = era({
     // Zekrom's lair: the storm over the Channel, the keeper on the third floor
     storm: { name: K('해협 위의 폭풍', 'The Storm over the Channel'), at: [-1.2, 50.0], tiles: T.rift, floors: 3, lv: P(18), legend: true, bgm: 'd_mount2', tint: 'rgba(60,70,120,0.18)',
       mons: [602, 603, 604, 587, 595, 596, 522, 523, 135, 466], boss: ZEKROM },
-    omaha: { name: K('오마하 해변', 'Omaha Beach'), at: [-0.98, 49.4], tiles: T.sand, floors: 4, lv: P(18), bgm: 'd_04',
+    omaha: { name: K('오마하 해변', 'Omaha Beach'), at: [-0.98, 49.4], tiles: T.sand, floors: 3, lv: P(18), bgm: 'd_04',
       mons: [557, 558, 551, 552, 553, 624, 625, 98, 99, 594, 580, 581],
-      boss: boss(553, P(18)[1] + 4, [89, 242, 400, 444], blast(K('스톤에지', 'Stone Edge'), 5, ['rows', 'x', 'checker', 'far']),
-        [N('절벽 아래 해변, 악비아르가 모래 속에서 솟아올라 상륙하는 이들을 덮친다!', 'On the beach below the bluffs, a Krookodile bursts out of the sand at those coming ashore!')],
-        [{ who: 553, text: K('…크르르. (악비아르가 모래 속으로 사라지자, 사람들이 절벽 위로 올라갔다.)', '...Krrr. (As Krookodile sinks into the sand, people climb the bluffs.)') }]) },
+      boss: WB.omaha },
   },
   npcs: [met, para, res44],
   main: [
@@ -394,14 +369,10 @@ export const W1944L = era({
   dungeons: {
     surigao: { name: K('수리가오 해협', 'Surigao Strait'), at: [125.4, 10.2], tiles: T.strait, water: true, floors: 3, lv: P(19), bgm: 'd_04',
       mons: [592, 593, 594, 550, 73, 222, 120, 121, 279, 226, 223, 224],
-      boss: boss(593, P(19)[1] + 3, [56, 247, 503, 105], blast(K('하이드로펌프', 'Hydro Pump'), 11, ['cross', 'far', 'rows', 'ring']),
-        [N('밤의 해협에 불붙은 배들이 떠 있다. 탱탱겔이 가라앉는 배의 사람들을 붙잡고 놓아주지 않는다!', 'Burning ships float in the strait at night. A Jellicent holds on to the people of a sinking ship and won\'t let go!')],
-        [{ who: 593, text: K('…부르르. (탱탱겔이 놓아주자, 사람들이 구명정으로 헤엄쳐 갔다.)', '...Brrr. (Jellicent lets go, and people swim for the lifeboats.)') }]) },
-    samar: { name: K('사마르 앞바다', 'Off Samar'), at: [126.2, 11.8], tiles: T.deepsea, water: true, floors: 4, lv: P(19), bgm: 'ba_dpoke2',
+      boss: WB.surigao },
+    samar: { name: K('사마르 앞바다', 'Off Samar'), at: [126.2, 11.8], tiles: T.deepsea, water: true, floors: 3, lv: P(19), bgm: 'ba_dpoke2',
       mons: [130, 565, 593, 319, 321, 73, 550, 230, 567, 521, 628, 581],
-      boss: boss(130, P(19)[1] + 5, [56, 242, 349, 89], blast(K('파괴광선', 'Hyper Beam'), 0, ['rows', 'cols', 'x', 'quad']),
-        [N('사마르 앞바다, 포성에 미쳐 날뛰는 갸라도스가 작은 호위함들을 덮친다!', 'Off Samar, a Gyarados maddened by the guns falls on the little escort ships!')],
-        [{ who: 130, text: K('…그르르. (갸라도스가 깊은 바다로 사라지자, 바다 위에 고요가 찾아왔다.)', '...Grrr. (Gyarados sinks into the deep, and quiet falls over the sea.)') }]) },
+      boss: WB.samar },
     thundercloud: { name: K('필리핀 해의 뇌운', 'The Thunderclouds over the Philippine Sea'), at: [127.0, 10.5], tiles: T.rift, floors: 3, lv: P(19), legend: true, bgm: 'd_04', tint: 'rgba(255,240,140,0.08)',
       mons: [522, 523, 587, 595, 596, 602, 603, 604, 627, 628], boss: THUNDURUS },
   },
@@ -437,11 +408,11 @@ export const W1945 = era({
     K('그런데 무너진 도시에 때아닌 겨울이 찾아왔다. 태평양에서는 아직 전쟁이 이어지는데, 전쟁이 남긴 텅 빈 자리에서 얼음의 용 큐레무가 깨어나려 하고 있다.', 'Yet an out-of-season winter came to the ruined city. While the war still went on in the Pacific, Kyurem, the dragon of ice, was stirring in the empty place the war had left behind.'),
   ],
   dungeons: {
-    ruins45: { name: K('얼어붙은 폐허', 'The Frozen Ruins'), at: [13.75, 52.85], tiles: T.fortsnow, floors: 4, lv: P(20), bgm: 'd_ice', tint: 'rgba(170,210,255,0.12)',
+    ruins45: { name: K('얼어붙은 폐허', 'The Frozen Ruins'), at: [13.75, 52.85], tiles: T.fortsnow, floors: 3, lv: P(20), bgm: 'd_ice', tint: 'rgba(170,210,255,0.12)',
       mons: [613, 614, 582, 583, 584, 615, 215, 461, 473, 478, 362, 571, 609, 635, 623, 633, 634],
       boss: boss(635, P(20)[1] + 5, [406, 399, 53, 434], blast(K('용의파동', 'Dragon Pulse'), 16, ['ring', 'x', 'far', 'checker']),
         [N('얼어붙은 폐허 위를 삼삼드래가 세 개의 머리로 울부짖으며 날고 있다. 큐레무의 냉기에 휩쓸려 이성을 잃었다!', 'Hydreigon flies over the frozen ruins, howling from its three heads. Swept up in Kyurem\'s cold, it has lost its reason!')],
-        [{ who: 635, text: K('…크와아. (삼삼드래가 북쪽 하늘의 눈구름 한가운데를 가리킨다. 그곳에 큐레무가 있다.)', '...Kwaah. (Hydreigon points into the heart of the snow clouds in the northern sky. Kyurem is there.)') }]) },
+        [{ who: 635, text: K('…크와아. (삼삼드래가 북쪽 하늘의 눈구름 한가운데를 가리킨다. 그곳에 큐레무가 있다.)', '...Kwaah. (Hydreigon points into the heart of the snow clouds in the northern sky. Kyurem is there.)') }], { hp: 3, bgm: 'vs_strong' }) }, // as the other 600-total bosses (content_wboss.js strong)
     // the last battle: the city (Lacunosa as drawn by Pokémon Black, the walled town Kyurem comes to at night) frozen
     kyurem45: { name: K('얼어붙은 도시 · 큐레무', 'The Frozen City: Kyurem'), tiles: T.fortsnow, floors: 1, lv: P(20), fromTown: true, bgm: 'vs_kyurem',
       mons: [613, 614, 615, 583, 584, 215, 461], tint: 'rgba(170,215,255,0.28)',

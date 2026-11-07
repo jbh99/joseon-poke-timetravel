@@ -160,43 +160,49 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1860 | 베이징 조약 | 베이징 (쌍용시티) | 불타는 원명원, 우수리강 국경 | 액스라이즈, 툰베어 |
-| 1894 | 청일 전쟁 | 웨이하이웨이 (물결마을) | 풍도 앞바다(해전), 황해 해전(해전) | 탱탱겔, 갸라도스 |
-| 1904 | 러일 전쟁 | 뤼순 (물풍경시티) | 제물포 해전(해전), 203고지, 쓰시마 해전(해전) · 뤼순 요새 암벽(선택) | 늑골라, 몰드류, 고래왕 · **테라키온** |
+| 1860 | 베이징 조약 | 베이징 (쌍용시티) | 불타는 원명원, 우수리강 국경 | **칠색조**, **라이코** |
+| 1894 | 청일 전쟁 | 웨이하이웨이 (물결마을) | 풍도 앞바다(해전), 황해 해전(해전) | **마나피**, **루기아** |
+| 1904 | 러일 전쟁 | 뤼순 (물풍경시티) | 제물포 해전(해전), 203고지, 쓰시마 해전(해전) · 뤼순 요새 암벽(선택) | **피오네**, 마기라스, **썬더** · **테라키온** |
 
 ### 제1차 세계 대전 (1914–1919)
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1914 | 사라예보 사건 | 사라예보 (칠보시티) | 라틴 다리 골목, 발칸 산길 | 조로아크, 워글 |
-| 1914 | 마른 전투 | 파리 (뇌문시티) | 마른 강 전선, 무인 지대 | 노보청, 악비아르 |
-| 1915 | 갈리폴리 전투 | 갈리폴리 (마름꽃마을) | 다르다넬스 해협(해전), 안작 만 절벽 | 늑골라, 암팰리스 |
-| 1916 | 베르됭과 솜 | 베르됭 (설화시티) | 두오몽 요새, 솜 강 참호 · 보 요새의 강철 숲(선택) | 기기기어르, 보스로라 · **코바르온** |
-| 1916 | 유틀란트 해전 | 스캐파 플로 (물풍경시티) | 북해의 안개(해전), 유틀란트 해전(해전) · 북해의 폭풍 구름(선택) | 스완나, 킹드라 · **토네로스** |
-| 1918 | 휴전 | 콩피에뉴 (넝쿨마을) | 콩피에뉴 숲, 마지막 날의 전선 · 아르곤 숲 깊은 곳(선택) | 펜드라, 절각참 · **비리디온** |
-| 1919 | 파리 강화 회의 | 파리 · 베르사유 (성신시티) | 거울의 방, 센 강 다리 밑 | 란쿨루스, 데스니칸 |
+| 1914 | 사라예보 사건 | 사라예보 (칠보시티) | 라틴 다리 골목, 발칸 산길 | **엠라이트**, **앤테이** |
+| 1914 | 마른 전투 | 파리 (뇌문시티) | 마른 강 전선, 무인 지대 | **아그놈**, **지라치** |
+| 1915 | 갈리폴리 전투 | 갈리폴리 (마름꽃마을) | 다르다넬스 해협(해전), 안작 만 절벽 | 메타그로스, **유크시** |
+| 1916 | 베르됭과 솜 | 베르됭 (설화시티) | 두오몽 요새, 솜 강 참호 · 보 요새의 강철 숲(선택) | **레지스틸**, 메타그로스 · **코바르온** |
+| 1916 | 유틀란트 해전 | 스캐파 플로 (물풍경시티) | 북해의 안개(해전), 유틀란트 해전(해전) · 북해의 폭풍 구름(선택) | **스이쿤**, 망나뇽 · **토네로스** |
+| 1918 | 휴전 | 콩피에뉴 (넝쿨마을) | 콩피에뉴 숲, 마지막 날의 전선 · 아르곤 숲 깊은 곳(선택) | **쉐이미**, 삼삼드래 · **비리디온** |
+| 1919 | 파리 강화 회의 | 파리 · 베르사유 (성신시티) | 거울의 방, 센 강 다리 밑 | **뮤**, **크레세리아** |
 
 ### 제2차 세계 대전 (1939–1945)
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1939 | 제2차 세계 대전의 시작 | 단치히 · 그단스크 (칠보시티) | 베스테르플라테, 단치히 우체국 | 슈바르고, 저리더프 |
-| 1940 | 됭케르크 철수 | 됭케르크 (물풍경시티) | 됭케르크 방파제, 영국 해협(해전) · 이제르 강 물길(선택) | 킹크랩, 탱탱겔 · **케르디오** |
-| 1940 | 런던 대공습 | 런던 (궐수시티) | 비긴 힐 비행장, 대공습의 밤(마을 전투) | 아케오스, **레시라무** |
-| 1941 | 모스크바 전투 | 모스크바 (쌍용시티) | 라스푸티차의 진흙길, 모스크바 근교 설원 · 보로디노 들판(선택) | 두빅굴, 배바닐라 · **랜드로스** |
-| 1942 | 진주만과 미드웨이 | 호놀룰루 (물결마을) | 진주만(해전), 미드웨이 해전(해전) | 만타인, 샤크니아 |
-| 1942 | 레닌그라드 포위전 | 레닌그라드 (칠보시티) | 라도가 호수 얼음길, 얼어붙은 연주회장 | 프리지오, **메로엣타** |
-| 1942 | 엘알라메인 전투 | 알렉산드리아 (물결마을) | 「악마의 정원」 지뢰밭, 모래 언덕의 V 유적 | 불비달마, **비크티니** |
-| 1943 | 스탈린그라드와 쿠르스크 | 스탈린그라드 (설화시티) | 트랙터 공장, 프로호롭카 전차 평원 | 아이앤트, **게노세크트** |
-| 1944 | 노르망디 상륙 작전 | 노르망디 · 바이외 (마름꽃마을) | 해협 위의 폭풍, 오마하 해변 | **제크로무**, 악비아르 |
-| 1944 | 레이테 만 해전 | 타클로반 · 레이테 (물결마을) | 수리가오 해협(해전), 사마르 앞바다(해전) · 필리핀 해의 뇌운(선택) | 탱탱겔, 갸라도스 · **볼트로스** |
+| 1939 | 제2차 세계 대전의 시작 | 단치히 · 그단스크 (칠보시티) | 베스테르플라테, 단치히 우체국 | 마기라스, **라티오스** |
+| 1940 | 됭케르크 철수 | 됭케르크 (물풍경시티) | 됭케르크 방파제, 영국 해협(해전) · 이제르 강 물길(선택) | 한카리아스, **라티아스** · **케르디오** |
+| 1940 | 런던 대공습 | 런던 (궐수시티) | 비긴 힐 비행장, 대공습의 밤(마을 전투) | 보만다, **레시라무 (3페이즈)** |
+| 1941 | 모스크바 전투 | 모스크바 (쌍용시티) | 라스푸티차의 진흙길, 모스크바 근교 설원 · 보로디노 들판(선택) | **레지락**, **레지아이스** · **랜드로스** |
+| 1942 | 진주만과 미드웨이 | 호놀룰루 (물결마을) | 진주만(해전), 미드웨이 해전(해전) | **파이어**, **레쿠쟈** |
+| 1942 | 레닌그라드 포위전 | 레닌그라드 (칠보시티) | 라도가 호수 얼음길, 얼어붙은 연주회장 | **프리져**, **메로엣타** |
+| 1942 | 엘알라메인 전투 | 알렉산드리아 (물결마을) | 「악마의 정원」 지뢰밭, 모래 언덕의 V 유적 | **히드런**, **비크티니** |
+| 1943 | 스탈린그라드와 쿠르스크 | 스탈린그라드 (설화시티) | 트랙터 공장, 프로호롭카 전차 평원 | **뮤츠**, **게노세크트** |
+| 1944 | 노르망디 상륙 작전 | 노르망디 · 바이외 (마름꽃마을) | 해협 위의 폭풍, 오마하 해변 | **제크로무 (3페이즈)**, 한카리아스 |
+| 1944 | 레이테 만 해전 | 타클로반 · 레이테 (물결마을) | 수리가오 해협(해전), 사마르 앞바다(해전) · 필리핀 해의 뇌운(선택) | 보만다, 망나뇽 · **볼트로스** |
 | 1945 | 제2차 세계 대전의 끝 | 베를린 (보배마을) | 얼어붙은 폐허, **얼어붙은 도시(마을 전투, 최종 퀘스트)** | 삼삼드래, **큐레무 (3페이즈)** |
 
-(선택)은 메인 퀘스트와 상관없이 들어가는 전설의 둥지입니다. 굵은 글씨는 전설의 포켓몬입니다.
+(선택)은 메인 퀘스트와 상관없이 들어가는 전설의 둥지입니다. 굵은 글씨는 전설의 포켓몬이고, 나머지는 600족입니다. 세계 모드의 던전은 1.19부터 모두 **3층**이 끝이고, 그 3층에서 보스가 기다립니다.
 
 ### 세계 모드의 전설과 최종 보스
-- **5세대 전설**: 레시라무는 런던 대공습의 마을 전투에서, 나머지는 각자 둥지의 3층에서 2페이즈로 싸웁니다. 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. 블랙 롬에는 케르디오의 각오의 모습과 토네로스 · 볼트로스 · 랜드로스의 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
-- **최종 보스 큐레무**: 1945년의 마지막 퀘스트입니다. 베를린이 그대로 싸움터가 되어 큐레무 → 블랙큐레무 → 화이트큐레무 3페이즈로 싸웁니다. 모든 능력치가 천관산 아르세우스보다 20% 높고, 얼음 · 번개 · 불꽃이 몇 턴씩 떨어집니다. 이기면 항복과 해방의 이야기로 세계 모드가 끝납니다.
+- **퀘스트 보스 (1.19)**: 세계 모드의 퀘스트 던전 보스는 **전설 · 준전설의 포켓몬**입니다. 전설마다 한 번만 나오고, 전설이 모자란 자리는 **600족**(망나뇽 · 마기라스 · 보만다 · 메타그로스 · 한카리아스 · 삼삼드래, 각 두 번)이 맡습니다. 퀘스트의 전설은 한 가지 모습으로 싸우고, 이기면 동료가 될 수 있습니다(이미 동료인 전설은 또 동료가 되지 않음). 이야기에 묶인 전설(세레비, 아르세우스, 디아루가, 펄기아, 기라티나, 다크라이, 레지기가스, 그란돈, 가이오가, 테오키스)은 나오지 않습니다.
+- **5세대 전설**: 레시라무 · 제크로무 · 큐레무 말고는 각자 둥지의 3층에서 2페이즈로 싸웁니다. 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. 블랙 롬에는 케르디오의 각오의 모습과 토네로스 · 볼트로스 · 랜드로스의 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
+- **레시라무 · 제크로무 (1.19)**: 천관산 펄기아 수치(이야기 때보다 체력 · 공격 30% 높고 모든 능력치 +20%, 내 팀 레벨을 따름)에 체력 · 모든 능력치 · 공격 상한 · 궁극기를 **10% 더한** 스펙으로, 3페이즈로 싸웁니다. 1페이즈는 평범한 기술만, 2페이즈는 평범한 기술과 궁극기, 3페이즈는 궁극기만 계속 씁니다. 이기고 동료가 되면 궁극기 기술을 가지고 옵니다.
+  - **레시라무 · 크로스플레임**: **5초 동안** 위에서 불이 내 위치와 근처 동료를 따라 떨어집니다. 붉게 표시된 칸에 떨어지니 멈추지 말고 움직이세요. 턴과 상관없이 실제 시간으로 흐르고, 대화나 메뉴가 열리면 멈춥니다.
+  - **레시라무 · 푸른불꽃**: 붉은 칸에 떨어진 자리에 **파란 불꽃이 5턴 동안 남아**, 그 위에서 턴을 마치면 피해를 받고 화상을 입을 수 있습니다.
+  - **제크로무 · 뇌격**: 붉은 칸에 번개가 떨어집니다. 표시를 보고 피할 수 있습니다.
+  - **제크로무 · 크로스썬더**: **표시 없이** 5턴 동안 번개가 무작위로 떨어집니다. 피할 수 없으니 HP를 넉넉히 채워 두세요.
+- **최종 보스 큐레무**: 1945년의 마지막 퀘스트입니다. 베를린이 그대로 싸움터가 되어 1페이즈 큐레무 → 2페이즈 블랙큐레무 → 3페이즈 화이트큐레무로 싸웁니다. 1.19부터 레시라무 · 제크로무와 같은 체력 · 공격에 모든 능력치 +44%(둘은 +32%)입니다. 블랙큐레무는 레시라무와 제크로무의 궁극기 넷을 번갈아 쓰고, 화이트큐레무는 궁극기만 **두 개씩 동시에** 씁니다. 이기면 항복과 해방의 이야기로 세계 모드가 끝납니다.
 - **엔딩 (1.13부터)**: 한국 이야기의 **아르세우스(1979)**와 세계 모드의 **큐레무(1945)**를 **모두** 쓰러뜨려야 엔딩이 열립니다. 나중에 끝낸 쪽의 시간의 문에서 「엔딩으로」를 고르고, 한쪽만 끝냈다면 세레비가 남은 쪽으로 안내합니다. 엔딩의 크레디트와 명예의 전당에도 세계 모드가 함께 나옵니다. 아르세우스만으로는 엔딩을 볼 수 없습니다. 1.15부터는 1.12까지 아르세우스만으로 엔딩을 연 예전 기록도 큐레무를 쓰러뜨려야 엔딩이 열리고, ★와 챌린지 달성도 그때부터입니다(1.13 · 1.14에서는 그런 기록을 엔딩을 본 것으로 쳤습니다).
 - **동료**: 전설도, 던전의 일반 보스도 이기면 동료로 맞이할 수 있습니다 (일반 보스는 1.12부터. 챌린지에서는 전설만 동료가 되지 않음).
 
@@ -314,6 +320,12 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
 
+### 바뀐 점 (1.19)
+- **세계 모드의 퀘스트 보스**: 퀘스트 던전의 보스가 전설 · 준전설로 바뀌었습니다. 전설이 모자란 자리는 600족입니다. 예전 보스들은 그 던전의 야생 포켓몬으로 만날 수 있습니다.
+- **세계 모드 던전은 3층까지**: 4층이던 던전 13곳이 3층으로 줄었고, 3층이 마지막 층이자 보스 층입니다.
+- **레시라무 · 제크로무 · 큐레무**: 3페이즈와 궁극기(크로스플레임, 푸른불꽃, 뇌격, 크로스썬더)를 새로 짰습니다. 레시라무와 제크로무는 천관산 펄기아 +10%, 큐레무는 그보다 한 단계 위입니다.
+- **고친 버그** (외부 검토 보고서에서 실제로 재현되는 것만): 잠듦 · 얼음 · 마비로 움직일 수 없는 리더가 그래도 걸어가던 것 · 명부에서 해전에 나간 포켓몬의 PP가 돌아오지 않던 것 · 해전 출격 질문에서 Z를 빠르게 두 번 누르면 같은 해전에 두 번 들어가 뭍의 팀을 잃을 수 있던 것 · 클라우드의 손상된 세이브나 더 새로운 버전의 세이브가 이 기기의 세이브를 덮어쓰던 것(이제 받지 않고, 바꿀 때 이전 세이브를 한 벌 남김) · 여러 세이브를 받다가 중간에 실패하면 이미 받은 세이브가 다시 덮일 수 있던 것 · 업로드 중에 생긴 새 저장이 올라가지 않던 것 · 저장에 실패해도 타이틀로 나가던 것(이제 물어봄) · 벽 안이나 지도 밖에 저장된 위치에서 움직일 수 없던 것 · 방을 닫았는데 뒤늦게 열리던 멀티 방 · 멀티 손님의 잘못된 명령과 채팅 도배.
+
 ### 바뀐 점 (1.18)
 - **해전 전투 대형**: 마을·세계 지도 메뉴의 「해전 대형」에서 미리 고르거나 출전 목록에서 「이 대형으로 고정하고 출발!」을 누르면, 다음 해전부터 고르지 않고 바로 출격합니다. 대형은 기록에 남습니다.
 - **해전의 적 레벨**: 적과 보스가 출전 파티의 최고 레벨을 따릅니다. 보통 +3, 어려움 +5(쉬움 +1, 챌린지 +3).
@@ -418,10 +430,11 @@ docs/screenshots/       README 스크린샷
   - P opens the companion roster outside dungeons: search it (name, type, dex number), sort it, and swap anyone into any team slot; 1/2/3 set the game speed.
   - The mouse picks places on the world map, dialogue choices and menu rows; dragging or the wheel scrolls the map.
 - **World line (1860–1945)**: after liberation, a Korean era's Time Gate offers "To the world"; a world era's Time Gate leads back to Korea at any time, and each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legends; (optional) marks a legend's lair off the main quest.
-  - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: Haxorus, Beartic · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): Jellicent, Gyarados · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill, the rock walls of the forts (optional): Carracosta, Excadrill, Wailord, **Terrakion**.
-  - The First World War: 1914 Sarajevo (Nacrene City): Zoroark, Braviary · 1914 the Marne, Paris (Nimbasa City): Conkeldurr, Krookodile · 1915 Gallipoli (Nuvema Town): Carracosta, Crustle · 1916 Verdun and the Somme (Icirrus City): Klinklang, Aggron, **Cobalion** (optional) · 1916 Jutland, Scapa Flow (Driftveil City): Swanna, Kingdra, **Tornadus** (optional) · 1918 the Armistice, Compiègne (Accumula Town): Scolipede, Bisharp, **Virizion** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): Reuniclus, Cofagrigus.
-  - The Second World War: 1939 Danzig (Nacrene City): Escavalier, Eelektross · 1940 Dunkirk (Driftveil City): Kingler, Jellicent, **Keldeo** (optional) · 1940 the Blitz, London (Mistralton City): Archeops, and **Reshiram** in a town battle · 1941 Moscow (Opelucid City): Seismitoad, Vanilluxe, **Landorus** (optional) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): Mantine, Sharpedo · 1942 Leningrad (Nacrene City): Cryogonal, **Meloetta** · 1942 El Alamein, Alexandria (Undella Town): Darmanitan, **Victini** · 1943 Stalingrad and Kursk (Icirrus City): Durant, **Genesect** · 1944 Normandy (Nuvema Town): **Zekrom**, Krookodile · 1944 Leyte Gulf, Tacloban (Undella Town): Jellicent, Gyarados, **Thundurus** (optional) · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
+  - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: **Ho-Oh**, **Raikou** · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): **Manaphy**, **Lugia** · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill, the rock walls of the forts (optional): **Phione**, Tyranitar, **Zapdos**, **Terrakion**.
+  - The First World War: 1914 Sarajevo (Nacrene City): **Mesprit**, **Entei** · 1914 the Marne, Paris (Nimbasa City): **Azelf**, **Jirachi** · 1915 Gallipoli (Nuvema Town): Metagross, **Uxie** · 1916 Verdun and the Somme (Icirrus City): **Registeel**, Metagross, **Cobalion** (optional) · 1916 Jutland, Scapa Flow (Driftveil City): **Suicune**, Dragonite, **Tornadus** (optional) · 1918 the Armistice, Compiègne (Accumula Town): **Shaymin**, Hydreigon, **Virizion** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Mew**, **Cresselia**.
+  - The Second World War: 1939 Danzig (Nacrene City): Tyranitar, **Latios** · 1940 Dunkirk (Driftveil City): Garchomp, **Latias**, **Keldeo** (optional) · 1940 the Blitz, London (Mistralton City): Salamence, and **Reshiram** in a town battle, three phases · 1941 Moscow (Opelucid City): **Regirock**, **Regice**, **Landorus** (optional) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Moltres**, **Rayquaza** · 1942 Leningrad (Nacrene City): **Articuno**, **Meloetta** · 1942 El Alamein, Alexandria (Undella Town): **Heatran**, **Victini** · 1943 Stalingrad and Kursk (Icirrus City): **Mewtwo**, **Genesect** · 1944 Normandy (Nuvema Town): **Zekrom** in three phases, Garchomp · 1944 Leyte Gulf, Tacloban (Undella Town): Salamence, Dragonite, **Thundurus** (optional) · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.19: the world line's quest bosses are legendary and sub-legendary Pokémon, each once, with the 600-total lines (twice each) where the legends run out; every world dungeon now ends on its third floor, where the boss waits, and the old bosses live on as wild foes. Reshiram and Zekrom fight at Mt. Coronet's Palkia +10% in three phases: ordinary moves only, then those and their ultimates, then nothing but their ultimates. Fusion Flare drops fire from above on you and the teammates near you for five seconds of real time (keep moving); Blue Flare leaves flames where it falls; Bolt Strike lands on marked tiles; Fusion Bolt strikes at random with no mark at all. Kyurem stands a step above them: Black Kyurem takes all four ultimates by turns, White Kyurem uses two at once. Fixed, from an outside review, what the code really did: a sleeping, frozen or paralysed leader still walked; a roster Pokémon that sailed in a naval battle kept its spent PP; a quick double press on the sortie question could enter the same battle twice and lose the team ashore; a damaged or newer cloud save could replace the one here (now refused, and the one replaced stays as a backup); a failed save on quitting went to the title anyway (it asks now); a town position off the map or in a wall stuck you there; a save made during an upload stayed behind; a co-op room closed while it loaded still opened; guests' bad commands and chat floods are dropped.
   - 1.18: a naval formation: set up to three Water types beforehand (Naval formation in the town's or the world map's menu, or Fix this crew and set out! on the crew list) and a naval battle only asks Set out! / Change crew / Not now; a team of three Water types gets the same question. Foes and bosses at sea now follow the best level of the crew that sets out, fixed on boarding: +3 (Hard +5, Easy +1, Challenge +3), and the navy's sailors come at that level (up to 1.17 all of this followed the team ashore). The market's sell list stays open, sells one, ten or all at a press, and can sell the whole bag at once after a question (key items stay).
   - 1.17: during the 1920 spy hunt the year on show moves with it (the town's top left, its menu, the quest list, the board, the world map, a journey on the title's list; it stays on the year the spy is caught, and the next era's card counts on from there); until 1.16 only the story's lines counted the years. The Revive's list no longer runs HP over the names (menus measured only their left-hand text; the "Fainted" mark in an item's target list was the same bug), and the team screen's key hints no longer run through the town's. Constable Mightyena now patrol from 1905 to 1944 (Hanseong 1905 is new) in three pairs, six in all, and demand 500 nyang. The market's buy list has a "Buy 10 at a time" switch on top (each visit starts at one). Dialga is stronger everywhere: Roar of Time takes 33% of everyone's max HP (20% before) and heals it by the damage dealt on top of going back to its HP of 10 s before, and it has 10% more HP. On the web a font file that fails once no longer stops the game from starting (it is fetched again like pictures and data, in a system font meanwhile), and a script file that fails says to reload instead of "Loading..." for good.
   - 1.16 (fixes): a picture or dungeon chunk set that fails to load is fetched again, after 1, 2, 4 and 8 s and then every 15 s while it is in use, and a Pokémon whose sheet cannot be had meanwhile shows its box icon. Until 1.15 a chunk set whose picture failed before its data arrived left the title or every town entry on "Loading..." for good, and anything that failed once (town ground, a dungeon floor, a sprite) stayed missing for the session. A legend missed in an earlier era that comes back on a side dungeon's last floor no longer hides the Pokémon a rescue request waits for there (1019 Gangdong, 1443 Gwanak, 1887 the tramway, 1919 Namsan). Litwick now lives at Biggin Hill Airfield, where 1940 London's "Put Out the Embers" sends you; it had been listed only in the Blitz town battle, which fields no wild Pokémon.

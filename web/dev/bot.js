@@ -45,12 +45,13 @@ export async function arc(label, party, opts, items) {
 export async function bot(turns = 200, opts = {}) {
   const g = window.__game, G = g.G, errs = [], floors = [], stats = { teles: 0, dodges: 0 };
   for (let t = 0; t < turns; t++) {
-    await sleep(25);
+    const fire = () => G.scene.bosses?.some((b) => b.sigRun?.rain || b.sigRun2?.rain); // what falls by the second wants a quick reaction, like a player's
+    await sleep(fire() ? 8 : 25);
     const d = G.scene;
     if (d.constructor.name !== 'Dungeon') return { left: true, scene: d.constructor.name, t, floors, step: g.S.step, stats, party: g.S.party.map((m) => [m.name, m.lv, m.hp, m.maxhp]), money: g.S.money };
     let guard = 0;
     while ((d.busy || G.overlays.length) && guard++ < 150) {
-      if (G.overlays.length) { const o = G.overlays[G.overlays.length - 1]; if (o.line) o.chars = 999; await press('Enter', 1, 60); } else await sleep(40);
+      if (G.overlays.length) { const o = G.overlays[G.overlays.length - 1]; if (o.line) o.chars = 999; await press('Enter', 1, 60); } else await sleep(fire() ? 8 : 40);
     }
     if (d.done) { await sleep(400); continue; }
     if (floors[floors.length - 1] !== d.floor) floors.push(d.floor);
@@ -75,7 +76,10 @@ export async function bot(turns = 200, opts = {}) {
         const s = d.pickSkill(p, adj); // the move a player would pick: power x type match, like the ally AI
         d.playerAct(s && Math.random() < 0.85 ? 'move-skill' : 'basic', s?.k); continue;
       }
-      if (adj === undefined && (d.boss?.tele || d.boss?.sigRun?.tele) && opts.dodge !== false) { d.playerAct('wait'); continue; } // safe spot: wait out the blast (or Hyper Beam)
+      // opts.reach: like a player, its moves from where it stands on anything within sure reach (Dungeon.nearFoe)
+      const far = opts.reach && d.nearFoe(p), fs = far && d.pickSkill(p, far);
+      if (fs) { d.playerAct('move-skill', fs.k); continue; }
+      if (adj === undefined && (d.boss?.tele || d.boss?.sigRun?.tele || d.boss?.sigRun2?.tele) && opts.dodge !== false) { d.playerAct('wait'); continue; } // safe spot: wait out the blast (or Hyper Beam)
       if (!foes.length && p.mon.hp < p.mon.maxhp * 0.6) { d.playerAct('wait'); continue; } // rest like a player would
       let step = foes.length ? d.bfs(p, (x, y) => foes.some((f) => Math.max(Math.abs(f.x - x), Math.abs(f.y - y)) <= 1) && !d.entAt(x, y) && (opts.dodge === false || !d.danger(x, y)), 40) : null;
       const it = d.items.find((i) => d.vis[i.y][i.x]);

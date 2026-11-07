@@ -10,6 +10,7 @@ const PEERJS = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
 const PREFIX = 'joseon-poke-v2-';
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const TURN_WAIT = 12; // seconds a dungeon turn waits for a guest before its Pokémon falls back to the AI
+const CHAT_GAP = 800; // ms between one guest's chat lines on the host's screen; more are dropped
 
 // everything else plays offline (the Android app ships the whole game), but co-op needs the PeerJS servers
 const OFFLINE = () => tr('멀티플레이는 인터넷 연결이 필요해요. Wi-Fi나 모바일 데이터를 켠 뒤 다시 눌러 주세요.', 'Co-op needs an internet connection. Turn on Wi-Fi or mobile data and try again.');
@@ -27,7 +28,7 @@ function loadPeer() {
 
 export const NET = {
   role: null, // null (solo) | 'host' | 'guest'
-  code: '', status: '', peer: null,
+  code: '', status: '', peer: null, attempt: 0, // attempt: which try at opening or joining is the live one (leave ends it)
   guests: [], // host: [{ conn, slot, name, call }]
   cmds: {}, // host: latest dungeon command per party slot
   conn: null, // guest: connection to the host
@@ -43,14 +44,16 @@ export const NET = {
     if (this.role) return;
     if (navigator.onLine === false) return this.set(null, OFFLINE());
     this.set('host', tr('방을 여는 중…', 'Opening a room…'));
+    const try_ = ++this.attempt;
     try {
       const Peer = await loadPeer();
+      if (try_ !== this.attempt) return; // closed while the module loaded: that room must not open after all
       this.code = Array.from({ length: 6 }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
       const peer = this.peer = new Peer(PREFIX + this.code);
-      peer.on('open', () => this.set('host', tr('친구를 기다리는 중', 'Waiting for friends')));
+      peer.on('open', () => { if (this.peer === peer) this.set('host', tr('친구를 기다리는 중', 'Waiting for friends')); });
       peer.on('connection', (conn) => this.accept(conn));
-      peer.on('error', (e) => this.fail(e));
-      peer.on('disconnected', () => { if (this.role === 'host') peer.reconnect(); });
+      peer.on('error', (e) => { if (this.peer === peer) this.fail(e); });
+      peer.on('disconnected', () => { if (this.peer === peer && this.role === 'host') peer.reconnect(); });
     } catch (e) { this.fail(e); }
   },
   accept(conn) {
@@ -86,8 +89,10 @@ export const NET = {
   fromGuest(conn, m) {
     const g = this.guests.find((x) => x.conn === conn);
     if (!g || !m) return;
-    if (m.t === 'cmd' && ['move', 'basic', 'move-skill', 'wait'].includes(m.kind)) this.cmds[g.slot] = { kind: m.kind, arg: m.arg };
-    if (m.t === 'chat' && typeof m.text === 'string') toast(`${g.name}: ${m.text.slice(0, 40)}`, COL.blue);
+    // what a guest sends is checked here: an eight-way step, or one of the four moves
+    const ok = m.kind === 'move' ? Array.isArray(m.arg) && m.arg.length === 2 && m.arg.every((d) => d === -1 || d === 0 || d === 1) : m.kind === 'move-skill' ? [0, 1, 2, 3].includes(m.arg) : ['basic', 'wait'].includes(m.kind);
+    if (m.t === 'cmd' && ok) this.cmds[g.slot] = { kind: m.kind, arg: m.arg };
+    if (m.t === 'chat' && typeof m.text === 'string' && performance.now() - (g.chatAt || -CHAT_GAP) >= CHAT_GAP) { g.chatAt = performance.now(); toast(`${g.name}: ${m.text.slice(0, 40)}`, COL.blue); }
   },
   // the screen everyone sees: a 960x540 copy of the canvas plus the game's audio
   stream() {
@@ -110,8 +115,10 @@ export const NET = {
     if (code.length !== 6) { this.set(null, tr('방 코드는 6글자예요.', 'Room codes have 6 characters.')); return; }
     if (navigator.onLine === false) return this.set(null, OFFLINE());
     this.set('guest', tr('연결하는 중…', 'Connecting…'));
+    const try_ = ++this.attempt;
     try {
       const Peer = await loadPeer();
+      if (try_ !== this.attempt) return; // left while the module loaded
       const peer = this.peer = new Peer();
       peer.on('open', () => {
         const conn = this.conn = peer.connect(PREFIX + code, { reliable: true });
@@ -125,13 +132,14 @@ export const NET = {
         call.answer();
         call.on('stream', (s) => { this.remote = s; this.onChange?.(); });
       });
-      peer.on('error', (e) => this.fail(e.type === 'peer-unavailable' ? new Error(tr('그 코드의 방을 찾지 못했어요.', 'No room with that code.')) : e));
+      peer.on('error', (e) => { if (this.peer === peer) this.fail(e.type === 'peer-unavailable' ? new Error(tr('그 코드의 방을 찾지 못했어요.', 'No room with that code.')) : e); });
     } catch (e) { this.fail(e); }
   },
   send(m) { if (this.role === 'guest' && this.conn?.open) this.conn.send(m); },
   // shared ------------------------------------------------------------------------------------
   leave() {
     const was = this.role;
+    this.attempt++;
     for (const g of this.guests) { g.call?.close(); g.conn.close(); }
     this.conn?.close(); this.peer?.destroy();
     Object.assign(this, { role: null, code: '', peer: null, guests: [], cmds: {}, conn: null, slot: 0, remote: null, media: null, capture: null });

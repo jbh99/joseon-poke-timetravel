@@ -88,8 +88,13 @@ export async function checkAll(opts = {}) {
       if (d.mid && d.mid.floor >= d.floors) bad(tag, `${id} mid-boss floor ${d.mid.floor} not before the last floor ${d.floors}`);
       if (!d.stages && d.floors > 4) bad(tag, `${id} has ${d.floors} floors (every dungeon ends at floor 4 at most)`); // since 1.8
       for (const b of bosses) for (const sg of [b.sig, ...[].concat(b.revive || []).map((r) => r.sig)].filter(Boolean)) {
-        for (const u of sg.use) if (!u?.name || !['roar', 'rend', 'shadow', 'blades', 'pulse', 'void', 'sweep', 'storm'].includes(u.kind)) bad(tag, `${id} signature move ${u?.name} of unknown kind ${u?.kind}`);
+        for (const u of sg.use.flat()) if (!u?.name || !['roar', 'rend', 'shadow', 'blades', 'pulse', 'void', 'sweep', 'storm', 'rain', 'hidden'].includes(u.kind)) bad(tag, `${id} signature move ${u?.name} of unknown kind ${u?.kind}`);
         if (!Array.isArray(sg.at) || !sg.at.length) bad(tag, `${id} signature move without HP marks`);
+      }
+      // the world line's map rules (1.19): a dungeon ends on floor 3, its boss a legend or one of the 600-total lines
+      if (e.worldLine && !d.battle) {
+        if (d.floors !== 3) bad(tag, `${id} has ${d.floors} floors (a world dungeon has 3)`);
+        if (!d.boss || !(game.LEGENDS.has(d.boss.sp) || game.PSEUDO.has(d.boss.sp))) bad(tag, `${id}: boss ${d.boss?.sp} is neither a legend nor of a 600-total line`);
       }
       // one legend to a place (a staged dungeon holds its own on purpose: the finale's three, the Boss Tower's pairs),
       // Regigigas only in the Regi line after 1945, and Darkrai nowhere before 1979
