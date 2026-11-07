@@ -3,7 +3,7 @@ import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, t
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, dexMark } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
-import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
+import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, Town, PEARL, objInView } from './town.js';
 import { tr, iga } from './i18n.js';
 import { openPokedex } from './pokedex.js';
@@ -86,6 +86,7 @@ export class Dungeon {
     this.dId = dId;
     this.def = def;
     this.main = ['dungeon', 'battle'].includes(mainStep()?.do) && mainStep().d === dId; // a 'battle' step is a run started in town
+    if (def.water) this.boardCrew(o.crew); // first: the foes' levels go by the crew, a returning legend's as well
     this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting on the last floor (where no other boss waits)
     // a challenge run left unfinished counts as a wipe (quests.js checkRun); the Boss Tower comes after the ending
     if (atStake() && !def.tower) { S.inRun = dId; save(); }
@@ -97,18 +98,17 @@ export class Dungeon {
     this.turnNo = 0;
     this.found = { money: 0, items: {} };
     this.showMap = true;
-    if (this.def.water) this.boardCrew(o.crew);
     this.newFloor();
   }
   // naval battles: only Water-type Pokémon go aboard, the ones the player picked on the world map in the order picked
-  // (quests.js crewMenu; o.crew), or without a pick the team's own; the navy lends a crew when short of two. Its sailors
-  // come at the level of the team's best, as grown as that level makes them (Totodile at Lv 60 is a Feraligatr): the
-  // foes follow the team ashore (quests.js foeLevels), and up to 1.13 a strong team got babies at its average level,
-  // which lost the Battle of Jutland on its first floor every time
+  // (quests.js crewMenu; o.crew), or without a pick the team's own; the navy lends a crew when short of two. The foes go
+  // by the crew's best as it boards (S.crewLv, quests.js foeLevels; 1.18), and the sailors come at that same level, as
+  // grown as it makes them (Totodile at Lv 60 is a Feraligatr; up to 1.13 a strong team got babies at its average level,
+  // which lost the Battle of Jutland on its first floor every time). With nobody picked that level is the team's best.
   boardCrew(picked) {
     S.homeParty = S.party;
     const crew = (picked || S.party).filter((m) => m.types.includes(11)).slice(0, 3);
-    const top = Math.max(...S.party.map((m) => m.lv));
+    const top = S.crewLv = crewLevel(crew);
     this.loaned = [];
     for (const sp of this.def.loan || [158, 258]) {
       if (crew.length >= 2) break;
@@ -121,7 +121,7 @@ export class Dungeon {
   restoreCrew() {
     if (!S.homeParty) return;
     const crew = S.party, home = S.homeParty;
-    S.homeParty = null; S.party = home;
+    S.homeParty = null; S.crewLv = null; S.party = home;
     for (const m of crew) { m.stages = {}; if (m.hp <= 0) m.hp = 1; }
     for (const m of crew) if (!m.loan && !home.includes(m) && !S.roster.includes(m)) (S.party.length < 3 ? S.party : S.roster).push(m); // recruited at sea
   }
@@ -275,6 +275,7 @@ export class Dungeon {
     const t = bossTier(b), [, top, scaled] = foeLevels(this.def), up = b.wander ? 0 : t.up;
     let lv = b.wander ? b.lv : clamp(avg + (b.lvUp ?? 2) + up, (b.lvMin ?? b.lv - 5) + up, b.lv + up) + mode().lv;
     if (scaled && !b.wander) lv = Math.max(lv, top + up);
+    if (this.def.water && !b.wander) lv = top; // a naval battle's boss stands where its foes do, above the crew (1.18)
     if (b.lvCap) lv = Math.min(lv, b.lvCap); // Arceus follows the team up to Lv 180
     // b.buff: a boss's own edge on HP and every stat (the finale's three, the town battles' legends), on top of its side's
     const mon = foeMon(b.sp, lv, { boss: true, hpMul: (b.hp || 1.05 + curve() * 0.4) * t.hp * mode().hp, atkMul: (b.atk || 0.9) * t.atk, buff: (b.buff || 1) * (this.def.battle?.foeBuff || 1), moves: b.moves?.map((id) => ({ id })) });

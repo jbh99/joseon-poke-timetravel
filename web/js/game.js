@@ -100,6 +100,7 @@ export class Mon {
     this.moves = (o.moves || this.defaultMoves().map((id) => ({ id }))).map((mv) => (mv.pp == null ? { ...mv, pp: this.maxPP(mv.id) } : mv));
     this.hp = o.hp ?? this.maxhp;
     this.status = o.status || null;
+    this.fleet = o.fleet || 0; // its place (1-3) in the naval formation the player fixed (quests.js formation), 0 for none
     this.stages = {};
     this.typeOverride = null; // Arceus plates
     this.slowT = 0; // Regigigas' Slow Start
@@ -171,7 +172,7 @@ export class Mon {
     const mv = { id: move, pp: this.maxPP(move) };
     if (this.moves.length < 4) this.moves.push(mv); else this.moves[slot] = mv;
   }
-  toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined }; }
+  toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined, fleet: this.fleet || undefined }; }
   static from(o) { return new Mon(o.sp, o.lv, o); }
 }
 
@@ -320,8 +321,9 @@ function migrateV8(o) {
 // party: [leader, partner, optional recruit]; roster: recruits waiting in town. over: a challenge lost (quests.js
 // endChallenge), its save kept only to mark the journey ended. dex: the Pokédex record (dexState). koreaAt/worldAt:
 // where the line the team is not on was left (main.js toWorld/toKorea); homeParty: the team ashore during a naval
-// battle. A new journey or a loaded save starts from all of these, so nothing carries over from the journey before
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '', koreaAt: null, worldAt: null, homeParty: null });
+// battle, crewLv: the level its foes go by (Dungeon.boardCrew). A new journey or a loaded save starts from all of these,
+// so nothing carries over from the journey before
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '', koreaAt: null, worldAt: null, homeParty: null, crewLv: null });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode });
@@ -333,7 +335,7 @@ export function save() {
   try {
     const party = (S.homeParty || S.party).filter((m) => !m.loan); // never save a naval crew or loaned Pokémon as the team
     syncDex();
-    localStorage.setItem(slotKey(S.slot), JSON.stringify({ ...S, homeParty: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt: Date.now() }));
+    localStorage.setItem(slotKey(S.slot), JSON.stringify({ ...S, homeParty: undefined, crewLv: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt: Date.now() }));
     G.onSaved?.(); // the cloud copy follows (cloud.js)
     return true;
   } catch (e) { return false; }
@@ -392,12 +394,13 @@ export const PSEUDO = new Set([149, 248, 373, 376, 445, 635]);
 // stats. Normal, Hard and Challenge field the same levels (quests.js foeLevels); Hard's foes, bosses included, have 25%
 // more HP and every stat, and their blasts (a share of the team's HP) hit 25% harder. Challenge plays at Normal
 // strength, but a wipe before the ending ends the journey for good (quests.js atStake) and legendary Pokémon never
-// join; it opens once any ending has been seen (prefs.ended).
+// join; it opens once any ending has been seen (prefs.ended). naval: how far a naval battle's foes stand above the crew
+// that sets out (quests.js foeLevels): Normal 3, Hard 5 (1.18), Easy two below Normal as everywhere.
 export const MODES = {
-  easy: { lv: -2, hp: 0.8, dmg: 0.75, stat: 1 },
-  normal: { lv: 0, hp: 1, dmg: 1, stat: 1 },
-  hard: { lv: 0, hp: 1, dmg: 1, stat: 1.25 },
-  challenge: { lv: 0, hp: 1, dmg: 1, stat: 1 },
+  easy: { lv: -2, hp: 0.8, dmg: 0.75, stat: 1, naval: 1 },
+  normal: { lv: 0, hp: 1, dmg: 1, stat: 1, naval: 3 },
+  hard: { lv: 0, hp: 1, dmg: 1, stat: 1.25, naval: 5 },
+  challenge: { lv: 0, hp: 1, dmg: 1, stat: 1, naval: 3 },
 };
 export const mode = () => MODES[S.mode] || MODES.normal;
 export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '어려움', challenge: '챌린지' }, { easy: 'Easy', normal: 'Normal', hard: 'Hard', challenge: 'Challenge' });

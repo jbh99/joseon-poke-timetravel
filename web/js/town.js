@@ -6,7 +6,7 @@ import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content
 import { tr } from './i18n.js';
 import { openPokedex } from './pokedex.js';
 import { hasPmdSprite, pmdFailed, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
-import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, shownYear, giveMons, forgetMenu, moveInfo, endingOpen } from './quests.js';
+import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, shownYear, giveMons, forgetMenu, moveInfo, endingOpen, formationMenu } from './quests.js';
 
 // occupied towns (1905-1944) have constables on patrol (Town.patrols); the independence army's base and the
 // Provisional Government in Chongqing (police: false) are out of their reach
@@ -1136,17 +1136,37 @@ export class Town {
         } })),
       ], { title: () => tr(`장터 · ${S.money}냥${qty > 1 ? ' · 10개씩' : ''}`, `Market · ${S.money} nyang${qty > 1 ? ' · 10 each' : ''}`), desc: true, keep: true, sel: 1, x: 150, y: 30, w: 200 });
     };
-    const sell = () => {
-      const ids = Object.keys(S.items).filter((id) => ITEMS[id] && !ITEMS[id].key); // key items (the orbs) are never sold
-      if (!ids.length) return toast(tr('팔 물건이 없다.', 'Nothing to sell.'));
-      openMenu(ids.map((id) => ({ label: `${ITEMS[id].name} ×${countItem(id)}`, right: tr(`${Math.floor(ITEMS[id].price / 2)}냥`, `${Math.floor(ITEMS[id].price / 2)} ny`), fn: () => { takeItem(id); S.money += Math.floor(ITEMS[id].price / 2); sfx('pick'); toast(tr(`팔았다. (${S.money}냥)`, `Sold. (${S.money} nyang)`)); } })), { title: tr('팔기', 'Sell'), x: 150, y: 30, w: 200 });
+    // the list stays open and follows each sale (up to 1.17 it closed after every single item). The first row sets how many
+    // go at a press, the last row sells the whole bag after a question; key items (the orbs) are never sold
+    const SELL_QTY = [1, 10, Infinity];
+    const sell = (q = 0, sel = 1) => {
+      const ids = Object.keys(S.items).filter((id) => ITEMS[id] && !ITEMS[id].key);
+      if (!ids.length) return;
+      const qty = SELL_QTY[q], worth = (id, n) => Math.floor(ITEMS[id].price / 2) * n, howMany = (id) => Math.min(qty, countItem(id));
+      const ny = (n) => tr(`${n}냥`, `${n} ny`), qtyName = () => (qty === Infinity ? tr('전부', 'All') : qty > 1 ? tr('10개씩', '10 each') : tr('1개씩', 'One'));
+      const allN = ids.reduce((s, id) => s + countItem(id), 0), allWorth = ids.reduce((s, id) => s + worth(id, countItem(id)), 0);
+      openMenu([
+        { label: tr('한 번에 파는 개수', 'Sell at a time'), right: qtyName, desc: tr('누를 때마다 1개씩, 10개씩, 가진 것 전부로 바뀐다.', 'Press to switch between one, ten and all you have.'), fn: () => sell((q + 1) % SELL_QTY.length, 0) },
+        ...ids.map((id, k) => ({ label: `${ITEMS[id].name} ×${countItem(id)}`, right: () => ny(worth(id, howMany(id))), desc: () => ITEMS[id].desc, fn: () => {
+          const n = howMany(id), got = worth(id, n);
+          takeItem(id, n); S.money += got; sfx('pick');
+          toast(n > 1 ? tr(`${ITEMS[id].name} ${n}개를 팔았다. (+${got}냥, ${S.money}냥)`, `Sold ${n} × ${ITEMS[id].name}. (+${got}, ${S.money} nyang)`) : tr(`${ITEMS[id].name}을(를) 팔았다. (+${got}냥, ${S.money}냥)`, `Sold ${ITEMS[id].name}. (+${got}, ${S.money} nyang)`));
+          sell(q, k + 1);
+        } })),
+        { label: tr('가진 도구 모두 팔기', 'Sell the whole bag'), right: () => ny(allWorth), desc: tr(`도구 ${allN}개를 한꺼번에 판다. (구슬 같은 귀한 물건은 빼고)`, `Sell all ${allN} items at once. (Treasures like the orbs stay.)`), fn: () => say([{ who: npc.sp, name: npc.name, text: tr(`도구 ${allN}개를 모두 ${allWorth}냥에 넘기겠소?`, `All ${allN} items for ${allWorth} nyang?`), choices: tr(['판다', '그만둔다'], ['Sell', 'Keep them']), onChoice: (i) => {
+          if (i) return sell(q, Infinity); // back on this row
+          for (const id of ids) takeItem(id, countItem(id));
+          S.money += allWorth; sfx('pick');
+          toast(tr(`도구 ${allN}개를 모두 팔았다. (+${allWorth}냥, ${S.money}냥)`, `Sold all ${allN} items. (+${allWorth}, ${S.money} nyang)`));
+        } }]) },
+      ], { title: () => tr(`팔기 · ${S.money}냥`, `Sell · ${S.money} nyang`), desc: true, x: 150, y: 30, w: 200, sel: sel === Infinity ? ids.length + 1 : Math.min(sel, ids.length) }); // a sale never lands on the last row
     };
-    say([{ who: npc.sp, name: npc.name, text: tr('골라 보시오, 골라 봐! 던전 가기 전엔 열매가 필수라오!', 'Take your pick! Never head into a dungeon without berries!'), choices: tr(['사기', '팔기', '그만두기'], ['Buy', 'Sell', 'Leave']), onChoice: (i) => { if (i === 0) buy(); else if (i === 1) sell(); } }]);
+    say([{ who: npc.sp, name: npc.name, text: tr('골라 보시오, 골라 봐! 던전 가기 전엔 열매가 필수라오!', 'Take your pick! Never head into a dungeon without berries!'), choices: tr(['사기', '팔기', '그만두기'], ['Buy', 'Sell', 'Leave']), onChoice: (i) => { if (i === 0) buy(); else if (i === 1) { if (Object.keys(S.items).some((id) => ITEMS[id] && !ITEMS[id].key)) sell(); else toast(tr('팔 물건이 없다.', 'Nothing to sell.')); } } }]);
   }
   get padKeys() { return ['menu', 'quest', 'party']; } // what the touch menu panel offers here (core.js initMenu)
   openMain() {
     openMenu([
-      { label: tr('포켓몬', 'Pokémon'), fn: partyMenu }, { label: tr('동료 명부', 'Companions'), fn: rosterMenu }, { label: tr('도구', 'Items'), fn: () => itemMenu(null) }, { label: tr('퀘스트', 'Quests'), fn: questMenu },
+      { label: tr('포켓몬', 'Pokémon'), fn: partyMenu }, { label: tr('동료 명부', 'Companions'), fn: rosterMenu }, { label: tr('해전 대형', 'Naval formation'), fn: () => formationMenu() }, { label: tr('도구', 'Items'), fn: () => itemMenu(null) }, { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('도감', 'Pokédex'), fn: openPokedex },
       { label: tr('기록하기', 'Save'), fn: () => { S.townPos = [this.px, this.py]; const ok = save(); S.townPos = null; sfx(ok ? 'confirm' : 'cancel'); toast(ok ? tr('기록을 남겼다.', 'Game saved.') : tr('기록 실패: 브라우저 저장소를 확인하세요.', 'Save failed: check browser storage.'), ok ? COL.ink : COL.red); } },
       { label: tr('세계 지도로', 'World map'), fn: () => this.leave() },

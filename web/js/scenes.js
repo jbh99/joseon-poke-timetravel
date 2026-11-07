@@ -1,9 +1,9 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI, prepImages } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS } from './game.js';
+import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
-import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, crewMenu, yearOf, shownYear } from './quests.js';
+import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, sortieMenu, formationMenu, yearOf, shownYear } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
 import { tileSet, paintTerrain, iconPath } from './pmd.js';
 import { openPokedex } from './pokedex.js';
@@ -80,13 +80,13 @@ export class Title {
   newGame() {
     const N = MODE_NAMES(), desc = tr({
       easy: '적 레벨 −2, 적이 주는 피해 −25%, 보스 체력 −20%. 이야기를 편하게 즐기고 싶다면.',
-      normal: '기본 난이도. 1200년부터 던전이 우리 팀의 성장에 맞춰 강해진다(가장 강한 포켓몬보다 5~7레벨 위).',
-      hard: '보통과 같은 레벨에, 보스를 포함한 모든 적 포켓몬의 체력과 능력치 +25%.',
+      normal: '기본 난이도. 1200년부터 던전이 우리 팀의 성장에 맞춰 강해진다(가장 강한 포켓몬보다 5~7레벨 위). 해전의 적은 출전 파티보다 3레벨 위.',
+      hard: '보통과 같은 레벨에, 보스를 포함한 모든 적 포켓몬의 체력과 능력치 +25%. 해전의 적은 출전 파티보다 5레벨 위.',
       challenge: prefs.ended ? '보통의 강함으로, 한 번도 전멸하지 않고 엔딩까지 가야 한다. 전멸하면 기록이 끝나고 처음부터 다시. 전설의 포켓몬은 동료가 되지 않는다.' : '어느 난이도로든 엔딩을 한 번 보면 열린다.',
     }, {
       easy: 'Foes −2 levels, foes deal 25% less damage, bosses have 20% less HP. For enjoying the story.',
-      normal: 'The standard game. From 1200 on, dungeons grow with your team (5-7 levels above your strongest).',
-      hard: 'Levels as in Normal, but every foe, bosses included, has 25% more HP and stats.',
+      normal: 'The standard game. From 1200 on, dungeons grow with your team (5-7 levels above your strongest). Naval foes: 3 above your crew.',
+      hard: 'Levels as in Normal, but every foe, bosses included, has 25% more HP and stats. Naval foes: 5 above your crew.',
       challenge: prefs.ended ? 'Normal strength, but reach the ending without a single wipe: a wipe ends the journey and you start over. Legendary Pokémon never join.' : 'Opens once you have seen an ending at any difficulty.',
     });
     // only the save of the difficulty picked is replaced: the other journeys stay to be continued
@@ -245,6 +245,7 @@ export class EraCard {
 
 // ---------------------------------------------------------------- world map
 const floorsEn = (n) => `${n} floor${n === 1 ? '' : 's'}`; // "1 floor", not "1 floors"
+const lvBand = (lo, hi, to = '~') => (lo === hi ? `${lo}` : `${lo}${to}${hi}`); // a naval battle's foes are all of one level
 const MZ = 2, MVW = 316, GAP = 12; // GAP: room kept between two places' markers and names
 export class WorldMap {
   constructor() { this.sel = 0; }
@@ -354,20 +355,21 @@ export class WorldMap {
       S.lastNode = n.id;
       if (n.mark) return say([{ who: 'narr', text: `【${n.name}】 ${n.text}` }]);
       if (n.id === 'town' || n.town) return fadeTo(() => G.goTown(n.town || 1));
-      const d = this.e.dungeons[n.d], [lo, hi] = foeLevels(d);
+      const d = this.e.dungeons[n.d];
       if (d.needs && !d.needs.every((sp) => S.party.some((m) => m.sp === sp))) return say([{ who: 'narr', text: d.needsText }]);
       // the Boss Tower: from its first floor, or from above the highest floor cleared on an earlier visit
       const top = d.tower ? S.flags.towerTop || 0 : 0;
       if (top) return say([{ who: 'narr', text: tr(`${d.name} (${d.floors}층)에 들어갈까? 지난번에 ${top}층까지 올랐다.`, `Enter the ${d.name}? (${floorsEn(d.floors)}) Last time you cleared floor ${top}.`),
         choices: tr(['1층부터', `${top + 1}층부터`, '그만두기'], ['From floor 1', `From floor ${top + 1}`, 'Not now']), onChoice: (i) => { if (i < 2) fadeTo(() => G.goDungeon(n.d, undefined, { floor: i ? top + 1 : 1 })); } }]);
-      const what = d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${floorsEn(d.floors)} · legendary Pokémon`) : tr(`${d.floors}층 · 적 레벨 ${lo}~${hi}`, `${floorsEn(d.floors)} · foes Lv ${lo}-${hi}`);
-      // a naval battle: who goes aboard is picked first (quests.js crewMenu), and the run sets out from that list
-      if (d.water) return crewMenu(`${d.name} (${what})`, (crew) => fadeTo(() => G.goDungeon(n.d, undefined, { crew })));
-      say([{ who: 'narr', text: tr(`${d.name} (${what})에 들어갈까?`, `Enter ${d.name}? (${what})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
+      const what = (crew) => { const [lo, hi] = foeLevels(d, crew); return d.stages ? tr(`${d.floors}층 · 전설의 포켓몬`, `${floorsEn(d.floors)} · legendary Pokémon`) : tr(`${d.floors}층 · 적 레벨 ${lvBand(lo, hi)}`, `${floorsEn(d.floors)} · foes Lv ${lvBand(lo, hi, '-')}`); };
+      // a naval battle: who goes aboard comes first (quests.js sortieMenu), and the run sets out with them
+      if (d.water) return sortieMenu((crew) => `${d.name} (${what(crew)})`, (crew) => fadeTo(() => G.goDungeon(n.d, undefined, { crew })));
+      say([{ who: 'narr', text: tr(`${d.name} (${what()})에 들어갈까?`, `Enter ${d.name}? (${what()})`), choices: tr(['출발!', '그만두기'], ['Set out!', 'Not now']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(n.d)); } }]);
     }
     if (input.hit('menu')) return openMenu([
       { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('동료 명부', 'Companions'), fn: rosterMenu },
+      { label: tr('해전 대형', 'Naval formation'), fn: () => formationMenu() },
       { label: tr('도감', 'Pokédex'), fn: openPokedex },
       { label: tr('마을로 돌아가기', 'Back to town'), fn: () => fadeTo(() => G.goTown()) },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
@@ -467,8 +469,8 @@ export class WorldMap {
         lines2.push(tr(`${fl}층 · 보스 모드`, `${floorsEn(fl)} · Boss Mode`), tr('층마다 전설의 포켓몬만 기다린다. 잡을 수는 없다.', 'Only legendary Pokémon wait, floor after floor. None can be caught.'));
         if (S.flags.towerTop) lines2.push(tr(`지난번에 ${S.flags.towerTop}층까지 올랐다`, `Last time: cleared floor ${S.flags.towerTop}`));
         if (S.flags.towerClears) lines2.push(tr(`꼭대기까지 ${S.flags.towerClears}번 올랐다`, `Reached the top ${S.flags.towerClears} time(s)`));
-      } else lines2.push(d.stages ? tr(`${fl}층 · 전설의 포켓몬`, `${floorsEn(fl)} · legendary Pokémon`) : tr(`${fl}층 · 적 Lv ${lo}~${hi}`, `${floorsEn(fl)} · foes Lv ${lo}-${hi}`));
-      if (d.water) lines2.push(tr('[해전] 물 타입 포켓몬만 출전한다', '[Naval] Only Water-type Pokémon can fight'));
+      } else lines2.push(d.stages ? tr(`${fl}층 · 전설의 포켓몬`, `${floorsEn(fl)} · legendary Pokémon`) : tr(`${fl}층 · 적 Lv ${lvBand(lo, hi)}`, `${floorsEn(fl)} · foes Lv ${lvBand(lo, hi, '-')}`));
+      if (d.water) lines2.push(tr(`[해전] 물 타입만 출전 · 적은 출전 파티 최고 레벨 +${mode().naval}`, `[Naval] Water types only. Foes: the crew's best +${mode().naval}`));
       if (w) lines2.push(tr(`★ 지난 시대에 놓친 ${DEX.species[w].name}이(가) ${fl}층에서 기다린다! (Lv ${hi})`, `★ ${DEX.species[w].name}, missed in an earlier era, waits on floor ${fl}! (Lv ${hi})`));
       // a lair's keeper waits until met; one that is no legend (Tyranitar) is only something strong
       const keeper = d.legend && !lairDone(n.d), legendary = d.legend && LEGENDS.has(d.boss.sp);
@@ -490,11 +492,13 @@ export class WorldMap {
     if (mainLog) qs.push({ t: mainLog, c: COL.red });
     for (const q of activeSides()) qs.push({ t: `${q.title}${q.d ? ' — ' + (this.e.dungeons[q.d]?.name || '') : ''}`, c: COL.blue });
     const qlines = qs.flatMap((q) => ui.wrap('· ' + q.t, w - 16, 9).map((t) => ({ t, c: q.c })));
-    const qy = ny + wrapped2.length * 12 + 10, room = Math.max(1, Math.floor((VH - 22 - qy - 22) / 11));
-    const shown = qlines.slice(0, room);
-    ui.panel(x, qy, w, 22 + shown.length * 11);
-    ui.text(st?.final && !eraComplete() ? tr('★ 최종 퀘스트', '★ Final Quest') : tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true, color: st?.final && !eraComplete() ? COL.red : undefined });
-    shown.forEach((q, i) => ui.text(q.t, x + 8, qy + 19 + i * 11, { size: 9, color: q.c }));
+    const qy = ny + wrapped2.length * 12 + 10, room = Math.floor((VH - 22 - qy - 22) / 11);
+    if (room > 0) { // under a long place's text (a returning legend at sea, in English) the quests stay in the quest list
+      const shown = qlines.slice(0, room);
+      ui.panel(x, qy, w, 22 + shown.length * 11);
+      ui.text(st?.final && !eraComplete() ? tr('★ 최종 퀘스트', '★ Final Quest') : tr('이 시대의 퀘스트', 'Quests of this era'), x + 8, qy + 6, { size: 9, bold: true, color: st?.final && !eraComplete() ? COL.red : undefined });
+      shown.forEach((q, i) => ui.text(q.t, x + 8, qy + 19 + i * 11, { size: 9, color: q.c }));
+    }
     if (prefs.hints) ui.text(touchUI ? tr('장소를 누르면 이동 · 끌어서 지도 보기 · 메뉴: 퀘스트 · 동료 · X 마을로', 'Tap a place to go · drag to look · Menu: quests · team · X town') : tr('클릭·방향키 장소 · 드래그 지도 · Z 이동 · J 퀘스트 · P 동료 · X 마을로', 'Click/arrows place · drag map · Z go · J quests · P team · X town'), x + w, VH - 12, { size: 9, align: 'right', color: '#fff', shadow: true });
   }
 }

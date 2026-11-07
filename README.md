@@ -105,7 +105,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 1. **새로운 여행**에서 난이도(쉬움 · 보통 · 어려움, 엔딩 후 챌린지)를 정하고 주인공과 파트너를 고릅니다 (모부기·불꽃숭이·팽도리). 시간을 건너온 탓에 둘 다 **이로치**입니다.
 2. **마을**: 머리 위에 **!** 표시가 있는 포켓몬이 메인 퀘스트 상대입니다.
    - **주막**: 회복 · 기록 · 동료 명부
-   - **장터**: 도구 사고팔기 (사기 목록 맨 위에서 10개씩 사기를 켤 수 있음)
+   - **장터**: 도구 사고팔기 (사기 목록 맨 위에서 10개씩 사기, 팔기 목록에서 1개씩 · 10개씩 · 전부, 가진 도구 모두 팔기)
    - **방(榜)**: 의뢰 게시판
    - 많은 시대에 큰 중심 마을과 함께 **두 번째 마을**이 있습니다.
 3. **세계 지도**: 마을 출구로 나가면 열립니다. 장소를 클릭(터치)하거나, 방향키를 누르면 그 방향에서 가장 가까운 장소로 옮겨 갑니다. 마우스로 끌거나(드래그) 휠을 굴려 지도를 둘러봅니다. 빨간 표시는 메인 퀘스트, 파란 표시는 맡은 의뢰, 금색 테두리 안의 포켓몬은 그곳에 있는 전설의 포켓몬입니다. 1.12부터 서로 가까이 붙은 장소는 표시와 이름이 겹치지 않게 벌려 놓고, 실제 위치는 작은 점과 선으로 이어 줍니다.
@@ -236,7 +236,11 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
   - 탑의 포켓몬은 **잡을 수 없습니다**. 층을 오를 때마다 HP · PP · 상태 이상이 모두 회복되고, 다음에 들어갈 때는 지난번에 깬 층 다음부터 이어서 오를 수 있습니다. 보스 레벨은 아르세우스처럼 팀 레벨을 따라갑니다.
 
 ### 해전 (물 타입만 참가)
-살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 1.13부터 지도에서 해전을 고르면 팀과 동료 명부의 물 타입 목록이 열리고, 배에 태울 포켓몬을 **최대 3마리 직접 고릅니다**(고른 순서대로 앞장섬). 팀의 물 타입은 미리 골라져 있고, 목록은 **팀 먼저 · 레벨 높은 순 · 가나다 순**으로 정렬할 수 있습니다. 2마리보다 적게 고르면 모자란 자리를 수군이 빌려주고, 물 타입이 하나도 없으면 바로 2마리를 빌려줍니다. 1.12까지는 팀의 물 타입과 명부에서 레벨이 가장 높은 물 타입이 저절로 탔습니다. 첫 시대에 리아코와 물짱이를 받습니다. 1.14부터 수군이 빌려주는 승무원은 팀에서 가장 높은 레벨로, 그 레벨에 맞게 진화한 모습(예: Lv 80 장크로다일)으로 옵니다.
+살수, 기벌포, 흥화진, 진포, 한산도, 울돌목(명량), 노량, 인천·대동강처럼 물 위에서 벌어지는 싸움에는 **물 타입 포켓몬만** 배에 오릅니다. 1.13부터 지도에서 해전을 고르면 팀과 동료 명부의 물 타입 목록이 열리고, 배에 태울 포켓몬을 **최대 3마리 직접 고릅니다**(고른 순서대로 앞장섬). 팀의 물 타입은 미리 골라져 있고, 목록은 **팀 먼저 · 레벨 높은 순 · 가나다 순**으로 정렬할 수 있습니다. 2마리보다 적게 고르면 모자란 자리를 수군이 빌려주고, 물 타입이 하나도 없으면 바로 2마리를 빌려줍니다. 1.12까지는 팀의 물 타입과 명부에서 레벨이 가장 높은 물 타입이 저절로 탔습니다. 첫 시대에 리아코와 물짱이를 받습니다. 수군이 빌려주는 승무원은 그 레벨에 맞게 진화한 모습(예: Lv 80 장크로다일)으로 옵니다.
+
+1.18부터 **전투 대형**을 정해 두면 고르지 않고 **바로 출격**합니다. 마을이나 세계 지도 메뉴의 **해전 대형**에서 미리 3마리를 고르거나, 출전 목록의 **이 대형으로 고정하고 출발!**을 누르면 됩니다. 그러면 지도에서 해전을 골랐을 때 **바로 출격! / 대형 바꾸기 / 그만두기**만 묻습니다. 팀이 물 타입 3마리일 때도 같습니다.
+
+1.18부터 **해전의 적 레벨은 출전 파티를 따릅니다.** 적과 보스 모두 **출전 파티의 최고 레벨 +3**(어려움 **+5**, 쉬움 +1, 챌린지 +3)이고, 전투 중에 레벨이 올라도 출전할 때의 레벨을 기준으로 합니다. 수군이 빌려주는 승무원도 고른 포켓몬의 최고 레벨로 오고, 아무도 고르지 않았을 때(물 타입이 없을 때)는 팀의 최고 레벨을 기준으로 합니다. 1.17까지는 해전도 육지 던전처럼 뭍에 남은 팀의 최고 레벨을 따랐습니다.
 
 ### 새로 생긴 이야기와 장치
 - **마을 표시**: 빨간 `!`는 메인 퀘스트, 파란 `!`는 의뢰(새 의뢰나 보고할 의뢰가 있는 방꾼, 배달할 물건을 기다리는 사람), 엽전 표지는 장사꾼, 국밥 표지는 주막 주인, 보라색 디스크 표지는 기술머신 상인입니다.
@@ -309,6 +313,11 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동, Z 공격, QWER 기술, A 쉬기). 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 바뀐 점 (1.18)
+- **해전 전투 대형**: 마을·세계 지도 메뉴의 「해전 대형」에서 미리 고르거나 출전 목록에서 「이 대형으로 고정하고 출발!」을 누르면, 다음 해전부터 고르지 않고 바로 출격합니다. 대형은 기록에 남습니다.
+- **해전의 적 레벨**: 적과 보스가 출전 파티의 최고 레벨을 따릅니다. 보통 +3, 어려움 +5(쉬움 +1, 챌린지 +3).
+- **장터 한꺼번에 팔기**: 팔기 목록이 팔 때마다 닫히지 않고, 맨 위에서 1개씩 · 10개씩 · 전부를 고릅니다. 맨 아래 「가진 도구 모두 팔기」는 한 번 물어본 뒤 전부 팝니다(구슬 같은 귀한 물건은 빼고).
 
 ### 고친 점 (1.17)
 - **밀정 찾기의 연도**: 밀정을 찾는 동안 시간이 흐르면 마을 왼쪽 위의 연도도 함께 바뀝니다(1921년부터 1년씩, 잘못 지목하면 3년). 마을 메뉴 · 퀘스트 목록 · 게시판 · 세계 지도 · 이어하기 목록의 연도도 같습니다. 밀정을 잡으면 그 해에 머물고, 다음 시대의 연도 카드는 그 해부터 올라갑니다. 1.16까지는 이야기 글만 해를 세고 위쪽은 1920년에 멈춰 있었습니다.
@@ -413,6 +422,7 @@ docs/screenshots/       README 스크린샷
   - The First World War: 1914 Sarajevo (Nacrene City): Zoroark, Braviary · 1914 the Marne, Paris (Nimbasa City): Conkeldurr, Krookodile · 1915 Gallipoli (Nuvema Town): Carracosta, Crustle · 1916 Verdun and the Somme (Icirrus City): Klinklang, Aggron, **Cobalion** (optional) · 1916 Jutland, Scapa Flow (Driftveil City): Swanna, Kingdra, **Tornadus** (optional) · 1918 the Armistice, Compiègne (Accumula Town): Scolipede, Bisharp, **Virizion** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): Reuniclus, Cofagrigus.
   - The Second World War: 1939 Danzig (Nacrene City): Escavalier, Eelektross · 1940 Dunkirk (Driftveil City): Kingler, Jellicent, **Keldeo** (optional) · 1940 the Blitz, London (Mistralton City): Archeops, and **Reshiram** in a town battle · 1941 Moscow (Opelucid City): Seismitoad, Vanilluxe, **Landorus** (optional) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): Mantine, Sharpedo · 1942 Leningrad (Nacrene City): Cryogonal, **Meloetta** · 1942 El Alamein, Alexandria (Undella Town): Darmanitan, **Victini** · 1943 Stalingrad and Kursk (Icirrus City): Durant, **Genesect** · 1944 Normandy (Nuvema Town): **Zekrom**, Krookodile · 1944 Leyte Gulf, Tacloban (Undella Town): Jellicent, Gyarados, **Thundurus** (optional) · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.18: a naval formation: set up to three Water types beforehand (Naval formation in the town's or the world map's menu, or Fix this crew and set out! on the crew list) and a naval battle only asks Set out! / Change crew / Not now; a team of three Water types gets the same question. Foes and bosses at sea now follow the best level of the crew that sets out, fixed on boarding: +3 (Hard +5, Easy +1, Challenge +3), and the navy's sailors come at that level (up to 1.17 all of this followed the team ashore). The market's sell list stays open, sells one, ten or all at a press, and can sell the whole bag at once after a question (key items stay).
   - 1.17: during the 1920 spy hunt the year on show moves with it (the town's top left, its menu, the quest list, the board, the world map, a journey on the title's list; it stays on the year the spy is caught, and the next era's card counts on from there); until 1.16 only the story's lines counted the years. The Revive's list no longer runs HP over the names (menus measured only their left-hand text; the "Fainted" mark in an item's target list was the same bug), and the team screen's key hints no longer run through the town's. Constable Mightyena now patrol from 1905 to 1944 (Hanseong 1905 is new) in three pairs, six in all, and demand 500 nyang. The market's buy list has a "Buy 10 at a time" switch on top (each visit starts at one). Dialga is stronger everywhere: Roar of Time takes 33% of everyone's max HP (20% before) and heals it by the damage dealt on top of going back to its HP of 10 s before, and it has 10% more HP. On the web a font file that fails once no longer stops the game from starting (it is fetched again like pictures and data, in a system font meanwhile), and a script file that fails says to reload instead of "Loading..." for good.
   - 1.16 (fixes): a picture or dungeon chunk set that fails to load is fetched again, after 1, 2, 4 and 8 s and then every 15 s while it is in use, and a Pokémon whose sheet cannot be had meanwhile shows its box icon. Until 1.15 a chunk set whose picture failed before its data arrived left the title or every town entry on "Loading..." for good, and anything that failed once (town ground, a dungeon floor, a sprite) stayed missing for the session. A legend missed in an earlier era that comes back on a side dungeon's last floor no longer hides the Pokémon a rescue request waits for there (1019 Gangdong, 1443 Gwanak, 1887 the tramway, 1919 Namsan). Litwick now lives at Biggin Hill Airfield, where 1940 London's "Put Out the Embers" sends you; it had been listed only in the Blitz town battle, which fields no wild Pokémon.
   - 1.15: Arceus alone never opens the ending. A journey that opened it with Arceus alone before 1.13 now needs Kyurem (1945, the world line) as well, like every other: the 1979 Time Gate sends it out into the world, and its ★ and a challenge's win wait for Kyurem too (1.13 and 1.14 let such a journey keep its ending, and 1.14 offered it at the 1979 gate).

@@ -22,7 +22,15 @@ export const endingOpen = (o = S) => koreaDone(o) && worldDone(o);
 // A dungeon's foe levels as [lowest, highest, scaled]. Before 1200, and while the team's best is at most Lv 20, the band
 // is the designed one; from then on it runs 5 to 7 levels above the team's strongest Pokémon, never below the design
 // (1.10: Normal, Hard and Challenge alike). Easy takes two levels off both ends.
-export function foeLevels(d) {
+// A naval battle goes by its crew instead (1.18; until 1.17 by the team ashore, however green the sailors): the best level
+// of the Water types that set out, plus the difficulty's mode().naval, for every foe and boss. While it is being fought
+// that level stays as it was on boarding (S.crewLv); before it, `crew` asks about a crew in the making, and without one
+// the formation or the team's own Water types are what would board (plannedCrew).
+export function foeLevels(d, crew) {
+  if (d.water) {
+    const lv = Math.max(2, (S.homeParty && S.crewLv ? S.crewLv : crewLevel(crew ?? plannedCrew())) + mode().naval);
+    return [lv, lv, true];
+  }
   const top = Math.max(...(S.homeParty || S.party).map((m) => m.lv));
   let lo = d.lv[0], hi = d.lv[1] + 1;
   const scaled = era().year >= 1200 && top > 20;
@@ -657,38 +665,83 @@ function rosterPick(m, row) {
 // three Water-type Pokémon from the team and the roster, the first picked leading (1.13; until 1.12 the team's Water
 // types went first and the roster's highest levels filled the rest by themselves). The team's own Water types start
 // picked; the list sorts with the team first, by level or 가나다. Fewer than two aboard, the navy lends the rest
-// (Dungeon.boardCrew). `what`: the dungeon's name and size, `go(crew)`: set out
+// (Dungeon.boardCrew). `what(crew)`: the dungeon's name and size for that crew (its foes follow the crew), `go(crew)`: set out
 const CREW_SORTS = ['team', 'level', 'name'];
 const crewView = { sort: 'team' };
-export function crewMenu(what, go, picked = null, sel = 0) {
-  const water = [...S.party, ...S.roster].filter((m) => m.types.includes(11));
-  if (!water.length) return go([]); // nobody to pick: the navy lends a crew
-  if (!picked) picked = S.party.filter((m) => m.types.includes(11)).slice(0, 3);
+const isWater = (m) => m.types.includes(11);
+// the rows both crew menus show: the sort row and every Water type, `[n]` for its place among the picks. changed() runs
+// after a pick, and `again(row)` reopens the menu on that row
+function crewRows(picked, top, again, changed) {
+  const water = [...S.party, ...S.roster].filter(isWater), team = new Set(S.party);
   if (crewView.sort === 'level') water.sort((a, b) => b.lv - a.lv || byName(a, b));
   else if (crewView.sort === 'name') water.sort(byName);
-  const again = (row) => crewMenu(what, go, picked, row), team = new Set(S.party);
   const sortName = tr({ team: '팀 먼저', level: '레벨 높은 순', name: '가나다 순' }, { team: 'Team first', level: 'Level', name: 'A–Z' });
+  return [
+    { label: tr('정렬', 'Sort'), right: sortName[crewView.sort], desc: tr('목록을 늘어놓는 순서를 바꾼다.', 'Change the order of the list.'),
+      fn: () => { crewView.sort = CREW_SORTS[(CREW_SORTS.indexOf(crewView.sort) + 1) % CREW_SORTS.length]; again(top); } },
+    ...water.map((m, k) => {
+      const n = picked.indexOf(m);
+      return { ...monRow(m), label: `${n >= 0 ? `[${n + 1}]` : '[  ]'} ${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`, right: `${m.types.map((t) => DEX.types[t]).join('/')}${team.has(m) ? tr(' · 팀', ' · team') : ''}`,
+        fn: () => {
+          if (n >= 0) picked.splice(n, 1);
+          else if (picked.length >= 3) toast(tr('배에는 세 마리까지 탈 수 있다.', 'Only three can go aboard.'), COL.red);
+          else picked.push(m);
+          changed?.();
+          again(top + 1 + k);
+        } };
+    }),
+  ];
+}
+export function crewMenu(what, go, picked = null, sel = 0) {
+  if (![...S.party, ...S.roster].some(isWater)) return go([]); // nobody to pick: the navy lends a crew
+  if (!picked) picked = S.party.filter(isWater).slice(0, 3);
+  const again = (row) => crewMenu(what, go, picked, row);
+  const none = () => { toast(tr('배에 태울 포켓몬을 한 마리 이상 골라야 한다.', 'Pick at least one Pokémon to go aboard.'), COL.red); again(0); };
   const items = [
     { label: tr('출발!', 'Set out!'), right: tr(`${picked.length}/3마리`, `${picked.length}/3`),
-      desc: tr(`${what}에 나선다. 고른 순서대로 배에 오르고 첫 번째가 앞장선다.${picked.length < 2 ? ' 모자란 자리는 수군이 빌려준다.' : ''}`,
-        `Set out for ${what}. They board in the order picked, the first leading.${picked.length < 2 ? ' The navy lends the rest.' : ''}`),
-      fn: () => { if (picked.length) return go(picked); toast(tr('배에 태울 포켓몬을 한 마리 이상 골라야 한다.', 'Pick at least one Pokémon to go aboard.'), COL.red); again(0); } },
-    { label: tr('정렬', 'Sort'), right: sortName[crewView.sort], desc: tr('목록을 늘어놓는 순서를 바꾼다.', 'Change the order of the list.'),
-      fn: () => { crewView.sort = CREW_SORTS[(CREW_SORTS.indexOf(crewView.sort) + 1) % CREW_SORTS.length]; again(1); } },
+      desc: tr(`${what(picked)}에 나선다. 고른 순서대로 배에 오르고 첫 번째가 앞장선다.${picked.length < 2 ? ' 모자란 자리는 수군이 빌려준다.' : ''}`,
+        `Set out for ${what(picked)}. They board in the order picked, the first leading.${picked.length < 2 ? ' The navy lends the rest.' : ''}`),
+      fn: () => (picked.length ? go(picked) : none()) },
+    { label: tr('이 대형으로 고정하고 출발!', 'Fix this crew and set out!'),
+      desc: tr('고른 순서 그대로 전투 대형으로 정해 두고 나선다. 다음 해전부터는 고르지 않고 바로 출격할 수 있다.', 'Keep this crew, in this order, as your formation and set out. From the next naval battle on you can sail without picking.'),
+      fn: () => { if (!picked.length) return none(); setFormation(picked); go(picked); } },
   ];
-  const top = items.length;
-  water.forEach((m, k) => {
-    const n = picked.indexOf(m);
-    items.push({ ...monRow(m), label: `${n >= 0 ? `[${n + 1}]` : '[  ]'} ${m.name} Lv.${m.lv}${m.shiny ? ' ★' : ''}`, right: `${m.types.map((t) => DEX.types[t]).join('/')}${team.has(m) ? tr(' · 팀', ' · team') : ''}`,
-      fn: () => {
-        if (n >= 0) picked.splice(n, 1);
-        else if (picked.length >= 3) toast(tr('배에는 세 마리까지 탈 수 있다.', 'Only three can go aboard.'), COL.red);
-        else picked.push(m);
-        again(top + k);
-      } });
-  });
+  items.push(...crewRows(picked, items.length, again));
   items.push({ label: tr('그만두기', 'Not now'), desc: tr('해전에 나서지 않는다.', 'Stay ashore.') });
   openMenu(items, { title: tr(`해전 출전 · 물 타입 (${picked.length}/3)`, `Naval crew · Water types (${picked.length}/3)`), desc: true, x: 70, y: 30, w: 340, sel: Math.min(sel, items.length - 1) });
+}
+// The naval formation (1.18): up to three Water types fixed beforehand, from the town's or the world map's menu or as a
+// crew sets out. The mark is on the Pokémon (Mon.fleet), so it stays with them in the team, on the roster and in the save.
+const owned = () => [...new Set([...(S.homeParty || S.party), ...S.roster])]; // a crew at sea is also on the roster or in the team ashore
+export const formation = () => owned().filter((m) => m.fleet && isWater(m)).sort((a, b) => a.fleet - b.fleet).slice(0, 3);
+function setFormation(crew) {
+  for (const m of owned()) m.fleet = 0;
+  crew.forEach((m, i) => { m.fleet = i + 1; });
+}
+// who would board a naval battle now, for its foes' levels: the formation, or the team's own Water types (crewMenu's picks)
+const plannedCrew = () => { const f = formation(); return f.length ? f : S.party.filter(isWater).slice(0, 3); };
+// the level a crew's foes go by: its best, or with nobody aboard the best of the team (the navy lends sailors at that level)
+export const crewLevel = (crew) => Math.max(...(crew.length ? crew : S.homeParty || S.party).map((m) => m.lv));
+// the menu that fixes the formation beforehand: each pick counts at once, and nothing fixed leaves the picking to each battle
+export function formationMenu(sel = 1) {
+  if (![...S.party, ...S.roster].some(isWater)) return toast(tr('물 타입 포켓몬이 없다.', 'You have no Water-type Pokémon.'), COL.red);
+  const picked = formation(), about = tr('고른 순서대로 배에 오르고 첫 번째가 앞장선다. 대형을 정해 두면 해전을 고를 때 바로 출격할 수 있다.', 'They board in the order picked, the first leading. With a formation set, a naval battle can start without picking.');
+  const items = crewRows(picked, 0, formationMenu, () => setFormation(picked));
+  if (picked.length) items.push({ label: tr('대형 비우기', 'Clear formation'), desc: tr('고정을 풀고, 해전마다 다시 고른다.', 'Unfix it and pick a crew for each battle again.'), fn: () => { setFormation([]); formationMenu(0); } });
+  items.push({ label: tr('닫기', 'Close'), desc: about });
+  openMenu(items, { title: tr(`해전 대형 · 물 타입 (${picked.length}/3)`, `Naval formation · Water types (${picked.length}/3)`), desc: true, x: 70, y: 52, w: 340, sel: Math.min(sel, items.length - 1) }); // y: clear of the town's header
+}
+// choosing a naval battle on the world map: a crew already settled (the fixed formation, or a team of three Water types)
+// is one question away from the sea, as any other dungeon is; otherwise the crew menu opens
+export function sortieMenu(what, go) {
+  const f = formation();
+  const crew = f.length ? f : S.party.length >= 3 && S.party.every(isWater) ? S.party.slice(0, 3) : null;
+  if (!crew) return crewMenu(what, go);
+  const hurt = (m) => (m.hp < m.maxhp ? ` (HP ${m.hp}/${m.maxhp})` : '');
+  const names = crew.map((m) => `${m.name} Lv.${m.lv}${hurt(m)}`).join(' · ');
+  say([{ who: 'narr', text: tr(`${what(crew)}에 나설까? 전투 대형: ${names}`, `Set out for ${what(crew)}? Formation: ${names}`),
+    choices: tr(['바로 출격!', '대형 바꾸기', '그만두기'], ['Set out!', 'Change crew', 'Not now']),
+    onChoice: (i) => { if (i === 0) go(crew); else if (i === 1) crewMenu(what, go, crew.slice()); } }]);
 }
 
 // settings shared by the town and dungeon menus; each pick reopens the list on the same row
