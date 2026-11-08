@@ -51,6 +51,8 @@ const LEASH = 4;
 // the battle screen's windows (drawUI): the move list and the log at HUD_K of their old size, the team panel at P.k
 const HUD_K = 0.6, HUD_TEXT = 5.4, HUD_LIST = { w: 92.4, row: 8.4, top: 3.6, bottom: 2.4 };
 const HUD_TEAM = { k: 0.4, x: 6, y: 6, w: 70, head: 7.4, row: 8.6, title: 4.5, name: 5, num: 4 };
+// the seconds between the lines of a burst of messages (msg)
+const BURST_GAP = 0.45;
 // the leader's badge, a crowned shield, over its head and beside its name in the team panel (BADGE_S)
 const BADGE_COL = { K: COL.ink, R: '#d0323c', D: '#8a1c26', G: '#ffce54', g: '#c88c28' };
 const BADGE = ['KKKKKKKKKKK', 'KRRRRRRRRRK', 'KRGRRGRRGRK', 'KRGGRGRGGRK', 'KRGGGGGGGRK', 'KRgGgGgGgRK', 'KRRRRRRRRDK',
@@ -526,10 +528,12 @@ export class Dungeon {
   }
 
   // ---------------------------------------------------------------- messages & visuals
-  // a message: shown a moment after the one before, so that a burst (experience, level-ups, a move learned) is read through the
-  // log's two lines one after another instead of all but the last two never appearing (1.22)
-  msg(text, color = COL.ink) {
-    const now = G.time, at = Math.min(now + 1.2, Math.max(now, (this.msgs.at(-1)?.at ?? now - 1) + 0.45));
+  // a message. `gap` is for a burst pushed all at once (experience, level-ups, a move learned): each shows that long after the one
+  // before, so the burst is read through the log's two lines instead of all but the last two never appearing. A battle's own
+  // messages come step by step and take none: a boss fight with a team of three makes 3 or 4 a second, and spacing those made
+  // the log run late and lose what was still waiting (1.22.1)
+  msg(text, color = COL.ink, gap = 0) {
+    const now = G.time, at = Math.min(now + 1.2, Math.max(now, (this.msgs.at(-1)?.at ?? now - 1) + gap));
     this.msgs.push({ text, color, t: 6 + at - now, at });
     if (this.msgs.length > 5) this.msgs.shift();
   }
@@ -817,7 +821,7 @@ export class Dungeon {
       // every foe drops coins: more for higher levels, shinies triple, bosses ten times; summoned minions drop none
       const coin = e.summoned ? 0 : Math.round((4 + e.mon.lv * 0.9) * (e.shiny ? 3 : 1) * (e.isBoss ? 10 : 1));
       S.money += coin; this.found.money += coin;
-      this.step(() => { this.msg(coin ? tr(`경험치 ${xp} · 엽전 ${coin}냥을 얻었다.`, `Gained ${xp} Exp. Points and ${coin} nyang.`) : tr(`경험치 ${xp}을(를) 얻었다.`, `Gained ${xp} Exp. Points.`), COL.green); (async () => { for (const a of allies) await gainExpFor(a.mon, xp, (t, c) => this.msg(t, c)); })(); shareExp(xp); }, 0.15); // one ally at a time: a move question or an evolution ends before the next begins
+      this.step(() => { this.msg(coin ? tr(`경험치 ${xp} · 엽전 ${coin}냥을 얻었다.`, `Gained ${xp} Exp. Points and ${coin} nyang.`) : tr(`경험치 ${xp}을(를) 얻었다.`, `Gained ${xp} Exp. Points.`), COL.green, BURST_GAP); (async () => { for (const a of allies) await gainExpFor(a.mon, xp, (t, c) => this.msg(t, c, BURST_GAP)); })(); shareExp(xp); }, 0.15); // one ally at a time: a move question or an evolution ends before the next begins
       if (e.isBoss) this.step(() => this.bossDefeated(e), 0.4);
       else if (this.def.battle && !this.ents.some((f) => f.team === 'foe' && f.alive)) this.step(() => this.cleared(), 0.4);
       else if (!e.summoned && !e.noJoin && (LEGENDS.has(e.mon.sp) || Math.random() < (e.shiny ? 0.7 : RECRUIT_RATE))) this.step(() => this.offerRecruit(e.mon), 0.1);
