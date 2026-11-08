@@ -112,7 +112,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 4. **던전**: 층마다 지형이 무작위로 만들어지는 턴제 던전입니다. 계단을 찾아 내려가고, 마지막 층의 보스를 쓰러뜨립니다.
 5. 메인 퀘스트를 끝내면 광장의 **시간의 문**이 열리고 다음 시대로 넘어갑니다.
 6. 마을에 돌아올 때마다 **자동 저장**됩니다. 저장은 브라우저(localStorage)에 남으니 같은 브라우저에서 **이어하기**를 고르세요.
-   - 기록은 **난이도마다 따로** 남습니다. 엔딩을 본 뒤 다른 난이도로 **새로운 여행**을 시작해도 다 깬 기록은 그대로 남고, 같은 난이도로 새로 시작할 때만 그 난이도의 기록을 덮어씁니다. 기록이 여러 개면 이어하기에서 어느 기록으로 이어 할지 고릅니다(엔딩까지 본 기록에는 ★).
+   - 기록은 **난이도마다 따로** 남습니다. 엔딩을 본 뒤 다른 난이도로 **새로운 여행**을 시작해도 다 깬 기록은 그대로 남고, 같은 난이도로 새로 시작하면 그 난이도의 지금 여행은 타이틀의 **지난 여행**으로 보관되어(1.20, 난이도마다 5개까지) 언제든 골라서 다시 이어 할 수 있습니다. 기록이 여러 개면 이어하기에서 어느 기록으로 이어 할지 고릅니다(엔딩까지 본 기록에는 ★).
 
 메인 스토리만 하면 1배속으로 약 4시간 안팎, 3배속으로 2~3시간쯤 걸립니다 (의뢰는 제외, 플레이 실력에 따라 차이가 큽니다).
 
@@ -123,11 +123,11 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 612 | 살수대첩 | 평양성 / 살수 나루 | 요동 들판, 살수(해전) | 성원숭, 메깅 |
 | 660 | 황산벌 전투 | 사비성 / 웅진성 | 황산벌, 부소산성, 평양성(668, 고구려 최후의 전투) | 켄타로스, 나인테일, 보스로라 |
 | 676 | 나당 전쟁 | 서라벌 / 감포 바닷가 | 매소성, 기벌포(해전) | **썬더**, 킹크랩 · 루기아(선택) |
-| 1019 | 귀주대첩 | 개경 / 서경 | 흥화진 냇물(해전), 귀주 벌판 | 대짱이, 날쌩마 |
+| 1019 | 귀주대첩 | 개경 / 서경 | 흥화진 냇물(해전), 귀주 벌판 | 대짱이, **앤테이** |
 | 1232 | 대몽 항쟁 | 강도(강화) / 충주성 | 처인성, 황룡사 | 프테라, **파이어** |
 | 1388 | 위화도 회군 | 개경 · 고려 말 / 남원 운봉 | 진포(해전), 황산, 위화도 | 대포무노, 다탱구, **프리져** |
-| 1392 | 조선 건국 | 한양 / 개경 · 옛 도읍 | 인왕산 숲길 | 링곰 |
-| 1443 | 훈민정음 | 한양 · 집현전 | 집현전 서고 | 동탁군 |
+| 1392 | 조선 건국 | 한양 / 개경 · 옛 도읍 | 인왕산 숲길 | **라이코** |
+| 1443 | 훈민정음 | 한양 · 집현전 | 집현전 서고 | **칠색조** |
 | 1592 | 임진왜란 | 여수 · 전라좌수영 / 한산도 통제영 | 한산도 · 울돌목 · 노량 (모두 해전) | 갸라도스 · 아그놈(전라 우수영, 선택) |
 | 1636 | 병자호란 | 남한산성 / 강화도 | 눈보라 산길 | 맘모꾸리 · 스이쿤(얼음 신전, 선택) |
 | 1794 | 수원 화성 | 수원 화성 | 숙지산 채석장 | 거대코뿌리 · 유크시(규장각, 선택) |
@@ -160,43 +160,43 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1860 | 베이징 조약 | 베이징 (쌍용시티) | 불타는 원명원, 우수리강 국경 | **칠색조**, **라이코** |
-| 1894 | 청일 전쟁 | 웨이하이웨이 (물결마을) | 풍도 앞바다(해전), 황해 해전(해전) | **마나피**, **루기아** |
-| 1904 | 러일 전쟁 | 뤼순 (물풍경시티) | 제물포 해전(해전), 203고지, 쓰시마 해전(해전) · 뤼순 요새 암벽(선택) | **피오네**, 마기라스, **썬더** · **테라키온** |
+| 1860 | 베이징 조약 | 베이징 (쌍용시티) | 불타는 원명원, 우수리강 국경 | **쉐이미**, **비리디온** |
+| 1894 | 청일 전쟁 | 웨이하이웨이 (물결마을) | 풍도 앞바다(해전), 황해 해전(해전) | **마나피**, 삼삼드래 |
+| 1904 | 러일 전쟁 | 뤼순 (물풍경시티) | 제물포 해전(해전), 203고지, 쓰시마 해전(해전) | 삼삼드래, **테라키온 (2페이즈)**, **볼트로스 (영물폼)** |
 
 ### 제1차 세계 대전 (1914–1919)
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1914 | 사라예보 사건 | 사라예보 (칠보시티) | 라틴 다리 골목, 발칸 산길 | **엠라이트**, **앤테이** |
-| 1914 | 마른 전투 | 파리 (뇌문시티) | 마른 강 전선, 무인 지대 | **아그놈**, **지라치** |
-| 1915 | 갈리폴리 전투 | 갈리폴리 (마름꽃마을) | 다르다넬스 해협(해전), 안작 만 절벽 | 메타그로스, **유크시** |
-| 1916 | 베르됭과 솜 | 베르됭 (설화시티) | 두오몽 요새, 솜 강 참호 · 보 요새의 강철 숲(선택) | **레지스틸**, 메타그로스 · **코바르온** |
-| 1916 | 유틀란트 해전 | 스캐파 플로 (물풍경시티) | 북해의 안개(해전), 유틀란트 해전(해전) · 북해의 폭풍 구름(선택) | **스이쿤**, 망나뇽 · **토네로스** |
-| 1918 | 휴전 | 콩피에뉴 (넝쿨마을) | 콩피에뉴 숲, 마지막 날의 전선 · 아르곤 숲 깊은 곳(선택) | **쉐이미**, 삼삼드래 · **비리디온** |
-| 1919 | 파리 강화 회의 | 파리 · 베르사유 (성신시티) | 거울의 방, 센 강 다리 밑 | **뮤**, **크레세리아** |
+| 1914 | 사라예보 사건 | 사라예보 (칠보시티) | 라틴 다리 골목, 발칸 산길 | 삼삼드래, **쉐이미** |
+| 1914 | 마른 전투 | 파리 (뇌문시티) | 마른 강 전선, 무인 지대 | **케르디오**, **쉐이미** |
+| 1915 | 갈리폴리 전투 | 갈리폴리 (마름꽃마을) | 다르다넬스 해협(해전), 안작 만 절벽 | **마나피**, 삼삼드래 |
+| 1916 | 베르됭과 솜 | 베르됭 (설화시티) | 두오몽 요새, 솜 강 참호 | **코바르온 (2페이즈)**, **게노세크트** |
+| 1916 | 유틀란트 해전 | 스캐파 플로 (물풍경시티) | 북해의 안개(해전), 유틀란트 해전(해전) | **토네로스 (영물폼)**, 삼삼드래 |
+| 1918 | 휴전 | 콩피에뉴 (넝쿨마을) | 콩피에뉴 숲, 마지막 날의 전선 · 아르곤 숲 깊은 곳(선택) | **비리디온 (2페이즈)**, **비크티니** · **뮤** |
+| 1919 | 파리 강화 회의 | 파리 · 베르사유 (성신시티) | 거울의 방, 센 강 다리 밑 | **메로엣타**, **쉐이미** |
 
 ### 제2차 세계 대전 (1939–1945)
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1939 | 제2차 세계 대전의 시작 | 단치히 · 그단스크 (칠보시티) | 베스테르플라테, 단치히 우체국 | 마기라스, **라티오스** |
-| 1940 | 됭케르크 철수 | 됭케르크 (물풍경시티) | 됭케르크 방파제, 영국 해협(해전) · 이제르 강 물길(선택) | 한카리아스, **라티아스** · **케르디오** |
-| 1940 | 런던 대공습 | 런던 (궐수시티) | 비긴 힐 비행장, 대공습의 밤(마을 전투) | 보만다, **레시라무 (3페이즈)** |
-| 1941 | 모스크바 전투 | 모스크바 (쌍용시티) | 라스푸티차의 진흙길, 모스크바 근교 설원 · 보로디노 들판(선택) | **레지락**, **레지아이스** · **랜드로스** |
-| 1942 | 진주만과 미드웨이 | 호놀룰루 (물결마을) | 진주만(해전), 미드웨이 해전(해전) | **파이어**, **레쿠쟈** |
-| 1942 | 레닌그라드 포위전 | 레닌그라드 (칠보시티) | 라도가 호수 얼음길, 얼어붙은 연주회장 | **프리져**, **메로엣타** |
-| 1942 | 엘알라메인 전투 | 알렉산드리아 (물결마을) | 「악마의 정원」 지뢰밭, 모래 언덕의 V 유적 | **히드런**, **비크티니** |
-| 1943 | 스탈린그라드와 쿠르스크 | 스탈린그라드 (설화시티) | 트랙터 공장, 프로호롭카 전차 평원 | **뮤츠**, **게노세크트** |
-| 1944 | 노르망디 상륙 작전 | 노르망디 · 바이외 (마름꽃마을) | 해협 위의 폭풍, 오마하 해변 | **제크로무 (3페이즈)**, 한카리아스 |
-| 1944 | 레이테 만 해전 | 타클로반 · 레이테 (물결마을) | 수리가오 해협(해전), 사마르 앞바다(해전) · 필리핀 해의 뇌운(선택) | 보만다, 망나뇽 · **볼트로스** |
+| 1939 | 제2차 세계 대전의 시작 | 단치히 · 그단스크 (칠보시티) | 베스테르플라테, 단치히 우체국 | 삼삼드래, **코바르온** |
+| 1940 | 됭케르크 철수 | 됭케르크 (물풍경시티) | 됭케르크 방파제, 영국 해협(해전) · 이제르 강 물길(선택) | 삼삼드래, **케르디오 (2페이즈)** · **피오네** |
+| 1940 | 런던 대공습 | 런던 (궐수시티) | 비긴 힐 비행장, 대공습의 밤(마을 전투) | **토네로스 (영물폼)**, **레시라무 (3페이즈)** |
+| 1941 | 모스크바 전투 | 모스크바 (쌍용시티) | 라스푸티차의 진흙길, 모스크바 근교 설원 | **랜드로스 (영물폼)**, 삼삼드래 |
+| 1942 | 진주만과 미드웨이 | 호놀룰루 (물결마을) | 진주만(해전), 미드웨이 해전(해전) | **마나피**, 삼삼드래 |
+| 1942 | 레닌그라드 포위전 | 레닌그라드 (칠보시티) | 라도가 호수 얼음길, 얼어붙은 연주회장 | 삼삼드래, **메로엣타 (2페이즈)** |
+| 1942 | 엘알라메인 전투 | 알렉산드리아 (물결마을) | 「악마의 정원」 지뢰밭, 모래 언덕의 V 유적 | **랜드로스 (영물폼)**, **비크티니 (2페이즈)** |
+| 1943 | 스탈린그라드와 쿠르스크 | 스탈린그라드 (설화시티) | 트랙터 공장, 프로호롭카 전차 평원 | **테라키온**, **게노세크트 (2페이즈)** |
+| 1944 | 노르망디 상륙 작전 | 노르망디 · 바이외 (마름꽃마을) | 해협 위의 폭풍, 오마하 해변 | **제크로무 (3페이즈)**, 삼삼드래 |
+| 1944 | 레이테 만 해전 | 타클로반 · 레이테 (물결마을) | 수리가오 해협(해전), 사마르 앞바다(해전) | **볼트로스 (영물폼)**, **마나피** |
 | 1945 | 제2차 세계 대전의 끝 | 베를린 (보배마을) | 얼어붙은 폐허, **얼어붙은 도시(마을 전투, 최종 퀘스트)** | 삼삼드래, **큐레무 (3페이즈)** |
 
-(선택)은 메인 퀘스트와 상관없이 들어가는 전설의 둥지입니다. 굵은 글씨는 전설의 포켓몬이고, 나머지는 600족입니다. 세계 모드의 던전은 1.19부터 모두 **3층**이 끝이고, 그 3층에서 보스가 기다립니다.
+(선택)은 메인 퀘스트와 상관없이 들어가는 전설의 둥지입니다(1.20부터 뮤 · 피오네 두 곳). 굵은 글씨는 전설 · 환상의 포켓몬이고, 삼삼드래는 600족입니다. (2페이즈) · (영물폼) · (3페이즈)는 모습을 바꿔 다시 일어서는 보스이고, 같은 포켓몬이 다른 시대에 한 번 더 나올 때는 한 가지 모습으로 싸웁니다(토네로스 · 볼트로스 · 랜드로스는 두 번 모두 영물폼까지). 세계 모드의 던전은 1.19부터 모두 **3층**이 끝이고, 그 3층에서 보스가 기다립니다.
 
 ### 세계 모드의 전설과 최종 보스
-- **퀘스트 보스 (1.19)**: 세계 모드의 퀘스트 던전 보스는 **전설 · 준전설의 포켓몬**입니다. 전설마다 한 번만 나오고, 전설이 모자란 자리는 **600족**(망나뇽 · 마기라스 · 보만다 · 메타그로스 · 한카리아스 · 삼삼드래, 각 두 번)이 맡습니다. 퀘스트의 전설은 한 가지 모습으로 싸우고, 이기면 동료가 될 수 있습니다(이미 동료인 전설은 또 동료가 되지 않음). 이야기에 묶인 전설(세레비, 아르세우스, 디아루가, 펄기아, 기라티나, 다크라이, 레지기가스, 그란돈, 가이오가, 테오키스)은 나오지 않습니다.
-- **5세대 전설**: 레시라무 · 제크로무 · 큐레무 말고는 각자 둥지의 3층에서 2페이즈로 싸웁니다. 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. 블랙 롬에는 케르디오의 각오의 모습과 토네로스 · 볼트로스 · 랜드로스의 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
+- **퀘스트 보스 (1.20)**: 세계 모드의 퀘스트 보스는 **5세대(블랙)의 전설 · 준전설 · 환상의 포켓몬**입니다. 레시라무 · 제크로무 · 큐레무는 한 번, 나머지 열(비크티니 · 코바르온 · 테라키온 · 비리디온 · 케르디오 · 토네로스 · 볼트로스 · 랜드로스 · 메로엣타 · 게노세크트)은 두 시대에 한 번씩 나오고, 처음 이긴 곳에서 동료가 될 수 있습니다(이미 동료면 다시 동료가 되지 않음). 600족 자리는 모두 5세대 600족 **삼삼드래**(12번), 남는 자리는 4세대 환상의 포켓몬 **쉐이미 · 마나피**(4번씩)가 맡습니다. 1.19까지 세계 모드에 나오던 전설 중 칠색조 · 라이코 · 앤테이는 한국 시대의 퀘스트(1443 · 1392 · 1019)로, 뮤 · 피오네는 둥지로 옮겼고, 나머지는 한국 시대에서 만납니다.
+- **5세대 전설의 2페이즈**: 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. **토네로스 · 볼트로스 · 랜드로스**는 2페이즈에서 **영물폼**으로 바뀌며 **모든 능력치와 HP가 20% 오릅니다**(1.20). 블랙 롬에는 케르디오의 각오의 모습과 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
 - **레시라무 · 제크로무 (1.19)**: 천관산 펄기아 수치(이야기 때보다 체력 · 공격 30% 높고 모든 능력치 +20%, 내 팀 레벨을 따름)에 체력 · 모든 능력치 · 공격 상한 · 궁극기를 **10% 더한** 스펙으로, 3페이즈로 싸웁니다. 1페이즈는 평범한 기술만, 2페이즈는 평범한 기술과 궁극기, 3페이즈는 궁극기만 계속 씁니다. 이기고 동료가 되면 궁극기 기술을 가지고 옵니다.
   - **레시라무 · 크로스플레임**: **5초 동안** 위에서 불이 내 위치와 근처 동료를 따라 떨어집니다. 붉게 표시된 칸에 떨어지니 멈추지 말고 움직이세요. 턴과 상관없이 실제 시간으로 흐르고, 대화나 메뉴가 열리면 멈춥니다.
   - **레시라무 · 푸른불꽃**: 붉은 칸에 떨어진 자리에 **파란 불꽃이 5턴 동안 남아**, 그 위에서 턴을 마치면 피해를 받고 화상을 입을 수 있습니다.
@@ -213,7 +213,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 배경 음악은 포켓몬스터 블랙의 음악으로 바뀌었고, 휴대폰에서는 십자 패드가 게임 화면 안으로 들어가 화면이 커졌고, 메뉴 버튼은 오른쪽 버튼 줄 맨 위로 옮겼습니다.
 
 ### 전설의 포켓몬과 보스
-- **썬더(676) · 파이어(1232) · 프리져(1388)**: 같은 시대 보스 중 가장 강합니다. 체력이 보통 보스의 약 10배이고, 예고 공격을 모으는 동안에도 계속 공격합니다. 어렵다면 레벨을 올려 다시 도전하세요. 전설의 레벨은 일정 이상 오르지 않습니다.
+- **썬더(676) · 앤테이(1019) · 파이어(1232) · 프리져(1388) · 라이코(1392) · 칠색조(1443)**: 같은 시대 보스 중 가장 강합니다(앤테이 · 라이코 · 칠색조는 1.20부터). 체력이 보통 보스의 약 10배이고, 예고 공격을 모으는 동안에도 계속 공격합니다. 어렵다면 레벨을 올려 다시 도전하세요. 전설의 레벨은 일정 이상 오르지 않습니다.
 - **놓친 전설**: 전설의 포켓몬을 그 시대에 동료로 맞지 못하면(만나지 못했거나 보내 주었으면), 다음 시대의 다른 던전에 다시 나타납니다. 그 던전의 마지막 층에서 그 던전의 적과 같은 레벨로 기다리고, 또 놓치면 그다음 시대로 옮겨 갑니다. 그 층에서 기다리는 구출 의뢰의 포켓몬도 그대로 나타납니다(1.16).
 - **예고 공격**: 보스가 바닥을 붉게 표시하면 몇 턴 뒤 그 칸에 큰 공격이 떨어집니다. 붉은 칸 밖으로 피하면 보스에게 **빈틈**이 생겨 받는 피해가 1.5배가 됩니다.
 - **600족 보스**: 메타그로스(1887), 한카리아스·보만다·마기라스(1950)는 전설의 포켓몬보다 15%쯤 약한 강적입니다 (레벨 +2, 체력·공격·예고 공격이 전설의 85%). 전설이 아니므로 세계 지도에 금빛 전설 표시가 붙지 않습니다(백마고지의 마기라스도 1.8부터).
@@ -277,7 +277,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 명부 위쪽의 팀에서 하나를 고르면 서로 자리를 바꾸고, 명부의 포켓몬을 고르면 리더·파트너·동료 중 원하는 자리와 교체합니다. 명부의 동료는 던전에서 불러올 수 없습니다.
 - **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 높은 순 · 도감 번호 순 · 가나다 순입니다.
 - **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
-- **최대 레벨 180**: 포켓몬은 본편의 100에서 멈추지 않고 Lv 180까지 오릅니다. 아르세우스도 팀 레벨을 따라 최대 Lv 180이 됩니다.
+- **최대 레벨 180**: 포켓몬은 본편의 100에서 멈추지 않고 Lv 180까지 오릅니다. 아르세우스도 팀 레벨을 따라 최대 Lv 180이 됩니다. 180이 넘는 적도 동료가 될 때는 **Lv 180**으로 들어오고, 1.19까지 180을 넘게 들어온 동료는 기록을 불러올 때 180으로 맞춰집니다(1.20).
 - **기술 배우기**: 레벨이 올라 새 기술을 배울 때 기술이 이미 4개면, 본편 포켓몬처럼 **잊을 기술을 고르거나 배우지 않을** 수 있습니다. 마을에서 X 메뉴 → **포켓몬** → Z → **기술 배우기**를 고르면 지금 레벨까지 배우는 기술을 언제든 배웁니다. 잊었거나 건너뛴 기술도 여기서 다시 배우고, 앞으로 배울 기술과 그 레벨도 볼 수 있습니다.
 - **PP 2배**: 1.9부터 내 포켓몬(파티와 동료 명부)의 기술 PP는 원작의 **2배**입니다 (예: 10만볼트 15 → 30). 야생 포켓몬과 보스는 원작 그대로이고, 예전 기록을 불러오면 남아 있던 PP도 2배가 됩니다.
 - **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다. 독·화상·마비 같은 **상태 이상**은 마을에 돌아오면 모두 낫습니다.
@@ -310,7 +310,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 어려움 | 보통과 같은 레벨. 보스를 포함한 **모든 적 포켓몬의 HP와 능력치 +25%** (예고 공격의 피해도 +25%) |
 | 챌린지 | 어느 난이도로든 엔딩을 한 번 보면 열립니다. 보통의 강함으로 **한 번도 전멸하지 않고** 엔딩까지 가야 하고, **전설의 포켓몬은 동료가 되지 않습니다**. 1.10부터 **셋 모두 쓰러지거나** 던전 도중에 게임을 끄면 **그 여행이 끝나 처음부터 다시** 시작해야 합니다 (그 기록은 이어 할 수 없고, 클라우드 세이브로도 되살아나지 않습니다). 엔딩을 본 뒤에는 전멸해도 여행이 끝나지 않습니다. |
 
-쉬움 · 보통 · 어려움은 X 메뉴 → 설정에서 언제든 바꿀 수 있습니다. 기록은 여행을 **시작한 난이도**의 칸에 남아서, 난이도마다 여행을 하나씩 따로 이어 갈 수 있습니다.
+쉬움 · 보통 · 어려움은 X 메뉴 → 설정에서 언제든 바꿀 수 있습니다. 기록은 여행을 **시작한 난이도**의 칸에 남아서, 난이도마다 여행을 하나씩 따로 이어 갈 수 있습니다. 같은 난이도로 처음부터 다시 하고 싶으면 **새로운 여행**에서 그 난이도를 고르세요. 지금 여행은 지워지지 않고 **지난 여행**에 남습니다(1.20).
 
 ### 함께 하기 (멀티플레이)
 - 혼자 하던 게임에 친구를 불러 이야기를 같이 보고 던전을 같이 깰 수 있습니다. 혼자 하다가 언제든 방을 열 수 있습니다.
@@ -319,6 +319,20 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동, Z 공격, QWER 기술, A 쉬기). 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 바뀐 점 (1.20)
+- **세계 모드의 퀘스트 보스**: 5세대(블랙)의 전설 · 준전설 · 환상의 포켓몬 13종이 모두 퀘스트 보스입니다. 둥지에 있던 코바르온 · 테라키온 · 비리디온 · 케르디오 · 토네로스 · 볼트로스 · 랜드로스도 이제 퀘스트에서 만나고, 600족 자리는 모두 삼삼드래, 남는 자리는 쉐이미 · 마나피입니다.
+- **토네로스 · 볼트로스 · 랜드로스**: 2페이즈에서 영물폼으로 바뀌며 모든 능력치와 HP가 20% 오릅니다.
+- **한국 시대의 새 전설**: 1019년 귀주 벌판에 **앤테이**, 1392년 인왕산 숲길에 **라이코**, 1443년 집현전 서고에 **칠색조**가 퀘스트 보스로 나옵니다.
+- **둥지**: 아르곤 숲 깊은 곳(1918)에 **뮤**, 이제르 강 물길(1940)에 **피오네**가 삽니다. 나머지 다섯 둥지는 그 전설들이 퀘스트로 옮겨 가며 없어졌습니다.
+- **지난 여행**: 같은 난이도로 새로운 여행을 시작해도 지금 여행이 지워지지 않고 타이틀의 「지난 여행」에 남습니다(난이도마다 5개까지, 이 기기에만). 고르면 그 여행으로 다시 이어 하고, 그때 하던 여행은 지난 여행으로 들어갑니다. 다른 기기에서 새로 시작한 여행을 클라우드에서 받을 때도 이 기기의 여행은 지난 여행으로 남습니다.
+- **고친 버그** (두 번째 외부 검토 보고서에서 실제로 재현되는 것만):
+  - Lv 180을 넘는 적이 그 레벨 그대로 동료가 되어, 그런 동료가 있는 기록을 다른 기기가 클라우드에서 받지 못하던 것 (이제 Lv 180으로 들어오고, 이미 있는 동료는 불러올 때 180으로 맞춰짐)
+  - 두 기기가 같은 여행을 거의 동시에 올리면 한쪽의 진행이 묻지 않고 사라질 수 있던 것 (이제 그 기기가 어느 쪽으로 이어 할지 물음)
+  - 클라우드 세이브를 받는 사이에 이 기기에서 저장한 진행이 덮이던 것
+  - 손상된 클라우드 세이브가 검사를 통과해 이어하기를 망가뜨릴 수 있던 것 (이제 세이브 전체를 검사하고, 불러오다 실패해도 지금 게임은 그대로)
+  - 휴대폰 브라우저를 세로로 돌린 사이 크로스플레임이 계속 떨어지던 것, 안내서나 클라우드 창이 열린 사이에도 순라꾼이 쫓아오던 것
+  - 멀티 방을 나간 뒤 늦게 도착한 연결이 다시 붙을 수 있던 것과 나간 방의 화면 캡처가 계속 돌던 것
 
 ### 바뀐 점 (1.19)
 - **세계 모드의 퀘스트 보스**: 퀘스트 던전의 보스가 전설 · 준전설로 바뀌었습니다. 전설이 모자란 자리는 600족입니다. 예전 보스들은 그 던전의 야생 포켓몬으로 만날 수 있습니다.
@@ -429,11 +443,12 @@ docs/screenshots/       README 스크린샷
   - Tab tags the next teammate in; A (hold) rests; J opens and closes the quest list.
   - P opens the companion roster outside dungeons: search it (name, type, dex number), sort it, and swap anyone into any team slot; 1/2/3 set the game speed.
   - The mouse picks places on the world map, dialogue choices and menu rows; dragging or the wheel scrolls the map.
-- **World line (1860–1945)**: after liberation, a Korean era's Time Gate offers "To the world"; a world era's Time Gate leads back to Korea at any time, and each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legends; (optional) marks a legend's lair off the main quest.
-  - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: **Ho-Oh**, **Raikou** · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): **Manaphy**, **Lugia** · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill, the rock walls of the forts (optional): **Phione**, Tyranitar, **Zapdos**, **Terrakion**.
-  - The First World War: 1914 Sarajevo (Nacrene City): **Mesprit**, **Entei** · 1914 the Marne, Paris (Nimbasa City): **Azelf**, **Jirachi** · 1915 Gallipoli (Nuvema Town): Metagross, **Uxie** · 1916 Verdun and the Somme (Icirrus City): **Registeel**, Metagross, **Cobalion** (optional) · 1916 Jutland, Scapa Flow (Driftveil City): **Suicune**, Dragonite, **Tornadus** (optional) · 1918 the Armistice, Compiègne (Accumula Town): **Shaymin**, Hydreigon, **Virizion** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Mew**, **Cresselia**.
-  - The Second World War: 1939 Danzig (Nacrene City): Tyranitar, **Latios** · 1940 Dunkirk (Driftveil City): Garchomp, **Latias**, **Keldeo** (optional) · 1940 the Blitz, London (Mistralton City): Salamence, and **Reshiram** in a town battle, three phases · 1941 Moscow (Opelucid City): **Regirock**, **Regice**, **Landorus** (optional) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Moltres**, **Rayquaza** · 1942 Leningrad (Nacrene City): **Articuno**, **Meloetta** · 1942 El Alamein, Alexandria (Undella Town): **Heatran**, **Victini** · 1943 Stalingrad and Kursk (Icirrus City): **Mewtwo**, **Genesect** · 1944 Normandy (Nuvema Town): **Zekrom** in three phases, Garchomp · 1944 Leyte Gulf, Tacloban (Undella Town): Salamence, Dragonite, **Thundurus** (optional) · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
+- **World line (1860–1945)**: after liberation, a Korean era's Time Gate offers "To the world"; a world era's Time Gate leads back to Korea at any time, and each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legendary and mythical Pokémon, the others Hydreigon (600-total); (optional) marks a legend's lair off the main quest.
+  - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: **Shaymin**, **Virizion** · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): **Manaphy**, Hydreigon · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill: Hydreigon, **Terrakion** (two phases), **Thundurus** (Therian Forme).
+  - The First World War: 1914 Sarajevo (Nacrene City): Hydreigon, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Hydreigon · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Hydreigon · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
+  - The Second World War: 1939 Danzig (Nacrene City): Hydreigon, **Cobalion** · 1940 Dunkirk (Driftveil City): Hydreigon, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, three phases · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Hydreigon · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Hydreigon · 1942 Leningrad (Nacrene City): Hydreigon, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion**, **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom** in three phases, Hydreigon · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.20: every legendary, sub-legendary and mythical Pokémon of Pokémon Black is a quest boss of the world line: Reshiram, Zekrom and Kyurem once, the ten others in two eras each (two phases in one, one form in the other); the seven that kept optional lairs (Cobalion, Terrakion, Virizion, Keldeo, Tornadus, Thundurus, Landorus) now meet you in quests, the quests of the 600-total lines all go to Hydreigon, and the rest to Shaymin and Manaphy. Tornadus, Thundurus and Landorus take their Therian Forme in the second phase, every stat and HP 20% higher. Ho-Oh, Raikou and Entei left the world line for quests of the Korean line (1443, 1392, 1019); Mew and Phione keep the lairs of the Argonne (1918) and the Yser (1940). Past journeys: a new journey at a difficulty that has one no longer replaces it; the old one waits under Past journeys on the title (up to five a difficulty, on this device) to be played again, as does one that a new journey from the cloud takes the place of. Fixed, from a second outside review, what the code really did: a foe above Lv 180 joined at its own level and the cloud then refused that save (recruits join at 180 now, and members above it come down to 180 when loaded); two devices uploading the same journey at once could silently lose one's play (that device now asks); a save made while a cloud save came down was replaced; a damaged cloud save could pass the check and break Continue (every field is checked now, and a failed load leaves the game as it was); Fusion Flare kept falling behind a phone browser's turn-sideways notice, and constables kept walking behind the guide; a co-op room left early could reconnect, and its screen capture kept running.
   - 1.19: the world line's quest bosses are legendary and sub-legendary Pokémon, each once, with the 600-total lines (twice each) where the legends run out; every world dungeon now ends on its third floor, where the boss waits, and the old bosses live on as wild foes. Reshiram and Zekrom fight at Mt. Coronet's Palkia +10% in three phases: ordinary moves only, then those and their ultimates, then nothing but their ultimates. Fusion Flare drops fire from above on you and the teammates near you for five seconds of real time (keep moving); Blue Flare leaves flames where it falls; Bolt Strike lands on marked tiles; Fusion Bolt strikes at random with no mark at all. Kyurem stands a step above them: Black Kyurem takes all four ultimates by turns, White Kyurem uses two at once. Fixed, from an outside review, what the code really did: a sleeping, frozen or paralysed leader still walked; a roster Pokémon that sailed in a naval battle kept its spent PP; a quick double press on the sortie question could enter the same battle twice and lose the team ashore; a damaged or newer cloud save could replace the one here (now refused, and the one replaced stays as a backup); a failed save on quitting went to the title anyway (it asks now); a town position off the map or in a wall stuck you there; a save made during an upload stayed behind; a co-op room closed while it loaded still opened; guests' bad commands and chat floods are dropped.
   - 1.18: a naval formation: set up to three Water types beforehand (Naval formation in the town's or the world map's menu, or Fix this crew and set out! on the crew list) and a naval battle only asks Set out! / Change crew / Not now; a team of three Water types gets the same question. Foes and bosses at sea now follow the best level of the crew that sets out, fixed on boarding: +3 (Hard +5, Easy +1, Challenge +3), and the navy's sailors come at that level (up to 1.17 all of this followed the team ashore). The market's sell list stays open, sells one, ten or all at a press, and can sell the whole bag at once after a question (key items stay).
   - 1.17: during the 1920 spy hunt the year on show moves with it (the town's top left, its menu, the quest list, the board, the world map, a journey on the title's list; it stays on the year the spy is caught, and the next era's card counts on from there); until 1.16 only the story's lines counted the years. The Revive's list no longer runs HP over the names (menus measured only their left-hand text; the "Fainted" mark in an item's target list was the same bug), and the team screen's key hints no longer run through the town's. Constable Mightyena now patrol from 1905 to 1944 (Hanseong 1905 is new) in three pairs, six in all, and demand 500 nyang. The market's buy list has a "Buy 10 at a time" switch on top (each visit starts at one). Dialga is stronger everywhere: Roar of Time takes 33% of everyone's max HP (20% before) and heals it by the damage dealt on top of going back to its HP of 10 s before, and it has 10% more HP. On the web a font file that fails once no longer stops the game from starting (it is fetched again like pictures and data, in a system font meanwhile), and a script file that fails says to reload instead of "Loading..." for good.
@@ -442,7 +457,7 @@ docs/screenshots/       README 스크린샷
   - 1.14 (fixes): the Time Gate stands where it opens on raised Black-town ground (Compiègne, Verdun, Stalingrad) and the camera centers the team there; the team shows through roofs; Compiègne's walled-off paving is drawn dim; a Black town's picture is loaded and decoded behind the dark screen before you enter. Town arrows: the last one pressed wins and a tap mid-step takes the next step; dungeon taps are one step at any speed (and A one rest), and A or "Ground / Rest" on the stairs asks about them again; world map arrows stay within 45° (then 60°) instead of jumping aside. On 16:9 and squarer touch screens the game narrows so the right-hand buttons no longer cover it or take its taps; a desktop window of the game's own shape gets a HUD strip on top. Korean towns' houses, inn, board, landmark and ships answer again; the market and TM menus show the money left; a pre-1.13 ending journey could go to the ending from the 1979 gate (undone in 1.15); the navy's sailors come fully grown at your best level (Jutland was lost on floor 1 at high levels); long era titles and dungeon names fit; the Pokédex reads in English in English mode; fonts cut to the characters used (1.08 MB to 0.14 MB, tools/subset_fonts.py) and town assets load after the title (101 to 45 requests before it).
   - 1.13: the ending opens only once both Arceus (1979) and Kyurem (1945, the world line) are beaten, at the Time Gate of whichever line you finish last (until 1.14 a save that had opened it with Arceus alone kept it). A naval battle opens a list of your team's and roster's Water types: pick up to three yourself, sorted by team, level or A–Z (the roster sorts by level and A–Z as well); until 1.12 the highest levels boarded by themselves. Town people stand two free tiles apart and never cut a way or narrow one below two tiles, standing or wandering (the world line's towns had crowded them round the gate, and in two seaside towns cut the way). TMs cost 15000 nyang for strong moves and 10000 for the rest.
   - 1.12: Black towns drawn below the map's zero height (Weihaiwei and the other Undella eras, Compiègne, Verdun, Stalingrad, the Driftveil eras) stood people up to three tiles away from the ground drawn under them, so the beach looked blocked and the way was hard to find: their pictures now line up with where you walk, and what lies outside a town is drawn dim. Places that crowd one another on a world map are spread apart (a dot and a line keep their true spot), every place picks by a click or tap on its marker or name, and an arrow key goes to the nearest place that way. World-line bosses join when beaten, as Korea's do. The battle for Seoul leaves the 1950 map once won (entering it again had frozen the game on a black screen), a new journey no longer carries the last journey's place on the world line (a challenge started after a trip abroad could not be lost, and its first trip abroad began in 1915), and Kyurem's fight in Berlin keeps to the town's ground level.
-  - Legendary bosses: Zapdos, Moltres, Articuno, Dialga, Giratina and Palkia; Dialga, Giratina and Palkia rise again in Origin Forme.
+  - Legendary bosses: Zapdos, Entei (1019), Moltres, Articuno, Raikou (1392), Ho-Oh (1443), Dialga, Giratina and Palkia (Entei, Raikou and Ho-Oh since 1.20); Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
   - Arceus (its level follows the team's, up to Lv 180) is the last quest, after December 12, 1979: it turns golden for a second phase, where Judgment starts raining round blasts all over the field, and rises a third time in rainbow light (Attack +10%, Defense +20%) to swing Hyper Beam round a full circle three times; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
   - After the battle for Seoul (1950) the Sky Pillar appears: Rayquaza on floor 2 (Mega Rayquaza for its second phase); once it joins, Deoxys comes down at the Duwon Meteorite Site (where Korea's first recorded meteorite fell in 1943) and fights in its Normal, Attack and Speed Formes. With Deoxys, a red meteorite in town changes its Forme (Normal, Attack, Defense, or Speed, which dodges); the Formes use the PMD ROM's own sprites.
@@ -452,7 +467,7 @@ docs/screenshots/       README 스크린샷
   - Constable Mightyena patrol occupied towns (1905–1944, not the independence army's base or Chongqing) in three pairs: a pair that spots you demands 500 nyang, or a fight right where you stand, the town as the battlefield (they are 12% stronger than ordinary foes); in 1920 a spy must be found by type and weight before 1930.
   - After 1945: Registeel in town opens Regirock's and Regice's caves, and all three open Snowpoint Temple (Regigigas); pick one of Latias or Latios. The side is chosen in 1945; in 1950 Groudon (North) or Kyogre (South) joins with its orb for Primal Reversion.
   - A run fails only when all three are down; clearing revives the fallen, and floor 1 can be left from the menu.
-  - Pokémon grow past 100, up to Lv 180, and Arceus follows the team up to Lv 180.
+  - Pokémon grow past 100, up to Lv 180, and Arceus follows the team up to Lv 180. Foes above 180 join at 180 (1.20).
   - Moves work as in the main games: a level-up move that finds four moves asks which one to forget (or skips it), and in town X menu → Pokémon → Z → Learn moves teaches any move of the species' level-up list up to its level, forgotten ones too.
   - Ordinary foes (not bosses) have 80% of their HP and stats; poison takes 1/64 of max HP a turn, and every status problem is cured back in town.
   - Your team's moves turn to any foe within 3 tiles and always hit; a wild Pokémon's moves reach 4 tiles in a line, a boss's 4 tiles at most; bosses can't be put to sleep, frozen or poisoned, and legendary bosses shrug off every status problem. The one you control wears a leader badge; teammates fight within 4 tiles of it, follow in a line through corridors and catch up when left behind. Tab in town lets the next teammate lead. Entering a boss room stands fallen teammates back up with half their HP, and a Revive (1000 nyang) works once per run. Sitrus Berries restore 55% of max HP and also cure status problems (the Herb is gone since 1.10).
@@ -466,7 +481,7 @@ docs/screenshots/       README 스크린샷
   - Phones: the moves sit in a DraStic-style cross (Q up, W left, E right, R down), and a separate Menu button opens one panel with the game menu, quests, team, dungeon map and the settings. Menus scroll with a finger, and a tap on the dungeon's move list uses that move.
   - A TM dealer (purple disc sign) in every town teaches 55 Gen 4 TMs on the spot: 15000 nyang for strong attacks (power 80+), 10000 for the rest (1.13; were 3000 and 1000); a Pokémon can use moves of its types, of the types its level-up list uses, and Normal moves.
   - From 1200 on, foes stand 5 to 7 levels above your strongest Pokémon (Normal, Hard and Challenge alike) and bosses have 30% more HP.
-  - Easy, Normal and Hard difficulty (Hard: every foe, bosses included, has 25% more HP and stats); Challenge (after any ending) means no wipes (a wipe ends the journey for good) and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey).
+  - Easy, Normal and Hard difficulty (Hard: every foe, bosses included, has 25% more HP and stats); Challenge (after any ending) means no wipes (a wipe ends the journey for good) and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey). A new journey at the same difficulty puts the one in play aside under Past journeys on the title, to be played again any time (1.20).
   - Water-only naval battles; pick a side in the Korean War.
   - 35% recruit rate (legendaries always join) and a 500-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.

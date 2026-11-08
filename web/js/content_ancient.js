@@ -322,10 +322,15 @@ export const ANCIENT = [
           { who: 'partner', text: K('둑이 엉뚱하게 터지면 우리 군사들이 휩쓸려! 대짱이를 진정시키자!', 'If the dam bursts at the wrong time our own soldiers will be swept away! Calm Swampert!') }],
           after: [{ who: 260, text: K('…알았다. 물은 때를 맞춰 흘려보내야 하는 법이지.', '...Understood. Water must be released at the right moment.') }] } },
       gwiju: { name: K('귀주 벌판', 'Gwiju Plain'), tiles: T.plain, floors: 4, lv: [13, 17], mons: [20, 22, 77, 84, 128, 203, 234, 262], bgm: 'road_e',
-        boss: { sp: 78, lv: 21, bgm: 'ba_rival', say: [
-          { who: 78, text: K('히히힝! 거란 기병보다 빨리, 바람보다 빨리! 아무도 날 막을 수 없어!', 'Neigh! Faster than the Khitan riders, faster than the wind! No one can stop me!') },
-          { who: 'partner', text: K('날쌩마가 벌판의 포켓몬들을 몰아붙이고 있어. 멈춰 세우자!', 'Rapidash is stampeding the plain\'s Pokémon. Let\'s bring it to a halt!') }],
-          after: [{ who: 78, text: K('…헉. 바람이 바뀌었어. 이제 그만 달릴게.', '...Huff. The wind changed. I\'ll stop running now.') }] } },
+        // 1.20: Entei, one of the legends the world line gave up (content_wboss.js), between Zapdos (676) and Moltres (1232)
+        boss: { sp: 244, lv: 21, lvMin: 17, lvUp: 3, hp: 3.6, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [53, 23, 44, 83],
+          tele: { name: K('분화', 'Eruption'), every: 3, dmg: 0.3, pats: ['ring', 'near', 'cross', 'far'], type: 10 },
+          say: [
+            { who: 'narr', text: K('물러가는 거란군의 뒤로 귀주 벌판에 불길이 번졌다. 불길 한가운데서 화산의 힘을 품은 앤테이가 포효한다!', 'Behind the retreating Khitan, fire spreads over the Gwiju plain. In its heart roars Entei, who carries the power of volcanoes!') },
+            { who: 244, name: K('앤테이', 'Entei'), text: K('그오오오! (짓밟힌 벌판의 분노가 불꽃이 되어 타오른다!)', 'Groooh! (The fury of the trampled plain blazes up as fire!)') },
+            { who: 'partner', text: K('전설의 포켓몬 앤테이야! 불길이 번지기 전에 진정시키자. 바닥이 빛나는 곳을 피하자!', "It's Entei, a legendary Pokémon! Let's calm it before the fire spreads. Dodge the glowing tiles!") }],
+          after: [{ who: 244, name: K('앤테이', 'Entei'), text: K('…그르르. (남쪽에서 불어온 비바람이 불길을 잠재우자, 앤테이는 조용히 벌판을 바라보았다.)', '...Grrr. (A rainstorm blowing from the south puts the fire out, and Entei quietly gazes over the plain.)') }],
+          join: K('앤테이가 불길을 거두고 곁에 섰다. 함께 가고 싶어 한다!', 'Entei draws in its flames and stands beside you. It wants to come along!') } },
       gangdong: { name: K('강동 6주 산길', 'Garrison Trail'), tiles: T.mountain, floors: 3, lv: [11, 15], mons: [74, 75, 95, 111, 207, 246, 304], bgm: 'd_05' },
     },
     npcs: [
@@ -346,7 +351,7 @@ export const ANCIENT = [
         { who: 'narr', text: K('개경 근처에서 성과 들을 비워 두는 전술에 막힌 거란군은 지쳐 물러가기 시작했다.', 'Near Gaegyeong, met with emptied fields and walls, the worn-out Khitan began to withdraw.') }] },
       { do: 'talk', npc: 'officer1019', log: K('군관 요가램에게 돌아가자', 'Return to Officer Medicham'), say: [
         { who: 308, name: K('군관 요가램', 'Officer Medicham'), text: K('물러가는 적을 귀주에서 맞이할 것이오. 벌판의 포켓몬들이 날뛰지 않게 먼저 살펴 주시오!', 'We will meet the retreating enemy at Gwiju. Please make sure the plain\'s Pokémon aren\'t running wild first!') }] },
-      { do: 'dungeon', d: 'gwiju', log: K('귀주 벌판의 날쌩마를 멈추자', 'Stop Rapidash on the Gwiju plain') },
+      { do: 'dungeon', d: 'gwiju', log: K('귀주 벌판의 앤테이를 진정시키자', 'Calm Entei on the Gwiju plain') },
       { do: 'talk', npc: 'officer1019', log: K('승전 소식을 전하자', 'Report the victory'), say: [
         { who: 308, name: K('군관 요가램', 'Officer Medicham'), text: K('싸움이 한창일 때 남쪽에서 비바람이 몰아쳐 거란 진영으로 불었다더군. 하늘도 우리 편이었소!', 'They say that at the height of battle a storm blew in from the south, straight into the Khitan lines. Even the sky was on our side!') }] },
     ],

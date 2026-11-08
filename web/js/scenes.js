@@ -1,7 +1,7 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI, prepImages } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode } from './game.js';
+import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
 import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, sortieMenu, formationMenu, yearOf, shownYear } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
@@ -51,6 +51,9 @@ export class Title {
       const items = [{ label: tr('새로운 여행', 'New journey'), fn: () => this.newGame() }, { label: 'Language / 언어', right: EN ? 'English' : '한국어', fn: () => setLang(EN ? 'ko' : 'en') }];
       const list = saves();
       // one journey continues at once; several (one per difficulty) are picked from a list, the one played last on top
+      // journeys put aside by a new one of their difficulty (1.20) can be played again
+      const kept = keptSaves();
+      if (kept.length) items.unshift({ label: tr('지난 여행', 'Past journeys'), right: tr(`${kept.length}개`, `${kept.length}`), fn: () => this.pickKept(kept) });
       if (list.length === 1) items.unshift({ label: tr('이어하기', 'Continue'), right: this.when(list[0].o), fn: () => this.resume(list[0].slot) });
       else if (list.length) items.unshift({ label: tr('이어하기', 'Continue'), right: tr(`기록 ${list.length}개`, `${list.length} saves`), fn: () => this.pickSave(list) });
       this.menu = openMenu(items, { x: VW / 2 - 85, y: 196, w: 170, onCancel: () => { this.started = false; } });
@@ -65,6 +68,19 @@ export class Title {
     const N = MODE_NAMES();
     openMenu(list.map(({ slot, o }) => ({ label: slot === 'challenge' && o.flags?.challengeLost ? tr('챌린지(실패)', 'Challenge (lost)') : N[slot], right: this.when(o), fn: () => this.resume(slot) })),
       { title: tr('어느 기록으로 이어 할까?', 'Continue which journey?'), x: VW / 2 - 105, y: 150, w: 210, onCancel: () => { this.started = false; } });
+  }
+  // the journeys put aside, the one put aside last on top: picked, it takes its difficulty's place again (the journey
+  // there, if any, going aside in its stead) and goes on at once
+  pickKept(kept) {
+    const N = MODE_NAMES();
+    const back = (k) => {
+      const now = journey(k.slot);
+      const go = () => { if (restoreKept(k)) this.resume(k.slot); else { this.started = false; toast(tr('저장 공간이 부족해 바꾸지 못했어요. 기록은 그대로예요.', 'Not enough storage to swap them. Nothing was changed.'), COL.red); } };
+      say([{ who: 'narr', text: now ? tr(`이 ${N[k.slot]} 여행으로 다시 이어 할까요? 지금 ${N[k.slot]} 여행(${this.when(now)})은 지난 여행으로 보관돼요.`, `Play this ${N[k.slot]} journey again? Your ${N[k.slot]} journey in play (${this.when(now)}) goes to Past journeys.`)
+        : tr(`이 ${N[k.slot]} 여행으로 다시 이어 할까요?`, `Play this ${N[k.slot]} journey again?`), choices: tr(['이어 하기', '취소'], ['Play it', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
+    };
+    openMenu(kept.map((k) => ({ label: N[k.slot], right: this.when(k.o), fn: () => back(k) })),
+      { title: tr('지난 여행 · 고르면 다시 이어 해요', 'Past journeys · play one again'), x: VW / 2 - 115, y: 132, w: 230, onCancel: () => { this.started = false; } });
   }
   resume(slot) {
     // the town plays a step left waiting (resumeSteps); a challenge left in the middle of a dungeon ends instead (checkRun)
@@ -89,10 +105,12 @@ export class Title {
       hard: 'Levels as in Normal, but every foe, bosses included, has 25% more HP and stats. Naval foes: 5 above your crew.',
       challenge: prefs.ended ? 'Normal strength, but reach the ending without a single wipe: a wipe ends the journey and you start over. Legendary Pokémon never join.' : 'Opens once you have seen an ending at any difficulty.',
     });
-    // only the save of the difficulty picked is replaced: the other journeys stay to be continued
+    // a new journey of a difficulty that has one puts that one aside (Past journeys on the title, 1.20; up to 1.19 it
+    // was replaced), so a finished journey, or one half-way, can be started over and still be played again
     const pick = (m) => {
       const go = () => fadeTo(() => setScene(new Intro(m)));
-      if (journey(m)) say([{ who: 'narr', text: tr(`새로 시작하면 ${N[m]} 난이도의 기록을 덮어씁니다. 다른 난이도의 기록은 그대로 남아요. 괜찮나요?`, `Starting over replaces your ${N[m]} journey. Journeys at other difficulties stay. Is that OK?`), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
+      const fresh = () => { if (keepJourney(m)) go(); else { this.started = false; toast(tr('저장 공간이 부족해 지금 여행을 보관하지 못했어요. 새로 시작하지 않았어요.', 'Not enough storage to keep your journey aside. Nothing was started.'), COL.red); } };
+      if (journey(m)) say([{ who: 'narr', text: tr(`새로 시작하면 지금 ${N[m]} 여행(${this.when(journey(m))})은 "지난 여행"으로 보관돼요. 타이틀의 지난 여행에서 언제든 다시 이어 할 수 있어요. 새로 시작할까요?`, `Starting over puts your ${N[m]} journey (${this.when(journey(m))}) aside under "Past journeys" on the title, to be played again any time. Start over?`), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) fresh(); else this.started = false; } }]);
       else go();
     };
     openMenu(['easy', 'normal', 'hard', 'challenge'].map((m) => ({ label: N[m], desc: desc[m], right: m === 'challenge' && !prefs.ended ? tr('엔딩 후', 'After an ending') : journey(m) ? tr('기록 있음', 'Saved') : '',

@@ -95,6 +95,9 @@ export async function checkAll(opts = {}) {
       if (e.worldLine && !d.battle) {
         if (d.floors !== 3) bad(tag, `${id} has ${d.floors} floors (a world dungeon has 3)`);
         if (!d.boss || !(game.LEGENDS.has(d.boss.sp) || game.PSEUDO.has(d.boss.sp))) bad(tag, `${id}: boss ${d.boss?.sp} is neither a legend nor of a 600-total line`);
+        // (1.20) a quest's boss is one of Pokémon Black's own legends, Hydreigon, or Shaymin or Manaphy where those run out
+        const quest = e.main.some((s) => s.d === id), black = d.boss && (d.boss.sp === 494 || (d.boss.sp >= 638 && d.boss.sp <= 649));
+        if (quest && d.boss && !black && ![635, 492, 490].includes(d.boss.sp)) bad(tag, `${id}: quest boss ${d.boss.sp} is not of Pokémon Black (nor Hydreigon, Shaymin, Manaphy)`);
       }
       // one legend to a place (a staged dungeon holds its own on purpose: the finale's three, the Boss Tower's pairs),
       // Regigigas only in the Regi line after 1945, and Darkrai nowhere before 1979

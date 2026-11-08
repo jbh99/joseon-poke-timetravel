@@ -173,8 +173,27 @@ export class Mon {
     if (this.moves.length < 4) this.moves.push(mv); else this.moves[slot] = mv;
   }
   toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined, fleet: this.fleet || undefined }; }
-  // what a save holds (toJSON) and nothing else: a battle's own numbers (buff, hpMul...) in a damaged save must not reach it
-  static from({ sp, lv, exp, hp, shiny, status, moves, forme, fleet }) { return new Mon(sp, lv, { exp, hp, shiny, status, moves, forme, fleet }); }
+  // a Pokémon as a save holds it (toJSON) and nothing else: a battle's own numbers (buff, hpMul...) must not reach it.
+  // A species, level or moves this game does not have throw (parseSave); any other value out of place is named to `fix`
+  // and left to its default. A member above Lv 180 comes down to 180 (up to 1.19 a foe joined at its own level, and the
+  // foes of the journey's end stand above 180), its HP and PP within what it can have there.
+  static from(o, fix = () => {}) {
+    const id = (x, list) => Number.isInteger(x) && x > 0 && !!list[x];
+    if (!id(o?.sp, DEX.species) || !Number.isInteger(o.lv) || o.lv < 1) throw new Error('not a save');
+    const moves = Array.isArray(o.moves) ? o.moves.filter((mv) => id(mv?.id, DEX.moves)).slice(0, 4) : [];
+    if (!moves.length) throw new Error('not a save');
+    if (moves.length !== o.moves.length) fix('moves');
+    const keep = (v, good, what) => (v == null ? undefined : good(v) ? v : (fix(what), undefined));
+    const count = (v) => Number.isFinite(v) && v >= 0, one = (list) => (v) => list.includes(v);
+    const m = new Mon(o.sp, Math.min(o.lv, MAX_LV), {
+      exp: keep(o.exp, count, 'exp'), hp: keep(o.hp, count, 'hp'), shiny: keep(o.shiny, one([true, false]), 'shiny'),
+      status: keep(o.status, one(Object.keys(STATUS_NAME)), 'status'), forme: keep(o.forme, one(Object.keys(FORMES[o.sp] || {})), 'forme'),
+      fleet: keep(o.fleet, one([0, 1, 2, 3]), 'fleet'), moves: moves.map((mv) => ({ id: mv.id, pp: keep(mv.pp, count, 'pp') })),
+    });
+    m.exp = Math.min(m.exp, m.expFor(MAX_LV)); m.hp = Math.min(m.hp, m.maxhp);
+    for (const mv of m.moves) mv.pp = Math.min(mv.pp, m.maxPP(mv.id));
+    return m;
+  }
 }
 
 // Resolve one move use. Returns {dmg, eff, crit, miss, text[], status, statChange, heal, drain}.
@@ -324,10 +343,13 @@ function migrateV8(o) {
 // where the line the team is not on was left (main.js toWorld/toKorea); homeParty: the team ashore during a naval
 // battle, crewLv: the level its foes go by (Dungeon.boardCrew). A new journey or a loaded save starts from all of these,
 // so nothing carries over from the journey before
-const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '', koreaAt: null, worldAt: null, homeParty: null, crewLv: null });
+// jid (1.20): which journey this is, given when it starts (journeys from before 1.20 have none), so a save of another
+// journey taking a difficulty's place puts the one there aside instead of losing it (replaceSave, keepJourney)
+const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '', koreaAt: null, worldAt: null, homeParty: null, crewLv: null, jid: '' });
 export const S = { ...FRESH(), party: [] };
 export function newGame(starter, partner, mode = 'normal') {
-  Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode });
+  const jid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode, jid });
   S.party = [new Mon(starter, 6, { shiny: true }), new Mon(partner, 6, { shiny: true })];
   syncDex();
 }
@@ -348,22 +370,62 @@ export function initSaves() {
     if (slot && slot !== 'normal' && !localStorage.getItem(slotKey(slot))) { localStorage.setItem(slotKey(slot), text); localStorage.removeItem(SAVE_KEY); }
   } catch (e) { /* private mode, or a broken save left where it is */ }
 }
-// a journey's save as stored, and a whole save from elsewhere (its cloud copy), checked like readSave before it replaces it
+// a journey's save as stored, and a whole save from elsewhere (its cloud copy) taking its place: only one the game wrote
+// itself, which parseSave reads with nothing to put right (a damaged copy, or one from a newer version, must not replace a
+// good save here; up to 1.19 a few of its fields were looked at, and a copy that broke the town or the Pokédex got in)
 export function saveText(slot) { try { return localStorage.getItem(slotKey(slot)); } catch (e) { return null; } }
 export function replaceSave(text, slot, eras = Infinity) {
-  const o = JSON.parse(text);
-  if (!saveFits(o, eras)) throw new Error('not a save');
+  let o;
+  try { o = JSON.parse(text); } catch (e) { throw new Error('not a save'); }
+  if (parseSave(o, eras).fixed.length) throw new Error('not a save');
+  // another journey (started anew on another device) taking this one's place puts this one aside (Past journeys)
+  const here = readSave(slot);
+  if (here && !here.over && (here.jid || '') !== (o.jid || '') && !keepJourney(slot)) throw new Error('no room');
   // the save it replaces stays one step behind, in case the copy from elsewhere turns out to be the wrong one
   try { const was = localStorage.getItem(slotKey(slot)); if (was) localStorage.setItem(`${slotKey(slot)}-backup`, was); } catch (e) { /* no room for it: the swap still goes on */ }
   localStorage.setItem(slotKey(slot), text);
 }
-// can this be played? A whole save from elsewhere (a cloud copy that is damaged, or from a newer version of the game) must
-// not replace a good one here: the team and roster are real Pokémon with real moves, the era is one this version has
-export function saveFits(o, eras = Infinity) {
-  const mon = (m) => !!DEX.species[m?.sp] && Number.isInteger(m.lv) && m.lv >= 1 && m.lv <= MAX_LV && Array.isArray(m.moves) && m.moves.length > 0 && m.moves.every((mv) => DEX.moves[mv?.id]);
-  return !!o && (o.v || 1) <= SAVE_V && Array.isArray(o.party) && o.party.length >= 2 && o.party.every(mon)
-    && (o.roster == null || (Array.isArray(o.roster) && o.roster.every(mon)))
-    && Number.isInteger(o.era ?? 0) && (o.era ?? 0) >= 0 && (o.era ?? 0) < eras;
+// what each field of a save may hold (FRESH names them all; null or missing takes the fresh value, as in a save from
+// before the field was added)
+const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x), isInt = (x) => Number.isInteger(x) && x >= 0;
+const isStr = (x) => typeof x === 'string', isBool = (x) => x === true || x === false, counts = (x) => isObj(x) && Object.values(x).every(isInt);
+const isPlace = (x) => isObj(x) && isInt(x.era) && isInt(x.step) && isBool(x.eraClear) && (x.townKind == null || x.townKind === 1 || x.townKind === 2);
+const FIELDS = {
+  era: isInt, step: isInt, side: isObj, items: counts, money: Number.isFinite, flags: isObj, night: isBool, playtime: (x) => Number.isFinite(x) && x >= 0,
+  kills: counts, eraClear: isBool, lastNode: isStr, townPos: (x) => Array.isArray(x) && x.length === 2 && x.every(isInt), townKind: (x) => x === 1 || x === 2,
+  faction: isStr, wander: (x) => isObj(x) && isInt(x.era) && isObj(x.at), mode: (x) => Object.keys(MODES).includes(x), inRun: isStr,
+  spy: (x) => isObj(x) && isInt(x.era) && isInt(x.year) && (x.suspects == null || Array.isArray(x.suspects)), over: isBool,
+  dex: (x) => isStr(x) && /^[0-2]*$/.test(x), koreaAt: isPlace, worldAt: isPlace, jid: isStr,
+};
+// A save (this device's, or a copy from elsewhere) as the state it plays: the versions' migrations on a copy of it, then
+// its Pokémon (Mon.from) and each field as FIELDS allows, so a save that cannot be played leaves S as it was (load). No
+// party of two, a newer version's save or an era past `eras` throw; any other value out of place takes its fresh value
+// and is named in `fixed` (a save here still loads; a copy from elsewhere is refused, replaceSave).
+export function parseSave(o, eras = Infinity) {
+  if (!isObj(o)) throw new Error('not a save');
+  const v = o.v ?? 1;
+  if (!Number.isInteger(v) || v < 1 || v > SAVE_V) throw new Error('not a save');
+  const fixed = [], fix = (what) => { if (!fixed.includes(what)) fixed.push(what); };
+  const mons = (list, where) => (Array.isArray(list) ? list : []).flatMap((m, i) => { try { return [Mon.from(m, (k) => fix(`${where}${i}.${k}`))]; } catch (e) { fix(`${where}${i}`); return []; } });
+  const party = mons(o.party, 'party'), roster = mons(o.roster, 'roster');
+  if (party.length < 2) throw new Error('not a save');
+  if (party.length > 3) { fix('party'); party.length = 3; }
+  if (o.roster != null && !Array.isArray(o.roster)) fix('roster');
+  const s = { ...o }; // (a fresh parse of its text, so its objects are its own)
+  if (v < 2) { s.era = (s.era || 0) + OLD_ERA_SHIFT; s.migrated = true; }
+  if (v < 3 && s.era >= ERA_1940) s.era++;
+  if (v < 4) migrateV4(s);
+  if (v < 5) migrateV5(s);
+  if (v < 6) migrateV6(s);
+  if (v < 7) migrateV7([...party, ...roster]);
+  if (v < 8) migrateV8(s);
+  // v9 (1.13): the ending waits for Kyurem too. 1.13 and 1.14 marked a journey that had opened it with Arceus alone
+  // (flags.oldEnding) and let it keep that ending; since 1.15 every journey needs Kyurem (quests.js endingOpen)
+  if (isObj(s.flags)) delete s.flags.oldEnding;
+  const state = { party, roster, ...(s.migrated && { migrated: true }) };
+  for (const [k, ok] of Object.entries(FIELDS)) if (s[k] != null) { if (ok(s[k])) state[k] = s[k]; else fix(k); }
+  if ((state.era || 0) >= eras) throw new Error('not a save');
+  return { state, fixed };
 }
 export function readSave(slot) {
   try { const o = JSON.parse(localStorage.getItem(slotKey(slot))); return o && Array.isArray(o.party) && o.party.length >= 2 ? o : null; } catch (e) { return null; }
@@ -373,27 +435,55 @@ export function readSave(slot) {
 export const journey = (slot) => { const o = readSave(slot); return o && !o.over ? o : null; };
 // the journeys saved on this device, the one played last first
 export const saves = () => SLOTS.map((slot) => ({ slot, o: journey(slot) })).filter((s) => s.o).sort((a, b) => (b.o.savedAt || 0) - (a.o.savedAt || 0));
+// Past journeys (1.20): a journey a new one of the same difficulty takes the place of is put aside here instead of being
+// lost (up to 1.19 a new journey replaced it), and the title brings it back to be played again (Title.pickKept). Each is
+// kept under its own key, by difficulty and the time it was put aside; KEPT_MAX a difficulty, the oldest going first.
+// They stay on this device: the cloud keeps the one journey of each difficulty in play (cloud.js).
+const KEPT = 'joseon-poke-kept-', KEPT_MAX = 5;
+export function keptSaves() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i), m = /^joseon-poke-kept-([a-z]+)-(\d+)$/.exec(key || '');
+      if (!m || !SLOTS.includes(m[1])) continue;
+      try { const o = JSON.parse(localStorage.getItem(key)); if (o && Array.isArray(o.party) && o.party.length >= 2) out.push({ key, slot: m[1], at: +m[2], o }); } catch (e) { /* a broken one is not listed */ }
+    }
+  } catch (e) { /* private mode */ }
+  return out.sort((a, b) => b.at - a.at);
+}
+// put the journey of `slot` aside, its place left empty for the one coming: false when there was no room to keep it
+// (it then stays where it is). Nothing is kept of a lost challenge (its save only marks the journey as ended)
+export function keepJourney(slot) {
+  const text = saveText(slot);
+  let o = null;
+  try { o = JSON.parse(text); } catch (e) { /* none, or a broken one */ }
+  if (!o || !Array.isArray(o.party) || o.over) return true;
+  try { localStorage.setItem(`${KEPT}${slot}-${Date.now()}`, text); } catch (e) { return false; }
+  for (const k of keptSaves().filter((k) => k.slot === slot).slice(KEPT_MAX)) localStorage.removeItem(k.key);
+  localStorage.removeItem(slotKey(slot));
+  return true;
+}
+// a journey put aside comes back to its difficulty's place, the one there (if any) going aside in its stead. It leaves
+// the list first, so the one going aside cannot push it out of a full list; on any failure it goes back to the list.
+export function restoreKept(k) {
+  let text = null;
+  try { text = localStorage.getItem(k.key); } catch (e) { /* private mode */ }
+  if (!text) return false;
+  localStorage.removeItem(k.key);
+  const back = () => { try { localStorage.setItem(k.key, text); } catch (e) { /* the room it had was just freed */ } return false; };
+  if (!keepJourney(k.slot)) return back();
+  try { localStorage.setItem(slotKey(k.slot), text); } catch (e) { return back(); }
+  return true;
+}
 export function load(slot = saves()[0]?.slot) {
   const o = slot && journey(slot);
   if (!o) return false;
-  try {
-    const party = o.party.map(Mon.from), roster = (o.roster || []).map(Mon.from);
-    const v = o.v || 1;
-    if (v < 2) { o.era = (o.era || 0) + OLD_ERA_SHIFT; o.migrated = true; }
-    if (v < 3 && o.era >= ERA_1940) o.era++;
-    if (v < 4) migrateV4(o);
-    if (v < 5) migrateV5(o);
-    if (v < 6) migrateV6(o);
-    if (v < 7) migrateV7([...party, ...roster]);
-    if (v < 8) migrateV8(o);
-    // v9 (1.13): the ending waits for Kyurem too. 1.13 and 1.14 marked a journey that had opened it with Arceus alone
-    // (flags.oldEnding) and let it keep that ending; since 1.15 every journey needs Kyurem (quests.js endingOpen)
-    if (o.flags) delete o.flags.oldEnding;
-    Object.assign(S, FRESH(), o, { party, roster, slot }); // the key it was read from names its journey
-    delete S.savedAt;
-    syncDex(); // a save from before the Pokédex fills its record in
-    return true;
-  } catch (e) { console.warn('save load failed', e); return false; }
+  let got;
+  try { got = parseSave(o); } catch (e) { console.warn('save load failed', e); return false; }
+  if (got.fixed.length) console.warn('save put right:', got.fixed.join(' '));
+  Object.assign(S, FRESH(), got.state, { slot }); // the key it was read from names its journey
+  syncDex(); // a save from before the Pokédex fills its record in
+  return true;
 }
 
 export const LEGENDS = new Set([144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
@@ -418,8 +508,10 @@ export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '�
 export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
 // a defeated Pokémon joins: straight into the party if there is room, otherwise into the town roster
 export function recruit(mon) {
-  // keeps the moves it fought with (bosses have hand-picked sets) with full PP
-  const m = new Mon(mon.sp, mon.lv, { shiny: mon.shiny, moves: mon.moves.map((mv) => ({ id: mv.id })) });
+  // keeps the moves it fought with (bosses have hand-picked sets) with full PP. A foe above Lv 180 (at the journey's end
+  // they stand above the team, which stops at 180) joins at 180: up to 1.19 it joined at its own level, every foe after it
+  // stood higher again (quests.js foeLevels goes by the team's best), and the cloud refused the save
+  const m = new Mon(mon.sp, Math.min(mon.lv, MAX_LV), { shiny: mon.shiny, moves: mon.moves.map((mv) => ({ id: mv.id })) });
   dexMark(m.sp, 2);
   if (S.party.length < 3) { S.party.push(m); return { m, where: 'party' }; }
   if (S.roster.length >= ROSTER_MAX) return { m, where: 'full' };

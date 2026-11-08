@@ -51,7 +51,7 @@ export const NET = {
       this.code = Array.from({ length: 6 }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
       const peer = this.peer = new Peer(PREFIX + this.code);
       peer.on('open', () => { if (this.peer === peer) this.set('host', tr('친구를 기다리는 중', 'Waiting for friends')); });
-      peer.on('connection', (conn) => this.accept(conn));
+      peer.on('connection', (conn) => { if (this.peer === peer) this.accept(conn); else conn.close(); });
       peer.on('error', (e) => { if (this.peer === peer) this.fail(e); });
       peer.on('disconnected', () => { if (this.peer === peer && this.role === 'host') peer.reconnect(); });
     } catch (e) { this.fail(e); }
@@ -119,18 +119,22 @@ export const NET = {
     try {
       const Peer = await loadPeer();
       if (try_ !== this.attempt) return; // left while the module loaded
+      // every event below belongs to this try: once it is left (or another one started) a late one does nothing
       const peer = this.peer = new Peer();
       peer.on('open', () => {
+        if (this.peer !== peer) return;
         const conn = this.conn = peer.connect(PREFIX + code, { reliable: true });
         conn.on('data', (m) => {
+          if (this.conn !== conn) return;
           if (m?.t === 'hello') { this.slot = m.slot; this.code = code; this.set('guest', tr(`P${m.slot + 1}로 참가! 던전에서 ${m.slot === 1 ? '파트너' : '세 번째 동료'}를 조종해요.`, `Joined as P${m.slot + 1}! You steer the ${m.slot === 1 ? 'partner' : 'third member'} in dungeons.`)); }
           if (m?.t === 'full') this.fail(new Error(tr('방이 가득 찼어요 (최대 3명).', 'The room is full (3 players max).')));
         });
-        conn.on('close', () => { if (this.role === 'guest') this.fail(new Error(tr('호스트와 연결이 끊겼어요.', 'Lost the connection to the host.'))); });
+        conn.on('close', () => { if (this.conn === conn && this.role === 'guest') this.fail(new Error(tr('호스트와 연결이 끊겼어요.', 'Lost the connection to the host.'))); });
       });
       peer.on('call', (call) => {
+        if (this.peer !== peer) { call.close(); return; }
         call.answer();
-        call.on('stream', (s) => { this.remote = s; this.onChange?.(); });
+        call.on('stream', (s) => { if (this.peer === peer) { this.remote = s; this.onChange?.(); } });
       });
       peer.on('error', (e) => { if (this.peer === peer) this.fail(e.type === 'peer-unavailable' ? new Error(tr('그 코드의 방을 찾지 못했어요.', 'No room with that code.')) : e); });
     } catch (e) { this.fail(e); }
@@ -142,6 +146,8 @@ export const NET = {
     this.attempt++;
     for (const g of this.guests) { g.call?.close(); g.conn.close(); }
     this.conn?.close(); this.peer?.destroy();
+    // the screen's capture ends with the room; its sound track is the game's own mix (audio.js), kept for the next room
+    for (const t of this.media?.getVideoTracks() || []) t.stop();
     Object.assign(this, { role: null, code: '', peer: null, guests: [], cmds: {}, conn: null, slot: 0, remote: null, media: null, capture: null });
     this.set(null, was ? tr('혼자 하기로 돌아왔어요.', 'Back to solo play.') : '');
   },

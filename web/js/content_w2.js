@@ -1,7 +1,7 @@
 // The world line, part two: the Second World War, from Westerplatte (1939) to the end in 1945. Its legends from
 // Pokémon Black: Reshiram over London in the Blitz and Kyurem in the last battle (town battles, like Darkrai's
 // December 12), and the lairs of Meloetta, Victini, Genesect and Zekrom (the keeper on the third floor, two forms).
-import { K, T, N, PT, C, person, talk, go, scene, boss, blast, era, RESHIRAM, ZEKROM, VICTINI, GENESECT, MELOETTA, KYUREM, KELDEO, LANDORUS, THUNDURUS } from './content_wkit.js';
+import { K, T, N, PT, C, person, talk, go, scene, boss, blast, era, RESHIRAM, ZEKROM, KYUREM } from './content_wkit.js';
 import { WB } from './content_wboss.js';
 
 const P = (k) => [56 + Math.round(k * 1.2), 60 + Math.round(k * 1.2)];
@@ -64,7 +64,7 @@ export const W1940A = era({
       mons: [592, 593, 594, 550, 73, 279, 278, 580, 581, 320],
       boss: WB.channel },
     yser: { name: K('이제르 강 물길', 'The Waterways of the Yser'), at: [3.0, 50.9], tiles: T.moss, floors: 3, lv: P(11), legend: true, bgm: 'd_lake', tint: 'rgba(140,200,255,0.08)',
-      mons: [535, 536, 537, 550, 594, 580, 581, 515, 516, 501, 502], boss: KELDEO },
+      mons: [535, 536, 537, 550, 594, 580, 581, 515, 516, 501, 502], boss: WB.yser },
   },
   npcs: [skipper, tommy, fr40],
   main: [
@@ -143,8 +143,6 @@ export const W1941 = era({
     snowfield: { name: K('모스크바 근교 설원', 'The Snowfields outside Moscow'), at: [36.8, 56.4], tiles: T.snow, floors: 3, lv: P(13), bgm: 'd_ice', tint: 'rgba(150,200,255,0.10)',
       mons: [613, 614, 582, 583, 584, 615, 215, 461, 220, 221, 473, 478],
       boss: WB.snowfield },
-    borodino: { name: K('보로디노 들판', 'The Fields of Borodino'), at: [35.82, 55.52], tiles: T.field, floors: 3, lv: P(13), legend: true, bgm: 'd_04', tint: 'rgba(230,220,200,0.10)',
-      mons: [551, 552, 553, 529, 530, 618, 626, 538, 539, 449, 450], boss: LANDORUS },
   },
   npcs: [sib, metro, fac],
   main: [
@@ -152,8 +150,8 @@ export const W1941 = era({
       K('피난 열차와 수레가 진흙길에 빠졌어요. 이대로면 공장도 사람도 옮길 수 없어요!', 'The evacuation trains and carts are stuck in the mud. At this rate we can\'t move the factories or the people!')),
     go('mud', K('라스푸티차의 진흙길에서 피난민들을 도와주자', 'Help the refugees on the Rasputitsa mud roads')),
     talk(sib, K('시베리아 병사 툰베어와 이야기하자', 'Talk to Siberian Soldier Beartic'),
-      K('12월이 되면 우리는 반격하오. 그런데 설원에서 무엇인가가 하늘까지 얼리고 있소.', 'In December we strike back. But something on the snowfields is freezing the very sky.')),
-    go('snowfield', K('모스크바 근교 설원의 눈보라를 멈추자', 'Stop the blizzard on the snowfields outside Moscow')),
+      K('12월이 되면 우리는 반격하오. 그런데 설원의 눈보라 속에서 머리 셋 달린 용이 날뛰고 있소.', 'In December we strike back. But a three-headed dragon is raging in the blizzard on the snowfields.')),
+    go('snowfield', K('모스크바 근교 설원에서 날뛰는 용을 멈추자', 'Stop the dragon raging on the snowfields outside Moscow')),
     scene(N('1941년 12월 5일, 소련군의 반격이 시작되었다. 모스크바는 함락되지 않았다.', 'On December 5, 1941 the Soviet counter-offensive began. Moscow did not fall.'),
       N('이틀 뒤, 지구 반대편의 하와이에서 또 하나의 전쟁이 시작된다.', 'Two days later, on the far side of the globe in Hawaii, another war began.')),
     talk(metro, K('치라치노와 이야기하자', 'Talk to Cinccino'),
@@ -221,7 +219,7 @@ export const W1942L = era({
       boss: WB.ladoga },
     // Meloetta's lair: the empty concert hall, the keeper on the third floor
     philharmonia: { name: K('얼어붙은 연주회장', 'The Frozen Concert Hall'), at: [29.8, 59.6], tiles: T.library, floors: 3, lv: P(15), legend: true, bgm: 'd_lake', tint: 'rgba(200,255,220,0.08)',
-      mons: [574, 575, 576, 517, 518, 527, 528, 607, 608, 355, 356], boss: MELOETTA },
+      mons: [574, 575, 576, 517, 518, 527, 528, 607, 608, 355, 356], boss: WB.philharmonia },
   },
   npcs: [cond, lad, herm],
   main: [
@@ -260,13 +258,13 @@ export const W1942E = era({
       boss: WB.minefield },
     // Victini's lair: the ruins in the dunes where the victory Pokémon is said to live, the keeper on the third floor
     vruins: { name: K('모래 언덕의 V 유적', 'The V Ruins in the Dunes'), at: [28.2, 30.4], tiles: T.temple, floors: 3, lv: P(16), legend: true, bgm: 'd_lake', tint: 'rgba(255,190,90,0.10)',
-      mons: [561, 562, 563, 554, 555, 343, 344, 627, 628, 631], boss: VICTINI },
+      mons: [561, 562, 563, 554, 555, 343, 344, 627, 628, 631], boss: WB.vruins },
   },
   npcs: [desert, vee, camel],
   main: [
     talk(desert, K('사막 정찰병 악비아르와 이야기하자', 'Talk to Desert Scout Krookodile'),
-      K('적은 길목에 수십만 개의 지뢰를 깔아 "악마의 정원"이라 불렀소. 공병들이 길을 내야 하는데, 그 안에서 불길이 치솟고 있소!', 'The enemy has laid hundreds of thousands of mines in the gap and calls it "the Devil\'s Gardens". The sappers must clear a path, but fire is leaping up inside!')),
-    go('minefield', K('"악마의 정원" 지뢰밭의 불길을 잡자', 'Put out the fire in the "Devil\'s Gardens" minefields')),
+      K('적은 길목에 수십만 개의 지뢰를 깔아 "악마의 정원"이라 불렀소. 공병들이 길을 내야 하는데, 그 안에서 땅이 울리고 있소!', 'The enemy has laid hundreds of thousands of mines in the gap and calls it "the Devil\'s Gardens". The sappers must clear a path, but the ground inside is rumbling!')),
+    go('minefield', K('"악마의 정원" 지뢰밭의 땅울림을 멈추자', 'Stop the rumbling ground in the "Devil\'s Gardens" minefields')),
     talk(vee, K('종군 기자 워글과 이야기하자', 'Talk to War Correspondent Braviary'),
       K('전투는 우리 쪽으로 기울고 있소. 그런데 모래 언덕의 유적에서 그 "승리의 포켓몬"을 봤다는 병사가 있소!', 'The battle is turning our way. And a soldier swears he saw that "Pokémon of victory" at the ruins in the dunes!')),
     go('vruins', K('모래 언덕의 V 유적에서 승리의 포켓몬을 만나자 (환상의 포켓몬: 3층)', 'Meet the Pokémon of victory in the V ruins in the dunes (mythical Pokémon: floor 3)')),
@@ -297,12 +295,12 @@ export const W1943 = era({
       boss: WB.tractor },
     // Genesect's lair: the burning tank field at Prokhorovka, the keeper on the third floor
     prokhorovka: { name: K('프로호롭카 전차 평원', 'The Tank Field at Prokhorovka'), at: [36.5, 51.0], tiles: T.plain, floors: 3, lv: P(17), legend: true, bgm: 'd_05', tint: 'rgba(200,120,255,0.08)',
-      mons: [599, 600, 601, 624, 625, 632, 589, 616, 617, 597, 598], boss: GENESECT },
+      mons: [599, 600, 601, 624, 625, 632, 589, 616, 617, 597, 598], boss: WB.prokhorovka },
   },
   npcs: [pav, tank, babush],
   main: [
     talk(pav, K('파블로프의 집 수비대 절각참과 이야기하자', "Talk to Pavlov's House Defender Bisharp"),
-      K('트랙터 공장에 노동자들이 갇혀 있소. 공장은 무너지고, 그 안에서 보이지 않는 힘이 강철을 구기고 있소!', 'Workers are trapped in the Tractor Factory. It is falling in, and an unseen force inside is crumpling the steel!')),
+      K('트랙터 공장에 노동자들이 갇혀 있소. 공장은 무너지고, 그 안에서 무언가가 벽을 들이받고 있소!', 'Workers are trapped in the Tractor Factory. It is falling in, and something inside is ramming the walls!')),
     go('tractor', K('트랙터 공장에 갇힌 노동자들을 구하자', 'Rescue the workers trapped in the Tractor Factory')),
     scene(N('1943년 2월, 스탈린그라드의 싸움이 끝났다. 양쪽을 합쳐 2백만 명에 가까운 사람이 죽거나 다쳤다.', 'In February 1943 the fighting at Stalingrad ended. Close to two million people on both sides had been killed or wounded.')),
     talk(tank, K('전차병 기기기어르와 이야기하자', 'Talk to Tank Crewman Klinklang'),
@@ -373,8 +371,6 @@ export const W1944L = era({
     samar: { name: K('사마르 앞바다', 'Off Samar'), at: [126.2, 11.8], tiles: T.deepsea, water: true, floors: 3, lv: P(19), bgm: 'ba_dpoke2',
       mons: [130, 565, 593, 319, 321, 73, 550, 230, 567, 521, 628, 581],
       boss: WB.samar },
-    thundercloud: { name: K('필리핀 해의 뇌운', 'The Thunderclouds over the Philippine Sea'), at: [127.0, 10.5], tiles: T.rift, floors: 3, lv: P(19), legend: true, bgm: 'd_04', tint: 'rgba(255,240,140,0.08)',
-      mons: [522, 523, 587, 595, 596, 602, 603, 604, 627, 628], boss: THUNDURUS },
   },
   npcs: [fil, kor44, sea44],
   main: [

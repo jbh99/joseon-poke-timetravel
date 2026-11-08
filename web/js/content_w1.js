@@ -1,5 +1,5 @@
 // The world line, part one: from the Convention of Peking (1860) to the Paris Peace Conference (1919).
-import { K, T, N, PT, person, talk, go, scene, era, TERRAKION, COBALION, TORNADUS, VIRIZION } from './content_wkit.js';
+import { K, T, N, PT, person, talk, go, scene, era } from './content_wkit.js';
 import { WB } from './content_wboss.js';
 
 const P = (k) => [56 + Math.round(k * 1.2), 60 + Math.round(k * 1.2)]; // the designed levels of the k-th world era (the band rises above them)
@@ -74,8 +74,8 @@ export const W1894 = era({
     go('pungdo', K('풍도 앞바다에서 바다에 빠진 이들을 구하자 (해전)', 'Rescue those in the water off Pungdo (naval battle)')),
     talk(swan, K('어부 스완나에게 가 보자', 'Go and see Fisher Swanna'),
       K('전쟁이 정말로 시작됐어요. 이제 두 나라 함대가 압록강 어귀에서 맞붙는대요.', 'The war has really begun. Now the two fleets will clash at the mouth of the Yalu.'),
-      K('그 바다 밑에서 거대한 루기아가 깨어났대요. 사람들이 빠져나갈 수가 없어요!', 'A huge Lugia has woken in the deep out there. Nobody can get away!')),
-    go('yellowsea', K('황해 해전의 바다에서 루기아를 진정시키자 (해전)', 'Calm Lugia in the sea of the Yellow Sea battle (naval battle)')),
+      K('포성에 놀란 머리 셋 달린 용이 그 바다 위를 날뛰고 있대요. 사람들이 빠져나갈 수가 없어요!', 'A three-headed dragon startled by the guns is raging over that sea. Nobody can get away!')),
+    go('yellowsea', K('황해 해전의 바다에서 삼삼드래를 진정시키자 (해전)', 'Calm Hydreigon in the sea of the Yellow Sea battle (naval battle)')),
     scene(N('북양 함대는 황해 해전에서 크게 졌고, 이듬해 웨이하이웨이에서 무너졌다.', 'The Beiyang Fleet was badly beaten in the Yellow Sea and fell at Weihaiwei the next year.'),
       N('1895년 시모노세키 조약으로 청은 조선에 대한 영향력을 잃었다. 그러자 일본이 조선에 더 깊이 손을 뻗었다.', 'With the Treaty of Shimonoseki in 1895, Qing lost its hold on Korea. Japan reached deeper into Korea in its place.')),
     talk(ding, K('늑골라에게 돌아가자', 'Return to Carracosta'),
@@ -108,8 +108,6 @@ export const W1904 = era({
     tsushima: { name: K('쓰시마 해전', 'Battle of Tsushima'), at: [129.6, 34.5], tiles: T.deepsea, water: true, floors: 3, lv: P(2), bgm: 'ba_dpoke2',
       mons: [130, 565, 593, 319, 321, 320, 226, 73, 550, 581, 503],
       boss: WB.tsushima },
-    fortress04: { name: K('뤼순 요새 암벽', 'The Rock Walls of the Port Arthur Forts'), at: [121.9, 39.5], tiles: T.cliff, floors: 3, lv: P(2), legend: true, bgm: 'd_mount2', tint: 'rgba(200,170,120,0.08)',
-      mons: [524, 525, 526, 557, 558, 538, 539, 532, 533, 66, 67, 529, 530], boss: TERRAKION },
   },
   marks: [{ name: K('→ 포츠머스', '→ Portsmouth'), lon: 145.5, lat: 46.0, text: K('1905년 9월 미국 포츠머스에서 강화 조약이 맺어졌다. 일본은 대한 제국에 대한 우월권을 인정받았고, 두 달 뒤 을사늑약을 강요했다.', 'Peace was made at Portsmouth, USA, in September 1905. Japan won recognition of its paramount interest in Korea, and two months later forced the Eulsa Treaty on it.') }],
   npcs: [var1904, miner, tele1904],
@@ -122,8 +120,8 @@ export const W1904 = era({
       K('뤼순 요새의 마지막 언덕이 203고지예요. 땅속의 포켓몬들이 포성에 미쳐 굴을 파고 있어요.', 'The last hill before the Port Arthur fortress is 203 Meter Hill. The Pokémon underground are tunnelling in a frenzy from the guns.')),
     go('hill203', K('203고지의 무너지는 굴을 막자', 'Stop the collapsing tunnels on 203 Meter Hill')),
     talk(tele1904, K('전신 기사 에몽가에게 가 보자', 'Go and see Telegrapher Emolga'),
-      K('뤼순이 함락됐어요! 이제 발트 함대가 대한 해협으로 들어온대요. 해협 위에 번개를 두른 커다란 새가 나타났다는 전신도 왔어요!', 'Port Arthur has fallen! Now the Baltic Fleet is entering the Korea Strait. A telegram says a great bird wrapped in lightning has appeared over it too!')),
-    go('tsushima', K('쓰시마 해전의 바다에서 썬더를 진정시키자 (해전)', 'Calm Zapdos in the waters of the Battle of Tsushima (naval battle)')),
+      K('뤼순이 함락됐어요! 이제 발트 함대가 대한 해협으로 들어온대요. 해협 위에서 구름을 탄 포켓몬이 번개를 내리친다는 전신도 왔어요!', 'Port Arthur has fallen! Now the Baltic Fleet is entering the Korea Strait. A telegram says a Pokémon riding a cloud is striking lightning over it too!')),
+    go('tsushima', K('쓰시마 해전의 바다에서 볼트로스를 진정시키자 (해전)', 'Calm Thundurus in the waters of the Battle of Tsushima (naval battle)')),
     scene(N('1905년 5월, 대한 해협에서 러시아 발트 함대가 무너졌다.', 'In May 1905 the Russian Baltic Fleet was destroyed in the Korea Strait.'),
       N('같은 해 11월, 일본은 대한 제국의 외교권을 빼앗는 을사늑약을 강요했다.', 'That November, Japan forced the Eulsa Treaty on the Korean Empire, taking away its diplomacy.')),
     talk(var1904, K('스완나에게 돌아가자', 'Return to Swanna'),
@@ -159,9 +157,9 @@ export const W1914A = era({
     talk(sop, K('꽃집 주인 치라치노와 이야기하자', 'Talk to Florist Cinccino'),
       K('축일인데도 거리가 이상하게 차가워요. 오스트리아가 보스니아를 합병한 뒤로 다들 마음이 갈라졌거든요.', 'It\'s a feast day, but the streets feel strangely cold. Hearts have been divided ever since Austria annexed Bosnia.')),
     talk(guard14, K('경비대원 절각참에게 가 보자', 'Go and see Guard Bisharp'),
-      K('라틴 다리 근처 골목에서 누군가 소문을 퍼뜨리고 있소. 사람들끼리 서로를 의심하게 만들고 있소.', 'Someone is spreading rumours in the lanes near the Latin Bridge, setting people against each other.'),
+      K('라틴 다리 근처 골목에 머리 셋 달린 용이 숨어 있다는 소문이 돌고 있소. 사람들이 겁에 질려 서로를 의심하고 있소.', 'They say a three-headed dragon is hiding in the lanes near the Latin Bridge. People are scared and suspect one another.'),
       K('그 골목을 살펴 주겠소?', 'Will you look into those lanes?')),
-    go('latin', K('라틴 다리 골목에서 소문을 퍼뜨리는 자를 찾자', 'Find who is spreading rumours by the Latin Bridge')),
+    go('latin', K('라틴 다리 골목의 어둠 속을 살피자', 'Look into the dark lanes by the Latin Bridge')),
     scene(N('그러나 그날 오전 11시경, 라틴 다리 근처 모퉁이에서 총성이 울렸다. 황태자 부부가 숨졌다.', 'But at about 11 that morning, shots rang out at a corner near the Latin Bridge. The heir and his wife were dead.'),
       PT('…막을 수 없었어. 역사는 이미 일어난 일이니까. 그래도 다치는 사람을 줄일 수는 있을 거야.', "...We couldn't stop it. It already happened in history. But we can still help fewer people get hurt.")),
     talk(news14, K('신문팔이 에몽가와 이야기하자', 'Talk to Newsboy Emolga'),
@@ -273,8 +271,6 @@ export const W1916A = era({
     somme: { name: K('솜 강 참호', 'The Somme Trenches'), at: [2.7, 50.0], tiles: T.quarry, floors: 3, lv: P(6), bgm: 'd_02',
       mons: [529, 530, 568, 569, 551, 552, 553, 504, 505, 627, 629, 632, 306],
       boss: WB.somme },
-    vaux: { name: K('보 요새의 강철 숲', 'The Steel Woods of Fort Vaux'), at: [5.95, 49.05], tiles: T.fort, floors: 3, lv: P(6), legend: true, bgm: 'd_mount2',
-      mons: [599, 600, 601, 624, 625, 632, 532, 533, 534, 597, 598], boss: COBALION },
   },
   npcs: [verdun, truck, somme],
   main: [
@@ -314,8 +310,6 @@ export const W1916B = era({
     jutland: { name: K('유틀란트 해전', 'Battle of Jutland'), at: [6.0, 56.7], tiles: T.deepsea, water: true, floors: 3, lv: P(7), bgm: 'ba_dpoke2',
       mons: [130, 565, 593, 319, 321, 226, 73, 550, 230, 117],
       boss: WB.jutland },
-    stormcloud: { name: K('북해의 폭풍 구름', 'The Storm Clouds over the North Sea'), at: [4.0, 59.6], tiles: T.crystal, floors: 3, lv: P(7), legend: true, bgm: 'd_ice', tint: 'rgba(200,225,255,0.10)',
-      mons: [627, 628, 629, 630, 580, 581, 561, 587, 278, 279], boss: TORNADUS },
   },
   npcs: [scapa, radio, fisher16],
   main: [
@@ -354,7 +348,7 @@ export const W1918 = era({
       mons: [529, 530, 624, 625, 532, 533, 568, 569, 551, 552, 553],
       boss: WB.lastday },
     argonne: { name: K('아르곤 숲 깊은 곳', 'Deep in the Argonne Forest'), at: [4.95, 49.25], tiles: T.forest, floors: 3, lv: P(8), legend: true, bgm: 'd_lake',
-      mons: [540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 590, 591, 511, 512], boss: VIRIZION },
+      mons: [540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 590, 591, 511, 512], boss: WB.argonne },
   },
   npcs: [wagon, flu, kid18],
   main: [

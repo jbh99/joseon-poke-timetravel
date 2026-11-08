@@ -94,6 +94,7 @@ export const WSIG = {
   iceStorm: { kind: 'storm', name: K('얼음 폭풍', 'Ice Storm'), type: 15, dmg: 0.28, turns: 3, status: 'frz', chance: 0.15, spots: 10, flash: '#d8f4ff', what: K('얼음 폭풍', 'an ice storm') },
   magma: { kind: 'storm', name: K('마그마스톰', 'Magma Storm'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#ff8040', what: K('용암', 'lava') },
   psystrike: { kind: 'pulse', name: K('사이코브레이크', 'Psystrike'), type: 14, dmg: 0.32 },
+  auraSphere: { kind: 'pulse', name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.3 }, // Mew in the Argonne Forest (1.20)
 };
 
 // a legend's second form: harder hits, a fiercer blast in two steps, its signature moves more often
@@ -106,6 +107,11 @@ function rise(o) {
         msg: K('힘이 폭주한다! 공격이 더욱 거세진다!', 'Its power runs wild! The attacks grow fiercer still!') },
     ] };
 }
+// The Forces of Nature's second phase (1.20): the Therian Forme, every stat and its HP 20% over the Incarnate Forme it
+// rose from (THERIAN on top of the first form's numbers: rise's longer, harder hits stay, its HP share and attack step
+// give way). Pokémon Black has no picture of it, so the same body takes the Forme's name and aura.
+export const THERIAN = 1.2;
+const therian = (o) => ({ ...rise({ ...o, hp: 1, atk: 1 }), buff: THERIAN });
 // a legend of the world line: two forms; lairs keep it on their third floor (floors 3), a town battle in town
 export const legend = (o) => ({ lvMin: o.lv - 8, lvUp: 4, hp: 3.2, atk: 1.02, cap: 0.34, buff: 1.1, retry: true, noWander: true, ...o });
 
@@ -196,9 +202,10 @@ export const MELOETTA = legend({ sp: 648, lv: 72, hp: 2.9, bgm: 'vs_strong', mov
   join: K('메로엣타가 마지막 음을 길게 끌며 다가왔다. 함께 노래하고 싶어 한다!', 'Meloetta holds its last note long as it comes over. It wants to sing with you!') });
 
 // The Swords of Justice (who, the legend goes, fought people to protect Pokémon caught in their wars), Keldeo who learns
-// from them, and the Forces of Nature: each keeps a lair of its own (floor 3) in an era of the world line. Pokémon
-// Black has no picture of Keldeo's Resolute Form or the Therian Formes (Black 2 and White 2 brought them), so the
-// second form rises in the same body with its aura and its name.
+// from them, and the Forces of Nature: up to 1.19 each kept an optional lair; since 1.20 each is the boss of a quest of
+// the era that held its lair, in this full two-form design, and of one more quest in another era (content_wboss.js).
+// Pokémon Black has no picture of Keldeo's Resolute Form or the Therian Formes (Black 2 and White 2 brought them), so
+// the second form rises in the same body with its aura and its name.
 export const COBALION = legend({ sp: 638, lv: 69, hp: 3.0, bgm: 'vs_strong', moves: [533, 442, 370, 232],
   tele: blast(K('아이언헤드', 'Iron Head'), 8, ['cross', 'rows', 'near', 'x']),
   sig: { use: [WSIG.sacredSword], at: SIG_AT1 },
@@ -217,7 +224,7 @@ export const TERRAKION = legend({ sp: 639, lv: 64, hp: 3.0, bgm: 'vs_strong', mo
   revive: rise({ aura: '#e8c890', form: K('바위의 의지', 'Will of Stone'), name: K('스톤에지', 'Stone Edge'), type: 5, pats: ['quad', 'far', 'checker', 'ring|x'], use: [WSIG.stoneEdge, WSIG.sacredSword],
     msg: K('테라키온이 성벽을 들이받았다! 무너진 바위가 사방으로 쏟아진다!', 'Terrakion rams the fortress wall! Fallen rock pours down everywhere!') }),
   say: [
-    N('요새의 암벽이 무너지고, 바위 같은 몸의 포켓몬이 돌진해 나왔다. 성벽을 부수고 갇힌 포켓몬을 구했다는 테라키온이다.', 'The fortress rock wall gives way and a Pokémon with a body like a boulder charges out. It is Terrakion, said to have broken a castle wall to free the Pokémon trapped inside.'),
+    N('포탄에 깎인 203고지의 암벽이 무너지고, 바위 같은 몸의 포켓몬이 돌진해 나왔다. 성벽을 부수고 갇힌 포켓몬을 구했다는 테라키온이다.', 'The rock face of 203 Meter Hill, gouged by shells, gives way and a Pokémon with a body like a boulder charges out. It is Terrakion, said to have broken a castle wall to free the Pokémon trapped inside.'),
     { who: 639, name: K('테라키온', 'Terrakion'), text: K('…이 요새의 돌마다 갇힌 포켓몬들의 울음이 들린다. 길을 막는다면 바위째 부수고 지나가겠다!', '...From every stone of this fortress I hear the cries of trapped Pokémon. If you stand in the way, I will smash through you, rock and all!') },
     PT('바위가 몇 턴 동안 붉은 칸에 쏟아져! 성스러운칼은 갈라지는 줄을 따라 와!', 'Rocks will fall on the red tiles for several turns! And the Sacred Sword comes along the cracks!')],
   after: [{ who: 639, name: K('테라키온', 'Terrakion'), text: K('…너희는 무너진 돌 밑의 작은 생명부터 꺼냈다. 그것으로 충분하다.', '...You pulled the small lives out from under the fallen stones first. That is enough.') }],
@@ -239,9 +246,9 @@ export const KELDEO = legend({ sp: 647, lv: 72, hp: 2.9, bgm: 'vs_strong', moves
   tele: blast(K('하이드로펌프', 'Hydro Pump'), 11, ['rows', 'cross', 'near', 'cols']),
   sig: { use: [WSIG.secretSword], at: SIG_AT1 },
   revive: rise({ aura: '#7fd4ff', form: K('각오의 모습', 'Resolute Form'), name: K('신비의칼', 'Secret Sword'), type: 1, pats: ['x', 'rows|cols', 'quad', 'far'], use: [WSIG.secretSword, WSIG.waterSpouts],
-    msg: K('케르디오의 뿔이 각오로 빛난다! 물기둥이 물길 위로 솟는다!', "Keldeo's horn shines with resolve! Water spouts rise over the waterways!") }),
+    msg: K('케르디오의 뿔이 각오로 빛난다! 물기둥이 해협 위로 솟는다!', "Keldeo's horn shines with resolve! Water spouts rise over the Channel!") }),
   say: [
-    N('물길 위를 달리는 작은 망아지 같은 포켓몬. 세 영웅에게 배우며 자란다는 케르디오다.', 'A Pokémon like a small colt runs over the waterways. It is Keldeo, who grows up learning from the three heroes.'),
+    N('해협의 물결 위를 달리는 작은 망아지 같은 포켓몬. 세 영웅에게 배우며 자란다는 케르디오다.', 'A Pokémon like a small colt runs over the waves of the Channel. It is Keldeo, who grows up learning from the three heroes.'),
     { who: 647, name: K('케르디오', 'Keldeo'), text: K('…나도 지키고 싶어! 바다를 건너 집으로 돌아가려는 사람들을! 내 각오를 보여 줄게!', '...I want to protect them too! The people trying to cross the sea and get home! I will show you my resolve!') },
     PT('신비의 칼이 줄을 따라 와! 물기둥도 몇 턴 동안 떨어질 거야!', 'The Secret Sword comes along lines! Water spouts will fall for several turns too!')],
   after: [{ who: 647, name: K('케르디오', 'Keldeo'), text: K('…졌어. 그래도 이제 알겠어. 지킨다는 건 끝까지 포기하지 않는 거야.', '...I lost. But now I know. Protecting means never giving up, right to the end.') }],
@@ -250,10 +257,10 @@ export const KELDEO = legend({ sp: 647, lv: 72, hp: 2.9, bgm: 'vs_strong', moves
 export const TORNADUS = legend({ sp: 641, lv: 70, hp: 2.9, bgm: 'vs_strong', moves: [542, 403, 242, 369],
   tele: blast(K('에어슬래시', 'Air Slash'), 2, ['ring', 'far', 'x', 'near']),
   sig: { use: [WSIG.hurricane], at: SIG_AT1 },
-  revive: rise({ aura: '#cfe9ff', form: K('영물폼', 'Therian Forme'), name: K('폭풍', 'Hurricane'), type: 2, pats: ['far', 'star', 'checker', 'quad|ring'], use: [WSIG.hurricane, WSIG.hurricane],
-    msg: K('토네로스가 영물의 모습으로 변했다! 돌풍이 바다를 뒤집는다!', 'Tornadus takes its Therian Forme! Gusts turn the sea upside down!') }),
+  revive: therian({ aura: '#cfe9ff', form: K('영물폼', 'Therian Forme'), name: K('폭풍', 'Hurricane'), type: 2, pats: ['far', 'star', 'checker', 'quad|ring'], use: [WSIG.hurricane, WSIG.hurricane],
+    msg: K('토네로스가 영물의 모습으로 변했다! 모든 능력이 오르고, 돌풍이 바다를 뒤집는다!', 'Tornadus takes its Therian Forme! Every stat rises, and gusts turn the sea upside down!') }),
   say: [
-    N('북해의 폭풍 구름 위에서, 구름을 탄 포켓몬이 웃고 있다. 바람을 일으켜 바다를 뒤집는 토네로스다.', 'Above the storm clouds of the North Sea, a Pokémon riding a cloud is laughing. It is Tornadus, who raises winds that turn the sea over.'),
+    N('짙은 안개가 돌풍에 찢겨 나간다. 북해 위에서 구름을 탄 포켓몬이 웃고 있다. 바람을 일으켜 바다를 뒤집는 토네로스다.', 'Gusts tear the thick fog apart. Above the North Sea, a Pokémon riding a cloud is laughing. It is Tornadus, who raises winds that turn the sea over.'),
     { who: 641, name: K('토네로스', 'Tornadus'), text: K('…쇠로 된 배들이 서로를 쏘아 대는구나. 이 바다를 통째로 뒤집어 주마!', '...Ships of iron firing at each other. I will turn this whole sea upside down!') },
     PT('돌풍이 몇 턴 동안 붉은 칸을 휩쓸어! 계속 움직이자!', 'Gusts will sweep the red tiles for several turns! Keep moving!')],
   after: [{ who: 641, name: K('토네로스', 'Tornadus'), text: K('…바다 밑에 가라앉은 자들을 위해, 바람을 거두마.', '...For those who sank beneath the sea, I will calm the wind.') }],
@@ -262,10 +269,10 @@ export const TORNADUS = legend({ sp: 641, lv: 70, hp: 2.9, bgm: 'vs_strong', mov
 export const THUNDURUS = legend({ sp: 642, lv: 81, hp: 2.9, bgm: 'vs_strong', moves: [87, 435, 399, 359],
   tele: blast(K('방전', 'Discharge'), 13, ['near', 'ring', 'cross', 'x']),
   sig: { use: [WSIG.thunder], at: SIG_AT1 },
-  revive: rise({ aura: '#fff07a', form: K('영물폼', 'Therian Forme'), name: K('번개', 'Thunder'), type: 13, pats: ['checker', 'far', 'quad', 'star|near'], use: [WSIG.thunder, WSIG.thunder],
-    msg: K('볼트로스가 영물의 모습으로 변했다! 하늘 전체가 번개로 갈라진다!', 'Thundurus takes its Therian Forme! The whole sky splits with lightning!') }),
+  revive: therian({ aura: '#fff07a', form: K('영물폼', 'Therian Forme'), name: K('번개', 'Thunder'), type: 13, pats: ['checker', 'far', 'quad', 'star|near'], use: [WSIG.thunder, WSIG.thunder],
+    msg: K('볼트로스가 영물의 모습으로 변했다! 모든 능력이 오르고, 하늘 전체가 번개로 갈라진다!', 'Thundurus takes its Therian Forme! Every stat rises, and the whole sky splits with lightning!') }),
   say: [
-    N('필리핀 바다의 하늘이 검게 물들고, 꼬리로 번개를 내리치는 포켓몬이 나타났다. 볼트로스다.', 'The sky over the Philippine Sea turns black, and a Pokémon that strikes lightning with its tail appears. It is Thundurus.'),
+    N('수리가오 해협의 밤하늘이 검게 물들고, 꼬리로 번개를 내리치는 포켓몬이 나타났다. 볼트로스다.', 'The night sky over the Surigao Strait turns black, and a Pokémon that strikes lightning with its tail appears. It is Thundurus.'),
     { who: 642, name: K('볼트로스', 'Thundurus'), text: K('…포성보다 큰 번개를 들려주마! 이 하늘에서 살아남을 수 있겠느냐!', '...I will let you hear thunder louder than any gun! Can you survive this sky?') },
     PT('번개가 몇 턴 동안 붉은 칸에 떨어져! 맞으면 마비될 수도 있어!', 'Lightning will fall on the red tiles for several turns! It can paralyse whoever it hits!')],
   after: [{ who: 642, name: K('볼트로스', 'Thundurus'), text: K('…요란한 건 우레만이 아니었군. 너희의 마음도 꽤 시끄럽다.', '...So thunder is not the only loud thing. Your hearts are quite noisy too.') }],
@@ -274,13 +281,13 @@ export const THUNDURUS = legend({ sp: 642, lv: 81, hp: 2.9, bgm: 'vs_strong', mo
 export const LANDORUS = legend({ sp: 645, lv: 77, hp: 3.0, bgm: 'vs_strong', moves: [414, 89, 157, 326],
   tele: blast(K('지진', 'Earthquake'), 4, ['ring', 'near', 'cross', 'far']),
   sig: { use: [WSIG.earthPower], at: SIG_AT1 },
-  revive: rise({ aura: '#ffc870', form: K('영물폼', 'Therian Forme'), name: K('대지의힘', 'Earth Power'), type: 4, pats: ['quad', 'checker', 'far|ring', 'star'], use: [WSIG.earthPower, WSIG.stoneEdge],
-    msg: K('랜드로스가 영물의 모습으로 변했다! 얼어붙은 들판이 사방에서 터져 오른다!', 'Landorus takes its Therian Forme! The frozen fields burst open everywhere!') }),
+  revive: therian({ aura: '#ffc870', form: K('영물폼', 'Therian Forme'), name: K('대지의힘', 'Earth Power'), type: 4, pats: ['quad', 'checker', 'far|ring', 'star'], use: [WSIG.earthPower, WSIG.stoneEdge],
+    msg: K('랜드로스가 영물의 모습으로 변했다! 모든 능력이 오르고, 진흙길이 사방에서 터져 오른다!', 'Landorus takes its Therian Forme! Every stat rises, and the mud road bursts open everywhere!') }),
   say: [
-    N('얼어붙은 들판 위에 구름을 탄 포켓몬이 내려앉았다. 밭을 풍요롭게 한다는 땅의 수호자 랜드로스다.', 'A Pokémon riding a cloud settles on the frozen fields. It is Landorus, the guardian of the land who makes the fields rich.'),
-    { who: 645, name: K('랜드로스', 'Landorus'), text: K('…이 들판은 몇 번이나 군대에게 짓밟혔다. 1812년에도, 지금도. 땅의 분노를 받아 보아라!', '...These fields have been trampled by armies again and again. In 1812, and now. Feel the anger of the land!') },
+    N('끝없는 진흙길 위에 구름을 탄 포켓몬이 내려앉았다. 밭을 풍요롭게 한다는 땅의 수호자 랜드로스다.', 'A Pokémon riding a cloud settles on the endless mud road. It is Landorus, the guardian of the land who makes the fields rich.'),
+    { who: 645, name: K('랜드로스', 'Landorus'), text: K('…이 땅은 몇 번이나 군대에게 짓밟혔다. 1812년에도, 지금도. 땅의 분노를 받아 보아라!', '...This land has been trampled by armies again and again. In 1812, and now. Feel the anger of the land!') },
     PT('땅이 몇 턴 동안 붉은 칸에서 솟구쳐! 계속 살피자!', 'The ground will burst up on the red tiles for several turns! Keep watching!')],
-  after: [{ who: 645, name: K('랜드로스', 'Landorus'), text: K('…봄이 오면 이 들판에 다시 밀이 자랄 것이다. 짓밟힌 땅도 다시 일어선다.', '...When spring comes, wheat will grow on these fields again. Trampled land rises again too.') }],
+  after: [{ who: 645, name: K('랜드로스', 'Landorus'), text: K('…봄이 오면 이 땅에 다시 밀이 자랄 것이다. 짓밟힌 땅도 다시 일어선다.', '...When spring comes, wheat will grow on this land again. Trampled land rises again too.') }],
   join: K('랜드로스가 땅에 손을 얹었다. 함께 가고 싶어 한다!', 'Landorus lays a hand on the ground. It wants to come along!') });
 
 // The world line's final battle, the last quest of the Second World War: Kyurem, then Black Kyurem, then White Kyurem.

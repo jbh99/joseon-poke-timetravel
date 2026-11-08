@@ -68,10 +68,15 @@ const JOSEON = [
     ],
     dungeons: {
       inwang: { name: '인왕산 숲길', tiles: T.forest, floors: 4, lv: [4, 7], mons: [396, 399, 10, 13, 16, 19, 401, 165], bgm: 'road_c',
-        boss: { sp: 217, lv: 10, bgm: 'ba_poke', say: [
-          { who: 217, text: '그르르… 여긴 내 숲이다! 나무를 베어 가는 놈들은 용서 못 해!' },
-          { who: 'partner', text: '궁궐을 지을 나무가 꼭 필요해. 진정시키고 이야기해 보자!' }],
-        after: [{ who: 217, text: '…미안하다. 숲이 사라질까 봐 겁이 났어. 필요한 만큼만 가져가거라.' }] } },
+        // 1.20: Raikou, the thunder tiger, on the mountain of Hanyang's tigers (one of the legends the world line gave up)
+        boss: { sp: 243, lv: 10, lvMin: 7, lvUp: 3, hp: 3.6, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [85, 422, 44, 98],
+          tele: { name: K('방전', 'Discharge'), every: 3, dmg: 0.3, pats: ['rows', 'cols', 'quad', 'far'], type: 13 },
+          say: [
+            { who: 'narr', text: K('숲 깊은 곳에 마른번개가 떨어지고, 호랑이를 닮은 포켓몬이 길을 막아섰다. 인왕산의 호랑이라 불리던 라이코다!', 'Dry lightning strikes deep in the forest, and a tiger-like Pokémon blocks the way. It is Raikou, called the tiger of Inwangsan!') },
+            { who: 243, name: K('라이코', 'Raikou'), text: K('크르르르! (나무가 베여 나간 자리마다 번개가 내리친다!)', 'Krrrrr! (Lightning strikes every spot where a tree was felled!)') },
+            { who: 'partner', text: '궁궐을 지을 나무가 꼭 필요해. 진정시키고 이야기해 보자!' }],
+          after: [{ who: 243, name: K('라이코', 'Raikou'), text: K('…크르. (라이코는 베어 낸 그루터기를 한참 바라보더니, 필요한 만큼만 가져가라는 듯 길을 비켜 주었다.)', '...Krr. (Raikou stares a long while at the felled stumps, then steps aside as if to say: take only what you need.)') }],
+          join: K('라이코가 번개를 거두고 곁에 앉았다. 함께 가고 싶어 한다!', 'Raikou draws in its lightning and sits beside you. It wants to come along!') } },
       bugak: { name: '북악산', tiles: T.mountain, floors: 3, lv: [3, 6], mons: [16, 19, 74, 396, 399, 56], bgm: 'd_05' },
     },
     npcs: [
@@ -84,9 +89,9 @@ const JOSEON = [
     main: [
       { do: 'talk', npc: 'machoke', log: '목수 근육몬과 이야기하자', say: [
         { who: 67, name: '목수 근육몬', text: '오, 낯선 얼굴이구먼! 마침 잘 왔네. 1394년, 임금님께서 도읍을 이곳 한양으로 옮기셨지.' },
-        { who: 67, name: '목수 근육몬', text: '새 궁궐을 짓는데 인왕산에서 목재가 내려오질 않아. 숲 깊은 곳에서 링곰이 길을 막고 있다는군.' },
+        { who: 67, name: '목수 근육몬', text: K('새 궁궐을 짓는데 인왕산에서 목재가 내려오질 않아. 숲 깊은 곳에서 번개를 두른 호랑이가 길을 막고 있다는군.', "We're building a new palace, but no timber is coming down from Inwangsan. They say a tiger wrapped in lightning is blocking the way deep in the forest.") },
         { who: 'partner', text: '우리가 가 볼게요! 세계 지도에서 "인왕산 숲길"을 고르면 되겠다.' }] },
-      { do: 'dungeon', d: 'inwang', log: '인왕산 숲길 깊은 곳의 링곰을 진정시키자' },
+      { do: 'dungeon', d: 'inwang', log: K('인왕산 숲길 깊은 곳의 라이코를 진정시키자', 'Calm Raikou deep in Inwangsan Forest Path') },
       { do: 'talk', npc: 'machoke', log: '근육몬에게 돌아가 소식을 전하자', say: [
         { who: 67, name: '목수 근육몬', text: '목재가 내려오고 있어! 자네들 덕분이야. 이제 궁궐을 완성할 수 있겠어!' }] },
     ],
@@ -125,10 +130,15 @@ const JOSEON = [
     dungeons: {
       library: { name: '집현전 서고', tiles: T.library, floors: 4, lv: [9, 13], mons: [201, 201, 63, 96, 177, 343, 436, 163], bgm: 'd_02',
         quest: { item: 'hunmin', perFloor: 1 },
-        boss: { sp: 437, lv: 15, bgm: 'ba_gym', say: [
-          { who: 437, text: '…글자는 귀한 사람만 아는 것이다… 백성에게 줄 수 없다…' },
-          { who: 'partner', text: '아니야! 임금님은 누구나 쉽게 익히라고 이 글자를 만드셨어!' }],
-        after: [{ who: 437, text: '…누구나 쉽게 쓰는 글자라… 종소리처럼 멀리 퍼지겠구나.' }] } },
+        // 1.20: Ho-Oh, the phoenix said to appear under a wise king (one of the legends the world line gave up)
+        boss: { sp: 250, lv: 16, lvMin: 12, lvUp: 3, hp: 3.8, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [221, 413, 53, 246],
+          tele: { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, pats: ['cross', 'ring', 'x', 'near'], type: 10 },
+          say: [
+            { who: 'narr', text: K('서고 가장 깊은 곳이 무지갯빛으로 물들었다. 어진 임금의 시대에만 나타난다는 봉황, 칠색조가 마지막 낱장을 품고 내려앉았다!', 'The deepest stacks glow with rainbow light. Ho-Oh, the phoenix said to appear only under a wise king, has come down holding the last page!') },
+            { who: 250, name: K('칠색조', 'Ho-Oh'), text: K('쿠오오오! (이 글자가 정말 백성을 위한 것인지 시험하려는 듯 날개를 펼친다!)', 'Kwooooh! (It spreads its wings as if to test whether these letters are truly for the people!)') },
+            { who: 'partner', text: '아니야! 임금님은 누구나 쉽게 익히라고 이 글자를 만드셨어!' }],
+          after: [{ who: 250, name: K('칠색조', 'Ho-Oh'), text: K('…쿠오. (칠색조가 품고 있던 낱장을 내려놓자, 서고 가득 무지갯빛 깃털이 흩날렸다.)', '...Kwoh. (Ho-Oh sets down the page it held, and rainbow feathers drift all through the stacks.)') }],
+          join: K('칠색조가 일곱 빛깔 날개를 접었다. 함께 가고 싶어 한다!', 'Ho-Oh folds its seven-coloured wings. It wants to come along!') } },
       gwanak: { name: '관악산', tiles: T.hill, floors: 3, lv: [8, 12], mons: [74, 66, 56, 37, 77, 58], bgm: 'road_e' },
     },
     npcs: [

@@ -17,6 +17,11 @@ export const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { con
 // touch screens get the on-screen pad: the Android app always, phones and tablets by their coarse pointer, ?touch=1 for testing
 export const APP = !!window.Capacitor?.isNativePlatform?.();
 export const touchUI = APP || /[?&]touch=1/.test(location.search) || !!window.matchMedia?.('(pointer: coarse)').matches;
+// what the game's real-time dangers (falling fire, constables on their beat) wait for: the guide or another HTML panel
+// over the game (G.paused), a phone's menu panel (G.menuOpen), and a phone held upright, whose game the turn-sideways
+// notice covers (index.html #rotate; up to 1.19 the fire went on falling behind it, and the constables kept walking)
+const UPRIGHT = window.matchMedia?.('(orientation: portrait)');
+export const held = () => !!(G.paused || G.menuOpen || (touchUI && UPRIGHT?.matches));
 
 // ---------------------------------------------------------------- canvas
 export function initCanvas() {

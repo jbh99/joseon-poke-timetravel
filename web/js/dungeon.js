@@ -1,5 +1,5 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
-import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI } from './core.js';
+import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, dexMark } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
@@ -147,7 +147,10 @@ export class Dungeon {
   get bossDefs() {
     const d = this.def, st = this.stage;
     if (st) return st.flag && S.flags[st.flag] ? [] : [].concat(st.bosses || st.boss || []);
-    if (d.legend) return d.boss && this.floor === d.floors && !lairDone(this.dId) ? [d.boss] : [];
+    // a lair keeps its legend until it has joined; a legend's lair that is the story's own quest (Meloetta, Victini,
+    // Genesect, Zekrom) has it on the story run whatever came before (1.20: the first three are met in an earlier quest
+    // too, where they may have joined already; then they fight again without offering to join, content_wboss.js once)
+    if (d.legend) return d.boss && this.floor === d.floors && (this.main || !lairDone(this.dId)) ? [d.boss] : [];
     if (this.wander && this.floor === this.def.floors) return [this.wander];
     if (!this.main) return d.mid && this.floor === d.mid.floor && midWaiting(this.dId) ? [d.mid] : [];
     return d.boss && this.floor === d.floors ? [d.boss] : [];
@@ -1397,7 +1400,9 @@ export class Dungeon {
     e.revived = true; e.revives = (e.revives || 0) + 1; e.rev = r;
     this.sigEnd(e);
     if (r.forme !== undefined) m.forme = r.forme; // Deoxys rises again in another Forme
-    m.hpMul *= r.hp ?? 2 / 3; m.atkMul *= r.atk ?? 1.3; m.hp = m.maxhp;
+    m.hpMul *= r.hp ?? 2 / 3; m.atkMul *= r.atk ?? 1.3;
+    if (r.buff) m.buff *= r.buff; // every stat and HP at once (the Forces of Nature's Therian Forme, content_wkit.js therian)
+    m.hp = m.maxhp;
     if (r.def) m.defMul = (m.defMul || 1) * r.def;
     m.status = null; m.stages = {}; m.slowT = 0; m.typeOverride = r.typeTo != null ? [r.typeTo] : null;
     if (r.shiny) e.shiny = m.shiny = true;
@@ -1605,7 +1610,7 @@ export class Dungeon {
     if (this.timeFx) { this.timeFx.t -= dt; if (this.timeFx.t <= 0) this.timeFx = null; }
     if (this.lightFx) { this.lightFx.t -= dt; if (this.lightFx.t <= 0) this.lightFx = null; }
     if (this.shake) this.shake = Math.max(0, this.shake - dt);
-    if (!this.done && !G.paused && !G.menuOpen) this.updateFire(G.rdt ?? dt); // the guide, co-op or a phone's menu panel holds it too
+    if (!this.done && !held()) this.updateFire(G.rdt ?? dt); // the guide, co-op, a phone's menu panel or its turn-sideways notice holds it too
     // X/C/M/J/Tab/P pressed while a turn plays out wait for it instead of being dropped; so do an arrow or A tapped
     // then, however briefly (the step or the rest follows once the turn is over)
     for (const k of ['cancel', 'menu', 'map', 'quest', 'tag', 'party']) if (input.hit(k)) this.latch = k;

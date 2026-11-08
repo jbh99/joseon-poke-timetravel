@@ -1,5 +1,5 @@
 // Hub town for the current era: generated tile map + Blender-rendered buildings + NPCs.
-import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI } from './core.js';
+import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL, TMS, tmPrice, tmFits, moveUsable } from './game.js';
 import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content.js';
@@ -863,7 +863,7 @@ export class Town {
     // arrows: the one pressed last leads while it is held (holding ← and pressing ↑ turns up; up to 1.13 left beat
     // right beat up beat down), and one pressed while a step plays out, however briefly, takes the next step
     for (const k of TOWN_DIRS) if (input.pressed.has(k)) { this.dirs = (this.dirs || []).filter((d) => d !== k).concat(k); this.tapDir = k; }
-    if (!fade.cb) for (const pr of this.pairs) this.patrolStep(pr, dt);
+    if (!fade.cb && !held()) for (const pr of this.pairs) this.patrolStep(pr, dt); // not behind the guide or another panel
     // NPC wandering: only onto tiles that leave every way open and two tiles wide, keeping the town's distance from
     // the others (roomFor, this.gap), off doors and ways out (standable)
     let at = null;
