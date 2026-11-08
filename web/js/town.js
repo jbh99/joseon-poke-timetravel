@@ -130,7 +130,7 @@ export class Town {
     this.arrive = [this.px, this.py];
     // where the save left you, unless a battlefield (Dungeon), or unless that spot is no longer ground to stand on (a save
     // from before a town's map changed, a damaged one): then you arrive as usual instead of standing stuck in a wall
-    const [sx, sy] = (!this.battle && S.townPos) || [], restored = Number.isInteger(sx) && this.fence[sy]?.[sx] === false;
+    const [sx, sy] = (!this.battle && S.townPos) || [], restored = Number.isInteger(sx) && this.fence[sy]?.[sx] === false && this.reaches(sx, sy);
     if (!this.battle) S.townPos = null;
     if (restored) { this.px = sx; this.py = sy; }
     this.vx = this.px; this.vy = this.py; this.moving = false; this.moveT = 0;
@@ -307,13 +307,14 @@ export class Town {
     this.gap = this.bwmap ? 3 : 2; // how close people may stand to one another (roomFor), a Black town two free tiles
     this.buildFence();
   }
-  // Where the team cannot walk (1.21). A town is open to walk: up to 1.20 the team kept to the walkable grid (Pokémon
-  // Black's or Pearl's, or the footprints of what stands in the town), which stopped it on bright paving and lawns with
-  // nothing to show why. Only what plainly is not the town's ground stops it now: the water, the woods around the town and,
-  // in a Black town, what lies outside it (tools/bw/render.py walk_grids: drawn dim). The team passes through and behind
-  // houses, trees and fences (drawn faintly there, draw). The notice board has to be faced to be read, so it stays in the
-  // way, like people and the Time Gate (barred). `solid` is not changed: the townspeople keep to the streets and a town
-  // battle is fought on them.
+  // Where the team cannot walk (1.22). Buildings, the water, the woods around the town and whatever lies beyond the town
+  // stop it; what only stands in the way does not: up to 1.20 the team kept to the walkable grid (Pokémon Black's or
+  // Pearl's, or the footprints of what stands in the town), which stopped it on bright paving and lawns with nothing to
+  // show why, and 1.21 let it through houses and off the map. A Black town's grid says it (tools/bw/render.py team_grid); in
+  // the other towns the props (trees, rocks, lanterns, the tram) and the hedges standing alone inside the town are walked
+  // through (drawn faintly behind them, draw). The notice board has to be faced to be read, so it stays in the way, like
+  // people and the Time Gate (barred). `solid` is not changed: the townspeople keep to the streets and a town battle is
+  // fought on them.
   buildFence() {
     const W = this.W, H = this.H, g = this.ground;
     if (this.bwmap) this.fence = this.bwmap.free.map((row) => [...row].map((ch) => ch !== '.'));
@@ -326,7 +327,9 @@ export class Town {
       for (let k = 0; k < q.length; k++) { const [x, y] = q[k]; add(x + 1, y); add(x - 1, y); add(x, y + 1); add(x, y - 1); }
       this.fence = g.map((row, y) => row.map((c, x) => woods[y][x] || c === 'water'));
     }
-    for (const o of this.objs) if (o.kind === 'board') for (let y = o.ty; y < o.ty + o.fd; y++) for (let x = o.tx; x < o.tx + o.fw; x++) if (this.fence[y]?.[x] === false) this.fence[y][x] = true;
+    // buildings (a Black town's are in its grid already; its own occluders are only pictures), tents among them (props with
+    // a house's or an inn's place), and the board: of what stands in a town only the decoration is walked through
+    for (const o of this.objs) if (o.kind !== 'bw' && !(o.prop && o.kind === 'deco')) for (let y = o.ty; y < o.ty + o.fd; y++) for (let x = o.tx; x < o.tx + o.fw; x++) if (this.fence[y]?.[x] === false) this.fence[y][x] = true;
   }
   buildMap() {
     if (this.bwmap) return this.buildBW();
@@ -969,6 +972,20 @@ export class Town {
         } else if (TOWN_DIRS.some((k) => input.pressed.has(k))) sfx('bump');
       }
     }
+  }
+  // whether the team can walk to a tile from where it arrives (a spot saved by 1.21 may lie in a pocket closed off since)
+  reaches(x, y) {
+    const W = this.W, H = this.H;
+    if (!this.ways) {
+      const seen = new Uint8Array(W * H), q = [this.arrive];
+      seen[this.arrive[1] * W + this.arrive[0]] = 1;
+      for (let k = 0; k < q.length; k++) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const a = q[k][0] + dx, b = q[k][1] + dy;
+        if (a >= 0 && b >= 0 && a < W && b < H && !seen[b * W + a] && !this.fence[b][a] && !this.onGate(a, b)) { seen[b * W + a] = 1; q.push([a, b]); }
+      }
+      this.ways = seen;
+    }
+    return !!this.ways[y * W + x];
   }
   // the third member appears on a free tile beside the partner rather than on top of it
   spawnMate(P) {

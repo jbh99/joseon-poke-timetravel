@@ -15,13 +15,14 @@ Out, in web/assets/bw/towns: <town>.png (the picture), <town>_obj.png (an atlas 
 its own and tall terrain row by row, each with the picture row its foot stands on, so people north of it walk behind
 it; each kept as its opaque pieces, so the atlas holds none of the empty space a row of trees spans and stays small
 enough for a phone's GPU to keep with the picture); work/bw/towns/<town>.json holds the walkable grid, the free grid
-(walk_grids: where the team may walk), each walkable tile's lift in picture pixels, the doors, exits and occluders, which bw_index.py merges into the index the game loads.
+(team_grid: where the team may walk), each walkable tile's lift in picture pixels, the doors, exits and occluders, which bw_index.py merges into the index the game loads.
 
 usage: python render.py [town ...]          (towns: see TOWNS)
 """
 import json
 import math
 import os
+import re
 import struct
 import sys
 
@@ -42,6 +43,10 @@ WATER = {0x10, 0x16, 0x56, 0x83, 0xC1, 0xC3}
 # model units a tile's surface lies below all the town's walkable ground to be water, whatever its collision word: Nuvema's sea,
 # most of Driftveil's and Nimbasa's pond carry the very word of a tree or a wall (water lies 6 to 27 below, a low kerb 2)
 WATER_DROP = 4
+# what the building list holds that is no building: street furniture, planters, rocks and the like stop nobody (team_grid)
+FURNITURE = re.compile(r'^(sign0|out_dust|out_vender|plant_|o_chair|o_table|o_parasol|cart_|d5_container|searock|rock_|c01thicket|t01_kira|fountain_|c01fountain|c5_statue)')
+TREE, CLIFF = re.compile(r'^(ki\d|mori)'), re.compile(r'gake|_ana$')  # terrain materials: trees; cliff faces (and the pit at Driftveil's warehouse)
+JUMP = 24  # picture pixels between the ground on two sides of a wall from which on it stays a wall (a retaining wall, a bridge's side)
 ROM = os.environ.get('BLACK_ROM') or os.path.join(os.path.expanduser('~'), 'Downloads', 'claude skills', '포켓몬스터 블랙(K).nds')
 OUT = os.path.join(ROOT, 'web', 'assets', 'bw', 'towns')
 META = os.path.join(ROOT, 'work', 'bw', 'towns')  # per-town data; bw_index.py merges it into OUT/index.json
@@ -247,6 +252,24 @@ def model_tris(bmd, texset, world):
                 yield t, tex, mat
 
 
+def tiles_under(p0, p1, p2, W, H):
+    """(tile z, tile x, height there) of every tile whose centre lies under a triangle seen from above."""
+    xs, zs = (p0[0], p1[0], p2[0]), (p0[2], p1[2], p2[2])
+    tx0, tx1 = max(0, int(math.floor(min(xs) / 16))), min(W - 1, int(math.floor(max(xs) / 16)))
+    tz0, tz1 = max(0, int(math.floor(min(zs) / 16))), min(H - 1, int(math.floor(max(zs) / 16)))
+    den = (p1[2] - p2[2]) * (p0[0] - p2[0]) + (p2[0] - p1[0]) * (p0[2] - p2[2])
+    if abs(den) < 1e-9:
+        return
+    for tz in range(tz0, tz1 + 1):
+        for tx in range(tx0, tx1 + 1):
+            x, z = tx * 16 + 8, tz * 16 + 8
+            a = ((p1[2] - p2[2]) * (x - p2[0]) + (p2[0] - p1[0]) * (z - p2[2])) / den
+            b = ((p2[2] - p0[2]) * (x - p2[0]) + (p0[0] - p2[0]) * (z - p2[2])) / den
+            c = 1 - a - b
+            if a >= -1e-3 and b >= -1e-3 and c >= -1e-3:
+                yield tz, tx, a * p0[1] + b * p1[1] + c * p2[1]
+
+
 def ground_probe(heights, tris, W, H):
     """Each tile's walkable surface height: the highest upward-facing terrain triangle over its centre (trees,
     whose materials are named ki*, are left out by the caller: their canopies hang over walkable tiles)."""
@@ -255,22 +278,23 @@ def ground_probe(heights, tris, W, H):
         ln = np.linalg.norm(n)
         if ln < 1e-9 or abs(n[1]) / ln < 0.6:
             continue
-        xs, zs = (p0[0], p1[0], p2[0]), (p0[2], p1[2], p2[2])
-        tx0, tx1 = max(0, int(math.floor(min(xs) / 16))), min(W - 1, int(math.floor(max(xs) / 16)))
-        tz0, tz1 = max(0, int(math.floor(min(zs) / 16))), min(H - 1, int(math.floor(max(zs) / 16)))
-        den = (p1[2] - p2[2]) * (p0[0] - p2[0]) + (p2[0] - p1[0]) * (p0[2] - p2[2])
-        if abs(den) < 1e-9:
-            continue
-        for tz in range(tz0, tz1 + 1):
-            for tx in range(tx0, tx1 + 1):
-                x, z = tx * 16 + 8, tz * 16 + 8
-                a = ((p1[2] - p2[2]) * (x - p2[0]) + (p2[0] - p1[0]) * (z - p2[2])) / den
-                b = ((p2[2] - p0[2]) * (x - p2[0]) + (p0[0] - p2[0]) * (z - p2[2])) / den
-                c = 1 - a - b
-                if a >= -1e-3 and b >= -1e-3 and c >= -1e-3:
-                    y = a * p0[1] + b * p1[1] + c * p2[1]
-                    if y > heights[tz, tx]:
-                        heights[tz, tx] = y
+        for tz, tx, y in tiles_under(p0, p1, p2, W, H):
+            if y > heights[tz, tx]:
+                heights[tz, tx] = y
+
+
+def footprint(mask, tris, W, H, base=None):
+    """Mark the tiles under a model seen from above and, given the height of its foot, those it hides in the picture: height
+    lifts a point up the picture, so the ground behind a house lies under its roof (and the ROM walls that strip off too)."""
+    for (p0, _, _), (p1, _, _), (p2, _, _) in tris:
+        for tz, tx, _ in tiles_under(p0, p1, p2, W, H):
+            mask[tz, tx] = True
+        if base is not None:
+            q0, q1, q2 = p0.copy(), p1.copy(), p2.copy()
+            for q in (q0, q1, q2):
+                q[2] -= OBLIQUE * (q[1] - base)
+            for tz, tx, _ in tiles_under(q0, q1, q2, W, H):
+                mask[tz, tx] = True
 
 
 def pack_sprites(sprites, width):
@@ -334,9 +358,8 @@ def cutout(rgb, mask):
 def walk_grids(data, name, zone, x0, y0, cw, ch):
     """The tile grids of a town's box, from the ROM's walkable grids: blocked (nobody stands there: walls, water and the
     pockets out of reach), beyond (walkable tiles of the other zones' cells: ways out lead there), outside (not the town:
-    the other zones' cells and its pockets, drawn dim) and free (where the team may walk in the game, 1.21: the town's own
-    ground, walls and all, but not water; people and the Time Gate stay in the way there. Water with a wall's word is
-    taken out by render_town, which knows the surface heights)."""
+    the other zones' cells and its pockets, drawn dim) and the town's own ground, walls and all, but not water (water with
+    a wall's word is taken out by render_town, which knows the surface heights; team_grid then says where the team walks)."""
     W, H = cw * 32, ch * 32
     blocked = np.ones((H, W), bool)
     beyond = np.zeros((H, W), bool)
@@ -379,6 +402,102 @@ def walk_grids(data, name, zone, x0, y0, cw, ch):
     return blocked, beyond, outside, ground & ~outside
 
 
+def team_grid(ground, blocked, outside, built, furniture, nature, cliff, lifts):
+    """Where the team walks in a town (1.22). The ROM's walkable tiles, and what only gets in their way: street furniture, lone
+    trees, fences, hedges and stretches of blocked flat ground that stop you with nothing to show why. Buildings (with the
+    strip hidden behind them), cliffs, water and the woods around the town stop it, and so does what runs out to the edge
+    of the map: 1.21 opened everything but the water, and the team walked through houses and off the map.
+      nature joined to the box's edge or to what lies outside (side by side, not corner to corner: a row of street trees
+      touching the woods at a corner is no part of them) is the woods around the town.
+      A thick stretch of what is left (tiles of 2x2 squares of it) is ground of the town unless it touches the edge or the
+      outside.
+      A thin line opens where the town's ground lies on two opposite sides of it, within three tiles: a fence or hedge across
+      a way. One along the outer edge of the streets has nothing behind it and stays.
+      Nothing opens between ground at different levels (JUMP): that is a retaining wall or a bridge's side, not an obstacle."""
+    H, W = blocked.shape
+    around = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
+    beside = ((-1, 0), (0, -1), (0, 1), (1, 0))
+
+    def at_rim(y, x):
+        return x in (0, W - 1) or y in (0, H - 1) or any(0 <= y + b < H and 0 <= x + a < W and outside[y + b, x + a] for b, a in around)
+
+    def flood(start, through, steps=around):
+        seen = np.zeros((H, W), bool)
+        q = list(start)
+        for p in q:
+            seen[p] = True
+        for y, x in q:
+            for b, a in steps:
+                ny, nx = y + b, x + a
+                if 0 <= ny < H and 0 <= nx < W and through[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    q.append((ny, nx))
+        return seen
+
+    walls = blocked & ground
+    stops = walls & built
+    wild = walls & nature & ~built
+    woods = flood([(y, x) for y, x in zip(*np.nonzero(wild)) if at_rim(y, x)], wild, beside)
+    stops |= walls & ~built & (woods | cliff)
+    rest = walls & ~stops
+    streets = ~blocked & ground
+
+    def level(y, x):
+        """whether the walkable ground around this tile (the nearest in each direction, past what may open) lies at one height"""
+        near = []
+        for b, a in beside:
+            for k in range(1, 5):
+                ny, nx = y + b * k, x + a * k
+                if not (0 <= ny < H and 0 <= nx < W):
+                    break
+                if streets[ny, nx]:
+                    near.append(lifts[ny, nx])
+                    break
+                if not rest[ny, nx]:
+                    break
+        return not near or max(near) - min(near) < JUMP
+
+    furniture = furniture & walls & ~built
+    furniture[[0, -1], :] = furniture[:, [0, -1]] = False  # (the map's outermost row stays shut)
+    for y, x in zip(*np.nonzero(furniture)):
+        furniture[y, x] = level(y, x)
+    # the thick stretches, one by one
+    body = np.zeros((H, W), bool)
+    for y in range(H - 1):
+        for x in range(W - 1):
+            if rest[y:y + 2, x:x + 2].all():
+                body[y:y + 2, x:x + 2] = True
+    done = np.zeros((H, W), bool)
+    open_body = np.zeros((H, W), bool)
+    for y0, x0 in zip(*np.nonzero(body)):
+        if done[y0, x0]:
+            continue
+        one = flood([(y0, x0)], body)
+        done |= one
+        tiles = list(zip(*np.nonzero(one)))
+        if not any(at_rim(y, x) for y, x in tiles) and all(level(y, x) for y, x in tiles):
+            open_body |= one
+    inside = streets | open_body | furniture
+    thin = rest & ~body
+
+    def side(y, x, dy, dx):
+        for k in range(1, 4):
+            ny, nx = y + dy * k, x + dx * k
+            if not (0 <= ny < H and 0 <= nx < W):
+                return False
+            if inside[ny, nx]:
+                return True
+            if not thin[ny, nx]:
+                return False
+        return False
+
+    open_thin = np.zeros((H, W), bool)
+    for y, x in zip(*np.nonzero(thin)):
+        if 0 < x < W - 1 and 0 < y < H - 1 and level(y, x) and ((side(y, x, 0, 1) and side(y, x, 0, -1)) or (side(y, x, 1, 0) and side(y, x, -1, 0))):
+            open_thin[y, x] = True
+    return ground & ~(walls & ~(open_body | open_thin | furniture))
+
+
 def render_town(data, name):
     zone = TOWNS[name]
     area = data.zones[zone][1]
@@ -391,6 +510,11 @@ def render_town(data, name):
     cv = Canvas(cw * CHUNK, ch * CHUNK + BOTTOM, top)
     blocked, beyond, outside, free = walk_grids(data, name, zone, x0, y0, cw, ch)
     heights = np.full((H, W), -1e9, np.float32)
+    roof = np.full((H, W), -1e9, np.float32)  # the highest terrain over each tile, and whether it is a tree (1) or a cliff (2)
+    top_kind = np.zeros((H, W), np.int8)
+    under_tree = np.zeros((H, W), bool)
+    built = np.zeros((H, W), bool)  # under a building of the town, or hidden behind one in the picture
+    furniture = np.zeros((H, W), bool)
     blds = []  # (owner id, building id, model name, world x, world z, in the town's own zone)
     missing = set()
     for cx, cy, mid, czone in data.cells(x0, y0, cw, ch):
@@ -405,8 +529,14 @@ def render_town(data, name):
         terrain = []
         for t, tex, mat in model_tris(N.BMD(model), texset, world):
             cv.tri(t, tex, mat)
-            if not (mat.name or '').startswith('ki'):
+            mname = mat.name or ''
+            if not mname.startswith(('ki', 'slamp')):  # (a street lamp's top is no ground either: Opelucid's stood people 50 px up)
                 terrain.append(t)
+            kind = 1 if TREE.match(mname) else 2 if CLIFF.search(mname) else 0
+            for tz, tx, y in tiles_under(t[0][0], t[1][0], t[2][0], W, H):
+                under_tree[tz, tx] |= kind == 1
+                if y > roof[tz, tx]:
+                    roof[tz, tx], top_kind[tz, tx] = y, kind
         ground_probe(heights, terrain, W, H)
         for bx, by, bz, rot, bid in buildings(bsec):
             bmd = pack.get(bid)
@@ -419,9 +549,15 @@ def render_town(data, name):
             r[0, 0], r[0, 2], r[2, 0], r[2, 2] = c, -s, s, c
             r[3, :3] = (ox + bx, by, oz - bz)  # the building list counts z northward (it lines up with the walkable grid so)
             cv.obj = len(blds) + 1
-            blds.append((cv.obj, bid, bmd.models[0].name if bmd.models else '?', ox + bx, oz - bz, own))
-            for t, tex, mat in model_tris(bmd, pack_tex, r):
+            mname = bmd.models[0].name if bmd.models else '?'
+            blds.append((cv.obj, bid, mname, ox + bx, oz - bz, own))
+            tris = list(model_tris(bmd, pack_tex, r))
+            for t, tex, mat in tris:
                 cv.tri(t, tex, mat)
+            if own and FURNITURE.match(mname):
+                footprint(furniture, [t for t, _, _ in tris], W, H)
+            elif own:
+                footprint(built, [t for t, _, _ in tris], W, H, by)
     cv.flush()
     # what lies outside the town is drawn dim, the buildings and trees standing there too, so the picture itself shows
     # where people can go (Icirrus's corner of Route 8 looked like a meadow of the town)
@@ -485,6 +621,7 @@ def render_town(data, name):
     Image.fromarray(atlas).save(os.path.join(OUT, f'{name}_obj.png'), optimize=True)
     grid = [''.join('#' if blocked[j, i] else '.' for i in range(W)) for j in range(H)]
     free &= ~(blocked & (heights < heights[~blocked].min() - WATER_DROP))
+    free = team_grid(free, blocked, outside, built, furniture, under_tree | (top_kind > 0), top_kind == 2, lift_px)
     free_rows = [''.join('.' if free[j, i] else '#' for i in range(W)) for j in range(H)]
     doors = []
     for oid, bid, mname, bxw, bzw, own in blds:  # the first walkable tile south of a building's middle is its door

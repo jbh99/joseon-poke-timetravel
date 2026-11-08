@@ -48,6 +48,9 @@ const reachOf = (e) => (e.isBoss ? BOSS_REACH : e.team === 'foe' ? FOE_REACH : L
 const statusProof = (m, s) => m.boss && (LEGENDS.has(m.sp) || ['slp', 'frz', 'psn'].includes(s));
 // teammates stay with the one in control: they fight what comes near the team instead of chasing foes across a room
 const LEASH = 4;
+// the battle screen's windows (drawUI): the move list and the log at HUD_K of their old size, the team panel at P.k
+const HUD_K = 0.6, HUD_TEXT = 5.4, HUD_LIST = { w: 92.4, row: 8.4, top: 3.6, bottom: 2.4 };
+const HUD_TEAM = { k: 0.4, x: 6, y: 6, w: 70, head: 7.4, row: 8.6, title: 4.5, name: 5, num: 4 };
 // the leader's badge, a crowned shield, over its head and beside its name in the team panel (BADGE_S)
 const BADGE_COL = { K: COL.ink, R: '#d0323c', D: '#8a1c26', G: '#ffce54', g: '#c88c28' };
 const BADGE = ['KKKKKKKKKKK', 'KRRRRRRRRRK', 'KRGRRGRRGRK', 'KRGGRGRGGRK', 'KRGGGGGGGRK', 'KRgGgGgGgRK', 'KRRRRRRRRDK',
@@ -523,7 +526,13 @@ export class Dungeon {
   }
 
   // ---------------------------------------------------------------- messages & visuals
-  msg(text, color = COL.ink) { this.msgs.push({ text, color, t: 6 }); if (this.msgs.length > 5) this.msgs.shift(); }
+  // a message: shown a moment after the one before, so that a burst (experience, level-ups, a move learned) is read through the
+  // log's two lines one after another instead of all but the last two never appearing (1.22)
+  msg(text, color = COL.ink) {
+    const now = G.time, at = Math.min(now + 1.2, Math.max(now, (this.msgs.at(-1)?.at ?? now - 1) + 0.45));
+    this.msgs.push({ text, color, t: 6 + at - now, at });
+    if (this.msgs.length > 5) this.msgs.shift();
+  }
   step(fn, dur = 0.22) { this.queue.push({ fn, dur }); }
   pop(e, text, color) { this.pops.push({ x: e.x, y: e.y, text, color, t: 0.9 }); }
   get busy() { return this.queue.length > 0 || this.cur || this.pendingMates?.length > 0; }
@@ -1687,8 +1696,8 @@ export class Dungeon {
     if (key === 'quest') return questMenu();
     if (key === 'tag') return this.tag();
     if (key === 'party') return this.msg(tr('던전에서는 동료를 바꿀 수 없다. 마을이나 세계 지도에서 P를 누르자.', 'You can\'t swap companions in a dungeon. Press P in town or on the world map.'), COL.red);
-    const L = this.moveList(), t = input.tap(L.x - 6, L.y - 6, 154, L.n * 14 + 10); // a tap on the move list uses that move
-    if (t && L.n) return this.playerAct('move-skill', clamp(Math.floor((t.y - L.y) / 14), 0, L.n - 1));
+    const L = this.moveList(), t = input.tap(L.x, L.y, L.w, L.h); // a tap on the move list uses that move
+    if (t && L.n) return this.playerAct('move-skill', clamp(Math.floor((t.y - L.y - HUD_LIST.top) / L.row), 0, L.n - 1));
     for (let k = 0; k < 4; k++) if (input.hit('m' + (k + 1))) return this.playerAct('move-skill', k);
     if (input.hit('ok')) return this.playerAct('basic');
     // A: a press rests a turn at once (on the stairs it asks about them again, like the menu's 발밑); held, the team
@@ -1729,7 +1738,7 @@ export class Dungeon {
   }
   get padKeys() { return this.arena ? ['menu', 'quest'] : ['menu', 'quest', 'map']; } // the touch menu panel's game buttons
   // the move list in the bottom-right corner (drawUI), whose rows a tap uses like Q W E R
-  moveList() { const n = this.player.mon.moves.length; return { n, x: VW - 152, y: VH - 12 - n * 14 }; }
+  moveList() { const n = this.player.mon.moves.length, { w, row, top, bottom } = HUD_LIST, h = n * row + top + bottom; return { n, row, w, h, x: VW - 4 - w, y: VH - 8 - h }; }
   menu() {
     openMenu([
       { label: tr('기술', 'Moves'), fn: () => openMenu(this.player.mon.moves.map((mv, k) => { const d = DEX.moves[mv.id]; return { label: `${'QWER'[k]}. ${d.name}`, right: `PP ${mv.pp}/${this.player.mon.maxPP(mv.id)}`, desc: moveDesc(mv.id), fn: () => this.playerAct('move-skill', k) }; }), { title: tr('기술', 'Moves'), desc: true, x: 140, y: 40, w: 220 }) },
@@ -2021,53 +2030,70 @@ export class Dungeon {
     }
   }
   // a window over someone on the field lets them show through (1.21; up to 1.20 whoever stood under the team panel, the
-  // move list or the log could not be seen). A sprite stands about 24x30 on its tile, a boss's about 48x44
-  win(x, y, w, h, o) {
+  // move list or the log could not be seen). A sprite stands about 24x30 on its tile, a boss's about 48x44. k draws its
+  // frame (edge, shadow, stripes) at that fraction, in step with a window made smaller
+  win(x, y, w, h, o, k = 1) {
     const under = this.ents.some((e) => {
       if (!e.alive || !e.shown || e.hidden || (e.team !== 'ally' && !this.vis[e.y]?.[e.x])) return false;
       const sx = e.vx * TILE + 12 - this.camX, foot = e.vy * TILE + TILE - this.camY, half = e.isBoss ? 24 : 12, tall = e.isBoss ? 44 : 30;
       return sx + half > x && sx - half < x + w && foot > y && foot - tall < y + h;
     });
-    if (under) { ui.c.save(); ui.c.globalAlpha = 0.5; }
-    ui.panel(x, y, w, h, o);
-    if (under) ui.c.restore();
+    const c = ui.c;
+    c.save();
+    if (under) c.globalAlpha = 0.5;
+    c.translate(x, y); c.scale(k, k);
+    ui.panel(0, 0, w / k, h / k, o);
+    c.restore();
   }
+  // The windows of the battle screen (1.22: the player found them far too large over the field): the team panel at 40% of
+  // its old size each way, the move list and the log at 60%, and the log holds two lines at most. The screen is drawn at
+  // the display's own resolution, so text this small stays sharp.
   drawUI() {
     // party HUD
     const team = [this.player, ...this.mates], at = (e) => { const i = S.party.indexOf(e.mon); return i < 0 ? 99 : i; };
     const allies = team.slice().sort((a, b) => at(a) - at(b)); // party order; the one in control is marked
-    this.win(6, 6, 176, 18 + allies.length * 22);
+    const P = HUD_TEAM, c0 = ui.c;
+    this.win(P.x, P.y, P.w, P.head + allies.length * P.row, undefined, P.k);
     const foesLeft = this.def.battle && this.ents.filter((e) => e.alive && e.team === 'foe').length;
     // below the dancheong stripe; a name too long for the panel (49 English ones) is cut short, the floor kept
     const tail = this.def.battle ? tr(`  남은 적 ${foesLeft}`, `  Foes left ${foesLeft}`) : this.stage?.name ? '' : tr(`  ${this.floor}층`, `  F${this.floor}`);
-    ui.text(ui.fit(this.def.battle ? this.def.name : this.title, 164 - ui.measure(tail, 9, true), 9, true) + tail, 12, 12, { size: 9, color: COL.red, bold: true });
+    ui.text(ui.fit(this.def.battle ? this.def.name : this.title, P.w - 6 - ui.measure(tail, P.title), P.title) + tail, P.x + 3, P.y + 2.4, { size: P.title, color: COL.red });
     allies.forEach((e, i) => {
-      const m = e.mon, y = 24 + i * 22;
-      if (e.isPlayer) drawBadge(ui.c, 8, y - 1, BADGE_S);
-      ui.text(`${m.name}`, 20, y, { size: 9, color: e.alive ? (e.isPlayer ? COL.red : COL.ink) : '#999' });
-      ui.text(`Lv${m.lv}`, 88, y, { size: 9, color: COL.ink2 });
-      ui.text(`${m.hp}/${m.maxhp}`, 176, y, { size: 9, align: 'right' });
-      ui.bar(12, y + 11, 164, 5, m.hp, m.maxhp);
+      const m = e.mon, y = P.y + P.head + i * P.row;
+      if (e.isPlayer) { c0.save(); c0.translate(P.x + 1.2, y + 0.3); c0.scale(0.42, 0.42); drawBadge(c0, 0, 0, BADGE_S); c0.restore(); }
+      ui.text(ui.fit(m.name, 30, P.name), P.x + 6, y, { size: P.name, color: e.alive ? (e.isPlayer ? COL.red : COL.ink) : '#999' });
+      ui.text(`Lv${m.lv}`, P.x + 36.5, y + 0.6, { size: P.num, color: COL.ink2 });
+      ui.text(`${m.hp}/${m.maxhp}`, P.x + P.w - 2.5, y + 0.6, { size: P.num, align: 'right' });
+      ui.rect(P.x + 3, y + 5.5, P.w - 6, 1.8, COL.ink);
+      const f = clamp(m.hp / m.maxhp, 0, 1);
+      ui.rect(P.x + 3.4, y + 5.9, (P.w - 6.8) * f, 1, f > 0.5 ? COL.hp : f > 0.2 ? COL.hpLow : COL.hpCrit);
     });
     // moves
-    const mv = this.player.mon.moves, { x: bx, y: by } = this.moveList();
-    this.win(bx - 6, by - 6, 154, mv.length * 14 + 10, { accent: false });
+    const mv = this.player.mon.moves, L = this.moveList();
+    this.win(L.x, L.y, L.w, L.h, { accent: false }, HUD_K);
     mv.forEach((m, k) => {
-      const d = DEX.moves[m.id];
-      ui.rect(bx - 2, by + k * 14 + 1, 3, 10, TYPE_COLORS[d.type]);
-      ui.text(`${'QWER'[k]} ${d.name}`, bx + 4, by + k * 14, { size: 9, color: m.pp ? COL.ink : '#a99' });
-      ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, bx + 142, by + k * 14, { size: 9, align: 'right', color: COL.ink2 });
+      const d = DEX.moves[m.id], y = L.y + HUD_LIST.top + k * L.row;
+      ui.rect(L.x + 2.4, y + 0.6, 1.8, 6, TYPE_COLORS[d.type]);
+      ui.text(`${'QWER'[k]} ${d.name}`, L.x + 6, y, { size: HUD_TEXT, color: m.pp ? COL.ink : '#a99' });
+      ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, L.x + L.w - 3.6, y, { size: HUD_TEXT, align: 'right', color: COL.ink2 });
     });
     // messages: a long one wraps to the panel's width (worked out once per text and width; a language switch replaces
-    // it), and the last five lines show. On a phone the panel starts right of the pad and stops short of the move list.
-    const lx = 6 + G.touchL, pw = Math.min(300, VW - 158 - lx), ww = pw - 12;
-    const rows = this.msgs.filter((m) => m.t > 0).slice(-4).flatMap((m) => {
-      if (m.wrapOf !== ww + m.text) { m.wrapOf = ww + m.text; m.rows = ui.wrap(m.text, ww, 9); }
-      return m.rows.map((text) => ({ text, color: m.color }));
-    }).slice(-5);
+    // it), and two lines show at most: the newest message, and the one before it if it fits whole (a sentence cut in half
+    // reads wrong). On a phone the panel starts right of the pad and stops short of the move list.
+    const lx = 6 + G.touchL, pw = Math.min(300, VW - 158 - lx) * HUD_K, ww = pw - 7.2, rowH = 7.8, rows = [];
+    for (const m of this.msgs.filter((q) => q.t > 0 && q.at <= G.time).reverse()) {
+      if (m.wrapOf !== ww + m.text) { m.wrapOf = ww + m.text; m.rows = ui.wrap(m.text, ww, HUD_TEXT); }
+      if (rows.length + m.rows.length > 2) {
+        if (!rows.length) rows.push({ text: m.rows[0], color: m.color }, { text: ui.fit(m.rows.slice(1).join(' '), ww, HUD_TEXT), color: m.color });
+        break;
+      }
+      rows.unshift(...m.rows.map((text) => ({ text, color: m.color })));
+      if (rows.length === 2) break;
+    }
     if (rows.length) {
-      this.win(lx, VH - 10 - rows.length * 13 - 6, pw, rows.length * 13 + 8, { accent: false, fill: 'rgba(243,232,207,0.92)' });
-      rows.forEach((r, i) => ui.text(r.text, lx + 6, VH - 10 - rows.length * 13 + i * 13, { size: 9, color: r.color }));
+      const h = rows.length * rowH + 4.8, y = VH - 8 - h;
+      this.win(lx, y, pw, h, { accent: false, fill: 'rgba(243,232,207,0.92)' }, HUD_K);
+      rows.forEach((r, i) => ui.text(r.text, lx + 3.6, y + 3 + i * rowH, { size: HUD_TEXT, color: r.color }));
     }
     // minimap (not needed in the one-room boss arena)
     if (this.showMap && !this.arena) {
