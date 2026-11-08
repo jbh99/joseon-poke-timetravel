@@ -75,7 +75,7 @@ export class Title {
     const N = MODE_NAMES();
     const back = (k) => {
       const now = journey(k.slot);
-      const go = () => { if (restoreKept(k)) this.resume(k.slot); else { this.started = false; toast(tr('저장 공간이 부족해 바꾸지 못했어요. 기록은 그대로예요.', 'Not enough storage to swap them. Nothing was changed.'), COL.red); } };
+      const go = () => { if (restoreKept(k)) this.resume(k.slot); else { this.started = false; toast(tr('지난 여행을 불러오지 못했어요. 기록은 그대로예요.', 'Could not bring that journey back. Nothing was changed.'), COL.red); } };
       say([{ who: 'narr', text: now ? tr(`이 ${N[k.slot]} 여행으로 다시 이어 할까요? 지금 ${N[k.slot]} 여행(${this.when(now)})은 지난 여행으로 보관돼요.`, `Play this ${N[k.slot]} journey again? Your ${N[k.slot]} journey in play (${this.when(now)}) goes to Past journeys.`)
         : tr(`이 ${N[k.slot]} 여행으로 다시 이어 할까요?`, `Play this ${N[k.slot]} journey again?`), choices: tr(['이어 하기', '취소'], ['Play it', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
     };
@@ -84,7 +84,7 @@ export class Title {
   }
   resume(slot) {
     // the town plays a step left waiting (resumeSteps); a challenge left in the middle of a dungeon ends instead (checkRun)
-    if (load(slot)) fadeTo(() => { liftLevels(); if (!checkRun()) G.goTown(); });
+    if (load(slot, ERAS.length)) fadeTo(() => { liftLevels(); if (!checkRun()) G.goTown(); });
     else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
   }
   // the language row shows the language in use; rebuild the menu so every label follows a switch
@@ -93,6 +93,8 @@ export class Title {
     if (this.menu) G.overlays = G.overlays.filter((o) => o !== this.menu);
     this.reopen = true;
   }
+  // journeys kept on another device came down (cloud.js) while the menu is up: it shows them at once
+  keptChanged() { if (this.menu && G.overlays[G.overlays.length - 1] === this.menu) this.relang(); }
   newGame() {
     const N = MODE_NAMES(), desc = tr({
       easy: '적 레벨 −2, 적이 주는 피해 −25%, 보스 체력 −20%. 이야기를 편하게 즐기고 싶다면.',

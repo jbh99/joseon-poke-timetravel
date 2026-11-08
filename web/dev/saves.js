@@ -73,6 +73,7 @@ export function fakeDrive() {
     if (u.pathname === '/drive/v3/files' && m === 'GET') return json({ files: [...drive.files.values()].map(({ id, name, appProperties }) => ({ id, name, appProperties })) });
     let r = /^\/drive\/v3\/files\/([^/]+)$/.exec(u.pathname);
     if (r && u.searchParams.get('alt') === 'media') return new Response(drive.files.get(r[1]).text);
+    if (r && m === 'DELETE') { drive.files.delete(r[1]); return new Response(null, { status: 204 }); }
     r = /^\/upload\/drive\/v3\/files(?:\/([^/]+))?$/.exec(u.pathname);
     if (r) {
       const b = /boundary=(.+)$/.exec(opts.headers['Content-Type'])[1];

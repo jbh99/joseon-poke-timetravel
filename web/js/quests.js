@@ -206,7 +206,7 @@ const SPY_POOLS = {
 };
 export const spyActive = () => mainStep()?.do === 'spy';
 function spyState() {
-  if (S.spy && S.spy.era === S.era) return S.spy;
+  if (S.spy?.suspects && S.spy.era === S.era) return S.spy; // (no suspects: the record of a hunt that ended, spyAccuse)
   const types = Object.keys(SPY_POOLS), type = +types[Math.floor(Math.random() * types.length)];
   const pool = shuffle(SPY_POOLS[type].slice()).map((sp) => [sp, DEX.species[sp].kg]).sort((a, b) => a[1] - b[1]);
   const picks = [];

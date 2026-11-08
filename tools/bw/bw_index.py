@@ -26,7 +26,7 @@ for path in sorted(glob.glob(os.path.join(SRC, '*.json'))):
         raise SystemExit(f'{name}: lift {bad[0]} px out of range; render the town again')
     lift = [''.join(chr(48 + v // 2) for v in row) for row in t['lift']]
     towns[name] = {
-        'w': t['w'], 'h': t['h'], 'oy': t['oy'], 'img': t['img'], 'rows': t['rows'],
+        'w': t['w'], 'h': t['h'], 'oy': t['oy'], 'img': t['img'], 'rows': t['rows'], 'free': t['free'],
         'lift': lift if any(c != '0' for row in lift for c in row) else None,
         'doors': t['doors'], 'exits': t['exits'], 'objs': t['objs'],
     }

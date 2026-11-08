@@ -216,7 +216,8 @@ export class Dungeon {
     // allies
     const startRoom = this.bossFloor || lay ? rooms[0] : choice(rooms);
     const sx = lay ? lay.start[0] : this.bossFloor ? 22 : randInt(startRoom.x + 1, startRoom.x + startRoom.w - 2);
-    const sy = lay ? lay.start[1] : this.bossFloor ? 17 : randInt(startRoom.y + 1, startRoom.y + startRoom.h - 2);
+    // (an arena's bottom rows lie behind the dialogue and the move list, so the team starts a row above them)
+    const sy = lay ? lay.start[1] : this.bossFloor ? 16 : randInt(startRoom.y + 1, startRoom.y + startRoom.h - 2);
     // the boss room: whoever fell on the way gets back up with half its HP (apart from the once-a-run Revive)
     const rose = this.bossFloor ? S.party.filter((m) => m.hp <= 0) : [];
     for (const m of rose) { m.hp = Math.max(1, Math.floor(m.maxhp / 2)); m.status = null; m.stages = {}; }
@@ -379,9 +380,9 @@ export class Dungeon {
     return { open: tiles, box: this.boxOf(tiles), start, stairs: at(out), bossAt: at(L.npcs[0]), at };
   }
   // A fight in a town (def.battle): the town as built, cropped to the 44x32 grid. A boss battle (Darkrai, the 1950
-  // legends) takes the window with the most room to fight, the team at its bottom middle and the boss about ten steps
-  // away; a fight where you stand (B.at, town coordinates, the constables of Town.policeDef) takes the window around
-  // you, everyone where they stood.
+  // legends, Reshiram, Kyurem) takes the window with the most room to fight, the boss in its middle and the team a few steps
+  // south of it (centerStage); a fight where you stand (B.at, town coordinates, the constables of Town.policeDef) takes the
+  // window around you, everyone where they stood.
   battleFloor() {
     const B = this.def.battle;
     this.battleTown = this.battleTown || new Town(B.kind || 1, { def: B.town, battle: true });
@@ -399,16 +400,55 @@ export class Dungeon {
     const open = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1 && !solid(best.x0 + x, best.y0 + y);
     const local = (p) => p && [p[0] - best.x0, p[1] - best.y0];
     let start = null;
-    if (B.at) { // the open tile nearest to where you stand
-      const [ax, ay] = local(B.at);
-      for (let r = 0; r < 8 && !start; r++) for (let dy = -r; dy <= r && !start; dy++) for (let dx = -r; dx <= r && !start; dx++) if (open(ax + dx, ay + dy)) start = [ax + dx, ay + dy];
+    if (B.at) { // the open tile nearest to where you stand, on the ground the foes stand on: since 1.21 you can stand off the
+      // streets, right by a pocket cut off from them, and a field without the foes on it could never end
+      const [ax, ay] = local(B.at), off = ([x, y]) => (x - ax) ** 2 + (y - ay) ** 2;
+      const seed = B.foesAt?.map(local).flatMap(([x, y]) => [[x, y], [x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]).find(([x, y]) => open(x, y));
+      if (seed) start = this.reach(seed, open).reduce((a, b) => (off(b) < off(a) ? b : a));
+      else for (let r = 0; r < 8 && !start; r++) for (let dy = -r; dy <= r && !start; dy++) for (let dx = -r; dx <= r && !start; dx++) if (open(ax + dx, ay + dy)) start = [ax + dx, ay + dy];
     }
-    // our side starts at the bottom middle; the boss stands further up the field
+    // the field is what can be walked from the bottom middle of the window
     for (let y = H - 2; y > 0 && !start; y--) for (let d = 0; d < W / 2 && !start; d++) for (const x of [W / 2 - d, W / 2 + d]) if (!start && open(x, y)) start = [x, y];
     const tiles = this.reach(start, open);
-    // about ten steps away (breadth-first order is distance order), so the fight starts soon
-    const far = B.foesAt ? local(B.foesAt[0]) : tiles[this.stepsAway(start, open, 10)];
+    // a boss in the middle of it; else about ten steps away (breadth-first order is distance order), so the fight starts soon
+    const stage = B.at ? null : this.centerStage(tiles, Math.min(W, T.W - best.x0), Math.min(H, T.H - best.y0));
+    if (stage) start = stage[1];
+    const far = B.foesAt ? local(B.foesAt[0]) : stage ? stage[0] : tiles[this.stepsAway(start, open, 10)];
     return { open: tiles, box: this.boxOf(tiles), start, bossAt: far, enemyAt: far, foesAt: B.foesAt?.map(local), team: B.team?.map(local), battle: true };
+  }
+  // Where a boss's town battle is fought (1.21): [the boss, the team], the boss on the open ground nearest the middle of the
+  // field and the team four or five tiles south of it, as in an arena, so that the camera (draw) holds both in the part of
+  // the screen no window covers. Up to 1.20 the team stood on the field's bottom row with the camera stopped at the
+  // town's edge, the boss wherever the search first got ten steps away: Reshiram under the move list, Kyurem under the log.
+  // Those few tiles are walked, not just measured: the next street over a wall would leave them unable to reach each other,
+  // so the way between them is straight, or failing any such place two steps longer. null: a field with no such place.
+  centerStage(tiles, cols, rows) {
+    const field = new Set(tiles.map(([x, y]) => y * W + x)), on = (x, y) => field.has(y * W + x);
+    const room = ([x, y]) => { let n = 0; for (let b = y - 2; b <= y + 2; b++) for (let a = x - 3; a <= x + 3; a++) if (on(a, b)) n++; return n; };
+    const mean = (k) => tiles.reduce((s, t) => s + t[k], 0) / tiles.length, cx = mean(0), cy = mean(1);
+    const rooms = new Map(tiles.map((t) => [t, room(t)])), most = Math.max(...rooms.values());
+    const near = tiles.filter((t) => rooms.get(t) >= most * 0.75).sort((p, q) => Math.hypot(p[0] - cx, p[1] - cy) - Math.hypot(q[0] - cx, q[1] - cy));
+    // where the camera is not stopped by the town's edge first (the team's row and the columns of both)
+    const framed = near.filter(([x, y]) => x >= 10 && x <= cols - 10 && y >= 4 && y + 10 <= rows);
+    // straight below first, four or five tiles off, among the spots nearest the middle before those further out
+    const gaps = [[4, 0], [4, 1], [4, -1], [5, 0], [5, 1], [5, -1], [4, 2], [4, -2], [5, 2], [5, -2], [3, 0], [6, 0], [3, 1], [3, -1], [3, 2], [3, -2]];
+    const walks = new Map(), walked = ([bx, by]) => { // the steps from a boss's tile to those around it
+      const key = by * W + bx;
+      if (!walks.has(key)) {
+        const dist = new Map([[key, 0]]), q = [[bx, by]];
+        for (let k = 0; k < q.length; k++) {
+          const [x, y] = q[k], d0 = dist.get(y * W + x);
+          if (d0 < 9) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy, c = b * W + a; if (!dist.has(c) && on(a, b)) { dist.set(c, d0 + 1); q.push([a, b]); } }
+        }
+        walks.set(key, dist);
+      }
+      return walks.get(key);
+    };
+    for (const list of [framed.slice(0, 40), framed, near]) for (const longer of [0, 2]) for (const [dy, dx] of gaps) for (const b of list) {
+      const x = b[0] + dx, y = b[1] + dy;
+      if (on(x, y) && walked(b).get(y * W + x) <= dy + Math.abs(dx) + longer) return [b, [x, y]];
+    }
+    return null;
   }
   reach(start, open) {
     const seen = new Set([start[1] * W + start[0]]), out = [start];
@@ -1708,8 +1748,11 @@ export class Dungeon {
     const p = this.player;
     const sh = this.shake ? Math.round((Math.random() - 0.5) * 6 * Math.min(1, this.shake * 4)) : 0;
     const R = this.arena && this.rooms[0], T = this.battleTown;
-    let camX = R ? R.x * TILE + (R.w * TILE - VW) / 2 : Math.round(p.vx * TILE + 12 - VW / 2);
-    let camY = R ? R.y * TILE + (R.h * TILE - VH) / 2 : Math.round(p.vy * TILE + 12 - VH / 2);
+    // a boss's town battle looks half way to the boss (within reason), along a line a little above the screen's middle: the
+    // windows take more of the lower half, and so the leader and the boss both stand where none covers them
+    const foe = T && this.boss, fx = p.vx + (foe ? clamp((foe.vx - p.vx) / 2, -4, 4) : 0), fy = p.vy + (foe ? clamp((foe.vy - p.vy) / 2, -2.5, 2.5) : 0);
+    let camX = R ? R.x * TILE + (R.w * TILE - VW) / 2 : Math.round(fx * TILE + 12 - VW / 2);
+    let camY = R ? R.y * TILE + (R.h * TILE - VH) / 2 : Math.round(fy * TILE + 12 - (foe ? 120 : VH / 2));
     if (T) { // a town battle: the camera stays over the town (a Black town smaller than the battle window ends at its edge)
       const mw = Math.min(W, T.W - this.crop[0]) * TILE, mh = Math.min(H, T.H - this.crop[1]) * TILE;
       camX = mw > VW ? clamp(camX, 0, mw - VW) : (mw - VW) / 2;
@@ -1977,11 +2020,23 @@ export class Dungeon {
       if (Math.floor(G.time * 3) % 2) { c.fillStyle = '#fff'; c.fillRect(x + 5, y - 8, 1, 4); c.fillRect(x + 3, y - 6, 5, 1); }
     }
   }
+  // a window over someone on the field lets them show through (1.21; up to 1.20 whoever stood under the team panel, the
+  // move list or the log could not be seen). A sprite stands about 24x30 on its tile, a boss's about 48x44
+  win(x, y, w, h, o) {
+    const under = this.ents.some((e) => {
+      if (!e.alive || !e.shown || e.hidden || (e.team !== 'ally' && !this.vis[e.y]?.[e.x])) return false;
+      const sx = e.vx * TILE + 12 - this.camX, foot = e.vy * TILE + TILE - this.camY, half = e.isBoss ? 24 : 12, tall = e.isBoss ? 44 : 30;
+      return sx + half > x && sx - half < x + w && foot > y && foot - tall < y + h;
+    });
+    if (under) { ui.c.save(); ui.c.globalAlpha = 0.5; }
+    ui.panel(x, y, w, h, o);
+    if (under) ui.c.restore();
+  }
   drawUI() {
     // party HUD
     const team = [this.player, ...this.mates], at = (e) => { const i = S.party.indexOf(e.mon); return i < 0 ? 99 : i; };
     const allies = team.slice().sort((a, b) => at(a) - at(b)); // party order; the one in control is marked
-    ui.panel(6, 6, 176, 18 + allies.length * 22);
+    this.win(6, 6, 176, 18 + allies.length * 22);
     const foesLeft = this.def.battle && this.ents.filter((e) => e.alive && e.team === 'foe').length;
     // below the dancheong stripe; a name too long for the panel (49 English ones) is cut short, the floor kept
     const tail = this.def.battle ? tr(`  남은 적 ${foesLeft}`, `  Foes left ${foesLeft}`) : this.stage?.name ? '' : tr(`  ${this.floor}층`, `  F${this.floor}`);
@@ -1996,7 +2051,7 @@ export class Dungeon {
     });
     // moves
     const mv = this.player.mon.moves, { x: bx, y: by } = this.moveList();
-    ui.panel(bx - 6, by - 6, 154, mv.length * 14 + 10, { accent: false });
+    this.win(bx - 6, by - 6, 154, mv.length * 14 + 10, { accent: false });
     mv.forEach((m, k) => {
       const d = DEX.moves[m.id];
       ui.rect(bx - 2, by + k * 14 + 1, 3, 10, TYPE_COLORS[d.type]);
@@ -2011,7 +2066,7 @@ export class Dungeon {
       return m.rows.map((text) => ({ text, color: m.color }));
     }).slice(-5);
     if (rows.length) {
-      ui.panel(lx, VH - 10 - rows.length * 13 - 6, pw, rows.length * 13 + 8, { accent: false, fill: 'rgba(243,232,207,0.92)' });
+      this.win(lx, VH - 10 - rows.length * 13 - 6, pw, rows.length * 13 + 8, { accent: false, fill: 'rgba(243,232,207,0.92)' });
       rows.forEach((r, i) => ui.text(r.text, lx + 6, VH - 10 - rows.length * 13 + i * 13, { size: 9, color: r.color }));
     }
     // minimap (not needed in the one-room boss arena)

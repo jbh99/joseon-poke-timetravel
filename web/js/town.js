@@ -43,6 +43,17 @@ export function townPictures(kind = S.townKind || 1, e = ERAS[S.era]) {
 }
 
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+// a Black town's lift by tile (people stand this far up the picture): the index holds it for the walkable tiles; a tile
+// that is not one takes its nearest walkable tile's, so the team walks over it level with the ground around it
+function groundLifts(L) {
+  const W = L.w, H = L.h, out = new Int16Array(W * H), seen = new Uint8Array(W * H), q = [];
+  L.rows.forEach((row, y) => { for (let x = 0; x < W; x++) if (row[x] === '.') { out[y * W + x] = (L.lift[y].charCodeAt(x) - 48) * 2; seen[y * W + x] = 1; q.push(y * W + x); } });
+  for (let k = 0; k < q.length; k++) {
+    const p = q[k], x = p % W, y = (p - x) / W;
+    for (const [a, b] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) if (a >= 0 && b >= 0 && a < W && b < H && !seen[b * W + a]) { seen[b * W + a] = 1; out[b * W + a] = out[p]; q.push(b * W + a); }
+  }
+  return out;
+}
 const TOWN_DIRS = ['left', 'right', 'up', 'down'], STEP = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
 const BG_CACHE = new Map(); // painted town grounds, most recently used last (Town.prerender)
 // whether a building or prop can show in the view at (vx, vy) (pixels, town coordinates). Images reach at most about
@@ -116,9 +127,10 @@ export class Town {
     const coast = this.def.biome === 'coast';
     if (this.layout) { [this.px, this.py] = this.start; this.face = this.startFace; }
     else { [this.px, this.py] = coast ? [this.W - 3, 17] : [this.OX + 19, this.H - 3]; this.face = coast ? 'left' : 'up'; }
+    this.arrive = [this.px, this.py];
     // where the save left you, unless a battlefield (Dungeon), or unless that spot is no longer ground to stand on (a save
     // from before a town's map changed, a damaged one): then you arrive as usual instead of standing stuck in a wall
-    const [sx, sy] = (!this.battle && S.townPos) || [], restored = Number.isInteger(sx) && this.solid[sy]?.[sx] === false;
+    const [sx, sy] = (!this.battle && S.townPos) || [], restored = Number.isInteger(sx) && this.fence[sy]?.[sx] === false;
     if (!this.battle) S.townPos = null;
     if (restored) { this.px = sx; this.py = sy; }
     this.vx = this.px; this.vy = this.py; this.moving = false; this.moveT = 0;
@@ -136,7 +148,7 @@ export class Town {
     const back = { up: [0, 1], down: [0, -1], left: [1, 0], right: [-1, 0] }[this.face] || [0, 1];
     for (const [dx, dy] of [back, [0, 1], [-1, 0], [1, 0], [0, -1]]) {
       const a = x + dx, b = y + dy;
-      if (!this.blocked(a, b) && !(a === this.px && b === this.py)) return [a, b];
+      if (!this.barred(a, b) && !(a === this.px && b === this.py)) return [a, b];
     }
     return [x, y];
   }
@@ -152,8 +164,9 @@ export class Town {
     const W = this.W, md = (a, b, x, y) => Math.abs(a - x) + Math.abs(b - y);
     const exit = (x, y) => this.exitTiles.some(([a, b]) => a === x && b === y);
     const open = (x, y) => !this.blocked(x, y) && !exit(x, y) && !(x === this.px && y === this.py) && !this.follower(x, y);
-    // the streets you can walk from where you stand, away from dead ends
-    const seen = new Set([this.py * W + this.px]), q = [[this.px, this.py]];
+    // the streets, walked from where one arrives (you may have come back to a spot off them, or in a pocket they do not reach), away from dead ends
+    const [ax, ay] = this.arrive;
+    const seen = new Set([ay * W + ax]), q = [[ax, ay]];
     for (let k = 0; k < q.length; k++) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const x = q[k][0] + dx, y = q[k][1] + dy;
       if (!seen.has(y * W + x) && !this.blocked(x, y)) { seen.add(y * W + x); q.push([x, y]); }
@@ -292,6 +305,28 @@ export class Town {
   build() {
     this.buildMap();
     this.gap = this.bwmap ? 3 : 2; // how close people may stand to one another (roomFor), a Black town two free tiles
+    this.buildFence();
+  }
+  // Where the team cannot walk (1.21). A town is open to walk: up to 1.20 the team kept to the walkable grid (Pokémon
+  // Black's or Pearl's, or the footprints of what stands in the town), which stopped it on bright paving and lawns with
+  // nothing to show why. Only what plainly is not the town's ground stops it now: the water, the woods around the town and,
+  // in a Black town, what lies outside it (tools/bw/render.py walk_grids: drawn dim). The team passes through and behind
+  // houses, trees and fences (drawn faintly there, draw). The notice board has to be faced to be read, so it stays in the
+  // way, like people and the Time Gate (barred). `solid` is not changed: the townspeople keep to the streets and a town
+  // battle is fought on them.
+  buildFence() {
+    const W = this.W, H = this.H, g = this.ground;
+    if (this.bwmap) this.fence = this.bwmap.free.map((row) => [...row].map((ch) => ch !== '.'));
+    else {
+      // the woods: border joined to the map's edge (a hedge standing alone inside the town is walked through)
+      const woods = Array.from({ length: H }, () => new Array(W).fill(false)), q = [];
+      const add = (x, y) => { if (g[y]?.[x] === 'border' && !woods[y][x]) { woods[y][x] = true; q.push([x, y]); } };
+      for (let x = 0; x < W; x++) { add(x, 0); add(x, H - 1); }
+      for (let y = 0; y < H; y++) { add(0, y); add(W - 1, y); }
+      for (let k = 0; k < q.length; k++) { const [x, y] = q[k]; add(x + 1, y); add(x - 1, y); add(x, y + 1); add(x, y - 1); }
+      this.fence = g.map((row, y) => row.map((c, x) => woods[y][x] || c === 'water'));
+    }
+    for (const o of this.objs) if (o.kind === 'board') for (let y = o.ty; y < o.ty + o.fd; y++) for (let x = o.tx; x < o.tx + o.fw; x++) if (this.fence[y]?.[x] === false) this.fence[y][x] = true;
   }
   buildMap() {
     if (this.bwmap) return this.buildBW();
@@ -601,6 +636,7 @@ export class Town {
     const L = this.bwmap, era = this.era, t = this.def, main = this.kind === 1;
     const MW = this.W, MH = this.H, R = rng(era.id * 7919 + this.kind * 131);
     this.B = BIOME[t.biome] || BIOME.spring;
+    if (L.lift) L.lifts ||= groundLifts(L);
     this.solid = L.rows.map((row) => [...row].map((ch) => ch !== '.'));
     this.ground = L.rows.map((row) => [...row].map((ch) => (ch === '.' ? 'ground' : 'border')));
     this.objs = []; this.inter = new Map(); this.npcs = []; this.waterTiles = [];
@@ -729,9 +765,9 @@ export class Town {
   }
   // how far up the picture people stand on raised ground at (x, y) (tiles, fractions for walking between tiles)
   liftAt(x, y) {
-    const L = this.bwmap?.lift;
+    const L = this.bwmap?.lifts;
     if (!L) return 0;
-    const at = (i, j) => { const r = L[clamp(j, 0, this.H - 1)]; return r ? (r.charCodeAt(clamp(i, 0, this.W - 1)) - 48) * 2 : 0; };
+    const at = (i, j) => L[clamp(j, 0, this.H - 1) * this.W + clamp(i, 0, this.W - 1)];
     const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
     return (at(i, j) * (1 - fx) + at(i + 1, j) * fx) * (1 - fy) + (at(i, j + 1) * (1 - fx) + at(i + 1, j + 1) * fx) * fy;
   }
@@ -858,6 +894,11 @@ export class Town {
     if (this.npcs.some((n) => n.x === x && n.y === y)) return true;
     return false;
   }
+  // what stops the team (buildFence): beyond the town, the Time Gate and whoever stands there. The people's own ways are `blocked`
+  barred(x, y) {
+    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return true;
+    return this.fence[y][x] || this.onGate(x, y) || this.npcs.some((n) => n.x === x && n.y === y);
+  }
   update(dt) {
     if (G.overlays.length) { this.tapDir = null; return; }
     // arrows: the one pressed last leads while it is held (holding ← and pressing ↑ turns up; up to 1.13 left beat
@@ -916,7 +957,7 @@ export class Town {
           : this.exitTiles.some(([ex, ey]) => ex === this.px && ey === this.py) && (ny >= this.H || nx >= this.W);
         if (exit) return this.leave();
         const F = Q ? [P, Q] : [P], hit = F.findIndex((f) => f.x === nx && f.y === ny); // walking into a follower trades places
-        if (!this.blocked(nx, ny) || hit >= 0) {
+        if (!this.barred(nx, ny) || hit >= 0) {
           for (const f of F) { f.fx = f.x; f.fy = f.y; }
           const ox = this.px, oy = this.py;
           this.fx = ox; this.fy = oy; this.px = nx; this.py = ny; this.moving = true; this.moveT = 0;
@@ -932,7 +973,7 @@ export class Town {
   // the third member appears on a free tile beside the partner rather than on top of it
   spawnMate(P) {
     const spot = [[0, 1], [-1, 0], [1, 0], [0, -1]].map(([dx, dy]) => [P.x + dx, P.y + dy])
-      .find(([x, y]) => !this.blocked(x, y) && !(x === this.px && y === this.py)) || [P.x, P.y];
+      .find(([x, y]) => !this.barred(x, y) && !(x === this.px && y === this.py)) || [P.x, P.y];
     return { x: spot[0], y: spot[1], fx: spot[0], fy: spot[1], vx: spot[0], vy: spot[1], face: P.face, dir: P.dir, who: 3 - P.who };
   }
   // The third member takes the tile the partner (a) just left. When that is not one step away (you turned back past
@@ -943,7 +984,7 @@ export class Town {
     if (md(f.x, f.y, tx, ty) === 1) { f.x = tx; f.y = ty; return; }
     if (md(f.x, f.y, a.x, a.y) === 1) return;
     const s = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [f.x + dx, f.y + dy])
-      .filter(([x, y]) => !this.blocked(x, y) && !(x === this.px && y === this.py) && !(x === a.x && y === a.y))
+      .filter(([x, y]) => !this.barred(x, y) && !(x === this.px && y === this.py) && !(x === a.x && y === a.y))
       .sort((p, q) => md(...p, a.x, a.y) - md(...q, a.x, a.y))[0];
     if (s) { f.x = s[0]; f.y = s[1]; }
   }

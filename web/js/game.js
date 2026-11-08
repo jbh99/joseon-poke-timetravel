@@ -390,11 +390,14 @@ export function replaceSave(text, slot, eras = Infinity) {
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x), isInt = (x) => Number.isInteger(x) && x >= 0;
 const isStr = (x) => typeof x === 'string', isBool = (x) => x === true || x === false, counts = (x) => isObj(x) && Object.values(x).every(isInt);
 const isPlace = (x) => isObj(x) && isInt(x.era) && isInt(x.step) && isBool(x.eraClear) && (x.townKind == null || x.townKind === 1 || x.townKind === 2);
+const isSp = (x) => Number.isInteger(x) && x >= 1 && x <= DEX_N; // a species the game has (a spy hunt's suspects)
+// a spy hunt under way (no more than the six places the base has for its suspects); one that ended leaves only its era and year
+const isHunt = (x) => isInt(x.type) && Number.isFinite(x.kg) && isSp(x.spy) && Array.isArray(x.suspects) && x.suspects.length > 0 && x.suspects.length <= 6 && x.suspects.every(isSp) && x.suspects.includes(x.spy);
 const FIELDS = {
   era: isInt, step: isInt, side: isObj, items: counts, money: Number.isFinite, flags: isObj, night: isBool, playtime: (x) => Number.isFinite(x) && x >= 0,
   kills: counts, eraClear: isBool, lastNode: isStr, townPos: (x) => Array.isArray(x) && x.length === 2 && x.every(isInt), townKind: (x) => x === 1 || x === 2,
   faction: isStr, wander: (x) => isObj(x) && isInt(x.era) && isObj(x.at), mode: (x) => Object.keys(MODES).includes(x), inRun: isStr,
-  spy: (x) => isObj(x) && isInt(x.era) && isInt(x.year) && (x.suspects == null || Array.isArray(x.suspects)), over: isBool,
+  spy: (x) => isObj(x) && isInt(x.era) && isInt(x.year) && (x.suspects == null || isHunt(x)), over: isBool,
   dex: (x) => isStr(x) && /^[0-2]*$/.test(x), koreaAt: isPlace, worldAt: isPlace, jid: isStr,
 };
 // A save (this device's, or a copy from elsewhere) as the state it plays: the versions' migrations on a copy of it, then
@@ -425,6 +428,8 @@ export function parseSave(o, eras = Infinity) {
   const state = { party, roster, ...(s.migrated && { migrated: true }) };
   for (const [k, ok] of Object.entries(FIELDS)) if (s[k] != null) { if (ok(s[k])) state[k] = s[k]; else fix(k); }
   if ((state.era || 0) >= eras) throw new Error('not a save');
+  // the place kept on the line the team is not on: an era that does not exist would stop the game when the team goes back
+  for (const k of ['koreaAt', 'worldAt']) if (state[k]?.era >= eras) { delete state[k]; fix(k); }
   return { state, fixed };
 }
 export function readSave(slot) {
@@ -438,13 +443,30 @@ export const saves = () => SLOTS.map((slot) => ({ slot, o: journey(slot) })).fil
 // Past journeys (1.20): a journey a new one of the same difficulty takes the place of is put aside here instead of being
 // lost (up to 1.19 a new journey replaced it), and the title brings it back to be played again (Title.pickKept). Each is
 // kept under its own key, by difficulty and the time it was put aside; KEPT_MAX a difficulty, the oldest going first.
-// They stay on this device: the cloud keeps the one journey of each difficulty in play (cloud.js).
-const KEPT = 'joseon-poke-kept-', KEPT_MAX = 5;
+// A signed-in device shares them with the account's other devices (1.21, cloud.js syncKept).
+const KEPT = 'joseon-poke-kept-', KEPT_MAX = 5, KEPT_KEY = /^joseon-poke-kept-([a-z]+)-(\d+)$/;
+// another device's journey joining this device's list: only one the game wrote itself (replaceSave); throws otherwise. It
+// takes no one's place: what leaves a list here also leaves the cloud, and nobody chose to give that one up, so the lists
+// of several devices together can run past KEPT_MAX
+export function putKept(key, text, eras = Infinity) {
+  const m = KEPT_KEY.exec(key);
+  if (!m || !SLOTS.includes(m[1])) throw new Error('not a save');
+  let o;
+  try { o = JSON.parse(text); } catch (e) { throw new Error('not a save'); }
+  if (parseSave(o, eras).fixed.length) throw new Error('not a save');
+  localStorage.setItem(key, text);
+}
+// the same journey under another key (two devices each put the same save aside; cloud.js keeps the cloud's key)
+export function renameKept(from, to) {
+  try { const text = localStorage.getItem(from); if (text != null) { localStorage.setItem(to, text); localStorage.removeItem(from); } } catch (e) { /* stays as it is */ }
+}
+export function dropKept(key) { try { localStorage.removeItem(key); } catch (e) { /* private mode */ } }
+export function keptText(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 export function keptSaves() {
   const out = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i), m = /^joseon-poke-kept-([a-z]+)-(\d+)$/.exec(key || '');
+      const key = localStorage.key(i), m = KEPT_KEY.exec(key || '');
       if (!m || !SLOTS.includes(m[1])) continue;
       try { const o = JSON.parse(localStorage.getItem(key)); if (o && Array.isArray(o.party) && o.party.length >= 2) out.push({ key, slot: m[1], at: +m[2], o }); } catch (e) { /* a broken one is not listed */ }
     }
@@ -452,14 +474,16 @@ export function keptSaves() {
   return out.sort((a, b) => b.at - a.at);
 }
 // put the journey of `slot` aside, its place left empty for the one coming: false when there was no room to keep it
-// (it then stays where it is). Nothing is kept of a lost challenge (its save only marks the journey as ended)
-export function keepJourney(slot) {
+// (it then stays where it is). Nothing is kept of a lost challenge (its save only marks the journey as ended). A full list
+// lets its oldest go, just the one, even if lists merged from several devices made it longer; a swap (restoreKept) adds nothing
+export function keepJourney(slot, swap = false) {
   const text = saveText(slot);
   let o = null;
   try { o = JSON.parse(text); } catch (e) { /* none, or a broken one */ }
   if (!o || !Array.isArray(o.party) || o.over) return true;
+  const list = keptSaves().filter((k) => k.slot === slot); // newest first
   try { localStorage.setItem(`${KEPT}${slot}-${Date.now()}`, text); } catch (e) { return false; }
-  for (const k of keptSaves().filter((k) => k.slot === slot).slice(KEPT_MAX)) localStorage.removeItem(k.key);
+  if (!swap && list.length >= KEPT_MAX) localStorage.removeItem(list[list.length - 1].key);
   localStorage.removeItem(slotKey(slot));
   return true;
 }
@@ -471,15 +495,15 @@ export function restoreKept(k) {
   if (!text) return false;
   localStorage.removeItem(k.key);
   const back = () => { try { localStorage.setItem(k.key, text); } catch (e) { /* the room it had was just freed */ } return false; };
-  if (!keepJourney(k.slot)) return back();
+  if (!keepJourney(k.slot, true)) return back();
   try { localStorage.setItem(slotKey(k.slot), text); } catch (e) { return back(); }
   return true;
 }
-export function load(slot = saves()[0]?.slot) {
+export function load(slot = saves()[0]?.slot, eras = Infinity) {
   const o = slot && journey(slot);
   if (!o) return false;
   let got;
-  try { got = parseSave(o); } catch (e) { console.warn('save load failed', e); return false; }
+  try { got = parseSave(o, eras); } catch (e) { console.warn('save load failed', e); return false; }
   if (got.fixed.length) console.warn('save put right:', got.fixed.join(' '));
   Object.assign(S, FRESH(), got.state, { slot }); // the key it was read from names its journey
   syncDex(); // a save from before the Pokédex fills its record in

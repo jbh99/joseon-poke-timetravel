@@ -14,8 +14,8 @@ as in the 2D games, and the highest surface wins each pixel.
 Out, in web/assets/bw/towns: <town>.png (the picture), <town>_obj.png (an atlas of the occluders: every building on
 its own and tall terrain row by row, each with the picture row its foot stands on, so people north of it walk behind
 it; each kept as its opaque pieces, so the atlas holds none of the empty space a row of trees spans and stays small
-enough for a phone's GPU to keep with the picture); work/bw/towns/<town>.json holds the walkable grid, each walkable
-tile's lift in picture pixels, the doors, exits and occluders, which bw_index.py merges into the index the game loads.
+enough for a phone's GPU to keep with the picture); work/bw/towns/<town>.json holds the walkable grid, the free grid
+(walk_grids: where the team may walk), each walkable tile's lift in picture pixels, the doors, exits and occluders, which bw_index.py merges into the index the game loads.
 
 usage: python render.py [town ...]          (towns: see TOWNS)
 """
@@ -36,6 +36,12 @@ import nitro3d as N  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 WALL = 0x13  # collision-word bits nobody walks on (see the docstring)
+# the collision words of water, the one thing the team does not walk over in a town: the sea and its rim, ponds and their
+# edges (bit 15 only marks a tile for the game's events, so it is masked off)
+WATER = {0x10, 0x16, 0x56, 0x83, 0xC1, 0xC3}
+# model units a tile's surface lies below all the town's walkable ground to be water, whatever its collision word: Nuvema's sea,
+# most of Driftveil's and Nimbasa's pond carry the very word of a tree or a wall (water lies 6 to 27 below, a low kerb 2)
+WATER_DROP = 4
 ROM = os.environ.get('BLACK_ROM') or os.path.join(os.path.expanduser('~'), 'Downloads', 'claude skills', '포켓몬스터 블랙(K).nds')
 OUT = os.path.join(ROOT, 'web', 'assets', 'bw', 'towns')
 META = os.path.join(ROOT, 'work', 'bw', 'towns')  # per-town data; bw_index.py merges it into OUT/index.json
@@ -325,6 +331,54 @@ def cutout(rgb, mask):
     return im, int(x_a), int(y_a)
 
 
+def walk_grids(data, name, zone, x0, y0, cw, ch):
+    """The tile grids of a town's box, from the ROM's walkable grids: blocked (nobody stands there: walls, water and the
+    pockets out of reach), beyond (walkable tiles of the other zones' cells: ways out lead there), outside (not the town:
+    the other zones' cells and its pockets, drawn dim) and free (where the team may walk in the game, 1.21: the town's own
+    ground, walls and all, but not water; people and the Time Gate stay in the way there. Water with a wall's word is
+    taken out by render_town, which knows the surface heights)."""
+    W, H = cw * 32, ch * 32
+    blocked = np.ones((H, W), bool)
+    beyond = np.zeros((H, W), bool)
+    outside = np.zeros((H, W), bool)
+    ground = np.zeros((H, W), bool)  # the town's own tiles that are not water
+    for cx, cy, mid, czone in data.cells(x0, y0, cw, ch):
+        own = czone == zone
+        outside[(cy - y0) * 32:(cy - y0 + 1) * 32, (cx - x0) * 32:(cx - x0 + 1) * 32] = not own
+        _, perms, _ = container(data.maps[mid])
+        if perms:
+            pw, ph = struct.unpack_from('<HH', perms[0], 0)
+            for j in range(ph):
+                for i in range(pw):
+                    coll = struct.unpack_from('<H', perms[0], 4 + 8 * (j * pw + i) + 6)[0]
+                    y, x = (cy - y0) * 32 + j, (cx - x0) * 32 + i
+                    (blocked if own else beyond)[y, x] = bool(coll & WALL) if own else not coll & WALL
+                    ground[y, x] = own and (coll & 0x7FFF) not in WATER
+    # only the largest connected walkable region is the town (the others cannot be reached on foot)
+    region = np.zeros((H, W), np.int32)
+    sizes = [0]
+    for j0, i0 in zip(*np.nonzero(~blocked)):
+        if region[j0, i0]:
+            continue
+        sizes.append(0)
+        q = [(j0, i0)]
+        region[j0, i0] = len(sizes) - 1
+        for y, x in q:
+            sizes[-1] += 1
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < H and 0 <= nx < W and not blocked[ny, nx] and not region[ny, nx]:
+                    region[ny, nx] = len(sizes) - 1
+                    q.append((ny, nx))
+    if len(sizes) > 1:
+        pocket = ~blocked & (region != int(np.argmax(sizes)))
+        blocked |= pocket
+        outside |= pocket
+    for x, y, w, h in WALLED.get(name, []):
+        outside[y:y + h, x:x + w] |= blocked[y:y + h, x:x + w]
+    return blocked, beyond, outside, ground & ~outside
+
+
 def render_town(data, name):
     zone = TOWNS[name]
     area = data.zones[zone][1]
@@ -335,18 +389,15 @@ def render_town(data, name):
     W, H = cw * 32, ch * 32
     top = 200  # room above the northern edge for tall things
     cv = Canvas(cw * CHUNK, ch * CHUNK + BOTTOM, top)
-    blocked = np.ones((H, W), bool)
-    beyond = np.zeros((H, W), bool)  # walkable tiles of the other zones' cells in the box (ways out lead there)
-    outside = np.zeros((H, W), bool)  # not the town: the other zones' cells and its own pockets out of reach (drawn dim)
+    blocked, beyond, outside, free = walk_grids(data, name, zone, x0, y0, cw, ch)
     heights = np.full((H, W), -1e9, np.float32)
     blds = []  # (owner id, building id, model name, world x, world z, in the town's own zone)
     missing = set()
     for cx, cy, mid, czone in data.cells(x0, y0, cw, ch):
         own = czone == zone
-        outside[(cy - y0) * 32:(cy - y0 + 1) * 32, (cx - x0) * 32:(cx - x0 + 1) * 32] = not own
         carea = data.zones[czone][1] if czone < len(data.zones) else area  # (the open sea has no zone)
         texset, (pack, pack_tex) = data.texset(carea), data.pack(carea)
-        model, perms, bsec = container(data.maps[mid])
+        model, _, bsec = container(data.maps[mid])
         ox, oz = (cx - x0) * CHUNK + CHUNK / 2, (cy - y0) * CHUNK + CHUNK / 2
         world = np.eye(4)
         world[3, :3] = (ox, 0, oz)
@@ -371,35 +422,7 @@ def render_town(data, name):
             blds.append((cv.obj, bid, bmd.models[0].name if bmd.models else '?', ox + bx, oz - bz, own))
             for t, tex, mat in model_tris(bmd, pack_tex, r):
                 cv.tri(t, tex, mat)
-        if perms:
-            pw, ph = struct.unpack_from('<HH', perms[0], 0)
-            for j in range(ph):
-                for i in range(pw):
-                    coll = struct.unpack_from('<H', perms[0], 4 + 8 * (j * pw + i) + 6)[0]
-                    (blocked if own else beyond)[(cy - y0) * 32 + j, (cx - x0) * 32 + i] = bool(coll & WALL) if own else not coll & WALL
     cv.flush()
-    # only the largest connected walkable region is the town (the others cannot be reached on foot)
-    region = np.zeros((H, W), np.int32)
-    sizes = [0]
-    for j0, i0 in zip(*np.nonzero(~blocked)):
-        if region[j0, i0]:
-            continue
-        sizes.append(0)
-        q = [(j0, i0)]
-        region[j0, i0] = len(sizes) - 1
-        for y, x in q:
-            sizes[-1] += 1
-            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                ny, nx = y + dy, x + dx
-                if 0 <= ny < H and 0 <= nx < W and not blocked[ny, nx] and not region[ny, nx]:
-                    region[ny, nx] = len(sizes) - 1
-                    q.append((ny, nx))
-    if len(sizes) > 1:
-        pocket = ~blocked & (region != int(np.argmax(sizes)))
-        blocked |= pocket
-        outside |= pocket
-    for x, y, w, h in WALLED.get(name, []):
-        outside[y:y + h, x:x + w] |= blocked[y:y + h, x:x + w]
     # what lies outside the town is drawn dim, the buildings and trees standing there too, so the picture itself shows
     # where people can go (Icirrus's corner of Route 8 looked like a meadow of the town)
     dim = (cv.owner >= 0) & outside[np.clip((cv.wz // 16).astype(np.int64), 0, H - 1), np.clip(np.arange(cv.w) // TILE, 0, W - 1)[None, :]]
@@ -461,6 +484,8 @@ def render_town(data, name):
     Image.fromarray(rgb).save(os.path.join(OUT, f'{name}.png'), optimize=True)
     Image.fromarray(atlas).save(os.path.join(OUT, f'{name}_obj.png'), optimize=True)
     grid = [''.join('#' if blocked[j, i] else '.' for i in range(W)) for j in range(H)]
+    free &= ~(blocked & (heights < heights[~blocked].min() - WATER_DROP))
+    free_rows = [''.join('.' if free[j, i] else '#' for i in range(W)) for j in range(H)]
     doors = []
     for oid, bid, mname, bxw, bzw, own in blds:  # the first walkable tile south of a building's middle is its door
         foot = owner == oid
@@ -478,7 +503,7 @@ def render_town(data, name):
     exits = [[i, j] for j in range(H) for i in range(W) if not blocked[j, i] and out_at(i, j)]
     meta = {
         'name': name, 'zone': zone, 'area': area, 'w': W, 'h': H, 'oy': oy, 'img': [int(rgb.shape[1]), int(rgb.shape[0])],
-        'rows': grid, 'lift': np.where(blocked, 0, lift_px).tolist(), 'doors': doors, 'exits': exits,
+        'rows': grid, 'free': free_rows, 'lift': np.where(blocked, 0, lift_px).tolist(), 'doors': doors, 'exits': exits,
         # occluders: atlas x, y, w, h, then picture x, y (tile space: picture y - oy) and the foot row's y
         'objs': [[sx, sy, s[0].shape[1], s[0].shape[0], s[1], round(s[2] - oy), s[3]] for s, (sx, sy) in zip(sprites, pos)],
         'missing_buildings': sorted(missing),

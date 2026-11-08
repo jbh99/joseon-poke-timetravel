@@ -6,7 +6,7 @@
 import { G, APP, touchUI, input, toast, COL } from './core.js';
 import { tr, onLang } from './i18n.js';
 import { ERAS } from './content.js';
-import { S, SLOTS, MODE_NAMES, slotOf, readSave, saves, saveText, replaceSave } from './game.js';
+import { S, SLOTS, MODE_NAMES, slotOf, readSave, saves, saveText, replaceSave, keptSaves, keptText, putKept, renameKept, dropKept } from './game.js';
 
 // web OAuth client of the joseon-poke-timetravel Google Cloud project (origins: both sites and localhost:8790);
 // the app is recognised by its package name and signing certificate instead
@@ -16,16 +16,19 @@ const API = 'https://www.googleapis.com';
 // every journey (game.js SLOTS, one per difficulty) has a copy of its own; Normal keeps the name the versions before
 // 1.7 gave their only save, so they go on syncing it
 const fileName = (slot) => (slot === 'normal' ? 'joseon-save.json' : `joseon-save-${slot}.json`);
-// this device's link, { email, synced: { journey: savedAt }, mine, from }: synced, the savedAt of the save this device
+// this device's link, { email, synced: { journey: savedAt }, mine, from, kept }: synced, the savedAt of the save this device
 // last sent or took for each journey, which tells which side moved on since (a journey never synced here has none); mine,
 // whether that save was this device's own upload; from, the newest save of another device this one's went on from (one
-// it took, or one it replaced on purpose), which each upload carries in its copy (push). Before 1.7 synced was one
-// savedAt, that of the device's only save; before 1.20 there was no mine or from.
+// it took, or one it replaced on purpose), which each upload carries in its copy (push); kept, the Past journeys this
+// device has seen in the cloud (syncKept). Before 1.7 synced was one savedAt, that of the device's only save; before 1.20
+// there was no mine or from; before 1.21 no kept.
 const PREF = 'joseon-cloud', TOOK = 'joseon-cloud-took';
 const $ = (id) => document.getElementById(id);
-// files: the Drive copies by journey (undefined = not looked up yet); choice: the player has to pick between this
-// device's save of a journey and the cloud's (newer: only the cloud moved on, but taking it would drop the play in progress)
-const st = { token: null, exp: 0, email: null, files: undefined, choice: null, pending: false, busy: false, again: false, msg: '' };
+// files: the Drive copies by journey (undefined = not looked up yet); kept: the Drive copies of the Past journeys by their
+// key; keptBad: those this run of the game could not take (damaged, or from a newer version); choice: the player has to pick
+// between this device's save of a journey and the cloud's (newer: only the cloud moved on, but taking it would drop the
+// play in progress)
+const st = { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), choice: null, pending: false, busy: false, again: false, msg: '' };
 
 const linked = () => {
   try {
@@ -41,7 +44,8 @@ const markSynced = (slot, savedAt, line) => {
   setLink({ ...l, email: st.email, synced: { ...l.synced, [slot]: String(savedAt) }, ...(line && { mine: { ...l.mine, [slot]: line.mine }, from: { ...l.from, [slot]: line.from } }) });
 };
 // the save a copy went on from, as its uploader wrote it ("from savedAt"); null when not known: a copy from before 1.20,
-// or one that a device before 1.20 wrote over (it leaves this field as it was, so its stamp no longer matches)
+// or one that a device before 1.20 wrote over (it leaves this field as it was, so its stamp no longer matches). A device
+// whose own upload was replaced by such a copy cannot tell what it went on from, so it asks (sync)
 const fromOf = (props) => { const [from, at] = String(props?.from || '').split(' '); return at && at === props.savedAt ? from : null; };
 // the journey being played, whose save the cloud must not take away unasked (none on the title)
 const playing = () => (G.scene && G.scene.constructor.name !== 'Title' ? S.slot : null);
@@ -89,11 +93,19 @@ async function api(path, opts = {}) {
   if (!r.ok) throw new Error(`Drive ${r.status}`);
   return r;
 }
-// the journeys' copies in the app folder; a copy from before 1.7 names no journey, so its own save is read for it
+// the journeys' copies in the app folder; a copy from before 1.7 names no journey, so its own save is read for it. The
+// Past journeys are files of their own, named after their keys (versions before 1.21 pass them by)
 async function find() {
-  const list = (await (await api('/drive/v3/files?spaces=appDataFolder&fields=files(id,name,appProperties)&pageSize=100')).json()).files || [];
-  const files = {};
+  const list = [];
+  let page = '';
+  do {
+    const r = await (await api(`/drive/v3/files?spaces=appDataFolder&fields=nextPageToken,files(id,name,appProperties)&pageSize=100${page ? `&pageToken=${encodeURIComponent(page)}` : ''}`)).json();
+    list.push(...(r.files || [])); page = r.nextPageToken || '';
+  } while (page);
+  const files = {}, kept = {};
   for (const f of list) {
+    const k = /^(joseon-poke-kept-[a-z]+-\d+)\.json$/.exec(f.name || '');
+    if (k) { kept[k[1]] = f; continue; }
     if (!/^joseon-save/.test(f.name || '')) continue;
     if (!f.appProperties?.slot) {
       try { f.appProperties = { ...f.appProperties, slot: slotOf(JSON.parse(await (await api(`/drive/v3/files/${f.id}?alt=media`)).text())) }; } catch (e) { continue; }
@@ -101,10 +113,18 @@ async function find() {
     const slot = f.appProperties.slot, had = files[slot];
     if (SLOTS.includes(slot) && !(had && +had.appProperties.savedAt >= +f.appProperties.savedAt)) files[slot] = f;
   }
-  st.files = files;
+  st.files = files; st.kept = kept;
 }
 // what a save is, in a few words kept beside the file (Drive app properties are short strings)
 const meta = (o, slot) => ({ slot, era: String(o.era), playtime: String(Math.round(o.playtime || 0)), savedAt: String(o.savedAt || 0) });
+// a file of the app folder written: over `file`, or new under `name`
+async function writeFile(file, name, props, text) {
+  const head = { appProperties: props, ...(file ? {} : { name, parents: ['appDataFolder'] }) };
+  const b = `joseon${Date.now()}`;
+  const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(head)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${text}\r\n--${b}--`;
+  const path = `/upload/drive/v3/files${file ? `/${file.id}` : ''}?uploadType=multipart&fields=id,name,appProperties`;
+  return (await api(path, { method: file ? 'PATCH' : 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` }, body })).json();
+}
 // Drive has no write that fails when the file changed meanwhile, so two devices uploading the same journey at the same
 // moment both go through, and the later wins the copy. What the copy then says it went on from (the save of another
 // device this one took or replaced on purpose, as last looked up) shows the other device that its own upload was written
@@ -116,18 +136,13 @@ async function push(slot) {
   const was = file?.appProperties.savedAt, own = !!was && !!l.mine?.[slot] && was === l.synced?.[slot];
   const from = was && !own ? was : l.from?.[slot] || '0';
   m.from = `${from} ${m.savedAt}`;
-  const head = { appProperties: m, ...(file ? {} : { name: fileName(slot), parents: ['appDataFolder'] }) };
-  const b = `joseon${Date.now()}`;
-  const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(head)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${text}\r\n--${b}--`;
-  const path = `/upload/drive/v3/files${file ? `/${file.id}` : ''}?uploadType=multipart&fields=id,name,appProperties`;
-  st.files[slot] = await (await api(path, { method: file ? 'PATCH' : 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` }, body })).json();
+  st.files[slot] = await writeFile(file, fileName(slot), m, text);
   markSynced(slot, m.savedAt, { mine: true, from });
 }
-// a journey's cloud copy replaces its save on this device, unless this device saved that journey while the copy came down
+// a journey's cloud copy replaces its save on this device, unless this device saved that journey since `before` was read
 // (the panel closed meanwhile): then nothing is replaced, and the next sync finds both sides moved on and asks (up to 1.19
-// the copy replaced the newer save)
-async function pull(slot) {
-  const before = saveText(slot);
+// the copy replaced the newer save; a button's press reads `before` when pressed, as it waits on Google first)
+async function pull(slot, before = saveText(slot)) {
   const text = await (await api(`/drive/v3/files/${st.files[slot].id}?alt=media`)).text();
   if (saveText(slot) !== before) throw new Error('saved meanwhile');
   replaceSave(text, slot, ERAS.length); // a damaged copy, or one from a newer version, throws here and the save on this device stays
@@ -135,6 +150,49 @@ async function pull(slot) {
   markSynced(slot, at, { mine: false, from: at });
   return meta(JSON.parse(text), slot);
 }
+// Past journeys go with the account (1.21; up to 1.20 they stayed on the device that kept them, so a PC could not play one
+// kept on the phone): each is a file of its own beside the saves. A journey taken back, or dropped from a full list,
+// leaves its file behind emptied and marked gone, so that the other devices drop it too. Only that mark takes a journey
+// off a device: a file merely missing proves nothing (Drive's app data can be cleared), so what is here goes up again.
+// link.kept tells what is in the cloud and not here: seen here before, this device took it back or dropped it (it is
+// marked gone); never seen, it comes down. Two devices putting the same save aside (each on taking the other's new
+// journey) keep one copy, under the key the cloud has. The marks last KEPT_MARK, long enough for the other devices.
+const keptPrint = (slot, o) => `${slot} ${o.jid || ''} ${o.savedAt || 0}`, KEPT_MARK = 90 * 86400000;
+async function syncKept() {
+  const known = new Set(linked()?.kept), kept = st.kept, alive = new Map();
+  let changed = false;
+  const del = async (key) => { await api(`/drive/v3/files/${kept[key].id}`, { method: 'DELETE' }); delete kept[key]; };
+  for (const key of Object.keys(kept).sort()) {
+    const p = kept[key].appProperties;
+    if (p.gone) { if (Date.now() - +p.gone > KEPT_MARK) await del(key); continue; }
+    const at = keptPrint(p.slot, p);
+    if (alive.has(at)) await del(key); else alive.set(at, key);
+  }
+  for (const k of keptSaves()) {
+    const f = kept[k.key], same = alive.get(keptPrint(k.slot, k.o));
+    if (f?.appProperties.gone) { dropKept(k.key); known.delete(k.key); changed = true; }
+    else if (f) known.add(k.key);
+    else if (same) { renameKept(k.key, same); known.add(same); changed = true; }
+    else {
+      const text = keptText(k.key);
+      if (text == null) continue;
+      kept[k.key] = await writeFile(null, `${k.key}.json`, { slot: k.slot, savedAt: String(k.o.savedAt || 0), jid: k.o.jid || '' }, text);
+      known.add(k.key);
+    }
+  }
+  const here = new Set(keptSaves().map((k) => k.key));
+  for (const key of Object.keys(kept)) {
+    if (here.has(key) || kept[key].appProperties.gone) continue;
+    if (known.has(key)) { kept[key] = await writeFile(kept[key], null, { gone: String(Date.now()) }, '{}'); known.delete(key); continue; }
+    if (st.keptBad.has(key)) continue;
+    const text = await (await api(`/drive/v3/files/${kept[key].id}?alt=media`)).text();
+    try { putKept(key, text, ERAS.length); known.add(key); changed = true; } catch (e) { st.keptBad.add(key); }
+  }
+  setLink({ ...linked(), kept: [...known] });
+  if (changed) G.scene?.keptChanged?.();
+}
+// (a Past journey that could not be shared this time waits for the next sync; the saves' own sync goes on regardless)
+const shareKept = () => syncKept().catch(() => {});
 // saves taken from the cloud: with the journey in play among them (or on the title) the game starts over from the title;
 // another journey's save just waits there for its turn
 function took(list) {
@@ -148,6 +206,7 @@ function took(list) {
 // auto: not asked for, so the journey in play is never taken away
 async function sync(auto) {
   await find();
+  await shareKept(); // first: a save once taken must not wait on anything before the game restarts on it (took)
   const link = linked() || {}, was = link.synced || {}, p = playing(), got = [];
   let sent = 0;
   st.choice = null;
@@ -159,8 +218,9 @@ async function sync(auto) {
       if (local && w && cloud.savedAt === w) { await push(slot); sent++; continue; }
       if (!local || (w && String(local.savedAt) === w)) {
         // only the cloud moved on, by a copy that never had this device's own last upload (written over by another
-        // device uploading at the same moment): the play here exists nowhere else, so the player chooses
-        const lost = local && link.mine?.[slot] && fromOf(cloud) !== null && fromOf(cloud) !== w;
+        // device uploading at the same moment) or that cannot say (a device before 1.20 wrote it): the play here may
+        // exist nowhere else, so the player chooses
+        const lost = local && link.mine?.[slot] && fromOf(cloud) !== w;
         if (lost) st.choice ||= { slot, local: meta(local, slot), cloud };
         else if (auto && slot === p) st.choice ||= { slot, cloud, newer: true };
         else got.push(await pull(slot));
@@ -230,24 +290,30 @@ async function autoSync() {
 const signIn = () => run(async () => {
   await getToken(true);
   st.email = (await (await api('/oauth2/v3/userinfo')).json()).email;
-  if (linked()?.email !== st.email) setLink({ email: st.email }); // another account: this device has not synced with it
+  if (linked()?.email !== st.email) setLink({ email: st.email, kept: linked()?.kept }); // another account: this device has not synced with it
   await sync(false);
 });
 const upload = () => run(async () => {
-  await getToken(true); if (st.files === undefined) await find();
+  await getToken(true); await find();
   await push(current());
+  await shareKept();
   st.choice = null; st.pending = false; say(tr('클라우드에 저장했어요.', 'Saved to the cloud.'));
 });
 const download = () => run(async () => {
+  // the journey and the save the player means to replace, as of the press: Google's window and the file list take a while,
+  // and the panel can be closed and the journey played and saved meanwhile
+  const slot = current(), before = saveText(slot);
   await getToken(true); await find();
-  const slot = current();
   if (!st.files[slot]) return say(tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.'));
-  const m = await pull(slot);
+  await shareKept();
+  const m = await pull(slot, before);
   st.choice = null; took([m]);
 });
+// (what this device has seen of the Past journeys stays, so that one taken back while signed out still leaves the other devices)
 function signOut() {
-  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, choice: null, pending: false, msg: tr('로그아웃했어요.', 'Signed out.') });
-  setLink(null); render();
+  const kept = linked()?.kept;
+  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), choice: null, pending: false, msg: tr('로그아웃했어요.', 'Signed out.') });
+  setLink(kept?.length ? { kept } : null); render();
 }
 function render() {
   // the touch layout's HUD buttons are narrow, so it says less
