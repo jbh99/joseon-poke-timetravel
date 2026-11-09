@@ -1,7 +1,7 @@
 // Boot and main loop.
 import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
-import { initData, initSaves, S, save, load, newGame } from './game.js';
+import { initData, initSaves, S, save, load, newGame, saves, Mon } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
 import { Town, setBuildings, setPearl, setBW, townSets, townPictures } from './town.js';
@@ -18,28 +18,33 @@ import { initCloud } from './cloud.js';
 G.goTown = (kind) => {
   // the towns' own assets, still loading behind the title on a slow line (boot), come first
   if (G.townAssets) { holdFade(G.townAssets.then(() => G.goTown(kind))); return; }
-  // a Black town's picture is loaded and decoded first, while the screen stays dark (holdFade): on a slow line the town
-  // stood for seconds with no ground under it, and decoding it on its first frame stalled a phone
-  const pics = townPictures(kind).filter((p) => !prepped.has(p));
-  if (pics.length) { holdFade(prepImages(pics).then(() => enterTown(kind))); return; }
   enterTown(kind);
 };
 const enterTown = (kind) => {
+  const pics = townPictures(kind).filter((p) => !prepped.has(p));
   for (const m of [...S.party, ...S.roster]) m.status = null;
   const t = new Town(kind);
   setScene(t);
-  // the people's and the team's sprites load and decode while the screen is still dark, and the town is drawn once
-  // there: its first frames on screen no longer stall (a phone hitched 0.1-0.4 s entering a town the first time). What
+  // a Black town's picture and the people's and the team's sprites load and decode together while the screen stays dark
+  // (holdFade), and the town is drawn once there: on a slow line it stood for seconds with no ground under it, and its first
+  // frames on screen stalled a phone (0.1-0.4 s). Up to 1.23 the sprites were asked for only when the picture had come. What
   // the town plays on arrival waits for that too, so no question opens under the dark screen
   // (the arrival's autosave too, unless a cleared dungeon's news comes first and saves after it)
   const sheets = [...new Set([...t.npcs.map((n) => n.sp), ...S.party.map((m) => m.spr)])].map((sp) => spriteReady(sp));
   const d = G.pendingClear;
   G.pendingClear = null;
-  holdFade(Promise.all(sheets).then(() => { if (G.scene === t) t.draw(G.lctx); if (!d) save(); })).finally(() => {
+  holdFade(Promise.all([prepImages(pics), ...sheets]).then(() => { if (G.scene === t) t.draw(G.lctx); if (!d) save(); })).finally(() => {
     if (d) setTimeout(async () => { await onDungeonClear(d); save(); }, 450);
     else setTimeout(resumeSteps, 450);
   });
 };
+// what Continue will want starts coming behind the title: the town of the journey played last, and its team
+function warmStart() {
+  const o = saves()[0]?.o;
+  if (!o || !ERAS[o.era] || navigator.connection?.saveData) return;
+  prepImages(townPictures(o.townKind || 1, ERAS[o.era])).catch(() => {});
+  for (const m of o.party) { try { spriteReady(Mon.from(m).spr).catch(() => {}); } catch (e) { /* a member the save cannot name: Continue says so */ } }
+}
 G.goWorld = () => setScene(new WorldMap());
 G.goDungeon = (d, def, o) => setScene(new Dungeon(d, def, o)); // def: a fight no era lists (Town.policeDef); o.floor: where to start, o.crew: who boards for a naval battle
 G.nextEra = () => fadeTo(() => {
@@ -194,7 +199,7 @@ async function boot() {
   G.townAssets = Promise.all([
     loadJSON('bw/towns/index.json').then(setBW).catch(() => {}),
     loadJSON('data/manifest.json').then((man) => Promise.all([loadImages(['bld', 'prop'].flatMap((k) => man[k].map((n) => `${k}/${n}.png`))), ...townSets().map((id) => tileSet(id).ready)])),
-  ]).catch((e) => console.warn('town assets', e)).then(() => { G.townAssets = null; }); // a failure must not hold a town's way in forever
+  ]).catch((e) => console.warn('town assets', e)).then(() => { G.townAssets = null; warmStart(); }); // a failure must not hold a town's way in forever
   status.remove();
   if (APP) unlockAudio(); // the app may start sound without a tap, so the title music plays at once
   setScene(new Title());

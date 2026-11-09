@@ -454,11 +454,18 @@ export function putKept(key, text, eras = Infinity) {
   let o;
   try { o = JSON.parse(text); } catch (e) { throw new Error('not a save'); }
   if (parseSave(o, eras).fixed.length) throw new Error('not a save');
-  localStorage.setItem(key, text);
+  try { localStorage.setItem(key, text); } catch (e) { throw new Error('no room'); } // a good journey that can come down once there is room
 }
-// the same journey under another key (two devices each put the same save aside; cloud.js keeps the cloud's key)
+// the same journey under another key (two devices each put the same save aside; cloud.js keeps the cloud's key). The old
+// key goes first, as the room it frees is the room the new one needs. False: nothing changed
 export function renameKept(from, to) {
-  try { const text = localStorage.getItem(from); if (text != null) { localStorage.setItem(to, text); localStorage.removeItem(from); } } catch (e) { /* stays as it is */ }
+  try {
+    const text = localStorage.getItem(from);
+    if (text == null) return false;
+    localStorage.removeItem(from);
+    try { localStorage.setItem(to, text); } catch (e) { localStorage.setItem(from, text); return false; }
+    return true;
+  } catch (e) { return false; }
 }
 export function dropKept(key) { try { localStorage.removeItem(key); } catch (e) { /* private mode */ } }
 export function keptText(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
@@ -474,16 +481,22 @@ export function keptSaves() {
   return out.sort((a, b) => b.at - a.at);
 }
 // put the journey of `slot` aside, its place left empty for the one coming: false when there was no room to keep it
-// (it then stays where it is). Nothing is kept of a lost challenge (its save only marks the journey as ended). A full list
-// lets its oldest go, just the one, even if lists merged from several devices made it longer; a swap (restoreKept) adds nothing
-export function keepJourney(slot, swap = false) {
+// (it then stays where it is). Nothing is kept of a lost challenge (its save only marks the journey as ended), and the very
+// same save is not kept twice (another device put it aside first); a later save of the same journey is no reason to skip
+// this one, as both devices may have gone on from one save and this play be in no other copy.
+// evict: the player started a new journey over this one, so a full list lets its oldest go, just the one, even if lists
+// merged from several devices made it longer. Nothing else takes a journey off the list, as what leaves it here leaves the
+// other devices too (cloud.js): up to 1.23 taking another device's new journey with a full list here dropped an unrelated one
+export function keepJourney(slot, evict = false) {
   const text = saveText(slot);
   let o = null;
   try { o = JSON.parse(text); } catch (e) { /* none, or a broken one */ }
   if (!o || !Array.isArray(o.party) || o.over) return true;
-  const list = keptSaves().filter((k) => k.slot === slot); // newest first
-  try { localStorage.setItem(`${KEPT}${slot}-${Date.now()}`, text); } catch (e) { return false; }
-  if (!swap && list.length >= KEPT_MAX) localStorage.removeItem(list[list.length - 1].key);
+  const list = keptSaves().filter((k) => k.slot === slot), at = o.savedAt || 0; // newest first
+  if (!list.some((k) => (k.o.jid || '') === (o.jid || '') && (k.o.savedAt || 0) === at)) {
+    try { localStorage.setItem(`${KEPT}${slot}-${Date.now()}`, text); } catch (e) { return false; }
+    if (evict && list.length >= KEPT_MAX) localStorage.removeItem(list[list.length - 1].key);
+  }
   localStorage.removeItem(slotKey(slot));
   return true;
 }
@@ -495,7 +508,7 @@ export function restoreKept(k) {
   if (!text) return false;
   localStorage.removeItem(k.key);
   const back = () => { try { localStorage.setItem(k.key, text); } catch (e) { /* the room it had was just freed */ } return false; };
-  if (!keepJourney(k.slot, true)) return back();
+  if (!keepJourney(k.slot)) return back();
   try { localStorage.setItem(slotKey(k.slot), text); } catch (e) { return back(); }
   return true;
 }

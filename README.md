@@ -320,6 +320,12 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
 
+### 바뀐 점 (1.24)
+
+- **지난 여행 동기화를 고침**: 저장 공간이 부족해 정리에 실패했을 때 클라우드의 지난 여행이 지워지던 것, 공간을 비운 뒤에도 다시 받지 않던 것, 올리지 못했는데도 최신이라고 나오던 것, 다시 시작한 여행이 지난 여행 목록에 되돌아오던 것을 고쳤습니다. 목록이 가득 찬 기기가 다른 기기의 새 여행을 받아도 상관없는 지난 여행이 지워지지 않습니다.
+- **불러오기를 빠르게**: 마을 그림과 사람들을 차례로 받지 않고 함께 받고, 타이틀에 있는 동안 이어 할 마을을 미리 받습니다. 여러 지난 여행도 한꺼번에 내려받습니다.
+- **마을 전투 시작 위치**: 팀이 다리 난간이나 건물 뒤에 가려진 곳에서 시작하지 않고, 막다른 곳에서 벌어진 전투에서도 팀원이 겹쳐 서지 않습니다.
+
 ### 바뀐 점 (1.23)
 
 - **전투 창 크기 조정**: 1.22에서 너무 작아진 아래 스킬창과 전투 메시지 창을 키웠습니다. 1.21 크기의 75%입니다. 위의 포켓몬 상태창은 1.22 크기 그대로입니다.
@@ -471,6 +477,7 @@ docs/screenshots/       README 스크린샷
   - The First World War: 1914 Sarajevo (Nacrene City): Hydreigon, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Hydreigon · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Hydreigon · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
   - The Second World War: 1939 Danzig (Nacrene City): Hydreigon, **Cobalion** · 1940 Dunkirk (Driftveil City): Hydreigon, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, three phases · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Hydreigon · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Hydreigon · 1942 Leningrad (Nacrene City): Hydreigon, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion**, **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom** in three phases, Hydreigon · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.24: Past journeys sync safely: a failed renaming no longer empties a good cloud copy, a journey that did not fit comes down once there is room, an upload Drive refused no longer reads as up to date, a journey taken back no longer returns through a duplicate, and taking another device's new journey with a full list no longer drops an unrelated one. Faster loading: a town's picture and people come together, Continue's town starts loading behind the title, and several Past journeys come down at once. A town battle no longer starts the team behind a rail or a house, or two members on one tile in a dead end.
   - 1.23: the battle screen's move list and message log are larger again, at 75% of their 1.21 size each way (1.22 had made them too small to read). The team panel stays as in 1.22.
   - 1.22.1: in busy battles (a boss against a team of three) 1.22's battle log ran late and lost some messages before they were shown. Battle messages now show at once; only a burst such as experience and level-ups takes its turn.
   - 1.22: in towns, buildings and the map's edge stop the team again (1.21 let it through houses and off the map). Buildings, water, cliffs, the woods around a town and what lies outside it (drawn dim) stop it; only what stands in the way is gone: street furniture such as signs, planters, parasols and fountains, lone trees, fences and hedges across a way, and blocked paving and lawns with nothing to show why. The battle screen's windows are smaller: the team panel at 40% of its old size each way, the move list and the message log at 60%, and the log shows one or two lines.

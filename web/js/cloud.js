@@ -25,10 +25,11 @@ const fileName = (slot) => (slot === 'normal' ? 'joseon-save.json' : `joseon-sav
 const PREF = 'joseon-cloud', TOOK = 'joseon-cloud-took';
 const $ = (id) => document.getElementById(id);
 // files: the Drive copies by journey (undefined = not looked up yet); kept: the Drive copies of the Past journeys by their
-// key; keptBad: those this run of the game could not take (damaged, or from a newer version); choice: the player has to pick
+// key; keptBad: those this run of the game could not take (damaged, or from a newer version); keptLate: the last sync of the
+// Past journeys left some undone, to try again; choice: the player has to pick
 // between this device's save of a journey and the cloud's (newer: only the cloud moved on, but taking it would drop the
 // play in progress)
-const st = { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), choice: null, pending: false, busy: false, again: false, msg: '' };
+const st = { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, busy: false, again: false, msg: '' };
 
 const linked = () => {
   try {
@@ -158,41 +159,65 @@ async function pull(slot, before = saveText(slot)) {
 // marked gone); never seen, it comes down. Two devices putting the same save aside (each on taking the other's new
 // journey) keep one copy, under the key the cloud has. The marks last KEPT_MARK, long enough for the other devices.
 const keptPrint = (slot, o) => `${slot} ${o.jid || ''} ${o.savedAt || 0}`, KEPT_MARK = 90 * 86400000;
+// up to n at once, all of them done before this ends (the first failure is thrown then): each one is a round trip to Google,
+// and on a slow line a device with several journeys to fetch waited for them one after another
+async function together(list, n, fn) {
+  const q = [...list];
+  let failed = null;
+  await Promise.all(Array.from({ length: Math.min(n, q.length) }, async () => { while (q.length) { try { await fn(q.shift()); } catch (e) { failed ||= e; } } }));
+  if (failed) throw failed;
+}
+// True when everything is in step. Whether a journey is on this device goes by the journey (keptPrint), not the file's key, so
+// a renaming that failed cannot read as "taken back" (up to 1.23 that emptied a good file in the cloud). A file Drive refused
+// leaves the others to go on and waits for the next sync; with no connection the sync ends here. What was learnt is kept either way.
 async function syncKept() {
   const known = new Set(linked()?.kept), kept = st.kept, alive = new Map();
-  let changed = false;
+  let changed = false, whole = true;
+  const step = async (fn) => { try { await fn(); } catch (e) { whole = false; if (!/^Drive \d/.test(e.message)) throw e; } };
   const del = async (key) => { await api(`/drive/v3/files/${kept[key].id}`, { method: 'DELETE' }); delete kept[key]; };
-  for (const key of Object.keys(kept).sort()) {
-    const p = kept[key].appProperties;
-    if (p.gone) { if (Date.now() - +p.gone > KEPT_MARK) await del(key); continue; }
-    const at = keptPrint(p.slot, p);
-    if (alive.has(at)) await del(key); else alive.set(at, key);
-  }
-  for (const k of keptSaves()) {
-    const f = kept[k.key], same = alive.get(keptPrint(k.slot, k.o));
-    if (f?.appProperties.gone) { dropKept(k.key); known.delete(k.key); changed = true; }
-    else if (f) known.add(k.key);
-    else if (same) { renameKept(k.key, same); known.add(same); changed = true; }
-    else {
-      const text = keptText(k.key);
-      if (text == null) continue;
-      kept[k.key] = await writeFile(null, `${k.key}.json`, { slot: k.slot, savedAt: String(k.o.savedAt || 0), jid: k.o.jid || '' }, text);
-      known.add(k.key);
+  try {
+    for (const key of Object.keys(kept).sort()) {
+      const p = kept[key].appProperties;
+      if (p.gone) { if (Date.now() - +p.gone > KEPT_MARK) await step(() => del(key)); continue; }
+      const at = keptPrint(p.slot, p), first = alive.get(at);
+      if (first === undefined) { alive.set(at, key); continue; }
+      if (known.has(key)) known.add(first); // what this device did with the copy going (taken back, say) holds for the one staying
+      await step(async () => { await del(key); known.delete(key); });
     }
+    for (const k of keptSaves()) {
+      const f = kept[k.key], same = alive.get(keptPrint(k.slot, k.o));
+      if (f?.appProperties.gone) { dropKept(k.key); known.delete(k.key); changed = true; }
+      else if (f) known.add(k.key);
+      else if (same) { known.add(same); if (renameKept(k.key, same)) changed = true; else whole = false; }
+      else {
+        const text = keptText(k.key);
+        if (text == null) continue;
+        await step(async () => {
+          kept[k.key] = await writeFile(null, `${k.key}.json`, { slot: k.slot, savedAt: String(k.o.savedAt || 0), jid: k.o.jid || '' }, text);
+          known.add(k.key);
+        });
+      }
+    }
+    const here = new Set(keptSaves().flatMap((k) => [k.key, keptPrint(k.slot, k.o)])), coming = [];
+    for (const key of Object.keys(kept)) {
+      const p = kept[key].appProperties;
+      if (p.gone || here.has(key) || here.has(keptPrint(p.slot, p))) continue;
+      if (known.has(key)) await step(async () => { kept[key] = await writeFile(kept[key], null, { gone: String(Date.now()) }, '{}'); known.delete(key); });
+      else if (!st.keptBad.has(key)) coming.push(key);
+    }
+    await together(coming, 4, (key) => step(async () => {
+      const text = await (await api(`/drive/v3/files/${kept[key].id}?alt=media`)).text();
+      try { putKept(key, text, ERAS.length); known.add(key); changed = true; } catch (e) { if (e.message === 'no room') whole = false; else st.keptBad.add(key); }
+    }));
+  } finally {
+    setLink({ ...linked(), kept: [...known] });
+    if (changed) G.scene?.keptChanged?.();
   }
-  const here = new Set(keptSaves().map((k) => k.key));
-  for (const key of Object.keys(kept)) {
-    if (here.has(key) || kept[key].appProperties.gone) continue;
-    if (known.has(key)) { kept[key] = await writeFile(kept[key], null, { gone: String(Date.now()) }, '{}'); known.delete(key); continue; }
-    if (st.keptBad.has(key)) continue;
-    const text = await (await api(`/drive/v3/files/${kept[key].id}?alt=media`)).text();
-    try { putKept(key, text, ERAS.length); known.add(key); changed = true; } catch (e) { st.keptBad.add(key); }
-  }
-  setLink({ ...linked(), kept: [...known] });
-  if (changed) G.scene?.keptChanged?.();
+  return whole;
 }
-// (a Past journey that could not be shared this time waits for the next sync; the saves' own sync goes on regardless)
-const shareKept = () => syncKept().catch(() => {});
+// (a Past journey that could not be shared this time waits for the next sync, and the panel says so; the saves' own sync goes on regardless)
+const shareKept = () => syncKept().then((whole) => { st.keptLate = !whole; }, () => { st.keptLate = true; });
+const keptNote = () => (st.keptLate ? tr(' 지난 여행은 아직 다 주고받지 못했어요. 다음 동기화 때 다시 시도해요.', ' Some Past journeys could not be shared yet; the next sync tries again.') : '');
 // saves taken from the cloud: with the journey in play among them (or on the title) the game starts over from the title;
 // another journey's save just waits there for its turn
 function took(list) {
@@ -214,6 +239,8 @@ async function sync(auto) {
     for (const slot of SLOTS) {
       const local = readSave(slot), cloud = st.files[slot]?.appProperties, w = was[slot];
       if (!cloud) { if (local) { await push(slot); sent++; } continue; }
+      // the journey the player just put aside for a new one that has no save yet: its cloud copy is no news from another device
+      if (!local && keptSaves().some((k) => k.slot === slot && String(k.o.savedAt || 0) === cloud.savedAt)) continue;
       if (local && String(local.savedAt) === cloud.savedAt) { markSynced(slot, cloud.savedAt); continue; }
       if (local && w && cloud.savedAt === w) { await push(slot); sent++; continue; }
       if (!local || (w && String(local.savedAt) === w)) {
@@ -232,9 +259,9 @@ async function sync(auto) {
     if (got.length) took(got);
     throw e;
   }
-  st.pending = false;
-  say(st.choice ? '' : sent ? tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud.")
-    : SLOTS.some((s) => st.files[s]) ? tr('클라우드와 같은 최신 세이브예요.', 'Up to date with the cloud.') : tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.'));
+  st.pending = st.keptLate;
+  say(st.choice ? '' : (sent ? tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud.")
+    : SLOTS.some((s) => st.files[s]) ? tr('클라우드와 같은 최신 세이브예요.', 'Up to date with the cloud.') : tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.')) + keptNote());
   if (got.length) took(got);
 }
 
@@ -297,7 +324,7 @@ const upload = () => run(async () => {
   await getToken(true); await find();
   await push(current());
   await shareKept();
-  st.choice = null; st.pending = false; say(tr('클라우드에 저장했어요.', 'Saved to the cloud.'));
+  st.choice = null; st.pending = st.keptLate; say(tr('클라우드에 저장했어요.', 'Saved to the cloud.') + keptNote());
 });
 const download = () => run(async () => {
   // the journey and the save the player means to replace, as of the press: Google's window and the file list take a while,
@@ -312,7 +339,7 @@ const download = () => run(async () => {
 // (what this device has seen of the Past journeys stays, so that one taken back while signed out still leaves the other devices)
 function signOut() {
   const kept = linked()?.kept;
-  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), choice: null, pending: false, msg: tr('로그아웃했어요.', 'Signed out.') });
+  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, msg: tr('로그아웃했어요.', 'Signed out.') });
   setLink(kept?.length ? { kept } : null); render();
 }
 function render() {

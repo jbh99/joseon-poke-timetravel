@@ -233,7 +233,7 @@ export class Dungeon {
     for (const m of S.party) {
       if (m === lead || m.hp <= 0) continue;
       const at = lay?.team?.[S.party.indexOf(m)]; // a fight in town: where it stood
-      const [px, py] = at && this.walk(...at) && !this.entAt(...at) ? at : this.freeNear(sx, sy);
+      const [px, py] = at && this.walk(...at) && !this.entAt(...at) ? at : lay?.team ? this.nearestOpen(sx, sy) : this.freeNear(sx, sy); // (a town's dead end can have no free tile right beside the leader)
       this.mates.push(this.addEnt(m, px, py, 'ally', false));
     }
     if (rose.length) this.msg(tr(`쓰러졌던 ${rose.map((m) => m.name).join(', ')}이(가) 보스 앞에서 다시 일어났다!`, `${rose.map((m) => m.name).join(', ')} got back up to face the boss!`), COL.green);
@@ -451,7 +451,7 @@ export class Dungeon {
     };
     for (const list of [framed.slice(0, 40), framed, near]) for (const longer of [0, 2]) for (const [dy, dx] of gaps) for (const b of list) {
       const x = b[0] + dx, y = b[1] + dy;
-      if (on(x, y) && walked(b).get(y * W + x) <= dy + Math.abs(dx) + longer) return [b, [x, y]];
+      if (on(x, y) && !this.battleTown.hiddenAt?.(x + this.crop[0], y + this.crop[1]) && walked(b).get(y * W + x) <= dy + Math.abs(dx) + longer) return [b, [x, y]]; // (not behind a bridge's rail or a house: the team is where the player looks first)
     }
     return null;
   }
@@ -533,9 +533,9 @@ export class Dungeon {
   // messages come step by step and take none: a boss fight with a team of three makes 3 or 4 a second, and spacing those made
   // the log run late and lose what was still waiting (1.22.1)
   msg(text, color = COL.ink, gap = 0) {
-    const now = G.time, at = Math.min(now + 1.2, Math.max(now, (this.msgs.at(-1)?.at ?? now - 1) + gap));
+    const now = G.time, at = Math.min(now + 3, Math.max(now, (this.msgs.at(-1)?.at ?? now - 1) + gap));
     this.msgs.push({ text, color, t: 6 + at - now, at });
-    if (this.msgs.length > 5) this.msgs.shift();
+    while (this.msgs.length > 5 && this.msgs[0].at < now) this.msgs.shift(); // (a line still to come up stays)
   }
   step(fn, dur = 0.22) { this.queue.push({ fn, dur }); }
   pop(e, text, color) { this.pops.push({ x: e.x, y: e.y, text, color, t: 0.9 }); }
