@@ -7,7 +7,7 @@ import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, part
 import { drawMon, Town, PEARL, objInView } from './town.js';
 import { tr, iga } from './i18n.js';
 import { openPokedex } from './pokedex.js';
-import { tileSet, paintTerrain, hasPmdSprite, pmdHeadroom } from './pmd.js';
+import { tileSet, paintTerrain, hasPmdSprite, pmdHeadroom, spriteReady } from './pmd.js';
 import { NET } from './net.js';
 
 // the floor's size in tiles: 44x32, unless a Pearl floor needs more room (fixedFloor sets it per floor)
@@ -25,7 +25,7 @@ const PSEUDO_TIER = { up: 2, hp: 3.2 * 0.85, atk: 1.2 * 0.85, cap: 0.38 * 0.85, 
 function bossTier(b) {
   if (b.final) return { up: 0, hp: 1, atk: 1, cap: 0.3, blast: 1, stagger: 2 };
   if (LEGENDS.has(b.sp)) return LEGEND_TIER;
-  if (PSEUDO.has(b.sp)) return PSEUDO_TIER;
+  if (PSEUDO.has(b.sp) || b.pseudo) return PSEUDO_TIER; // b.pseudo: a world quest's strong boss in a 600-total line's place (1.25)
   return { up: 0, hp: era().year >= 1200 ? 1.3 : 1, atk: 1, cap: 0.3, blast: 1, stagger: 2 };
 }
 // difficulty along the journey: 0 in the first era, 1 in the last. Early floors are sparse and forgiving, late ones crowded and harsh.
@@ -42,15 +42,19 @@ const SURE_REACH = 3, LINE_REACH = 6, FOE_REACH = 4, BOSS_REACH = 4;
 const SIG_REACH = 8;
 // a tile and the four beside it: where a falling thing hits
 const PLUS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+// a wall of Dragon Ascent (waveVolley): the four ways it flies, in turn, and the seconds it allows a step on the way to its gap
+const WALL = [[1, 0], [0, 1], [-1, 0], [0, -1]], WALL_STEP = 0.28;
 const reachOf = (e) => (e.isBoss ? BOSS_REACH : e.team === 'foe' ? FOE_REACH : LINE_REACH);
 // bosses shrug off sleep, freeze and poison, so they can't be locked down or worn away; a legendary boss shrugs off
-// every status problem, paralysis and burns too (even Rest's own sleep)
-const statusProof = (m, s) => m.boss && (LEGENDS.has(m.sp) || ['slp', 'frz', 'psn'].includes(s));
+// every status problem, paralysis and burns too (even Rest's own sleep). Poison and Steel types can't be poisoned at all (1.25).
+const NO_POISON = [3, 8]; // the Poison and Steel types
+const statusProof = (m, s) => (s === 'psn' && m.types.some((t) => NO_POISON.includes(t))) || (m.boss && (LEGENDS.has(m.sp) || ['slp', 'frz', 'psn'].includes(s)));
 // teammates stay with the one in control: they fight what comes near the team instead of chasing foes across a room
 const LEASH = 4;
 // the battle screen's windows (drawUI): the move list and the log at HUD_K of their old size, the team panel at P.k
 const HUD_K = 0.75, HUD_TEXT = 9 * HUD_K, HUD_LIST = { w: 154 * HUD_K, row: 14 * HUD_K, top: 6 * HUD_K, bottom: 4 * HUD_K };
-const HUD_TEAM = { k: 0.4, x: 6, y: 6, w: 70, head: 7.4, row: 8.6, title: 4.5, name: 5, num: 4 };
+const TEAM_U = 1.2; // 1.25: the team panel a fifth larger each way than 1.22 made it, its text and bars with it
+const HUD_TEAM = { k: 0.4 * TEAM_U, u: TEAM_U, x: 6, y: 6, w: 70 * TEAM_U, head: 7.4 * TEAM_U, row: 8.6 * TEAM_U, title: 4.5 * TEAM_U, name: 5 * TEAM_U, num: 4 * TEAM_U };
 // the seconds between the lines of a burst of messages (msg)
 const BURST_GAP = 0.45;
 // the leader's badge, a crowned shield, over its head and beside its name in the team panel (BADGE_S)
@@ -303,6 +307,7 @@ export class Dungeon {
       : b.tele;
     e.teleCD = b.tele ? (this.teleConf(e).first ?? 3) + i * 2 : 0;
     e.sig = this.sigPlan(b.sig, b.pace, b.sigMore);
+    for (const r of [].concat(b.revive || [])) if (r.forme) spriteReady(`${b.sp}${r.forme}`).catch(() => {}); // a later form's picture, in before it rises in it
     e.waiting = this.stage?.wake || 0;
     return e;
   }
@@ -625,6 +630,7 @@ export class Dungeon {
         if (cmd) this.mateAct(m, cmd); else this.allyAI(m);
         continue;
       }
+      this.waitGuest = null; // (a guest's Pokémon that fell, or whose player left, while it was waited for)
       this.pendingMates.shift();
       if (m.alive) this.allyAI(m);
     }
@@ -1145,7 +1151,7 @@ export class Dungeon {
       a.mon.hp = Math.max(0, a.mon.hp - d);
       const sleep = t.sleep && a.mon.hp > 0 && !a.mon.status;
       if (sleep) { a.mon.status = 'slp'; a.sleepT = 2; }
-      const status = !sleep && t.status && a.mon.hp > 0 && !a.mon.status && Math.random() < (t.statusChance ?? 0.3) ? t.status : null;
+      const status = !sleep && t.status && a.mon.hp > 0 && !a.mon.status && !statusProof(a.mon, t.status) && Math.random() < (t.statusChance ?? 0.3) ? t.status : null;
       if (status) a.mon.status = status;
       this.step(() => {
         a.hurt = 0.4; this.pop(a, String(d), '#ff6a4a'); sfx('hit');
@@ -1208,6 +1214,10 @@ export class Dungeon {
     if (sg.kind === 'rain') { // Fusion Flare: for some seconds, whatever the turn, fire falls on the team (updateFire)
       e[slot] = { sg, rain: true, left: sg.secs, next: 0.3, dmg: pow };
       return tell(`${m.name}의 ${sg.name}! ${sg.secs}초 동안 위에서 ${iga(sg.what)} 쏟아진다! 멈추지 말고 움직여라!`, `${m.name}'s ${sg.name}! For ${sg.secs} seconds ${sg.what} pours from above! Keep moving!`);
+    }
+    if (sg.kind === 'wave') { // Dragon Ascent: for some seconds, whatever the turn, walls of wind fly over the arena tile by tile (waveVolley)
+      e[slot] = { sg, rain: true, left: sg.secs, next: 0.3, dmg: pow, side: randInt(0, 3) };
+      return tell(`${m.name}의 ${sg.name}! ${sg.secs}초 동안 돌풍의 벽이 칸칸이 날아온다! 벽의 빈틈으로 피해라!`, `${m.name}'s ${sg.name}! For ${sg.secs} seconds walls of wind fly in tile by tile! Get to the gap in each!`);
     }
     if (sg.kind === 'hidden') { // Fusion Bolt: no tile marked, lightning anywhere (sigStep)
       e[slot] = { sg, hidden: true, left: sg.turns, dmg: pow };
@@ -1327,6 +1337,7 @@ export class Dungeon {
       this.step(() => { this.beamFx = { x: e.x, y: e.y, k, t: 0.35 }; this.blast = { tiles: t.tiles, t: 0.3, color: '#fff2a8' }; this.shake = 0.3; sfx('super'); }, 0.3);
       this.strike(e, t);
       if (--run.left > 0) { run.k = (run.k + 1) % 8; run.tele = { ...t, tiles: this.beamTiles(e, run.k) }; return true; }
+      if (e.ult) { this.sigOver(e, slot); return true; } // a last form goes straight on to the next, with no opening (its stagger would never run down: ultTurn)
       e.sigRun = null; e.stagger = 2;
       this.step(() => this.msg(tr(`${m.name}은(는) ${sg.name}의 반동으로 움직일 수 없다! 지금 공격하면 1.5배!`, `${m.name} must recharge after ${sg.name}! Attacks deal 1.5x now!`), COL.green), 0.2);
       return true;
@@ -1375,7 +1386,7 @@ export class Dungeon {
       if (!b.alive) { b[slot] = null; continue; }
       run.left -= rt; run.next -= rt;
       if (run.left <= 0) { this.sigOver(b, slot); continue; }
-      if (run.next <= 0) { run.next += run.sg.every; this.fireVolley(b, run); }
+      if (run.next <= 0) { run.next += run.sg.every; if (run.sg.kind === 'wave') this.waveVolley(b, run); else this.fireVolley(b, run); }
     }
     for (const d of this.drops) { d.t -= rt; if (d.t <= 0 && !d.hit) { d.hit = true; this.fireLands(d); } }
     if (this.drops.length) this.drops = this.drops.filter((d) => d.t > -0.25); // a moment's flash where it landed
@@ -1392,9 +1403,38 @@ export class Dungeon {
       this.drops.push({ e, sg: run.sg, dmg: run.dmg, x: a.x, y: a.y, tiles, t: run.sg.fall, fall: run.sg.fall });
     }
   }
+  // Dragon Ascent (1.25): a wall of wind flies over the arena a line of tiles at a time, from one side and then the next
+  // (across the arena, then along it). It has one gap, where the one in control can get to before the wall is on it and, when
+  // there is time to move, not where it already stands. Each line is a drop of its own, marked at once and landing in its
+  // turn (so the teammates keep off it too: danger), and a wall hits a Pokémon once however far it runs along with it.
+  waveVolley(e, run) {
+    const sg = run.sg, R = this.rooms[0], p = this.player, [dx, dy] = WALL[(run.side + (run.n = (run.n || 0) + 1)) % 4];
+    const len = dx ? R.w : R.h, wide = dx ? R.h : R.w, gap = Math.max(3, Math.round(wide * 0.27));
+    const tile = (i, j) => (dx ? [dx > 0 ? R.x + i : R.x + R.w - 1 - i, R.y + j] : [R.x + j, dy > 0 ? R.y + i : R.y + R.h - 1 - i]);
+    const pi = dx > 0 ? p.x - R.x : dx < 0 ? R.x + R.w - 1 - p.x : dy > 0 ? p.y - R.y : R.y + R.h - 1 - p.y, pj = dx ? p.y - R.y : p.x - R.x;
+    const reach = Math.max(0, Math.floor((sg.warn + pi * sg.tile) / WALL_STEP) - 1); // the tiles it can walk before the wall is on it
+    const spots = [];
+    for (let g = 0; g <= wide - gap; g++) if (pj >= g - reach && pj < g + gap + reach) spots.push(g);
+    const moved = spots.filter((g) => pj < g || pj >= g + gap), from = choice(moved.length ? moved : spots) ?? 0;
+    const wall = { hit: new Set() };
+    for (let i = 0; i < len; i++) {
+      const tiles = new Set(), t = sg.warn + i * sg.tile;
+      for (let j = 0; j < wide; j++) {
+        if (j >= from && j < from + gap) continue;
+        const [x, y] = tile(i, j);
+        if (this.walk(x, y) && !(x === e.x && y === e.y)) tiles.add(y * W + x);
+      }
+      if (tiles.size) this.drops.push({ e, sg, dmg: run.dmg, x: 0, y: 0, tiles, t, fall: t, wall });
+    }
+    this.shake = Math.max(this.shake || 0, 0.2); sfx('super');
+  }
   fireLands(d) {
-    this.shake = Math.max(this.shake || 0, 0.12); sfx('weak');
-    for (const a of this.ents.slice()) if (a.alive && a.team === 'ally' && d.tiles.has(a.y * W + a.x)) this.hitNow(a, d.e, d.dmg, d.sg.name, d.sg.status, d.sg.chance, '#ff8a3a');
+    if (!d.wall) { this.shake = Math.max(this.shake || 0, 0.12); sfx('weak'); }
+    for (const a of this.ents.slice()) {
+      if (!a.alive || a.team !== 'ally' || !d.tiles.has(a.y * W + a.x) || d.wall?.hit.has(a)) continue;
+      d.wall?.hit.add(a);
+      this.hitNow(a, d.e, d.dmg, d.sg.name, d.sg.status, d.sg.chance, d.sg.flash || '#ff8a3a');
+    }
   }
   // a hit that comes between turns (falling fire, flames underfoot): its numbers at once, nothing in the turn's queue but a faint
   hitNow(a, e, share, name, status, chance, color) {
@@ -1402,7 +1442,7 @@ export class Dungeon {
     m.hp = Math.max(0, m.hp - n);
     a.hurt = 0.4; this.pop(a, String(n), color); sfx('hit');
     this.msg(tr(`${m.name}은(는) ${name}에 휘말렸다! ${n} 데미지!`, `${m.name} was caught in ${name}! ${n} damage!`), COL.red);
-    if (status && m.hp > 0 && !m.status && Math.random() < (chance ?? 0.3)) { m.status = status; if (status === 'slp') a.sleepT = 2; this.msg(tr(`${m.name}은(는) ${STATUS_NAME[status]} 상태가 되었다!`, `${m.name} is ${STATUS_NAME[status]}!`), COL.red); }
+    if (status && m.hp > 0 && !m.status && !statusProof(m, status) && Math.random() < (chance ?? 0.3)) { m.status = status; if (status === 'slp') a.sleepT = 2; this.msg(tr(`${m.name}은(는) ${STATUS_NAME[status]} 상태가 되었다!`, `${m.name} is ${STATUS_NAME[status]}!`), COL.red); }
     if (m.hp <= 0) this.faint(a, e);
   }
   // a storm's spots: each of the team's own tile and three around it, and spots strewn over the arena (more in a
@@ -1457,7 +1497,8 @@ export class Dungeon {
     if (r.buff) m.buff *= r.buff; // every stat and HP at once (the Forces of Nature's Therian Forme, content_wkit.js therian)
     m.hp = m.maxhp;
     if (r.def) m.defMul = (m.defMul || 1) * r.def;
-    m.status = null; m.stages = {}; m.slowT = 0; m.typeOverride = r.typeTo != null ? [r.typeTo] : null;
+    m.status = null; m.stages = {}; m.slowT = 0; m.typeOverride = r.types || (r.typeTo != null ? [r.typeTo] : null); // r.types: a form's two types (Zen Mode)
+    if (r.moves) m.moves = r.moves.map((id) => ({ id, pp: m.maxPP(id) })); // a form that fights with moves of its own
     if (r.shiny) e.shiny = m.shiny = true;
     if (r.form) Object.defineProperty(m, 'name', { configurable: true, get: () => `${m.data.name} (${r.form})` });
     if (r.rename) Object.defineProperty(m, 'name', { configurable: true, get: () => r.rename }); // story text: in the language in use
@@ -1479,7 +1520,8 @@ export class Dungeon {
     this.stageDone = true;
     this.flames.clear(); this.drops = []; // the fire goes out with the one that lit it
     playBgm(b.tele ? 'win_poke' : 'win_gym', 0.3);
-    await say(lines(b.after || []));
+    const coming = b.next && !S.flags['got_' + b.next.sp]; // decided once, so what it says and who comes down agree
+    await say(lines((b.next && !coming ? b.afterAlone : b.after) || []));
     if (mid) S.flags['mid_' + this.dId] = true;
     if (this.def.legend) S.flags['legend_' + this.dId] = true;
     if (b.wander) S.flags[`wander_${b.sp}_${S.era}`] = true; // met in this era; if it stays behind again, it moves on to the next
@@ -1494,6 +1536,7 @@ export class Dungeon {
       ally.mon.hp = ally.mon.maxhp;
       await this.offerRecruit(ally.mon, J.text);
     }
+    if (coming && !this.done) return this.nextKeeper(b.next, e);
     if (this.def.tower) this.towerFloor();
     if (!mid && (!st || this.floor >= this.def.floors)) return this.cleared();
     // a mid-boss, or a stage's boss before the last stage, opens the way on
@@ -1501,6 +1544,23 @@ export class Dungeon {
     this.stairs = [e.x, e.y];
     playBgm(st?.bgm || this.def.bgm, 0.6);
     this.msg(st ? tr('다음 층으로 가는 계단이 나타났다!', 'Stairs to the next floor have appeared!') : tr('안쪽으로 이어지는 계단이 나타났다!', 'Stairs leading deeper have appeared!'), COL.blue);
+  }
+  // A place's second keeper (Deoxys after Rayquaza, at the top of the Sky Pillar; 1.25) comes down at once where the first
+  // fell. The team gets everything back first: HP, PP and status, and whoever fell stands up where it fell.
+  nextKeeper(b, e) {
+    this.queue.length = 0; // what is left of the turn it fell in (one felled by its own recoil, say) is undone just below, and must not play out after it
+    for (const m of S.party) { m.heal(true); m.stages = {}; }
+    for (const a of [this.player, ...this.mates]) if (!a.alive) {
+      [a.x, a.y] = this.nearestOpen(a.x, a.y); a.vx = a.x; a.vy = a.y;
+      a.alive = a.shown = true; a.fade = null; a.hurt = 0;
+    }
+    this.ents = this.ents.filter((o) => o !== e);
+    this.stageDone = false;
+    this.bosses = [this.spawnBoss(b, this.nearestOpen(e.x, e.y))];
+    this.boss = this.bosses[0];
+    this.bossIntro = true;
+    this.lightFx = { t: 1 }; this.shake = 0.6; sfx('heal');
+    this.msg(tr('모두의 HP와 PP가 회복되었다!', "Everyone's HP and PP are restored!"), COL.green);
   }
   // a dungeon's prize for a set of stages (the finale's guardians: the Azure Flute), handed over once
   async prize() {
@@ -1663,14 +1723,16 @@ export class Dungeon {
     if (this.timeFx) { this.timeFx.t -= dt; if (this.timeFx.t <= 0) this.timeFx = null; }
     if (this.lightFx) { this.lightFx.t -= dt; if (this.lightFx.t <= 0) this.lightFx = null; }
     if (this.shake) this.shake = Math.max(0, this.shake - dt);
-    if (!this.done && !held()) this.updateFire(G.rdt ?? dt); // the guide, co-op, a phone's menu panel or its turn-sideways notice holds it too
+    if (!this.done && !held() && !this.waitGuest) this.updateFire(G.rdt ?? dt); // the guide, co-op, a phone's menu panel or its turn-sideways notice holds it too, and a co-op guest's turn being waited for (nobody can move until it is played)
     // X/C/M/J/Tab/P pressed while a turn plays out wait for it instead of being dropped; so do an arrow or A tapped
     // then, however briefly (the step or the rest follows once the turn is over)
     for (const k of ['cancel', 'menu', 'map', 'quest', 'tag', 'party']) if (input.hit(k)) this.latch = k;
     for (const k of ['left', 'right', 'up', 'down']) if (input.pressed.has(k)) { const d = input.dir(); this.tapDir = d.dx || d.dy ? [d.dx, d.dy] : DIR_OF[k]; }
     if (input.pressed.has('rest')) this.restTap = true;
-    // while fire falls by the second the turn plays out twice as fast: the one who has to dodge it stays in control
-    const rush = this.bosses.some((b) => b.sigRun?.rain || b.sigRun2?.rain) ? 2 : 1;
+    // while fire falls by the second the turn plays out twice as fast, and while walls of wind fly three times: the one who
+    // has to dodge them stays in control
+    const running = this.bosses.flatMap((b) => [b.sigRun, b.sigRun2]).filter((r) => r?.rain);
+    const rush = running.some((r) => r.sg.kind === 'wave') ? 3 : running.length ? 2 : 1;
     if (this.cur) { this.cur.t -= dt * rush; if (this.cur.t <= 0) this.cur = null; return; }
     if (this.queue.length) { const s = this.queue.shift(); s.fn(); this.cur = { t: s.dur }; return; }
     if (this.pendingMates?.length && !G.overlays.length) { this.resumeTurn(); return; }
@@ -1888,7 +1950,6 @@ export class Dungeon {
       drawMon(c, e.mon.spr, e.shiny, x, y, { face: e.face, facing: faceName(e.face) || e.lastF || 'left', anim, t, moving, hurt: e.hurt > 0, alpha: e.fade ?? 1, phase: e.phase, scale: e.isBoss ? (pmd ? 1.3 : e.revived ? 1.9 : 1.6) : 1 });
       if (faceName(e.face)) e.lastF = faceName(e.face);
       if (e.isPlayer) drawBadge(c, Math.round(x) - 5, Math.round(y) - 18 - Math.min(48, (pmd && pmdHeadroom(e.mon.spr)) || 28)); // just above its head
-      else if (e.team === 'ally' && !e.army) { c.fillStyle = '#7fd0ff'; c.fillRect(Math.round(x) - 2, Math.round(y) - 36, 4, 3); }
       const gslot = e.team === 'ally' && NET.role === 'host' ? S.party.indexOf(e.mon) : -1;
       if (gslot > 0 && NET.guestFor(gslot)) { // co-op: player tag, pulsing while that player is to move
         const my = Math.round(y) - 46 + (this.waitGuest?.m === e ? Math.sin(G.time * 8) * 2 : 0);
@@ -1960,9 +2021,17 @@ export class Dungeon {
     const x = d.x * TILE + 12, y = d.y * TILE + 12;
     if (d.hit) {
       c.globalAlpha = Math.min(1, (0.25 + d.t) * 4);
-      c.fillStyle = '#ffb060';
+      c.fillStyle = d.sg.flash || '#ffb060';
       for (const k of d.tiles) c.fillRect((k % W) * TILE, Math.floor(k / W) * TILE, TILE, TILE);
       c.globalAlpha = 1;
+      return;
+    }
+    if (d.wall) { // a wall of Dragon Ascent: nothing falls, its head whitens each line just before it lands
+      if (d.t < 0.14) {
+        c.globalAlpha = 1 - Math.max(0, d.t) / 0.14; c.fillStyle = '#f4fff8';
+        for (const k of d.tiles) c.fillRect((k % W) * TILE, Math.floor(k / W) * TILE, TILE, TILE);
+        c.globalAlpha = 1;
+      }
       return;
     }
     const fy = y - (Math.max(0, d.t) / d.fall) * 170;
@@ -2049,28 +2118,28 @@ export class Dungeon {
     ui.panel(0, 0, w / k, h / k, o);
     c.restore();
   }
-  // The windows of the battle screen (1.22: the player found them far too large over the field): the team panel at 40% of
-  // its old size each way, the move list and the log at HUD_K (1.23: 75%, at 1.22's 60% they were too small to read), and the
+  // The windows of the battle screen (1.22: the player found them far too large over the field): the team panel at 48% of
+  // its old size each way (1.25; 1.22's 40% was too small), the move list and the log at HUD_K (1.23: 75%, at 1.22's 60% they were too small to read), and the
   // log holds two lines at most. The screen is drawn at the display's own resolution, so text this small stays sharp.
   drawUI() {
     // party HUD
     const team = [this.player, ...this.mates], at = (e) => { const i = S.party.indexOf(e.mon); return i < 0 ? 99 : i; };
     const allies = team.slice().sort((a, b) => at(a) - at(b)); // party order; the one in control is marked
-    const P = HUD_TEAM, c0 = ui.c;
+    const P = HUD_TEAM, c0 = ui.c, u1 = (n) => n * P.u;
     this.win(P.x, P.y, P.w, P.head + allies.length * P.row, undefined, P.k);
     const foesLeft = this.def.battle && this.ents.filter((e) => e.alive && e.team === 'foe').length;
     // below the dancheong stripe; a name too long for the panel (49 English ones) is cut short, the floor kept
     const tail = this.def.battle ? tr(`  남은 적 ${foesLeft}`, `  Foes left ${foesLeft}`) : this.stage?.name ? '' : tr(`  ${this.floor}층`, `  F${this.floor}`);
-    ui.text(ui.fit(this.def.battle ? this.def.name : this.title, P.w - 6 - ui.measure(tail, P.title), P.title) + tail, P.x + 3, P.y + 2.4, { size: P.title, color: COL.red });
+    ui.text(ui.fit(this.def.battle ? this.def.name : this.title, P.w - u1(6) - ui.measure(tail, P.title), P.title) + tail, P.x + u1(3), P.y + u1(2.4), { size: P.title, color: COL.red });
     allies.forEach((e, i) => {
       const m = e.mon, y = P.y + P.head + i * P.row;
-      if (e.isPlayer) { c0.save(); c0.translate(P.x + 1.2, y + 0.3); c0.scale(0.42, 0.42); drawBadge(c0, 0, 0, BADGE_S); c0.restore(); }
-      ui.text(ui.fit(m.name, 30, P.name), P.x + 6, y, { size: P.name, color: e.alive ? (e.isPlayer ? COL.red : COL.ink) : '#999' });
-      ui.text(`Lv${m.lv}`, P.x + 36.5, y + 0.6, { size: P.num, color: COL.ink2 });
-      ui.text(`${m.hp}/${m.maxhp}`, P.x + P.w - 2.5, y + 0.6, { size: P.num, align: 'right' });
-      ui.rect(P.x + 3, y + 5.5, P.w - 6, 1.8, COL.ink);
+      if (e.isPlayer) { c0.save(); c0.translate(P.x + u1(1.2), y + u1(0.3)); c0.scale(u1(0.42), u1(0.42)); drawBadge(c0, 0, 0, BADGE_S); c0.restore(); }
+      ui.text(ui.fit(m.name, u1(30), P.name), P.x + u1(6), y, { size: P.name, color: e.alive ? (e.isPlayer ? COL.red : COL.ink) : '#999' });
+      ui.text(`Lv${m.lv}`, P.x + u1(36.5), y + u1(0.6), { size: P.num, color: COL.ink2 });
+      ui.text(`${m.hp}/${m.maxhp}`, P.x + P.w - u1(2.5), y + u1(0.6), { size: P.num, align: 'right' });
+      ui.rect(P.x + u1(3), y + u1(5.5), P.w - u1(6), u1(1.8), COL.ink);
       const f = clamp(m.hp / m.maxhp, 0, 1);
-      ui.rect(P.x + 3.4, y + 5.9, (P.w - 6.8) * f, 1, f > 0.5 ? COL.hp : f > 0.2 ? COL.hpLow : COL.hpCrit);
+      ui.rect(P.x + u1(3.4), y + u1(5.9), (P.w - u1(6.8)) * f, u1(1), f > 0.5 ? COL.hp : f > 0.2 ? COL.hpLow : COL.hpCrit);
     });
     // moves
     const mv = this.player.mon.moves, L = this.moveList(), u = (n) => n * HUD_K;
@@ -2138,6 +2207,7 @@ export class Dungeon {
     const runs = [b.sigRun, b.sigRun2].filter(Boolean), rain = runs.find((r) => r.rain), hidden = runs.find((r) => r.hidden), names = runs.map((r) => r.sg.name).join(' + ');
     const note = b.waiting ? [tr('가까이 다가가면 깨어난다', 'It wakes when you come near'), '#c8d8ff']
       : roar ? [tr(`[!] ${roar.name} — 다음 턴, 모두 HP ${Math.round(roar.cut * 100)}% 감소`, `[!] ${roar.name} — next turn, everyone loses ${Math.round(roar.cut * 100)}% HP`), '#8ab4ff']
+        : rain?.sg.kind === 'wave' ? [tr(`[!] ${names} — 벽의 빈틈으로! ${Math.max(1, Math.ceil(rain.left))}초`, `[!] ${names} — to the gap! ${Math.max(1, Math.ceil(rain.left))}s`), '#7cffb0']
         : rain ? [tr(`[!] ${names} — 멈추지 말고 움직여라! ${Math.max(1, Math.ceil(rain.left))}초`, `[!] ${names} — keep moving! ${Math.max(1, Math.ceil(rain.left))}s`), '#ff8a3a']
           : hidden ? [tr(`[!] ${names} — 보이지 않는 번개! ${hidden.left}턴`, `[!] ${names} — unseen lightning! ${hidden.left} turn(s)`), '#ffe24a']
             : runs.length > 1 ? [tr(`[!] ${names} — 붉은 칸 밖으로!`, `[!] ${names} — leave the red tiles!`), '#ff5a3a']

@@ -11,7 +11,10 @@
                                    palette's colour at the nearest normal-palette entry. (The match runs both ways, each colour weighted by its
 pixels: the icon's colours against the battle picture's and the battle picture's against the icon's.)
 
-usage: python sprites.py
+  poke/icon/555z.png, 555zs.png    a form a boss takes in battle (FORMS): the form's box icon, its colours chosen the same way
+
+usage: python sprites.py          every species' fronts and icons
+       python sprites.py forms    only the forms' icons
 """
 import os
 import sys
@@ -29,6 +32,8 @@ ROM = os.environ.get('BLACK_ROM') or os.path.join(os.path.expanduser('~'), 'Down
 OUT = os.path.join(ROOT, 'web', 'assets', 'poke')
 FIRST, LAST = 494, 649
 BLOCKS = [(0, 0, 8, 8), (64, 0, 4, 8), (0, 64, 8, 4), (64, 64, 4, 4)]
+# a form's key in the game (Mon.spr): its icon file in a/0/0/7, and the number of its files in a/0/0/4 after the species'
+FORMS = {'555z': (1407, 50)}
 
 
 def front_index(blob):
@@ -74,8 +79,38 @@ def nearest(colors, palette):
     return d.argmin(1), d.min(1)
 
 
+def icons(ii, idx, normal, shiny, icon_pals):
+    """an icon's normal and shiny pictures: the battle picture's palettes say which of the three icon palettes it uses"""
+    used, counts = np.unique(ii[ii > 0], return_counts=True)
+    fused, fcounts = np.unique(idx[idx > 0], return_counts=True)
+    battle = normal[fused]
+
+    def score(k):  # both ways: the icon's pixels against the battle colours, the battle pixels against the icon's
+        cols = icon_pals[k][used]
+        return (nearest(cols, battle)[1] * counts).sum() / counts.sum() + (nearest(battle, cols)[1] * fcounts).sum() / fcounts.sum()
+    best = min(range(3), key=score) if len(used) else 0
+    pal = icon_pals[best]
+    k, _ = nearest(pal, normal)
+    return Image.fromarray(paint(ii, pal)), Image.fromarray(paint(ii, shiny[k]))
+
+
+def forms(rom):
+    spr = ndsfs.narc(rom.find('a/0/0/4'))
+    ic = ndsfs.narc(rom.find('a/0/0/7'))
+    icon_pals = D.nclr(D.lz(ic[0])).reshape(3, 16, 3)
+    for key, (icon, form) in FORMS.items():
+        base = (650 + form) * 20
+        normal, shiny = D.nclr(D.lz(spr[base + 18]))[:16], D.nclr(D.lz(spr[base + 19]))[:16]
+        a, b = icons(icon_index(ic[icon]), front_index(spr[base]), normal, shiny, icon_pals)
+        a.save(os.path.join(OUT, 'icon', f'{key}.png'), optimize=True)
+        b.save(os.path.join(OUT, 'icon', f'{key}s.png'), optimize=True)
+    print('forms', ', '.join(FORMS))
+
+
 def main():
     rom = ndsfs.Rom(ROM)
+    if sys.argv[1:] == ['forms']:
+        return forms(rom)
     spr = ndsfs.narc(rom.find('a/0/0/4'))
     ic = ndsfs.narc(rom.find('a/0/0/7'))
     icon_pals = D.nclr(D.lz(ic[0])).reshape(3, 16, 3)
@@ -87,20 +122,9 @@ def main():
         normal, shiny = D.nclr(D.lz(spr[base + 18]))[:16], D.nclr(D.lz(spr[base + 19]))[:16]
         sheet(paint(idx, normal)).save(os.path.join(OUT, 'front', f'{sp}.png'), optimize=True)
         sheet(paint(idx, shiny)).save(os.path.join(OUT, 'front', f'{sp}s.png'), optimize=True)
-        ii = icon_index(ic[7 + 2 * sp])
-        used, counts = np.unique(ii[ii > 0], return_counts=True)
-        fused, fcounts = np.unique(idx[idx > 0], return_counts=True)
-        battle = normal[fused]
-
-        def score(k):  # both ways: the icon's pixels against the battle colours, the battle pixels against the icon's
-            cols = icon_pals[k][used]
-            return (nearest(cols, battle)[1] * counts).sum() / counts.sum() + (nearest(battle, cols)[1] * fcounts).sum() / fcounts.sum()
-        best = min(range(3), key=score) if len(used) else 0
-        pal = icon_pals[best]
-        Image.fromarray(paint(ii, pal)).save(os.path.join(OUT, 'icon', f'{sp}.png'), optimize=True)
-        k, _ = nearest(pal, normal)
-        shiny_pal = shiny[k]
-        Image.fromarray(paint(ii, shiny_pal)).save(os.path.join(OUT, 'icon', f'{sp}s.png'), optimize=True)
+        a, b = icons(icon_index(ic[7 + 2 * sp]), idx, normal, shiny, icon_pals)
+        a.save(os.path.join(OUT, 'icon', f'{sp}.png'), optimize=True)
+        b.save(os.path.join(OUT, 'icon', f'{sp}s.png'), optimize=True)
     print('fronts and icons', FIRST, '-', LAST)
 
 

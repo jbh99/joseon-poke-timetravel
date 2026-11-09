@@ -3,15 +3,17 @@
 // of Pokémon Black is the boss of a quest, Reshiram, Zekrom and Kyurem once (their town battles and storm, content_wkit.js),
 // the ten others twice: the Swords of Justice and the Forces of Nature in the era that held their lair up to 1.19 in their
 // full two-form design (home), Victini, Meloetta and Genesect in their own quests (content_w2.js), and each of the ten
-// once more in another era (one form; the Forces of Nature keep both forms, the Therian Forme too, again). Hydreigon, the
-// fifth generation's 600-total line, holds every quest the 600-total lines held (twelve), and Shaymin and Manaphy (the
-// fourth generation's mythical Pokémon, Darkrai left to 1979) the eight left. Of the legends the line had up to 1.19 (each
+// once more in another era (one form; the Forces of Nature and, since 1.25, the Swords of Justice keep both forms again).
+// Hydreigon, the fifth generation's 600-total line, is met once since 1.25, in the frozen ruins of 1945 (content_w2.js); the
+// eleven other quests the 600-total lines held went to the strongest of Unova's own (the player's list), on those lines'
+// tier, Darmanitan and Volcarona in two forms. Shaymin and Manaphy (the fourth generation's mythical Pokémon, Darkrai
+// left to 1979) hold the eight left. Of the legends the line had up to 1.19 (each
 // once): Ho-Oh, Raikou and Entei went to quests of the Korean line (content_ancient.js gwiju, content.js inwang and
 // library), Mew and Phione to the lairs of the Argonne and the Yser, and the others are met in the Korean line already.
 // A quest's legend in one form fights a step below the full design: its blast, the tier's fiercer second stage at half HP
 // (dungeon.js spawnBoss) and its signature move at 60% and 30% of its HP. A legend joins the first time it is beaten and
 // never again (once).
-import { K, N, PT, boss, blast, legend, WSIG, COBALION, TERRAKION, VIRIZION, KELDEO, TORNADUS, THUNDURUS, LANDORUS, MELOETTA, VICTINI, GENESECT } from './content_wkit.js';
+import { K, N, PT, boss, blast, legend, rise, WSIG, SIG_AT1, COBALION, TERRAKION, VIRIZION, KELDEO, TORNADUS, THUNDURUS, LANDORUS, MELOETTA, VICTINI, GENESECT } from './content_wkit.js';
 import { S } from './game.js';
 
 const P = (k) => [56 + Math.round(k * 1.2), 60 + Math.round(k * 1.2)]; // the designed levels of the k-th world era, as in content_w1.js
@@ -26,10 +28,8 @@ function quest(o) {
 const home = (L) => once({ ...L });
 // a Force of Nature met again: both its forms (the Therian Forme too) at this era's level, in this place's words
 const again = (L, lv, o) => once({ ...L, lv, lvMin: lv - 8, ...o });
-// the 600-total lines: an ordinary boss's numbers on their own tier (dungeon.js PSEUDO_TIER). Hydreigon, the fifth
-// generation's, with its moves of 1.19 (Dragon Pulse, Dark Pulse, Flamethrower, Draco Meteor)
-const strong = (sp, lv, moves, tele, say, after) => boss(sp, lv, moves, tele, say, after, { hp: 3, bgm: 'vs_strong' });
-const dragon = (lv, tele, say, after) => strong(635, lv, [406, 399, 53, 434], tele, say, after);
+// the quests the 600-total lines held: an ordinary boss's numbers on those lines' tier (dungeon.js PSEUDO_TIER)
+const strong = (sp, lv, moves, tele, say, after, o) => boss(sp, lv, moves, tele, say, after, { hp: 3, bgm: 'vs_strong', pseudo: true, ...o });
 
 const SAY = {
   thunder: PT('번개가 몇 턴 동안 붉은 칸에 떨어져! 맞으면 마비될 수도 있어!', 'Lightning will fall on the red tiles for several turns! It can paralyse whoever it hits!'),
@@ -49,13 +49,12 @@ export const WB = {
       N('잿더미가 된 정원 한가운데, 타다 남은 꽃밭 위에 쉐이미가 웅크리고 있다. 불길에서 정원의 꽃을 지키려고 온 힘으로 덩굴을 뻗고 있다.', "In the middle of the garden turned to ash, Shaymin crouches on a half-burned flowerbed. It is throwing out vines with all its strength to shield the garden's flowers from the fire."),
       { who: 492, text: K('쉐이이! (다가오는 이는 모두 불을 지른 자로 보이는 모양이다!)', 'Shayyy! (Everyone who comes near looks like a fire-raiser to it!)') }, SAY.seeds],
     after: [{ who: 492, text: K('…쉐이. (쉐이미가 덩굴을 거두자, 불길 속에 갇혀 있던 정원의 포켓몬들이 빠져나왔다.)', "...Shay. (Shaymin draws back its vines, and the garden's Pokémon trapped in the flames get out.)") }] }),
-  ussuri: quest({ sp: 640, lv: P(0)[1] + 3, moves: [533, 348, 370, 202], use: WSIG.sacredSword,
+  ussuri: again(VIRIZION, P(0)[1] + 3, {
     tele: blast(K('리프블레이드', 'Leaf Blade'), 12, ['rows', 'cols', 'quad', 'far']),
     say: [
       N('자작나무 숲에 풀빛 사슴이 바람처럼 나타났다. 새로 그어진 국경선이 숲을 둘로 가르자, 숲을 지키는 비리디온이 길을 막아섰다.', 'A grass-green stag appears like the wind among the birches. With the new border cutting the forest in two, Virizion, the guardian of forests, stands in the way.'),
       { who: 640, name: K('비리디온', 'Virizion'), text: K('…사람들은 종이 위에 선을 긋고 숲을 나눈다. 이 숲의 포켓몬들은 어디로 가야 하는가!', '...People draw lines on paper and divide the forest. Where are the Pokémon of this forest to go?') }, SAY.sword],
-    after: [{ who: 640, name: K('비리디온', 'Virizion'), text: K('…너희는 숲을 가르러 온 자들이 아니구나. (비리디온은 두만강 쪽 숲을 한참 바라보았다.)', '...You are not the ones who came to divide the forest. (Virizion gazes a long while at the woods toward the Tumen River.)') }],
-    join: K('비리디온이 풀잎 같은 뿔을 흔들었다. 함께 가고 싶어 한다!', 'Virizion shakes its leaf-like horns. It wants to come along!') }),
+    after: [{ who: 640, name: K('비리디온', 'Virizion'), text: K('…너희는 숲을 가르러 온 자들이 아니구나. (비리디온은 두만강 쪽 숲을 한참 바라보았다.)', '...You are not the ones who came to divide the forest. (Virizion gazes a long while at the woods toward the Tumen River.)') }] }),
   // ---------------------------------------------------------------- 1894: the Sino-Japanese War at sea
   pungdo: quest({ ...MANAPHY, lv: P(1)[1] + 2,
     tele: blast(K('하이드로펌프', 'Hydro Pump'), 11, ['rows', 'cross', 'ring', 'far']),
@@ -63,14 +62,14 @@ export const WB = {
       N('포탄이 떨어진 바다가 소용돌이친다. 그 한가운데서 바다의 왕자 마나피가 겁에 질려 파도를 일으키고 있다.', 'Where the shells fell, the sea swirls. In its centre Manaphy, the prince of the sea, is raising waves in terror.'),
       { who: 490, text: K('마나… 피이이! (바다를 지키려고 필사적이다!)', 'Mana... phyyy! (It is desperately trying to protect the sea!)') }, SAY.waves],
     after: [{ who: 490, text: K('…피이. (파도가 가라앉고, 마나피는 바다에 빠진 사람들 쪽으로 물길을 열어 주었다.)', '...Phyy. (The waves settle, and Manaphy opens a channel toward the people in the water.)') }] }),
-  yellowsea: dragon(P(1)[1] + 4, blast(K('용의파동', 'Dragon Pulse'), 16, ['rows', 'cols', 'x', 'quad']),
-    [N('연기에 휩싸인 군함들 사이로 머리 셋 달린 용이 날아들었다! 포성에 깨어난 삼삼드래가 움직이는 배마다 덮치고 있다.', 'A three-headed dragon flies in among the warships wrapped in smoke! Woken by the guns, Hydreigon is falling on every ship that moves.'),
-      PT('저 용은 움직이는 건 뭐든 공격해! 배에 탄 사람들을 지키자!', 'That dragon attacks anything that moves! Protect the people on the ships!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 세 머리를 낮추자, 바다에 빠진 사람들을 건질 길이 열렸다.)', '...Kwaah. (Hydreigon lowers its three heads, and a way opens to the people in the water.)') }]),
+  yellowsea: strong(537, P(1)[1] + 4, [56, 414, 482, 330], blast(K('탁류', 'Muddy Water'), 11, ['rows', 'cols', 'x', 'quad']),
+    [N('연기에 휩싸인 군함들 사이로 거대한 두꺼비가 솟아올랐다! 포성의 진동에 깨어난 두빅굴이 온몸을 떨며 움직이는 배마다 파도를 일으키고 있다.', 'A giant toad surges up among the warships wrapped in smoke! Woken by the shaking of the guns, Seismitoad shudders all over and raises waves at every ship that moves.'),
+      PT('저 진동이면 배가 뒤집혀! 배에 탄 사람들을 지키자!', 'Tremors like that will capsize the ships! Protect the people aboard!')],
+    [{ who: 537, text: K('…구오오. (두빅굴이 몸의 떨림을 멈추자, 바다에 빠진 사람들을 건질 길이 열렸다.)', '...Gwooo. (Seismitoad stops shuddering, and a way opens to the people in the water.)') }]),
   // ---------------------------------------------------------------- 1904: the Russo-Japanese War
-  chemulpo: dragon(P(2)[1] + 2, blast(K('악의파동', 'Dark Pulse'), 17, ['cross', 'x', 'rows', 'near']),
-    [N('포위된 항구 앞바다, 가라앉는 배들 위로 삼삼드래가 맴돈다. 포탄 연기에 눈이 먼 듯 세 머리가 제각각 물어뜯을 것을 찾고 있다!', 'Off the besieged harbour, Hydreigon circles over the sinking ships. As if blinded by the shell smoke, its three heads each look for something to bite!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 뱃전에 내려앉아 세 머리를 낮추자, 바다에 빠진 수병들을 건져 올릴 수 있게 되었다.)', '...Kwaah. (Hydreigon settles on the side of the boat and lowers its three heads, and the sailors in the water can be pulled out.)') }]),
+  chemulpo: strong(503, P(2)[1] + 2, [534, 56, 58, 163], blast(K('하이드로펌프', 'Hydro Pump'), 11, ['cross', 'x', 'rows', 'near']),
+    [N('포위된 항구 앞바다, 가라앉는 배들 사이로 대검귀가 물살을 가르며 달려든다. 포탄 연기에 성이 나 뱃전마다 껍질 칼을 휘두르고 있다!', 'Off the besieged harbour, Samurott charges through the water between the sinking ships. Enraged by the shell smoke, it slashes at every hull with its shell blade!')],
+    [{ who: 503, text: K('…크르릉. (대검귀가 칼을 거두고 물러나자, 바다에 빠진 수병들을 건져 올릴 수 있게 되었다.)', '...Krrrng. (Samurott sheathes its blade and backs off, and the sailors in the water can be pulled out.)') }]),
   hill203: home(TERRAKION),
   tsushima: again(THUNDURUS, P(2)[1] + 5, {
     say: [
@@ -78,10 +77,10 @@ export const WB = {
       { who: 642, name: K('볼트로스', 'Thundurus'), text: K('…쇠로 된 배들이 이 바다를 시끄럽게 하는구나. 포성보다 큰 번개를 들려주마!', '...Ships of iron make this sea so noisy. I will let you hear thunder louder than any gun!') }, SAY.thunder],
     after: [{ who: 642, name: K('볼트로스', 'Thundurus'), text: K('…흥. 너희는 배를 가라앉히러 온 게 아니라 사람을 건지러 왔구나. (먹구름이 걷히자, 바다에 빠진 수병들을 건질 길이 열렸다.)', '...Hmph. You came to pull people out, not to sink ships. (The clouds lift, and a way opens to the sailors in the water.)') }] }),
   // ---------------------------------------------------------------- 1914: Sarajevo
-  latin: dragon(P(3)[1] + 2, blast(K('악의파동', 'Dark Pulse'), 17, ['ring', 'near', 'x', 'target']),
-    [N('골목 그늘 깊은 곳에서 세 개의 머리가 번득였다. 사람들의 의심과 미움에 이끌린 삼삼드래가 골목을 차지하고 있다!', "Deep in the shade of the alley, three heads gleam. Drawn by people's suspicion and hatred, Hydreigon has taken over the lane!"),
-      PT('삼삼드래는 움직이는 건 뭐든 덮쳐! 골목 사람들이 다치기 전에 멈추자!', 'Hydreigon falls on anything that moves! Stop it before the people in the lane get hurt!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 세 머리를 낮추자, 골목에 숨어 있던 사람들이 하나둘 밖으로 나왔다.)', '...Kwaah. (Hydreigon lowers its three heads, and the people hiding in the lane come out one by one.)') }]),
+  latin: strong(545, P(3)[1] + 2, [224, 398, 89, 404], blast(K('오물폭탄', 'Sludge Bomb'), 3, ['ring', 'near', 'x', 'target']),
+    [N('골목 그늘 깊은 곳에서 붉은 마디가 스르륵 움직였다. 사람들의 의심과 미움에 이끌린 펜드라가 골목을 차지하고 있다!', "Deep in the shade of the alley, red segments slide past. Drawn by people's suspicion and hatred, Scolipede has taken over the lane!"),
+      PT('펜드라는 움직이는 건 뭐든 덮쳐! 골목 사람들이 다치기 전에 멈추자!', 'Scolipede falls on anything that moves! Stop it before the people in the lane get hurt!')],
+    [{ who: 545, text: K('…키릭. (펜드라가 긴 몸을 말아 물러나자, 골목에 숨어 있던 사람들이 하나둘 밖으로 나왔다.)', '...Kirik. (Scolipede coils its long body and withdraws, and the people hiding in the lane come out one by one.)') }]),
   balkan: quest({ ...SHAYMIN, lv: P(3)[1] + 3,
     tele: blast(K('에너지볼', 'Energy Ball'), 12, ['cross', 'far', 'rows', 'x']),
     say: [
@@ -110,9 +109,9 @@ export const WB = {
       N('기뢰가 깔린 해협 한가운데서 바다가 소용돌이친다. 바다의 왕자 마나피가 기뢰에 놀란 물속 포켓몬들을 지키려고 파도를 일으키고 있다.', 'In the middle of the mined straits the sea swirls. Manaphy, the prince of the sea, is raising waves to shield the water Pokémon frightened by the mines.'),
       { who: 490, text: K('마나… 피이이! (배가 다가올 때마다 파도를 크게 일으킨다!)', 'Mana... phyyy! (It raises a great wave each time a ship comes near!)') }, SAY.waves],
     after: [{ who: 490, text: K('…피이. (마나피가 기뢰 사이로 물길을 열어 주었다. 바다에 빠진 이들을 건질 수 있다.)', '...Phyy. (Manaphy opens a channel between the mines. Those in the water can be pulled out.)') }] }),
-  anzac: dragon(P(5)[1] + 4, blast(K('용의파동', 'Dragon Pulse'), 16, ['cols', 'quad', 'cross', 'far']),
-    [N('해안 절벽 위를 삼삼드래가 맴돈다. 총성이 멈추지 않는 절벽에서 세 머리가 움직이는 것마다 덮치고 있다. 부상병들이 내려갈 수가 없다!', 'Hydreigon circles above the coastal cliffs. On cliffs where the gunfire never stops, its three heads fall on anything that moves. The wounded cannot get down!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 절벽 꼭대기에 내려앉자, 부상병들이 천천히 해변으로 내려갔다.)', '...Kwaah. (Hydreigon settles on the clifftop, and the wounded slowly make their way down to the beach.)') }]),
+  anzac: strong(526, P(5)[1] + 4, [444, 89, 442, 157], blast(K('스톤에지', 'Stone Edge'), 5, ['cols', 'quad', 'cross', 'far']),
+    [N('해안 절벽 위에 바위산 같은 기가이어스가 버티고 섰다. 총성이 멈추지 않는 절벽에서 몸의 수정을 번쩍이며 움직이는 것마다 바위를 쏘아 댄다. 부상병들이 내려갈 수가 없다!', 'Gigalith stands on the coastal cliffs like a hill of rock. On cliffs where the gunfire never stops, its crystals flash and it shoots rocks at anything that moves. The wounded cannot get down!')],
+    [{ who: 526, text: K('…쿠구궁. (기가이어스가 절벽 꼭대기로 물러나 앉자, 부상병들이 천천히 해변으로 내려갔다.)', '...Kuguung. (Gigalith settles back on the clifftop, and the wounded slowly make their way down to the beach.)') }]),
   // ---------------------------------------------------------------- 1916: Verdun and the Somme
   douaumont: home(COBALION),
   somme: quest({ sp: 649, lv: P(6)[1] + 4, moves: [546, 400, 430, 85], use: WSIG.techno,
@@ -125,9 +124,9 @@ export const WB = {
     join: K('게노세크트가 대포를 내렸다. 자기 길을 찾을 때까지 함께 가고 싶어 한다!', 'Genesect lowers its cannon. It wants to come along until it finds its own way!') }),
   // ---------------------------------------------------------------- 1916: Jutland
   northsea: home(TORNADUS),
-  jutland: dragon(P(7)[1] + 4, blast(K('용의파동', 'Dragon Pulse'), 16, ['cross', 'x', 'rows', 'quad']),
-    [N('두 함대가 맞붙은 바다 위로 삼삼드래가 날아들었다! 포성에 미친 듯 세 머리가 가라앉는 배들을 물어뜯고 있다!', 'Hydreigon flies in over the sea where the two fleets clash! As if maddened by the guns, its three heads tear at the sinking ships!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 물러나자, 바다에 빠진 이들이 구명보트에 오를 수 있었다.)', '...Kwaah. (Hydreigon pulls back, and those in the water can climb into the lifeboats.)') }]),
+  jutland: strong(609, P(7)[1] + 4, [247, 53, 412, 517], blast(K('섀도볼', 'Shadow Ball'), 7, ['cross', 'x', 'rows', 'quad']),
+    [N('두 함대가 맞붙은 바다 위, 가라앉는 배마다 푸른 불빛이 떠돈다. 샹델라가 침몰선 위를 떠다니며 사라져 가는 혼을 불꽃으로 빨아들이고 있다!', 'On the sea where the two fleets clash, a blue light drifts over every sinking ship. Chandelure floats above the wrecks, drawing the fading souls into its flames!')],
+    [{ who: 609, text: K('…스르르. (샹델라의 불꽃이 잦아들자, 바다에 빠진 이들이 구명보트에 오를 수 있었다.)', '...Shhh. (The flames of Chandelure die down, and those in the water can climb into the lifeboats.)') }]),
   // ---------------------------------------------------------------- 1918: the Armistice
   forest18: home(VIRIZION),
   lastday: quest({ sp: 494, lv: P(8)[1] + 4, moves: [557, 545, 94, 7], use: WSIG.searing,
@@ -154,20 +153,19 @@ export const WB = {
       { who: 492, text: K('쉐이이! (이 꽃밭은 제 둥지라는 듯 서류 더미를 꼭 끌어안는다!)', 'Shayyy! (It hugs the pile of papers tight, as if the flowers were its nest!)') }, SAY.seeds],
     after: [{ who: 492, text: K('…쉐이. (쉐이미가 꽃을 거두자, 그 아래에서 한국의 청원서 사본이 나왔다. 꽃 덕분에 젖지 않았다.)', '...Shay. (Shaymin draws its flowers back, and a copy of the Korean petition lies beneath them, kept dry by the flowers.)') }] }),
   // ---------------------------------------------------------------- 1939: Westerplatte
-  westerplatte: dragon(P(10)[1] + 3, blast(K('악의파동', 'Dark Pulse'), 17, ['cross', 'cols', 'near', 'x']),
-    [N('포탄에 무너진 막사 위로 삼삼드래가 날아들었다. 포격에 놀라 미쳐 날뛰며, 무너진 막사를 다시 들이받고 있다!', 'Hydreigon flies in over the barracks shattered by shells. Maddened by the shelling, it keeps ramming the wrecked barracks!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 물러나자, 막사 밑에 갇힌 병사들이 기어 나왔다.)', '...Kwaah. (Hydreigon withdraws, and soldiers trapped under the barracks crawl out.)') }]),
-  postoffice: quest({ sp: 638, lv: P(10)[1] + 4, moves: [533, 442, 370, 232], use: WSIG.sacredSword,
+  westerplatte: strong(500, P(10)[1] + 3, [394, 359, 457, 53], blast(K('플레어드라이브', 'Flare Blitz'), 10, ['cross', 'cols', 'near', 'x']),
+    [N('포탄에 무너진 막사 위로 불꽃 수염을 두른 염무왕이 뛰어올랐다. 포격에 놀라 미쳐 날뛰며, 무너진 막사를 다시 들이받고 있다!', 'Emboar, its beard of flame blazing, leaps onto the barracks shattered by shells. Maddened by the shelling, it keeps ramming the wrecked buildings!')],
+    [{ who: 500, text: K('…부루루. (염무왕이 불꽃 수염을 거두고 물러나자, 막사 밑에 갇힌 병사들이 기어 나왔다.)', '...Buruuu. (Emboar draws in its beard of flame and withdraws, and soldiers trapped under the barracks crawl out.)') }]),
+  postoffice: again(COBALION, P(10)[1] + 4, {
     tele: blast(K('아이언헤드', 'Iron Head'), 8, ['ring', 'far', 'x', 'checker']),
     say: [
       N('끊어진 전신선 사이로 강철빛 사슴이 걸어 나왔다. 사람의 전쟁에서 포켓몬을 지켜 왔다는 코바르온이 우체국 앞을 막아섰다.', 'Out from among the severed telegraph wires walks a steel-coloured stag. Cobalion, said to have protected Pokémon from the wars of people, bars the way to the post office.'),
       { who: 638, name: K('코바르온', 'Cobalion'), text: K('…스무 해 만에 또 전쟁인가. 이 건물 안에도 포켓몬들이 갇혀 있다. 함부로 들어가게 둘 수는 없다!', '...War again, after twenty years? There are Pokémon trapped in this building too. I will not let anyone barge in!') }, SAY.sword],
-    after: [{ who: 638, name: K('코바르온', 'Cobalion'), text: K('…너희는 사람과 포켓몬을 가리지 않고 구하러 왔구나. (코바르온이 길을 비키자, 지하실의 직원들과 포켓몬들이 함께 밖으로 나왔다.)', '...You came to save people and Pokémon alike. (Cobalion steps aside, and the clerks and Pokémon in the cellar come out together.)') }],
-    join: K('코바르온이 뿔을 낮추었다. 너희 곁에서 끝까지 지켜보겠다고 한다!', 'Cobalion lowers its horn. It will watch over you to the end!') }),
+    after: [{ who: 638, name: K('코바르온', 'Cobalion'), text: K('…너희는 사람과 포켓몬을 가리지 않고 구하러 왔구나. (코바르온이 길을 비키자, 지하실의 직원들과 포켓몬들이 함께 밖으로 나왔다.)', '...You came to save people and Pokémon alike. (Cobalion steps aside, and the clerks and Pokémon in the cellar come out together.)') }] }),
   // ---------------------------------------------------------------- 1940: Dunkirk
-  mole: dragon(P(11)[1] + 2, blast(K('용의파동', 'Dragon Pulse'), 16, ['rows', 'near', 'cross', 'x']),
-    [N('부서진 방파제 위로 삼삼드래가 내려앉았다. 폭격 소리에 놀라 세 머리로 사방을 물어뜯는다. 배에 오르려는 사람들의 길이 막혔다!', 'Hydreigon lands on the broken mole. Startled by the bombing, it snaps in every direction with its three heads. The way to the boats is blocked!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 방파제 끝으로 물러나자, 사람들이 줄지어 배에 올랐다.)', '...Kwaah. (Hydreigon pulls back to the end of the mole, and people board the boats in line.)') }]),
+  mole: strong(539, P(11)[1] + 2, [370, 444, 280, 89], blast(K('인파이트', 'Close Combat'), 1, ['rows', 'near', 'cross', 'x']),
+    [N('부서진 방파제 한가운데 푸른 도복의 타격귀가 버티고 섰다. 폭격 소리에 놀라 달려드는 것마다 주먹을 날린다. 배에 오르려는 사람들의 길이 막혔다!', 'In the middle of the broken mole stands Sawk in its blue gi. Startled by the bombing, it throws a punch at everything that rushes past. The way to the boats is blocked!')],
+    [{ who: 539, text: K('…핫! (타격귀가 주먹을 내리고 방파제 끝으로 물러나자, 사람들이 줄지어 배에 올랐다.)', '...Hah! (Sawk lowers its fists and steps back to the end of the mole, and people board the boats in line.)') }]),
   channel: home(KELDEO),
   // ---------------------------------------------------------------- 1940: the Blitz
   airfield: again(TORNADUS, P(12)[1] + 3, {
@@ -178,9 +176,15 @@ export const WB = {
     after: [{ who: 641, name: K('토네로스', 'Tornadus'), text: K('…이 섬을 지키려고 날아오르는 자들이었나. 좋다, 바람을 거두마.', '...So these were the ones taking off to defend this island. Very well, I will calm the wind.') }] }),
   // ---------------------------------------------------------------- 1941: Moscow
   mud: home(LANDORUS),
-  snowfield: dragon(P(13)[1] + 4, blast(K('용성군', 'Draco Meteor'), 16, ['rows', 'cols', 'quad', 'far']),
-    [N('영하 40도의 눈보라 속에서 세 개의 머리가 울부짖는다. 추위에 이성을 잃은 삼삼드래가 설원을 지나는 모든 것을 덮치고 있다!', 'In a blizzard at forty below, three heads howl. Hydreigon, out of its mind with the cold, is falling on everything that crosses the snowfield!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 눈 위에 내려앉자 눈보라가 잦아들고, 설원 너머로 모스크바의 지붕들이 보였다.)', '...Kwaah. (Hydreigon settles on the snow, the blizzard eases, and the roofs of Moscow appear beyond the snowfield.)') }]),
+  // Darmanitan rises again in its Zen Mode (Pokémon Black's own icon): Fire and Psychic, with Psychic moves and the Mode's stats
+  snowfield: strong(555, P(13)[1] + 4, [394, 359, 276, 7], blast(K('플레어드라이브', 'Flare Blitz'), 10, ['rows', 'cols', 'quad', 'far']),
+    [N('영하 40도의 눈보라 속에서 불덩이 같은 포켓몬이 울부짖는다. 추위에 이성을 잃은 불비달마가 설원을 지나는 모든 것을 덮치고 있다!', 'In a blizzard at forty below, a Pokémon like a ball of fire roars. Out of its mind with the cold, Darmanitan is falling on everything that crosses the snowfield!'),
+      PT('쓰러뜨려도 돌처럼 앉아 명상하는 달마폼으로 일어설 거야! 그때부터는 에스퍼 기술이 날아와!', 'Even beaten, it will rise again in its Zen Mode, seated like a stone in meditation! From then on its moves turn Psychic!')],
+    [{ who: 555, text: K('…다루마아. (불비달마가 눈 위에 주저앉자 눈보라가 잦아들고, 설원 너머로 모스크바의 지붕들이 보였다.)', '...Daruuma. (Darmanitan sinks down on the snow, the blizzard eases, and the roofs of Moscow appear beyond the snowfield.)') }],
+    { sig: { use: [WSIG.eruption], at: SIG_AT1 }, joinMoves: [394, 359, 276, 428],
+      revive: { ...rise({ aura: '#b48cff', name: K('사이코키네시스', 'Psychic'), type: 14, pats: ['star', 'checker', 'ring|x', 'far'], use: [WSIG.zenPulse, WSIG.zenFire],
+        msg: K('불비달마가 돌처럼 굳어 앉더니 눈을 번쩍 떴다! 달마폼이다! 에스퍼의 힘이 설원을 뒤덮는다!', 'Darmanitan hardens like stone where it sits, then its eyes snap open! Zen Mode! Psychic power covers the snowfield!') }),
+      forme: 'z', types: [10, 14], moves: [94, 326, 53, 473] } }),
   // ---------------------------------------------------------------- 1941-42: Pearl Harbor and Midway
   pearl: quest({ ...MANAPHY, lv: P(14)[1] + 3,
     tele: blast(K('파도타기', 'Surf'), 11, ['rows', 'cols', 'x', 'ring']),
@@ -188,13 +192,17 @@ export const WB = {
       N('기름이 불타는 항구 한가운데서 바다가 소용돌이친다. 불길에 겁에 질린 마나피가 바다를 지키려고 큰 파도를 일으키고 있다. 물에 빠진 수병들이 휩쓸린다!', 'In the middle of the harbour of burning oil the sea swirls. Terrified by the flames, Manaphy is raising great waves to protect its sea. The sailors in the water are being swept away!'),
       { who: 490, text: K('마나… 피이이! (불타는 바다를 향해 필사적으로 파도를 일으킨다!)', 'Mana... phyyy! (It desperately raises waves against the burning sea!)') }, SAY.waves],
     after: [{ who: 490, text: K('…피이. (마나피가 파도로 불길을 덮어 끄자, 구조선들이 다가갈 수 있게 되었다.)', '...Phyy. (Manaphy smothers the flames with its waves, and the rescue boats can draw near.)') }] }),
-  midway: dragon(P(14)[1] + 5, blast(K('용의파동', 'Dragon Pulse'), 16, ['near', 'x', 'cross', 'target']),
-    [N('불타는 항공모함들 위로 삼삼드래가 내려왔다. 하늘을 가득 메운 비행기들에 놀라 세 머리가 닥치는 대로 물어뜯고 있다!', 'Hydreigon comes down over the burning carriers. Startled by the planes filling the sky, its three heads bite at whatever comes near!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 갑판 위에 내려앉아 세 머리를 낮추자, 바다에 빠진 이들을 건질 수 있었다.)', '...Kwaah. (Hydreigon settles on a deck and lowers its three heads, and those in the water can be pulled out.)') }]),
+  midway: strong(637, P(14)[1] + 5, [552, 405, 542, 257], blast(K('불꽃춤', 'Fiery Dance'), 10, ['near', 'x', 'cross', 'target']),
+    [N('불타는 항공모함들 위로 여섯 장의 불꽃 날개가 내려왔다. 치솟는 불길에 이끌린 불카모스가 타오르는 갑판 위를 춤추듯 맴돈다. 바다 위가 한낮처럼 환하다!', 'Six wings of flame come down over the burning carriers. Drawn by the leaping fire, Volcarona circles the blazing decks as if dancing. The sea is as bright as noon!'),
+      PT('날개의 불꽃 가루에 닿으면 타 버려! 쓰러뜨려도 한 번 더 일어설 거야!', 'Touch the burning dust from its wings and you burn! Even beaten, it will rise once more!')],
+    [{ who: 637, text: K('…파르르. (불카모스가 날개를 접어 갑판 위에 내려앉자, 바다에 빠진 이들을 건질 수 있었다.)', '...Prrr. (Volcarona folds its wings and settles on a deck, and those in the water can be pulled out.)') }],
+    { sig: { use: [WSIG.heatWave], at: SIG_AT1 },
+      revive: rise({ aura: '#ffb347', form: K('태양의 춤', 'Dance of the Sun'), name: K('열풍', 'Heat Wave'), type: 10, pats: ['far', 'star', 'checker', 'quad|ring'], use: [WSIG.heatWave, WSIG.hurricane],
+        msg: K('불카모스가 날개를 활짝 펼쳤다! 불꽃 가루가 태양처럼 타오르며 춤이 빨라진다!', 'Volcarona spreads its wings wide! Its burning dust blazes like the sun, and its dance quickens!') }) }),
   // ---------------------------------------------------------------- 1942: the Siege of Leningrad
-  ladoga: dragon(P(15)[1] + 3, blast(K('악의파동', 'Dark Pulse'), 17, ['rows', 'cols', 'x', 'checker']),
-    [N('얼음길 한가운데에 삼삼드래가 내려앉았다. 세 머리가 얼음을 내리칠 때마다 금이 가고, 식량을 실은 트럭이 호수에 빠지려 한다!', 'Hydreigon has landed in the middle of the ice road. Each time its three heads strike the ice it cracks, and a truck full of food is about to go into the lake!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 얼음길 밖으로 물러나자, 트럭들이 다시 도시를 향해 달렸다.)', '...Kwaah. (Hydreigon moves off the ice road, and the trucks race for the city again.)') }]),
+  ladoga: strong(612, P(15)[1] + 3, [337, 200, 89, 416], blast(K('드래곤크루', 'Dragon Claw'), 16, ['rows', 'cols', 'x', 'checker']),
+    [N('얼음길 한가운데에 액스라이즈가 버티고 섰다. 도끼 같은 어금니로 얼음을 내리칠 때마다 금이 가고, 식량을 실은 트럭이 호수에 빠지려 한다!', 'Haxorus has planted itself in the middle of the ice road. Each time its axe-like tusks strike the ice it cracks, and a truck full of food is about to go into the lake!')],
+    [{ who: 612, text: K('…그르릉. (액스라이즈가 얼음길 밖으로 물러나자, 트럭들이 다시 도시를 향해 달렸다.)', '...Grrrng. (Haxorus moves off the ice road, and the trucks race for the city again.)') }]),
   // ---------------------------------------------------------------- 1942: El Alamein
   minefield: again(LANDORUS, P(16)[1] + 3, {
     say: [
@@ -203,17 +211,16 @@ export const WB = {
       PT('땅이 몇 턴 동안 붉은 칸에서 솟구쳐! 계속 살피자!', 'The ground will burst up on the red tiles for several turns! Keep watching!')],
     after: [{ who: 645, name: K('랜드로스', 'Landorus'), text: K('…좋다. 너희는 땅에 묻힌 것을 거두러 왔구나. (랜드로스가 땅을 잠재우자, 공병들이 지뢰를 걷어 냈다.)', '...Very well. You came to clear what was buried. (Landorus calms the ground, and the sappers lift the mines.)') }] }),
   // ---------------------------------------------------------------- 1943: Stalingrad
-  tractor: quest({ sp: 639, lv: P(17)[1] + 4, moves: [533, 444, 370, 157], use: WSIG.sacredSword,
+  tractor: again(TERRAKION, P(17)[1] + 4, {
     tele: blast(K('스톤샤워', 'Rock Slide'), 5, ['x', 'cross', 'near', 'quad']),
     say: [
       N('무너진 공장 한가운데서 바위 같은 몸의 포켓몬이 벽을 들이받고 있다. 성벽을 부수고 갇힌 포켓몬을 구했다는 테라키온이다!', 'In the middle of the ruined factory, a Pokémon with a body like a boulder is ramming the walls. It is Terrakion, said to have broken a castle wall to free the Pokémon trapped inside!'),
       { who: 639, name: K('테라키온', 'Terrakion'), text: K('…무너진 벽마다 갇힌 포켓몬들의 울음이 들린다. 길을 막는다면 함께 부수고 지나가겠다!', '...Behind every fallen wall I hear the cries of trapped Pokémon. If you stand in the way, I will smash through you too!') }, SAY.sword],
-    after: [{ who: 639, name: K('테라키온', 'Terrakion'), text: K('…너희도 갇힌 자들을 꺼내러 왔구나. (테라키온이 무너진 벽을 밀어내자, 지하에 숨은 노동자들이 빠져나왔다.)', '...You came to pull out the trapped as well. (Terrakion shoves the fallen wall aside, and the workers hidden underground get out.)') }],
-    join: K('테라키온이 바위 같은 어깨를 들이밀었다. 함께 가고 싶어 한다!', 'Terrakion pushes in with its boulder shoulders. It wants to come along!') }),
+    after: [{ who: 639, name: K('테라키온', 'Terrakion'), text: K('…너희도 갇힌 자들을 꺼내러 왔구나. (테라키온이 무너진 벽을 밀어내자, 지하에 숨은 노동자들이 빠져나왔다.)', '...You came to pull out the trapped as well. (Terrakion shoves the fallen wall aside, and the workers hidden underground get out.)') }] }),
   // ---------------------------------------------------------------- 1944: Normandy
-  omaha: dragon(P(18)[1] + 4, blast(K('용성군', 'Draco Meteor'), 16, ['rows', 'x', 'checker', 'far']),
-    [N('절벽 아래 해변, 포연을 뚫고 삼삼드래가 내려온다. 세 머리가 상륙하는 이들을 덮친다!', 'On the beach below the bluffs, Hydreigon comes down through the gun smoke. Its three heads fall on those coming ashore!')],
-    [{ who: 635, text: K('…크와아. (삼삼드래가 절벽 위로 물러나자, 사람들이 해변을 건너 절벽을 올랐다.)', '...Kwaah. (Hydreigon pulls back above the bluffs, and people cross the beach and climb.)') }]),
+  omaha: strong(503, P(18)[1] + 4, [534, 401, 224, 58], blast(K('셸블레이드', 'Razor Shell'), 11, ['rows', 'x', 'checker', 'far']),
+    [N('절벽 아래 해변, 포연을 뚫고 대검귀가 파도 위로 뛰어올랐다. 껍질 칼이 번뜩일 때마다 상륙하는 이들의 길이 막힌다!', 'On the beach below the bluffs, Samurott leaps up out of the surf through the gun smoke. Each flash of its shell blade cuts off those coming ashore!')],
+    [{ who: 503, text: K('…크르릉. (대검귀가 칼을 거두고 바다로 물러나자, 사람들이 해변을 건너 절벽을 올랐다.)', '...Krrrng. (Samurott sheathes its blade and goes back to the sea, and people cross the beach and climb.)') }]),
   // ---------------------------------------------------------------- 1944: Leyte Gulf
   surigao: home(THUNDURUS),
   samar: quest({ ...MANAPHY, lv: P(19)[1] + 4,

@@ -84,6 +84,9 @@ export const FORMES = {
     s: { name: ['스피드폼', 'Speed Forme'], base: [50, 95, 90, 95, 90, 180], eva: 1, desc: ['몸이 가벼워져 상대의 공격을 잘 피한다. (회피 +1)', 'Its light body dodges attacks well. (evasion +1)'] },
   },
 };
+// A form only a boss takes, for the fight (dungeon.js reviveBoss forme; 1.25): no Forme to keep, so the meteorite in town does
+// not offer it, a save cannot hold it and a recruit joins in its usual form (recruit)
+const FIGHT_FORMES = { 555: { z: { name: ['달마폼', 'Zen Mode'], base: [105, 30, 105, 140, 105, 55] } } };
 export const FORME_NORMAL = { name: ['노말폼', 'Normal Forme'], desc: ['공격과 특수공격이 높은 원래 모습.', 'Its original form, strong on offense.'] };
 
 export class Mon {
@@ -106,7 +109,7 @@ export class Mon {
     this.slowT = 0; // Regigigas' Slow Start
   }
   get data() { return DEX.species[this.sp]; }
-  get formeDef() { return FORMES[this.sp]?.[this.forme] || null; }
+  get formeDef() { return FORMES[this.sp]?.[this.forme] || FIGHT_FORMES[this.sp]?.[this.forme] || null; }
   // form: a temporary prefix such as "원시 " (Primal Reversion); a Forme follows the species name
   get name() { const f = this.formeDef; return (this.form || '') + this.data.name + (f ? ` (${tr(...f.name)})` : ''); }
   get spr() { return this.formeDef ? `${this.sp}${this.forme}` : this.sp; } // sprite key: pmd/spr/386a.png is Attack Forme Deoxys

@@ -158,4 +158,6 @@ export function paintTerrain(ctx, set, W, H, at, ox = 0, oy = 0, seed = 1) {
 
 // Pearl box icons have no shiny palette; every species' shiny icon was derived from its shiny battle sprite (tools/extract_sprites.py)
 // a box icon is per species: a Forme's sprite key ('386a') draws its species' icon
-export const iconPath = (sp, shiny) => `poke/icon/${parseInt(sp, 10)}${shiny ? 's' : ''}.png`;
+// a Forme key ('386a') shows its species' icon, but for a form with a box icon of its own (tools/bw/sprites.py FORMS)
+const OWN_ICON = new Set(['555z']);
+export const iconPath = (sp, shiny) => `poke/icon/${OWN_ICON.has(sp) ? sp : parseInt(sp, 10)}${shiny ? 's' : ''}.png`;

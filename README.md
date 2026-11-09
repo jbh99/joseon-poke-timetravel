@@ -138,7 +138,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | 1920 | 독립군 | 독립군 기지(만주) / 용정 | 청산리 골짜기 | 핫삼 · 히드런(선택) |
 | 1940 | 민족 말살 통치 | 경성(1940) / 충칭 · 임시정부 | 반전세계 | **기라티나** |
 | 1945 | 광복 | 서울 | 시간의 틈 · 얄타·포츠담 회담과 분단(이야기) · 진영 선택 | **펄기아** |
-| 1950 | 한국 전쟁 | 진영에 따라 다름 | 서울 시가전, 낙동강, 해전, 장진호, 판문점, 하늘기둥 · 두원 운석터(서울 시가전 뒤) | 그란돈/가이오가, **한카리아스**, **보만다**, 레쿠쟈 · 테오키스 |
+| 1950 | 한국 전쟁 | 진영에 따라 다름 | 서울 시가전, 낙동강, 해전, 장진호, 판문점, 하늘기둥(서울 시가전 뒤) | 그란돈/가이오가, **한카리아스**, **보만다**, 레쿠쟈 · 테오키스 |
 | 1979 | 10·26과 12·12 | 서울(1979) | 12월 12일 밤의 서울(마을 전투), 청계천 판자촌, **천관산(마지막 퀘스트)**, 보스 탑(아르세우스 뒤) | **다크라이**, 강화된 **펄기아 · 디아루가**, **아르세우스(팀 레벨)** |
 
 ## 세계 모드
@@ -160,19 +160,19 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1860 | 베이징 조약 | 베이징 (쌍용시티) | 불타는 원명원, 우수리강 국경 | **쉐이미**, **비리디온** |
-| 1894 | 청일 전쟁 | 웨이하이웨이 (물결마을) | 풍도 앞바다(해전), 황해 해전(해전) | **마나피**, 삼삼드래 |
-| 1904 | 러일 전쟁 | 뤼순 (물풍경시티) | 제물포 해전(해전), 203고지, 쓰시마 해전(해전) | 삼삼드래, **테라키온 (2페이즈)**, **볼트로스 (영물폼)** |
+| 1860 | 베이징 조약 | 베이징 (쌍용시티) | 불타는 원명원, 우수리강 국경 | **쉐이미**, **비리디온 (2페이즈)** |
+| 1894 | 청일 전쟁 | 웨이하이웨이 (물결마을) | 풍도 앞바다(해전), 황해 해전(해전) | **마나피**, 두빅굴 |
+| 1904 | 러일 전쟁 | 뤼순 (물풍경시티) | 제물포 해전(해전), 203고지, 쓰시마 해전(해전) | 대검귀, **테라키온 (2페이즈)**, **볼트로스 (영물폼)** |
 
 ### 제1차 세계 대전 (1914–1919)
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1914 | 사라예보 사건 | 사라예보 (칠보시티) | 라틴 다리 골목, 발칸 산길 | 삼삼드래, **쉐이미** |
+| 1914 | 사라예보 사건 | 사라예보 (칠보시티) | 라틴 다리 골목, 발칸 산길 | 펜드라, **쉐이미** |
 | 1914 | 마른 전투 | 파리 (뇌문시티) | 마른 강 전선, 무인 지대 | **케르디오**, **쉐이미** |
-| 1915 | 갈리폴리 전투 | 갈리폴리 (마름꽃마을) | 다르다넬스 해협(해전), 안작 만 절벽 | **마나피**, 삼삼드래 |
+| 1915 | 갈리폴리 전투 | 갈리폴리 (마름꽃마을) | 다르다넬스 해협(해전), 안작 만 절벽 | **마나피**, 기가이어스 |
 | 1916 | 베르됭과 솜 | 베르됭 (설화시티) | 두오몽 요새, 솜 강 참호 | **코바르온 (2페이즈)**, **게노세크트** |
-| 1916 | 유틀란트 해전 | 스캐파 플로 (물풍경시티) | 북해의 안개(해전), 유틀란트 해전(해전) | **토네로스 (영물폼)**, 삼삼드래 |
+| 1916 | 유틀란트 해전 | 스캐파 플로 (물풍경시티) | 북해의 안개(해전), 유틀란트 해전(해전) | **토네로스 (영물폼)**, 샹델라 |
 | 1918 | 휴전 | 콩피에뉴 (넝쿨마을) | 콩피에뉴 숲, 마지막 날의 전선 · 아르곤 숲 깊은 곳(선택) | **비리디온 (2페이즈)**, **비크티니** · **뮤** |
 | 1919 | 파리 강화 회의 | 파리 · 베르사유 (성신시티) | 거울의 방, 센 강 다리 밑 | **메로엣타**, **쉐이미** |
 
@@ -180,22 +180,22 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 | 연도 | 사건 | 마을 (블랙의 마을) | 던전 | 보스 |
 |---|---|---|---|---|
-| 1939 | 제2차 세계 대전의 시작 | 단치히 · 그단스크 (칠보시티) | 베스테르플라테, 단치히 우체국 | 삼삼드래, **코바르온** |
-| 1940 | 됭케르크 철수 | 됭케르크 (물풍경시티) | 됭케르크 방파제, 영국 해협(해전) · 이제르 강 물길(선택) | 삼삼드래, **케르디오 (2페이즈)** · **피오네** |
-| 1940 | 런던 대공습 | 런던 (궐수시티) | 비긴 힐 비행장, 대공습의 밤(마을 전투) | **토네로스 (영물폼)**, **레시라무 (3페이즈)** |
-| 1941 | 모스크바 전투 | 모스크바 (쌍용시티) | 라스푸티차의 진흙길, 모스크바 근교 설원 | **랜드로스 (영물폼)**, 삼삼드래 |
-| 1942 | 진주만과 미드웨이 | 호놀룰루 (물결마을) | 진주만(해전), 미드웨이 해전(해전) | **마나피**, 삼삼드래 |
-| 1942 | 레닌그라드 포위전 | 레닌그라드 (칠보시티) | 라도가 호수 얼음길, 얼어붙은 연주회장 | 삼삼드래, **메로엣타 (2페이즈)** |
+| 1939 | 제2차 세계 대전의 시작 | 단치히 · 그단스크 (칠보시티) | 베스테르플라테, 단치히 우체국 | 염무왕, **코바르온 (2페이즈)** |
+| 1940 | 됭케르크 철수 | 됭케르크 (물풍경시티) | 됭케르크 방파제, 영국 해협(해전) · 이제르 강 물길(선택) | 타격귀, **케르디오 (2페이즈)** · **피오네** |
+| 1940 | 런던 대공습 | 런던 (궐수시티) | 비긴 힐 비행장, 대공습의 밤(마을 전투) | **토네로스 (영물폼)**, **레시라무 (두 번 일어섬)** |
+| 1941 | 모스크바 전투 | 모스크바 (쌍용시티) | 라스푸티차의 진흙길, 모스크바 근교 설원 | **랜드로스 (영물폼)**, 불비달마 (2페이즈) |
+| 1942 | 진주만과 미드웨이 | 호놀룰루 (물결마을) | 진주만(해전), 미드웨이 해전(해전) | **마나피**, 불카모스 (2페이즈) |
+| 1942 | 레닌그라드 포위전 | 레닌그라드 (칠보시티) | 라도가 호수 얼음길, 얼어붙은 연주회장 | 액스라이즈, **메로엣타 (2페이즈)** |
 | 1942 | 엘알라메인 전투 | 알렉산드리아 (물결마을) | 「악마의 정원」 지뢰밭, 모래 언덕의 V 유적 | **랜드로스 (영물폼)**, **비크티니 (2페이즈)** |
-| 1943 | 스탈린그라드와 쿠르스크 | 스탈린그라드 (설화시티) | 트랙터 공장, 프로호롭카 전차 평원 | **테라키온**, **게노세크트 (2페이즈)** |
-| 1944 | 노르망디 상륙 작전 | 노르망디 · 바이외 (마름꽃마을) | 해협 위의 폭풍, 오마하 해변 | **제크로무 (3페이즈)**, 삼삼드래 |
+| 1943 | 스탈린그라드와 쿠르스크 | 스탈린그라드 (설화시티) | 트랙터 공장, 프로호롭카 전차 평원 | **테라키온 (2페이즈)**, **게노세크트 (2페이즈)** |
+| 1944 | 노르망디 상륙 작전 | 노르망디 · 바이외 (마름꽃마을) | 해협 위의 폭풍, 오마하 해변 | **제크로무 (두 번 일어섬)**, 대검귀 |
 | 1944 | 레이테 만 해전 | 타클로반 · 레이테 (물결마을) | 수리가오 해협(해전), 사마르 앞바다(해전) | **볼트로스 (영물폼)**, **마나피** |
 | 1945 | 제2차 세계 대전의 끝 | 베를린 (보배마을) | 얼어붙은 폐허, **얼어붙은 도시(마을 전투, 최종 퀘스트)** | 삼삼드래, **큐레무 (3페이즈)** |
 
-(선택)은 메인 퀘스트와 상관없이 들어가는 전설의 둥지입니다(1.20부터 뮤 · 피오네 두 곳). 굵은 글씨는 전설 · 환상의 포켓몬이고, 삼삼드래는 600족입니다. (2페이즈) · (영물폼) · (3페이즈)는 모습을 바꿔 다시 일어서는 보스이고, 같은 포켓몬이 다른 시대에 한 번 더 나올 때는 한 가지 모습으로 싸웁니다(토네로스 · 볼트로스 · 랜드로스는 두 번 모두 영물폼까지). 세계 모드의 던전은 1.19부터 모두 **3층**이 끝이고, 그 3층에서 보스가 기다립니다.
+(선택)은 메인 퀘스트와 상관없이 들어가는 전설의 둥지입니다(1.20부터 뮤 · 피오네 두 곳). 굵은 글씨는 전설 · 환상의 포켓몬이고, 나머지는 5세대의 강자들과 600족 삼삼드래입니다. (2페이즈) · (영물폼) · (3페이즈)는 모습을 바꿔 다시 일어서는 보스이고, 같은 포켓몬이 다른 시대에 한 번 더 나올 때는 한 가지 모습으로 싸웁니다(토네로스 · 볼트로스 · 랜드로스 · 코바르온 · 테라키온 · 비리디온은 두 번 모두 두 모습으로). 세계 모드의 던전은 1.19부터 모두 **3층**이 끝이고, 그 3층에서 보스가 기다립니다.
 
 ### 세계 모드의 전설과 최종 보스
-- **퀘스트 보스 (1.20)**: 세계 모드의 퀘스트 보스는 **5세대(블랙)의 전설 · 준전설 · 환상의 포켓몬**입니다. 레시라무 · 제크로무 · 큐레무는 한 번, 나머지 열(비크티니 · 코바르온 · 테라키온 · 비리디온 · 케르디오 · 토네로스 · 볼트로스 · 랜드로스 · 메로엣타 · 게노세크트)은 두 시대에 한 번씩 나오고, 처음 이긴 곳에서 동료가 될 수 있습니다(이미 동료면 다시 동료가 되지 않음). 600족 자리는 모두 5세대 600족 **삼삼드래**(12번), 남는 자리는 4세대 환상의 포켓몬 **쉐이미 · 마나피**(4번씩)가 맡습니다. 1.19까지 세계 모드에 나오던 전설 중 칠색조 · 라이코 · 앤테이는 한국 시대의 퀘스트(1443 · 1392 · 1019)로, 뮤 · 피오네는 둥지로 옮겼고, 나머지는 한국 시대에서 만납니다.
+- **퀘스트 보스 (1.20)**: 세계 모드의 퀘스트 보스는 **5세대(블랙)의 전설 · 준전설 · 환상의 포켓몬**입니다. 레시라무 · 제크로무 · 큐레무는 한 번, 나머지 열(비크티니 · 코바르온 · 테라키온 · 비리디온 · 케르디오 · 토네로스 · 볼트로스 · 랜드로스 · 메로엣타 · 게노세크트)은 두 시대에 한 번씩 나오고, 처음 이긴 곳에서 동료가 될 수 있습니다(이미 동료면 다시 동료가 되지 않음). 5세대 600족 **삼삼드래**는 1945년 얼어붙은 폐허에서 한 번만 나오고(1.25), 다른 강한 자리는 샹델라 · 타격귀 · 기가이어스 · 두빅굴 · 염무왕 · 대검귀(두 번) · 펜드라 · 액스라이즈와 2페이즈의 불비달마(달마폼) · 불카모스, 남는 자리는 4세대 환상의 포켓몬 **쉐이미 · 마나피**(4번씩)가 맡습니다. 1.19까지 세계 모드에 나오던 전설 중 칠색조 · 라이코 · 앤테이는 한국 시대의 퀘스트(1443 · 1392 · 1019)로, 뮤 · 피오네는 둥지로 옮겼고, 나머지는 한국 시대에서 만납니다.
 - **5세대 전설의 2페이즈**: 전용기를 쓰면 몇 턴 동안 맵 곳곳의 붉은 칸에 번개 · 불꽃 · 바위 · 돌풍이 떨어지거나, 성스러운칼 · 신비의칼처럼 땅이 줄을 따라 갈라집니다. **토네로스 · 볼트로스 · 랜드로스**는 2페이즈에서 **영물폼**으로 바뀌며 **모든 능력치와 HP가 20% 오릅니다**(1.20). 블랙 롬에는 케르디오의 각오의 모습과 영물폼 그림이 없어서(블랙2 · 화이트2에서 처음 나옴), 2페이즈는 같은 모습에 빛과 이름으로 나타냅니다.
 - **레시라무 · 제크로무 (1.19)**: 천관산 펄기아 수치(이야기 때보다 체력 · 공격 30% 높고 모든 능력치 +20%, 내 팀 레벨을 따름)에 체력 · 모든 능력치 · 공격 상한 · 궁극기를 **10% 더한** 스펙으로, 3페이즈로 싸웁니다. 1페이즈는 평범한 기술만, 2페이즈는 평범한 기술과 궁극기, 3페이즈는 궁극기만 계속 씁니다. 이기고 동료가 되면 궁극기 기술을 가지고 옵니다.
   - **레시라무 · 크로스플레임**: **5초 동안** 위에서 불이 내 위치와 근처 동료를 따라 떨어집니다. 붉게 표시된 칸에 떨어지니 멈추지 말고 움직이세요. 턴과 상관없이 실제 시간으로 흐르고, 대화나 메뉴가 열리면 멈춥니다.
@@ -257,7 +257,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **마을 전투**: 1950년 서울 시가전과 1979년 12월 12일 밤의 서울은 마을이 그대로 싸움터가 됩니다. 1.8부터 병사들은 나오지 않고 **보스 한 마리**와 싸웁니다. 12·12에서는 **다크라이** 혼자(하나회 쪽 +15%에 더해 모든 능력치 +25%), 서울 시가전에서는 진영에 따라 **그란돈 또는 가이오가**(모든 능력치 +25%)가 보스이고, 내 진영의 전설 **한 마리**가 동료로 함께 싸웁니다. 싸움터에서는 동료가 리더를 따라다니지 않고 **각자 보스에게 달려가 자유롭게** 싸웁니다(순사와의 싸움도 같음).
 - **레지 3총사와 레지기가스 (1945 이후)**: 마을의 강철 거인(레지스틸)을 동료로 맞으면 레지락·레지아이스의 굴(보스는 2층)이 지도에 나타나고, 셋을 데리고 가면 선단신전(펄의 실제 신전 지도, 2층)에서 레지기가스를 만납니다.
 - **라티아스 · 라티오스 (1945 이후)**: 마을에서 둘 중 하나만 골라 동료로 맞습니다.
-- **하늘기둥 (1950 서울 시가전 뒤)**: 그란돈과 가이오가가 맞부딪친 뒤 지리산에 하늘기둥이 나타납니다. 2층에서 **레쿠쟈**를 만나고, 레쿠쟈가 동료가 되면 1943년 우리 땅에서 처음 기록된 운석이 떨어진 고흥의 **두원 운석터**가 나타나 그 2층에 운석과 함께 **테오키스**가 내려옵니다. 둘 다 동료가 될 때까지 다시 도전할 수 있습니다 (챌린지에서는 닫힘).
+- **하늘기둥 (1950 서울 시가전 뒤)**: 그란돈과 가이오가가 맞부딪친 뒤 지리산에 하늘기둥이 나타납니다. 2층에서 **레쿠쟈**를 만나고(3페이즈, 화룡점정), 레쿠쟈를 쓰러뜨리면 모두 회복되어 같은 자리에 **테오키스**가 바로 내려옵니다. 둘 다 동료가 될 때까지 다시 도전할 수 있습니다 (챌린지에서는 닫힘).
 - **테오키스 폼체인지**: 테오키스를 얻으면 마을에 **붉은 운석**이 생깁니다. 테오키스를 파티에 넣고 운석을 조사하면 노말폼(공격형) · 어택폼(공격·특공 크게 ↑, 방어 ↓) · 디펜스폼(방어·특방 크게 ↑, 공격 ↓) · 스피드폼(회피 +1) 가운데 고를 수 있습니다. 스프라이트도 파랑구조대 롬의 폼별 그림으로 바뀝니다.
 - **레지 초상화**: 파랑구조대 롬에는 레지 3총사와 레지기가스의 얼굴이 없어서, 펄 롬의 전투 그림에서 얼굴을 잘라 같은 형식(40×40, 띠 배경)으로 만들었습니다 (`tools/make_portraits.py`).
 - **1950 판문점**: 「시간의 틈」의 마지막 층은 이제 **보만다**가 지키고, 아르세우스는 여행의 맨 끝(1979)으로 옮겨 갔습니다.
@@ -319,6 +319,14 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동, Z 공격, QWER 기술, A 쉬기). 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 바뀐 점 (1.25)
+
+- **레쿠쟈 강화**: 모든 능력치가 35% 올랐고 3페이즈가 생겼습니다. 1페이즈는 용의파동 · 에어슬래시 · 지진, 2페이즈 메가레쿠쟈는 역린 · 용성군 · 폭풍 · 파괴광선, 3페이즈는 **화룡점정**을 중심으로 큰 기술만 잇달아 씁니다. 화룡점정은 돌풍의 벽이 칸칸이 날아오는 공격이라 벽의 빈틈으로 피해야 합니다.
+- **레쿠쟈 다음에 바로 테오키스**: 레쿠쟈를 쓰러뜨리면 모두 회복되고 같은 자리에 테오키스가 내려옵니다. 테오키스의 체력은 40% 올랐고, 두원 운석터는 없어졌습니다.
+- **5세대 보스 교체**: 삼삼드래는 1945년에 한 번만 나오고, 그 자리에 샹델라 · 타격귀 · 기가이어스 · 두빅굴 · 염무왕 · 대검귀 · 펜드라 · 액스라이즈가 나옵니다. 불비달마(달마폼: 불꽃 · 에스퍼, 에스퍼 기술)와 불카모스는 2페이즈입니다.
+- **코바르온 · 테라키온 · 비리디온**: 두 번 모두 2페이즈로 싸우고 모든 능력치가 20% 올랐습니다.
+- **화면과 규칙**: 왼쪽 위 팀 체력 창을 20% 키웠고, 동료 머리 위의 파란 표시를 없앴습니다. 강철 · 독 타입은 독에 걸리지 않습니다. 레시라무 · 제크로무 · 큐레무의 설명을 실제대로 '두 번 일어선다'로 고쳤습니다.
 
 ### 바뀐 점 (1.24)
 
@@ -472,11 +480,12 @@ docs/screenshots/       README 스크린샷
   - Tab tags the next teammate in; A (hold) rests; J opens and closes the quest list.
   - P opens the companion roster outside dungeons: search it (name, type, dex number), sort it, and swap anyone into any team slot; 1/2/3 set the game speed.
   - The mouse picks places on the world map, dialogue choices and menu rows; dragging or the wheel scrolls the map.
-- **World line (1860–1945)**: after liberation, a Korean era's Time Gate offers "To the world"; a world era's Time Gate leads back to Korea at any time, and each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legendary and mythical Pokémon, the others Hydreigon (600-total); (optional) marks a legend's lair off the main quest.
-  - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: **Shaymin**, **Virizion** · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): **Manaphy**, Hydreigon · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill: Hydreigon, **Terrakion** (two phases), **Thundurus** (Therian Forme).
-  - The First World War: 1914 Sarajevo (Nacrene City): Hydreigon, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Hydreigon · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Hydreigon · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
-  - The Second World War: 1939 Danzig (Nacrene City): Hydreigon, **Cobalion** · 1940 Dunkirk (Driftveil City): Hydreigon, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, three phases · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Hydreigon · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Hydreigon · 1942 Leningrad (Nacrene City): Hydreigon, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion**, **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom** in three phases, Hydreigon · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
+- **World line (1860–1945)**: after liberation, a Korean era's Time Gate offers "To the world"; a world era's Time Gate leads back to Korea at any time, and each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legendary and mythical Pokémon, the others Unova's strongest and Hydreigon (600-total); (optional) marks a legend's lair off the main quest.
+  - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: **Shaymin**, **Virizion** (two phases) · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): **Manaphy**, Seismitoad · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill: Samurott, **Terrakion** (two phases), **Thundurus** (Therian Forme).
+  - The First World War: 1914 Sarajevo (Nacrene City): Scolipede, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Gigalith · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Chandelure · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
+  - The Second World War: 1939 Danzig (Nacrene City): Emboar, **Cobalion** (two phases) · 1940 Dunkirk (Driftveil City): Sawk, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, rising twice · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Darmanitan (two phases) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Volcarona (two phases) · 1942 Leningrad (Nacrene City): Haxorus, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion** (two phases), **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom**, rising twice, Samurott · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.25: Rayquaza has every stat 35% higher and a third phase built on Dragon Ascent, walls of wind that fly in tile by tile with a gap to reach; when it falls the team is restored and Deoxys (HP +40%) comes down in the same place. Hydreigon is a boss only once, in 1945; Chandelure, Sawk, Gigalith, Seismitoad, Emboar, Samurott, Scolipede and Haxorus took its quests, and Darmanitan (Zen Mode: Fire and Psychic, with Psychic moves) and Volcarona fight in two phases. Cobalion, Terrakion and Virizion fight in two phases in both their quests, every stat 20% higher. The team's HP panel is 20% larger, the blue mark over teammates is gone, Steel and Poison types can't be poisoned, and Reshiram, Zekrom and Kyurem are now said to rise twice, as they do.
   - 1.24: Past journeys sync safely: a failed renaming no longer empties a good cloud copy, a journey that did not fit comes down once there is room, an upload Drive refused no longer reads as up to date, a journey taken back no longer returns through a duplicate, and taking another device's new journey with a full list no longer drops an unrelated one. Faster loading: a town's picture and people come together, Continue's town starts loading behind the title, and several Past journeys come down at once. A town battle no longer starts the team behind a rail or a house, or two members on one tile in a dead end.
   - 1.23: the battle screen's move list and message log are larger again, at 75% of their 1.21 size each way (1.22 had made them too small to read). The team panel stays as in 1.22.
   - 1.22.1: in busy battles (a boss against a team of three) 1.22's battle log ran late and lost some messages before they were shown. Battle messages now show at once; only a burst such as experience and level-ups takes its turn.
@@ -494,7 +503,7 @@ docs/screenshots/       README 스크린샷
   - Legendary bosses: Zapdos, Entei (1019), Moltres, Articuno, Raikou (1392), Ho-Oh (1443), Dialga, Giratina and Palkia (Entei, Raikou and Ho-Oh since 1.20); Dialga, Giratina and Palkia rise again in Origin Forme.
   - Legends that did not join come back in another dungeon of the next era, at that dungeon's level; the world map shows each legend in a gold ring.
   - Arceus (its level follows the team's, up to Lv 180) is the last quest, after December 12, 1979: it turns golden for a second phase, where Judgment starts raining round blasts all over the field, and rises a third time in rainbow light (Attack +10%, Defense +20%) to swing Hyper Beam round a full circle three times; Salamence now guards 1950's Panmunjom rift. The 600-class bosses (Garchomp, Salamence, Metagross, Tyranitar) fight at 85% of a legend.
-  - After the battle for Seoul (1950) the Sky Pillar appears: Rayquaza on floor 2 (Mega Rayquaza for its second phase); once it joins, Deoxys comes down at the Duwon Meteorite Site (where Korea's first recorded meteorite fell in 1943) and fights in its Normal, Attack and Speed Formes. With Deoxys, a red meteorite in town changes its Forme (Normal, Attack, Defense, or Speed, which dodges); the Formes use the PMD ROM's own sprites.
+  - After the battle for Seoul (1950) the Sky Pillar appears: Rayquaza on floor 2 (Mega Rayquaza for its second phase, Dragon Ascent in its third); when it falls the team is restored and Deoxys comes down in the same place, fighting in its Normal, Attack and Speed Formes. With Deoxys, a red meteorite in town changes its Forme (Normal, Attack, Defense, or Speed, which dodges); the Formes use the PMD ROM's own sprites.
   - Regirock, Regice, Registeel and Regigigas have portraits cut from their Pearl battle sprites in the PMD style (`tools/make_portraits.py`).
   - Twenty eras now: Goguryeo's last battle at Pyongyang (668), the Eulsa Treaty (1905, Mewtwo with a second phase, the Hague envoys in the story) and October 26 / December 12, 1979 (a town battle against Darkrai).
   - Some towns copy the real layouts of Pokémon Pearl's cities (Canalave, Hearthome, Oreburgh, Snowpoint, Veilstone, Pastoria), read from the ROM by `tools/pearl_maps.py`.

@@ -2,8 +2,7 @@
 // 1979 (October 26 and the December 12 coup) after the Korean War, which now ends the journey with Arceus on Mt. Coronet
 // (Cheongwansan), past Palkia and Dialga. Also the
 // post-1945 side line shared by the last eras: Registeel in town, then Regirock, Regice and Regigigas in Snowpoint
-// Temple, and the Latias / Latios choice; and after the battle for Seoul, the Sky Pillar (Rayquaza), then the Duwon
-// meteorite site (Deoxys).
+// Temple, and the Latias / Latios choice; and after the battle for Seoul, the Sky Pillar (Rayquaza, then Deoxys).
 // Their levels are set directly (the Joseon chapters' lift() curve is not applied to them).
 import { K, T, CELEBI, SIG, SIG_AT1, SIG_AT2 } from './content_k.js';
 import { S } from './game.js';
@@ -356,32 +355,49 @@ export function addPostWar(eras) {
   }
 }
 
-// ---------------------------------------------------------------- after the battle for Seoul: the Sky Pillar and Duwon
+// ---------------------------------------------------------------- after the battle for Seoul: the Sky Pillar
 // Once Groudon and Kyogre have clashed in Seoul (1950), the Sky Pillar appears on the world map with its keeper on
-// floor 2: Rayquaza, come down to calm the land and the sea. Once Rayquaza joins, a meteor brings Deoxys to Duwon in
-// Goheung, where the first meteorite on record in Korea fell in 1943: a place of its own, as no map holds two legends.
-// Both can be fought again until they join and never move on to later eras; in a challenge neither place opens. A red
-// meteorite then stands in town, where Deoxys changes Forme (town.js meteorTalk, game.js FORMES).
-// second page: Mega Rayquaza (no sprite exists for it: aura + name, as for Mewtwo)
-const RAYQUAZA = { sp: 384, lv: 66, lvMin: 60, lvUp: 4, hp: 2.0, atk: 0.8, cap: 0.34, retry: true, noWander: true, bgm: 'ba_secret2', moves: [200, 406, 245, 89],
-  tele: { name: K('화룡점정', 'Dragon Ascent'), every: 3, dmg: 0.36, pats: ['x', 'star', 'cols', 'far'], type: 2 },
-  revive: { hp: 0.42, atk: 1.1, cap: 0.4, form: K('메가', 'Mega'), aura: '#7cffb0',
-    msg: K('레쿠쟈가 쓰러지지 않는다! 하늘의 힘을 모아 메가진화했다!', 'Rayquaza will not fall! It gathers the power of the sky and Mega Evolves!'),
-    line: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('……하늘이 내게 힘을 빌려준다. 끝까지 보여 다오!', '......The sky lends me its strength. Show me everything you have!') }],
-    tele: [
-      { name: K('화룡점정', 'Dragon Ascent'), every: 2, dmg: 0.4, stagger: 1, pats: ['x|cols', 'star', 'far|rows', 'cross'], type: 2, first: 2 },
-      { at: 0.5, name: K('용성군', 'Draco Meteor'), every: 2, dmg: 0.44, stagger: 1, pats: ['random', 'quad|target', 'star|ring', 'checker'], type: 16,
-        msg: K('메가레쿠쟈가 하늘 끝에서 유성을 불러냈다!', 'Mega Rayquaza calls meteors down from the edge of the sky!') },
+// floor 2: Rayquaza, come down to calm the land and the sea. Since 1.25 Deoxys, which has been chasing it, comes down in the
+// same place the moment Rayquaza falls (b.next, dungeon.js nextKeeper: the team gets everything back first); up to 1.24 it
+// waited at a place of its own, Duwon. Both can be fought again until they join: with Rayquaza in the team, Deoxys waits on
+// the top floor by itself. They never move on to later eras, and in a challenge the place doesn't open. A red meteorite then
+// stands in town, where Deoxys changes Forme (town.js meteorTalk, game.js FORMES).
+// Rayquaza (1.25): three forms and every stat 35% over 1.24's. Its own moves; Mega Rayquaza (no sprite exists for it: aura +
+// name, as for Mewtwo); and last nothing but its great moves one after the other, every other one Dragon Ascent's walls of
+// wind (content_k.js SIG.ascent).
+const RAYQUAZA = { sp: 384, lv: 66, lvMin: 60, lvUp: 4, hp: 2.0, atk: 0.8, cap: 0.34, buff: 1.35, retry: true, noWander: true, bgm: 'ba_secret2', moves: [200, 406, 245, 89], joinMoves: [200, 406, 245, 89],
+  tele: { name: K('용의파동', 'Dragon Pulse'), every: 3, dmg: 0.36, pats: ['x', 'star', 'cols', 'far'], type: 16,
+    mix: [
+      { name: K('용의파동', 'Dragon Pulse'), type: 16, dmg: 0.36, pats: ['x', 'star', 'cols', 'far'] },
+      { name: K('에어슬래시', 'Air Slash'), type: 2, dmg: 0.34, pats: ['rows', 'checker', 'ring', 'cross'] },
+      { name: K('지진', 'Earthquake'), type: 4, dmg: 0.36, pats: ['near', 'ring', 'quad'] },
     ] },
+  sig: { use: [SIG.meteor], at: SIG_AT1 },
+  revive: [
+    { hp: 0.6, atk: 1.1, cap: 0.4, form: K('메가', 'Mega'), aura: '#7cffb0', moves: [200, 434, 245, 542],
+      msg: K('레쿠쟈가 쓰러지지 않는다! 하늘의 힘을 모아 메가진화했다!', 'Rayquaza will not fall! It gathers the power of the sky and Mega Evolves!'),
+      line: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('……하늘이 내게 힘을 빌려준다. 끝까지 보여 다오!', '......The sky lends me its strength. Show me everything you have!') }],
+      sig: { use: [SIG.gale, SIG.beam], at: SIG_AT2 },
+      tele: [
+        { name: K('역린', 'Outrage'), every: 2, dmg: 0.4, stagger: 1, pats: ['x|cols', 'star', 'far|rows', 'cross'], type: 16, first: 2 },
+        { at: 0.5, name: K('용성군', 'Draco Meteor'), every: 2, dmg: 0.44, stagger: 1, pats: ['random', 'quad|target', 'star|ring', 'checker'], type: 16,
+          msg: K('메가레쿠쟈가 하늘 끝에서 유성을 불러냈다!', 'Mega Rayquaza calls meteors down from the edge of the sky!') },
+      ] },
+    { hp: 0.7, atk: 1.1, def: 1.15, cap: 0.44, form: K('화룡점정', 'Dragon Ascent'), aura: '#d8ffe8',
+      msg: K('메가레쿠쟈가 구름 위로 솟구쳤다! 남은 힘을 모은 화룡점정이 하늘을 가른다!', 'Mega Rayquaza soars above the clouds! With all the strength it has left, Dragon Ascent splits the sky!'),
+      line: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('……하늘 끝에서 내려오는 바람을 피할 수 있겠느냐!', '......Can you dodge the wind that comes down from the edge of the sky?') }],
+      ult: { use: [SIG.ascent, SIG.meteor, SIG.ascent, SIG.gale, SIG.ascent, SIG.beam] } },
+  ],
   say: [
     { who: 'narr', text: K('구름보다 높은 하늘기둥 꼭대기. 땅과 바다의 거인이 서울에서 맞부딪친 날부터, 초록빛 용이 하늘을 맴돌고 있었다.', 'The top of the Sky Pillar, above the clouds. Ever since the giants of land and sea clashed in Seoul, a green dragon has been circling the sky.') },
     { who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('……땅과 바다가 다투면 하늘이 내려온다. 그것이 나의 일이다. 너희는 무엇을 위해 싸웠느냐!', '......When land and sea quarrel, the sky comes down. That is my task. What did you fight for?') },
-    { who: 'partner', text: K('레쿠쟈야! 그란돈과 가이오가의 싸움을 멈추러 하늘에서 내려왔대. 우리 마음을 보여 주자!', 'It\'s Rayquaza! It came down from the sky to stop Groudon and Kyogre fighting. Let\'s show it our hearts!') }],
-  after: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('…좋다. 너희는 빼앗으려고 싸운 것이 아니구나. …하늘 너머에서 무언가가 나를 쫓아온다. 내가 너희와 가면, 그것도 이 땅 어딘가로 내려오겠지.', '...Good. You did not fight to take. ...Something from beyond the sky is chasing me. If I go with you, it too will come down somewhere on this land.') }],
+    { who: 'partner', text: K('레쿠쟈야! 그란돈과 가이오가의 싸움을 멈추러 내려왔대. 쓰러뜨려도 두 번 일어설 거야! 화룡점정이 오면 돌풍의 벽이 칸칸이 날아오니까 벽의 빈틈으로 피하자!', "It's Rayquaza! It came down to stop Groudon and Kyogre fighting. Even beaten it will rise twice! When Dragon Ascent comes, walls of wind fly in tile by tile, so get to the gap in each!") }],
+  after: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('…좋다. 너희는 빼앗으려고 싸운 것이 아니구나. …하늘 너머에서 무언가가 나를 쫓아왔다. 온다, 바로 지금!', '...Good. You did not fight to take. ...Something from beyond the sky has been chasing me. It is coming. Now!') }],
+  afterAlone: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('…좋다. 너희는 빼앗으려고 싸운 것이 아니구나.', '...Good. You did not fight to take.') }], // (Deoxys already with the team: nobody comes down after it)
   join: K('레쿠쟈가 긴 몸을 낮추었다. 함께 하늘을 날고 싶어 한다!', 'Rayquaza lowers its long body. It wants to fly with you!') };
 // Deoxys shows all its Formes in one fight: Normal, the Attack Forme at half HP (dungeon.js bossPhase: forme), and on
-// its second page the Speed Forme, which dodges (game.js FORMES eva)
-const DEOXYS = { sp: 386, lv: 68, lvMin: 62, lvUp: 4, hp: 2.3, atk: 0.9, cap: 0.36, retry: true, noWander: true, bgm: 'ba_secret1', moves: [354, 94, 245, 276],
+// its second page the Speed Forme, which dodges (game.js FORMES eva). HP 40% over 1.24's.
+const DEOXYS = { sp: 386, lv: 68, lvMin: 62, lvUp: 4, hp: 2.3 * 1.4, atk: 0.9, cap: 0.36, retry: true, noWander: true, bgm: 'ba_secret1', moves: [354, 94, 245, 276],
   tele: [
     { name: K('사이코부스트', 'Psycho Boost'), every: 3, dmg: 0.36, stagger: 1, pats: ['random', 'checker', 'target', 'ring'], type: 14, first: 2 },
     { at: 0.5, forme: 'a', name: K('사이코부스트', 'Psycho Boost'), every: 2, dmg: 0.42, stagger: 1, pats: ['star', 'quad', 'far', 'checker|x', 'target'], type: 14,
@@ -393,20 +409,18 @@ const DEOXYS = { sp: 386, lv: 68, lvMin: 62, lvUp: 4, hp: 2.3, atk: 0.9, cap: 0.
       { name: K('사이코부스트', 'Psycho Boost'), every: 2, dmg: 0.4, stagger: 1, pats: ['ring|x', 'random', 'checker|cross', 'target|far'], type: 14, first: 2 },
     ] },
   say: [
-    { who: 'narr', text: K('1943년, 우리 땅에서 처음 기록된 운석이 떨어진 고흥 두원. 레쿠쟈가 함께한 뒤, 그 들판에 붉은 별똥별이 또 하나 떨어졌다. 깨진 운석 속에서 무언가가 일어선다!', 'Duwon in Goheung, where the first meteorite on record in Korea fell in 1943. After Rayquaza joined you, another red shooting star fell on its fields. Something rises from the broken meteorite!') },
-    { who: 386, name: K('테오키스', 'Deoxys'), text: K('……(우주에서 온 DNA 포켓몬이 레쿠쟈를 노려보며 몸을 바꾸기 시작한다!)', '......(The DNA Pokémon from space glares at Rayquaza and begins to change its body!)') },
-    { who: 'partner', text: K('운석에서 나타난 테오키스야! 싸우는 도중에 모습을 바꾼대. 조심해!', 'It\'s Deoxys, out of the meteorite! It changes form in the middle of a fight. Careful!') }],
-  after: [{ who: 386, name: K('테오키스', 'Deoxys'), text: K('……(테오키스의 몸에서 빛이 잦아들었다. 레쿠쟈를 바라보더니 조용히 고개를 끄덕인다.)', '......(The light in Deoxys\'s body fades. It looks at Rayquaza and quietly nods.)') }],
+    { who: 'narr', text: K('하늘기둥 꼭대기에 붉은 별똥별이 내리꽂혔다! 깨진 운석 속에서 무언가가 일어선다!', 'A red shooting star slams into the top of the Sky Pillar! Something rises from the broken meteorite!') },
+    { who: 386, name: K('테오키스', 'Deoxys'), text: K('……(우주에서 온 DNA 포켓몬이 하늘을 노려보며 몸을 바꾸기 시작한다!)', '......(The DNA Pokémon from space glares at the sky and begins to change its body!)') },
+    { who: 'partner', text: K('레쿠쟈를 쫓아온 테오키스야! 싸우는 도중에 모습을 바꾼대. 조심해!', "It's Deoxys, the one that was chasing Rayquaza! It changes form in the middle of a fight. Careful!") }],
+  after: [{ who: 386, name: K('테오키스', 'Deoxys'), text: K('……(테오키스의 몸에서 빛이 잦아들었다. 하늘을 바라보더니 조용히 고개를 끄덕인다.)', '......(The light in Deoxys\'s body fades. It looks up at the sky and quietly nods.)') }],
   join: K('테오키스가 너희 곁으로 내려왔다. 함께 가고 싶어 한다! (마을의 붉은 운석에서 모습을 바꿀 수 있다)', 'Deoxys comes down beside you. It wants to come along! (It can change Forme at the red meteorite in town)') };
+RAYQUAZA.next = DEOXYS;
 const SKY = {
   skypillar: { name: K('하늘기둥', 'Sky Pillar'), tiles: T.crystal, floors: 2, lv: [58, 62], legend: true, climb: true, mons: [333, 334, 357, 227, 22, 279, 337, 338, 343, 344], bgm: 'd_lake',
-    tint: 'rgba(120,170,255,0.10)', boss: RAYQUAZA },
-  duwon: { name: K('두원 운석터', 'Duwon Meteorite Site'), tiles: T.cliff, floors: 2, lv: [60, 64], legend: true, mons: [35, 36, 337, 338, 343, 344, 374, 375], bgm: 'd_mount2',
-    tint: 'rgba(255,90,60,0.10)', boss: DEOXYS },
+    tint: 'rgba(120,170,255,0.10)', get boss() { return got(384) && !got(386) ? DEOXYS : RAYQUAZA; } },
 };
 const SKY_NODES = [
   { id: 'skypillar', name: SKY.skypillar.name, lon: 127.73, lat: 35.34, d: 'skypillar' },
-  { id: 'duwon', name: SKY.duwon.name, lon: 127.3, lat: 34.6, d: 'duwon', when: () => !challenge() && got(384) },
 ];
 const METEOR = { id: 'meteor', sp: 386, name: K('붉은 운석', 'Red Meteorite'), x: 30, y: 9, role: 'meteor', when: () => got(386) };
 // eras from 1950 on; seoulWon() tells whether 1950's battle for Seoul is behind the team (content.js)
