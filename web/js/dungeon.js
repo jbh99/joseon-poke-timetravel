@@ -49,7 +49,7 @@ const statusProof = (m, s) => m.boss && (LEGENDS.has(m.sp) || ['slp', 'frz', 'ps
 // teammates stay with the one in control: they fight what comes near the team instead of chasing foes across a room
 const LEASH = 4;
 // the battle screen's windows (drawUI): the move list and the log at HUD_K of their old size, the team panel at P.k
-const HUD_K = 0.6, HUD_TEXT = 5.4, HUD_LIST = { w: 92.4, row: 8.4, top: 3.6, bottom: 2.4 };
+const HUD_K = 0.75, HUD_TEXT = 9 * HUD_K, HUD_LIST = { w: 154 * HUD_K, row: 14 * HUD_K, top: 6 * HUD_K, bottom: 4 * HUD_K };
 const HUD_TEAM = { k: 0.4, x: 6, y: 6, w: 70, head: 7.4, row: 8.6, title: 4.5, name: 5, num: 4 };
 // the seconds between the lines of a burst of messages (msg)
 const BURST_GAP = 0.45;
@@ -2050,8 +2050,8 @@ export class Dungeon {
     c.restore();
   }
   // The windows of the battle screen (1.22: the player found them far too large over the field): the team panel at 40% of
-  // its old size each way, the move list and the log at 60%, and the log holds two lines at most. The screen is drawn at
-  // the display's own resolution, so text this small stays sharp.
+  // its old size each way, the move list and the log at HUD_K (1.23: 75%, at 1.22's 60% they were too small to read), and the
+  // log holds two lines at most. The screen is drawn at the display's own resolution, so text this small stays sharp.
   drawUI() {
     // party HUD
     const team = [this.player, ...this.mates], at = (e) => { const i = S.party.indexOf(e.mon); return i < 0 ? 99 : i; };
@@ -2073,18 +2073,18 @@ export class Dungeon {
       ui.rect(P.x + 3.4, y + 5.9, (P.w - 6.8) * f, 1, f > 0.5 ? COL.hp : f > 0.2 ? COL.hpLow : COL.hpCrit);
     });
     // moves
-    const mv = this.player.mon.moves, L = this.moveList();
+    const mv = this.player.mon.moves, L = this.moveList(), u = (n) => n * HUD_K;
     this.win(L.x, L.y, L.w, L.h, { accent: false }, HUD_K);
     mv.forEach((m, k) => {
       const d = DEX.moves[m.id], y = L.y + HUD_LIST.top + k * L.row;
-      ui.rect(L.x + 2.4, y + 0.6, 1.8, 6, TYPE_COLORS[d.type]);
-      ui.text(`${'QWER'[k]} ${d.name}`, L.x + 6, y, { size: HUD_TEXT, color: m.pp ? COL.ink : '#a99' });
-      ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, L.x + L.w - 3.6, y, { size: HUD_TEXT, align: 'right', color: COL.ink2 });
+      ui.rect(L.x + u(4), y + u(1), u(3), u(10), TYPE_COLORS[d.type]);
+      ui.text(`${'QWER'[k]} ${d.name}`, L.x + u(10), y, { size: HUD_TEXT, color: m.pp ? COL.ink : '#a99' });
+      ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, L.x + L.w - u(6), y, { size: HUD_TEXT, align: 'right', color: COL.ink2 });
     });
     // messages: a long one wraps to the panel's width (worked out once per text and width; a language switch replaces
     // it), and two lines show at most: the newest message, and the one before it if it fits whole (a sentence cut in half
     // reads wrong). On a phone the panel starts right of the pad and stops short of the move list.
-    const lx = 6 + G.touchL, pw = Math.min(300, VW - 158 - lx) * HUD_K, ww = pw - 7.2, rowH = 7.8, rows = [];
+    const lx = 6 + G.touchL, pw = Math.min(300, VW - 158 - lx) * HUD_K, ww = pw - u(12), rowH = u(13), rows = [];
     for (const m of this.msgs.filter((q) => q.t > 0 && q.at <= G.time).reverse()) {
       if (m.wrapOf !== ww + m.text) { m.wrapOf = ww + m.text; m.rows = ui.wrap(m.text, ww, HUD_TEXT); }
       if (rows.length + m.rows.length > 2) {
@@ -2095,9 +2095,9 @@ export class Dungeon {
       if (rows.length === 2) break;
     }
     if (rows.length) {
-      const h = rows.length * rowH + 4.8, y = VH - 8 - h;
+      const h = rows.length * rowH + u(8), y = VH - 8 - h;
       this.win(lx, y, pw, h, { accent: false, fill: 'rgba(243,232,207,0.92)' }, HUD_K);
-      rows.forEach((r, i) => ui.text(r.text, lx + 3.6, y + 3 + i * rowH, { size: HUD_TEXT, color: r.color }));
+      rows.forEach((r, i) => ui.text(r.text, lx + u(6), y + u(5) + i * rowH, { size: HUD_TEXT, color: r.color }));
     }
     // minimap (not needed in the one-room boss arena)
     if (this.showMap && !this.arena) {
