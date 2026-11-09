@@ -971,7 +971,7 @@ const bossOf = (sp) => ERAS.flatMap((e) => Object.values(e.dungeons).flatMap((d)
 addFinale(bossOf);
 addTower(ERA_1979, bossOf);
 // the world line (content_world.js) follows the Korean line's last era (1979) in ERAS: an era past KOREA_LAST is a
-// world era, entered from a cleared Korean era's Time Gate from 1945 on (town.js gateTalk)
+// world era, entered from a Korean era's Time Gate from 1945 on (town.js gateTalk)
 export const KOREA_LAST = ERAS.length - 1;
 ERAS.push(...WORLD);
 ERAS.forEach((e, i) => { e.id = i + 1; });

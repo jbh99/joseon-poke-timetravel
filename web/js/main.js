@@ -53,15 +53,18 @@ G.nextEra = () => fadeTo(() => {
   setScene(new EraCard());
 }, '#fff', 1.2);
 G.goEnding = () => fadeTo(() => setScene(new Ending()), '#fff', 0.8);
-// The world line (content_world.js): from a cleared Korean era from 1945 on, out into the world where the team left it
-// (its first era, 1860, the first time), and back from the world to the Korean era it came from. Each line keeps
-// its place (S.koreaAt, S.worldAt) while the team is on the other.
+// The world line (content_world.js): from a Korean era from 1945 on, its quests done or not (1.26), out into the world
+// where the team left it (its first era, 1860, the first time), and back from the world to the Korean era it came from.
+// Each line keeps its place (S.koreaAt, S.worldAt) while the team is on the other. Only the first way out has the card
+// and the era's opening words: after that the team is back in the town it left, as it is on the way back to Korea.
 const place = () => ({ era: S.era, step: S.step, eraClear: S.eraClear, townKind: S.townKind });
 G.toWorld = () => fadeTo(() => {
-  G.cardFrom = ERAS[S.era].year;
+  const from = ERAS[S.era].year, been = S.worldAt;
   S.koreaAt = place();
-  const w = S.worldAt || { era: KOREA_LAST + 1, step: 0, eraClear: false };
+  const w = been || { era: KOREA_LAST + 1, step: 0, eraClear: false };
   Object.assign(S, { era: w.era, step: w.step, eraClear: w.eraClear, night: false, lastNode: 'town', townKind: 1, townPos: null });
+  if (been) return G.goTown();
+  G.cardFrom = from;
   save();
   setScene(new EraCard());
 }, '#fff', 1.2);

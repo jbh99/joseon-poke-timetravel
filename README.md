@@ -145,8 +145,8 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 **1860년 베이징 조약부터 1945년 제2차 세계 대전의 끝까지, 세계사 21개 시대.** 한국 이야기와 따로 이어지는 두 번째 여행입니다.
 
-- **들어가기**: 1945년 광복 뒤, 한국 시대의 시간의 문에서 **「세계로」**를 고릅니다. 처음 들어가면 1860년부터 시작합니다.
-- **한국과 오가기**: 세계 시대의 시간의 문에서는 언제든 **「한국으로 돌아가기」**를 고를 수 있습니다. 한국 이야기와 세계 이야기는 각자 멈춘 곳을 기억해서, 다시 넘어가면 떠났던 시대부터 이어집니다. 새 여행을 시작하면 세계 모드도 1860년부터 다시 시작합니다(1.11에서는 게임을 끄지 않고 새 여행을 시작하면 앞 여행의 위치를 물려받아, 세계 모드가 1915년부터 열리거나 새 챌린지가 전멸해도 끝나지 않았습니다).
+- **들어가기**: 1945년 이후 한국 시대의 시간의 문에서 **「세계로」**를 고릅니다. 시대 퀘스트를 끝내지 않아도 됩니다(1.26). 처음 들어가면 1860년부터 시작합니다.
+- **한국과 오가기**: 세계 시대의 시간의 문에서는 퀘스트를 끝내지 않아도 언제든 **「한국으로 돌아가기」**를 고를 수 있습니다. 한국 이야기와 세계 이야기는 각자 멈춘 곳을 기억해서, 다시 넘어가면 떠났던 시대부터 이어집니다. 새 여행을 시작하면 세계 모드도 1860년부터 다시 시작합니다(1.11에서는 게임을 끄지 않고 새 여행을 시작하면 앞 여행의 위치를 물려받아, 세계 모드가 1915년부터 열리거나 새 챌린지가 전멸해도 끝나지 않았습니다).
 - **난이도**: 처음부터 적이 내 팀에서 가장 높은 레벨보다 5~7 레벨 높고, 초반 배려가 없습니다. 어려움(+25%)과 챌린지(전멸하면 여행이 끝남) 규칙도 그대로입니다.
 - **마을**: 그 시대의 도시를 「포켓몬스터 블랙」의 실제 마을 11곳 가운데 하나로 그렸습니다. 롬의 지도 · 건물 · 이동 데이터를 그대로 읽어서 걸을 수 있는 곳이 원작과 같습니다. 1.12부터 마을 밖(다른 도로의 구역, 걸어서 닿을 수 없는 빈터)은 어둡게 그려서 갈 수 있는 곳이 한눈에 보입니다. 1.13부터 마을의 포켓몬은 서로 **두 칸 이상** 떨어져 서고, 서 있거나 돌아다니는 자리 옆으로 길이 **두 칸 폭**은 남도록 비켜 섭니다(1.12까지는 자리가 모자라면 시간의 문 둘레에 몰려 서서, 좁은 바닷가 마을에서는 길을 막기도 했습니다). 어느 마을에서든 사람이 길을 끊거나 두 칸 길을 한 칸으로 좁히지 않습니다.
 - **세계 지도**: Natural Earth 지도 데이터로 그린 동아시아 · 유럽 · 태평양 지도입니다.
@@ -227,7 +227,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **테오키스**: 노말폼으로 싸우다 체력이 반 아래로 내려가면 **어택폼**으로, 쓰러뜨리면 **스피드폼**으로 다시 일어납니다 (공격이 잘 맞지 않음).
 - **디아루가(1919) · 기라티나(1940) · 펄기아(1945)**: 쓰러뜨리면 **오리진폼**으로 변해 2페이즈를 시작합니다. 1.7에서 이 셋과 **뮤츠**는 **체력 +30% · 공격 +15%**로 강해졌습니다(아르세우스는 1.5의 +10% 그대로).
 - **전설의 전용기**: 1페이즈에 한 번, 2페이즈에 두세 번 씁니다. 체력이 그 고비에 닿으면 전용기를 쓰기 전까지는 더 깎이지 않습니다.
-  - **디아루가 · 시간의 포효**: 한 턴 기를 모은 뒤 시간을 되감아 **10초 전의 체력**으로 돌아가고, 우리 편 모두의 HP를 최대치의 **33%** 깎으며(1.16까지 20%), 그 피해만큼 체력을 더 회복합니다(1.17). 그다음 턴은 반동으로 쉽니다(빈틈). 1.9부터 처음 모습과 오리진폼 **모두 두 배로 자주** 씁니다 (1919년: 처음 모습 2번 + 오리진폼 4~6번, 천관산: 4번 + 6~8번, 보스 탑: 1919년과 같음).
+  - **디아루가 · 시간의 포효**: 한 턴 기를 모은 뒤 시간을 되감아 **10초 전의 체력**으로 돌아가고, 우리 편 모두의 HP를 최대치의 **33%** 깎으며(1.16까지 20%, 마지막 퀘스트의 디아루가는 1.26부터 25%), 그 피해만큼 체력을 더 회복합니다(1.17). 그다음 턴은 반동으로 쉽니다(빈틈). 1.9부터 처음 모습과 오리진폼 **모두 두 배로 자주** 씁니다 (1919년: 처음 모습 2번 + 오리진폼 4~6번, 천관산: 4번 + 6~8번, 보스 탑: 1919년과 같음).
   - **펄기아 · 공간절단**: 공간이 찢어지며 싸움터가 바깥부터 한 겹씩 **좁아지고**(두 번까지), 바닥 곳곳의 **더 길고 많은 틈**에서 공격이 솟아오릅니다(1.7에서 피해도 0.32 → 0.42). 펄기아는 기술로 **하이드로펌프**도 씁니다.
   - **기라티나 · 섀도다이브**: **어둠 속으로 사라졌다가** 우리 포켓몬의 **그림자 밑에서 튀어나와** 공격합니다. 악 타입에 맞서 격투 기술 **파동탄**도 씁니다. 1.7부터 첫 모습에서 **그림자 폭풍 · 대지의힘 · 용성군 · 파동탄 · 원시의힘**을 번갈아 예고하고, 섀도다이브와 **용의파동**(여덟 방향 파동) 두 전용기를 씁니다.
   - **그란돈 · 단애의 칼 / 가이오가 · 근원의 파동** (1950 서울 시가전의 보스, 1.8부터 모든 능력치 +25%): 갈라진 땅을 따라 바위 칼날이 솟거나, 여덟 방향으로 파동이 퍼집니다. 원래 예고 공격은 대지의 힘 · 하이드로펌프로 이름이 바뀌었습니다.
@@ -319,6 +319,12 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동, Z 공격, QWER 기술, A 쉬기). 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 바뀐 점 (1.26)
+
+- **한국과 세계를 자유롭게**: 1945년부터는 시대 퀘스트를 끝내지 않아도 시간의 문에서 언제든 세계로 나갈 수 있고, 세계 시대에서도 언제든 한국으로 돌아올 수 있습니다. 두 번째부터는 시대 소개 없이 멈췄던 마을로 바로 돌아갑니다. 다음 시대로 가는 길은 지금처럼 그 시대의 퀘스트를 끝내야 열립니다.
+- **마지막 퀘스트의 디아루가**: 시간의 포효로 깎이는 HP를 33%에서 25%로 낮췄습니다. 1919년과 보스 탑의 디아루가는 그대로입니다.
+- **맵의 검은 점**: 백마고지 · 무너진 산의 바위굴의 바닥, 만년 얼음굴의 벽, 1979년 서울 등 1950년대 이후의 맵에 남아 있던 검은 점을 지웠습니다. 같은 그림을 쓰는 다른 시대의 맵도 함께 깨끗해집니다.
 
 ### 바뀐 점 (1.25)
 
@@ -480,11 +486,12 @@ docs/screenshots/       README 스크린샷
   - Tab tags the next teammate in; A (hold) rests; J opens and closes the quest list.
   - P opens the companion roster outside dungeons: search it (name, type, dex number), sort it, and swap anyone into any team slot; 1/2/3 set the game speed.
   - The mouse picks places on the world map, dialogue choices and menu rows; dragging or the wheel scrolls the map.
-- **World line (1860–1945)**: after liberation, a Korean era's Time Gate offers "To the world"; a world era's Time Gate leads back to Korea at any time, and each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legendary and mythical Pokémon, the others Unova's strongest and Hydreigon (600-total); (optional) marks a legend's lair off the main quest.
+- **World line (1860–1945)**: from 1945 on, a Korean era's Time Gate offers "To the world" and a world era's leads back to Korea, at any time and with the era's quests done or not; each line resumes where it was left. Foes start 5 to 7 levels above your strongest Pokémon, and every town is one of Pokémon Black's eleven towns drawn from the ROM's maps (what lies outside the town is drawn dim since 1.12). Bosses in **bold** are legendary and mythical Pokémon, the others Unova's strongest and Hydreigon (600-total); (optional) marks a legend's lair off the main quest.
   - From the Convention of Peking to the Russo-Japanese War: 1860 Peking (Opelucid City): the Burning Yuanmingyuan, the Ussuri Frontier: **Shaymin**, **Virizion** (two phases) · 1894 Weihaiwei (Undella Town): the waters off Pungdo and the Battle of the Yellow Sea (naval): **Manaphy**, Seismitoad · 1904 Port Arthur (Driftveil City): Chemulpo and Tsushima (naval), 203 Meter Hill: Samurott, **Terrakion** (two phases), **Thundurus** (Therian Forme).
   - The First World War: 1914 Sarajevo (Nacrene City): Scolipede, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Gigalith · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Chandelure · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
   - The Second World War: 1939 Danzig (Nacrene City): Emboar, **Cobalion** (two phases) · 1940 Dunkirk (Driftveil City): Sawk, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, rising twice · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Darmanitan (two phases) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Volcarona (two phases) · 1942 Leningrad (Nacrene City): Haxorus, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion** (two phases), **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom**, rising twice, Samurott · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.26: from 1945 on the Time Gate leads between Korea and the world at any time, quests done or not, and back into the town you left; the last quest's Dialga takes 25% with its Roar of Time instead of 33%; the black flecks on the maps of the 1950s and later are gone.
   - 1.25: Rayquaza has every stat 35% higher and a third phase built on Dragon Ascent, walls of wind that fly in tile by tile with a gap to reach; when it falls the team is restored and Deoxys (HP +40%) comes down in the same place. Hydreigon is a boss only once, in 1945; Chandelure, Sawk, Gigalith, Seismitoad, Emboar, Samurott, Scolipede and Haxorus took its quests, and Darmanitan (Zen Mode: Fire and Psychic, with Psychic moves) and Volcarona fight in two phases. Cobalion, Terrakion and Virizion fight in two phases in both their quests, every stat 20% higher. The team's HP panel is 20% larger, the blue mark over teammates is gone, Steel and Poison types can't be poisoned, and Reshiram, Zekrom and Kyurem are now said to rise twice, as they do.
   - 1.24: Past journeys sync safely: a failed renaming no longer empties a good cloud copy, a journey that did not fit comes down once there is room, an upload Drive refused no longer reads as up to date, a journey taken back no longer returns through a duplicate, and taking another device's new journey with a full list no longer drops an unrelated one. Faster loading: a town's picture and people come together, Continue's town starts loading behind the title, and several Past journeys come down at once. A town battle no longer starts the team behind a rail or a house, or two members on one tile in a dead end.
   - 1.23: the battle screen's move list and message log are larger again, at 75% of their 1.21 size each way (1.22 had made them too small to read). The team panel stays as in 1.22.

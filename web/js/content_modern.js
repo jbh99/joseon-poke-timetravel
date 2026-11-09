@@ -199,6 +199,9 @@ const FINALE = [
 function guardian(b, o) {
   return finale(b, { hp: b.hp * 1.3, atk: b.atk * 1.3, pace: 1.5, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, noWander: true, ...o });
 }
+// the last quest's Dialga: its Roar of Time takes a quarter of everyone's HP (1.26); 1919's and the Boss Tower's keep a third
+const ROAR_LAST = { ...SIG.roar, cut: 0.25 };
+const lastRoar = (sig) => sig && { ...sig, use: sig.use.map((u) => (u === SIG.roar ? ROAR_LAST : u)) };
 export function addFinale(bossOf) {
   FINALE[0].boss = guardian(bossOf(484), {
     say: [
@@ -207,7 +210,8 @@ export function addFinale(bossOf) {
       { who: 'partner', text: K('예전보다 훨씬 강해졌어! 공간절단도 더 자주 날아올 거야. 붉은 칸을 잘 보자!', 'It\'s far stronger than before! Spacial Rend will come more often too. Watch the red tiles!') }],
     after: [{ who: 484, name: K('펄기아', 'Palkia'), text: K('…좋다. 공간은 너희에게 길을 열겠다. 이제 시간의 주인에게 가거라.', '...Very well. Space opens the way for you. Now go to the master of time.') }],
     join: K('펄기아가 진주처럼 빛나는 몸을 낮추었다. 함께 가고 싶어 한다!', 'Palkia lowers its pearl-bright body. It wants to come along!') });
-  FINALE[1].boss = guardian(bossOf(483), {
+  const dialga = bossOf(483);
+  FINALE[1].boss = guardian({ ...dialga, sig: lastRoar(dialga.sig), revive: { ...dialga.revive, sig: lastRoar(dialga.revive.sig) } }, {
     say: [
       { who: 'narr', text: K('더 높은 곳, 시간이 거꾸로 흐르는 틈. 금강석처럼 빛나는 디아루가가 길을 막아섰다!', 'Higher up, in a rift where time flows backwards, Dialga shines like adamant and blocks the way!') },
       { who: 483, name: K('디아루가', 'Dialga'), text: K('그라아아…! 시간의 끝까지 걸어온 자들이여. 그 걸음이 진짜였는지 시간의 포효로 시험하겠다!', 'Grahhh...! You who walked to the end of time. I will test with the Roar of Time whether your steps were true!') },

@@ -1,5 +1,5 @@
 // The world line (content_world.js): helpers for its eras, its legends from Pokémon Black and its quest items.
-// From 1945 on, a cleared Korean era's Time Gate can lead out into the world (town.js gateTalk): from the Convention
+// From 1945 on, a Korean era's Time Gate can lead out into the world, its quests done or not (town.js gateTalk): from the Convention
 // of Peking to the end of the Second World War, each era hub one of Unova's real towns drawn from Pokémon Black
 // (town bw:, tools/bw/render.py) standing in for a place of the time, its map one of the regional world maps
 // (era map:, tools/geo/worldmaps.py). The rules are the story's (levels five to seven over the team's best, Hard's

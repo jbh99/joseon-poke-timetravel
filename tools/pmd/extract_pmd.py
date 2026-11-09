@@ -189,6 +189,30 @@ def tileset(dun, tid):
     return tiles, cel, pals, cex
 
 
+# The sets the maps of the 1950s and later are painted with that have black in their chunks: floors textured with colour 0
+# (transparent on the DS, black here: 15% of set 2's floor), walls dashed with a real black, a stray unpainted tile. Over a map
+# they read as holes. `extract_pmd.py <rom> <assets> flecks` paints just these again.
+FLECK_SETS = (2, 18, 19, 29, 40, 50)
+
+
+def fill_flecks(img):
+    """Every black pixel of a chunk takes the colour of the nearest one that is not; a chunk black all over stays black."""
+    w, h = img.size
+    px = img.load()
+    lit = [(x, y) for y in range(h) for x in range(w) if max(px[x, y][:3]) >= 14]
+    if not lit:
+        return img
+    seen = set(lit)
+    for x, y in lit:  # breadth first: the list grows as it is walked, the pixel above a dash first
+        for dx, dy in ((0, 1), (1, 0), (-1, 0), (0, -1)):
+            q = (x + dx, y + dy)
+            if 0 <= q[0] < w and 0 <= q[1] < h and q not in seen:
+                seen.add(q)
+                px[q] = px[x, y]
+                lit.append(q)
+    return img
+
+
 def chunk_img(tiles, cel, pals, c):
     img = Image.new('RGBA', (24, 24), (0, 0, 0, 255))
     for k in range(9):
@@ -197,11 +221,11 @@ def chunk_img(tiles, cel, pals, c):
     return img
 
 
-def export_tiles(fs, out_dir):
+def export_tiles(fs, out_dir, only=None):
     dun = fs['dungeon']
     os.makedirs(os.path.join(out_dir, 'pmd', 'tiles'), exist_ok=True)
     ids = []
-    for tid in range(100):
+    for tid in only or range(100):
         ts = tileset(dun, tid)
         if not ts:
             continue
@@ -222,7 +246,8 @@ def export_tiles(fs, out_dir):
         cols = 16
         atlas = Image.new('RGBA', (cols * 24, ((len(used) + cols - 1) // cols) * 24), (0, 0, 0, 255))
         for k, c in enumerate(used):
-            atlas.paste(chunk_img(tiles, cel, pals, c), ((k % cols) * 24, (k // cols) * 24))
+            chunk = chunk_img(tiles, cel, pals, c)
+            atlas.paste(fill_flecks(chunk) if tid in FLECK_SETS else chunk, ((k % cols) * 24, (k // cols) * 24))
         atlas = atlas.convert('RGB').quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
         atlas.save(os.path.join(out_dir, 'pmd', 'tiles', f'{tid}.png'), optimize=True)
         meta = {'cols': cols, 'wall': look[0:256], 'water': look[256:512], 'floor': look[512:768], 'extra': look[768:]}
@@ -286,6 +311,8 @@ if __name__ == '__main__':
         result['kao'] = export_portraits(fs, out)
     if what in ('tiles', 'all'):
         result['tiles'] = export_tiles(fs, out)
+    if what == 'flecks':
+        export_tiles(fs, out, FLECK_SETS)
     if what == 'preview':
         preview(fs, sys.argv[4])
     index_path = os.path.join(out, 'data', 'pmd.json')

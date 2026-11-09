@@ -1118,15 +1118,22 @@ export class Town {
     c.moveTo(x - 6, y - 6); c.lineTo(x - 2, y - 10); c.lineTo(x + 3, y - 8); c.moveTo(x - 2, y - 10); c.lineTo(x - 1, y - 14); c.moveTo(x + 3, y - 8); c.lineTo(x + 7, y - 11);
     c.stroke();
   }
+  // from 1945 on the way between Korea and the world stays open, this era's quests done or not (1.26)
+  get crossing() { return isWorld() || this.era.year >= WORLD_FROM; }
   gateTalk() {
-    if (!eraComplete()) return say([{ who: 'narr', text: tr('희미하게 빛나는 시간의 문이다. 이 시대의 소원을 이루면 열릴 것 같다.', 'A faintly glowing Time Gate. It should open once this era\'s wish comes true.') }]);
+    if (!eraComplete() && !this.crossing) return say([{ who: 'narr', text: tr('희미하게 빛나는 시간의 문이다. 이 시대의 소원을 이루면 열릴 것 같다.', 'A faintly glowing Time Gate. It should open once this era\'s wish comes true.') }]);
     // the choices: on the Korean line the next era and, from 1945 on, the world; on the world line its next era and the
     // way back to Korea. The ending waits at the end of both lines until both are seen through, Arceus in 1979 and
     // Kyurem in 1945 (1.13, quests.js endingOpen), and is offered at whichever end the team stands. Nothing else leads
     // to it: since 1.15 a journey that opened it with Arceus alone before 1.13 goes out to Kyurem too
     const opts = [], next = ERAS[S.era + 1], ending = endingOpen();
     let text;
-    if (isWorld()) {
+    if (!eraComplete()) { // the next era waits for this one's quests: only the way across
+      if (isWorld()) opts.push([tr('한국으로 돌아가기', 'Back to Korea'), () => G.toKorea()]);
+      else opts.push([tr('세계로 (1860 ~ 1945)', 'Out into the world (1860–1945)'), () => G.toWorld()]);
+      text = isWorld() ? tr('이 시대의 소원은 아직 남았지만, 한국으로는 언제든 돌아갈 수 있어. 다시 오면 여기서부터 이어 가!', 'This era\'s wish is still waiting, but we can go back to Korea any time, and carry on from here when we return!')
+        : tr('이 시대의 소원은 아직 남았지만, 바다 건너 세계로는 언제든 나갈 수 있어. 돌아오면 여기서부터 이어 가!', 'This era\'s wish is still waiting, but we can go out across the sea into the world any time, and carry on from here when we return!');
+    } else if (isWorld()) {
       if (S.era < ERAS.length - 1) opts.push([tr(`${next.year}년으로`, `On to ${next.year}`), () => G.nextEra()]);
       else if (ending) opts.push([tr('엔딩으로', 'To the ending'), () => G.goEnding()]);
       opts.push([tr('한국으로 돌아가기', 'Back to Korea'), () => G.toKorea()]);
@@ -1365,7 +1372,7 @@ export class Town {
     // on a Black town's raised ground the gate stands up the picture with the people on it (liftAt): up to 1.13 it was
     // drawn at its tiles' flat place, three tiles below where it opens in Compiègne, Verdun and Stalingrad
     const lift = Math.round(this.liftAt(this.gate.tx + 0.5, this.gate.ty + 0.5));
-    const x = this.gate.tx * TILE, y = this.gate.ty * TILE - lift, open = eraComplete();
+    const x = this.gate.tx * TILE, y = this.gate.ty * TILE - lift, open = eraComplete() || this.crossing;
     const cx = x + TILE, cy = y + TILE;
     c.save();
     c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(cx, cy + 14, 22, 7, 0, 0, Math.PI * 2); c.fill();
