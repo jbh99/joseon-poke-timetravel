@@ -76,11 +76,18 @@ export function lairDone(dId) {
 const legendBosses = (d) => [d.mid, d.boss].filter((b) => b && LEGENDS.has(b.sp) && !b.final && !b.noWander);
 const holdsLegend = (d) => !!d.legend || !!d.stages || [d.mid, d.boss].some((b) => b && LEGENDS.has(b.sp)); // a lair's keeper, legend or not, holds its last floor
 const joined = (sp) => S.flags['got_' + sp] || [...S.party, ...(S.homeParty || []), ...S.roster].some((m) => m.sp === sp);
+// Every world era comes after all the Korean ones in ERAS, so a lower index does not put a Korean era behind the team. On the
+// world line the eras it has not reached yet, and the one it walked out of with quests left (the Time Gate is open from 1945
+// on, 1.26), are still ahead, and a legend of theirs has not been missed (1.27)
+const stillAhead = (i) => {
+  const k = S.koreaAt;
+  return !!k && i <= KOREA_LAST && (i > k.era || (i === k.era && k.step < ERAS[i].main.length));
+};
 function wanderPlan() {
   if (challenge()) return {}; // legends never join a challenge, so none come back either
   if (S.wander?.era === S.era) return S.wander.at;
   const e = era(), missed = [], seen = new Set();
-  for (let i = 0; i < S.era; i++) for (const d of Object.values(ERAS[i].dungeons)) for (const b of legendBosses(d)) {
+  for (let i = 0; i < S.era; i++) if (!stillAhead(i)) for (const d of Object.values(ERAS[i].dungeons)) for (const b of legendBosses(d)) {
     if (!seen.has(b.sp) && !joined(b.sp)) missed.push(b.sp);
     seen.add(b.sp);
   }

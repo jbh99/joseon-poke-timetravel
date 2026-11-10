@@ -59,11 +59,16 @@ export function moveUsable(m) {
   if (mv.cat !== 2) return mv.power > 0 && ![38, 7, 26, 8].includes(mv.effect);
   return mv.effect in STAT_EFFECT || mv.effect in STATUS_MOVE || mv.effect in HEAL_MOVE;
 }
+// How far the team's moves fly in a line where their user faces (dungeon.js skillTargets), in tiles: a physical move 4
+// (1.27; until 1.26 it reached the tile in front only), a special one 5 (6 until 1.26)
+export const PHYS_REACH = 4, LINE_REACH = 5;
 // one line about a move for menus: type, category with its reach in the dungeons, power, and whether it hits all around
 export function moveDesc(id) {
   const d = DEX.moves[id];
-  const kind = d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리(바로 앞)', 'Physical (front tile)') : tr('특수(직선 6칸)', 'Special (6-tile line)')) + tr(' 위력 ', ' power ') + d.power;
-  return `${DEX.types[d.type]} · ${kind}${d.target === 4 || d.target === 8 ? tr(' · 주변 전체', ' · all around') : ''}`;
+  const around = d.target === 4 || d.target === 8; // it hits the eight tiles beside its user and flies no line
+  const cat = d.cat === 0 ? tr('물리', 'Physical') : tr('특수', 'Special'), reach = d.cat === 0 ? PHYS_REACH : LINE_REACH;
+  const kind = d.cat === 2 ? tr('변화', 'Status') : (around ? cat : cat + tr(`(직선 ${reach}칸)`, ` (${reach}-tile line)`)) + tr(' 위력 ', ' power ') + d.power;
+  return `${DEX.types[d.type]} · ${kind}${around ? tr(' · 주변 전체', ' · all around') : ''}`;
 }
 
 const STAGE = (s) => (s >= 0 ? (2 + s) / 2 : 2 / (2 - s));
@@ -268,7 +273,8 @@ export const ITEMS = {
   // one a dungeon run, boss room included (Dungeon.revived); the boss room also stands the fallen up by itself
   revive: withText(['기력의 조각', 'Revive'], ['쓰러진 포켓몬을 HP 절반으로 되살린다. 던전 한 번(보스방 포함)에 하나만 쓸 수 있다.', 'Revives a fainted Pokémon with half its HP. One per dungeon run, boss room included.'], { price: 1000, revive: 0.5 }),
   escape: withText(['탈출 부적', 'Escape Charm'], ['던전에서 곧바로 마을로 돌아간다.', 'Takes you straight back to town from a dungeon.'], { price: 150, escape: true }),
-  stone: withText(['돌팔매', 'Sling Stone'], ['앞쪽 일직선으로 던져 적에게 20 데미지를 준다.', 'Thrown straight ahead; deals 20 damage to a foe.'], { price: 12, throw: 20 }),
+  // throw: what it adds to its thrower's level for the damage (1.27; a flat 20 until 1.26, which no late foe felt)
+  stone: withText(['돌팔매', 'Sling Stone'], ['앞쪽 일직선으로 던져 적에게 던진 포켓몬의 레벨 + 5만큼 데미지를 준다.', "Thrown straight ahead; deals damage equal to the thrower's level + 5 to a foe."], { price: 12, throw: 5 }),
   // key items (never sold, never used up): in a dungeon they wake the Primal Reversion of the legend they belong to
   redorb: withText(['주홍구슬', 'Red Orb'], ['던전에서 쓰면 그란돈이 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오르고 불꽃 타입이 더해진다.', 'Use it in a dungeon and Groudon undergoes Primal Reversion: much stronger, and part Fire type, until the dungeon ends.'], { price: 0, key: true, primal: 383, types: [4, 10] }),
   blueorb: withText(['쪽빛구슬', 'Blue Orb'], ['던전에서 쓰면 가이오가가 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오른다.', 'Use it in a dungeon and Kyogre undergoes Primal Reversion: much stronger until the dungeon ends.'], { price: 0, key: true, primal: 382, types: [11] }),

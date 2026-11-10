@@ -280,7 +280,7 @@ export const W1942E = era({
 // ---------------------------------------------------------------- 1943: Stalingrad and Kursk (Genesect's lair)
 const pav = person('pav1943', 625, K('파블로프의 집 수비대 절각참', "Pavlov's House Defender Bisharp"), K('이 아파트 한 채를 58일 동안 지켰소. 우리 집이 곧 전선이오.', 'We held this one apartment house for fifty-eight days. Our home is the front line.'));
 const tank = person('tank1943', 601, K('전차병 기기기어르', 'Tank Crewman Klinklang'), K('쿠르스크 평원에 수천 대의 전차가 모이고 있어요. 그런데 그 사이에 이상한 "강철 포켓몬"이 섞여 있대요.', 'Thousands of tanks are gathering on the Kursk plain. And they say a strange "steel Pokémon" is mixed in among them.'));
-const babush = person('babush1943', 584, K('할머니의 바닐리치', "Grandmother's Vanilluxe"), K('바닐…. (지하실에서 버틴 할머니 곁을 떠나지 않고 있다.)', 'Vanil.... (It will not leave the side of the old woman who held out in the cellar.)'), { wander: 1 });
+const babush = person('babush1943', 584, K('할머니의 배바닐라', "Grandmother's Vanilluxe"), K('바닐…. (지하실에서 버틴 할머니 곁을 떠나지 않고 있다.)', 'Vanil.... (It will not leave the side of the old woman who held out in the cellar.)'), { wander: 1 });
 export const W1943 = era({
   year: 1943, years: K('1942 8월 – 1943 8월', 'Aug 1942 – Aug 1943'), title: K('스탈린그라드와 쿠르스크', 'Stalingrad and Kursk'), sub: K('동부 전선의 전환점', 'The turning point in the east'),
   place: K('스탈린그라드', 'Stalingrad'), bw: 'icirrus', map: 'europe', at: [44.5, 48.7], bgm: 'city07_d', world: 'road_snow', card: [T.warehouse, [649, 625, 601, 584]], inn: 531, shop: 509,
@@ -306,7 +306,7 @@ export const W1943 = era({
     talk(tank, K('전차병 기기기어르와 이야기하자', 'Talk to Tank Crewman Klinklang'),
       K('쿠르스크의 프로호롭카에서 전차들이 맞붙었어요. 그 불바다 속에서 등에 대포를 단 포켓몬이 모든 것을 쏘고 있어요!', 'The tanks have clashed at Prokhorovka near Kursk. In that sea of fire, a Pokémon with a cannon on its back is shooting at everything!')),
     go('prokhorovka', K('프로호롭카 전차 평원의 강철 포켓몬을 멈추자 (환상의 포켓몬: 3층)', 'Stop the steel Pokémon on the tank field at Prokhorovka (mythical Pokémon: floor 3)')),
-    talk(babush, K('바닐리치와 이야기하자', 'Talk to Vanilluxe'),
+    talk(babush, K('배바닐라와 이야기하자', 'Talk to Vanilluxe'),
       K('바닐…. (할머니가 폐허가 된 거리에 처음으로 해바라기 씨앗을 심고 있다.)', 'Vanil.... (The old woman is planting sunflower seeds in the ruined street, the first in a long time.)')),
   ],
   outro: [N('쿠르스크 뒤로 소련군은 서쪽으로 진격하기 시작했다. 전쟁은 이제 끝을 향해 간다.', 'After Kursk the Soviet army began to advance west. The war was now heading toward its end.')],
@@ -392,7 +392,7 @@ export const W1944L = era({
 // ---------------------------------------------------------------- 1945: the end of the Second World War. Its last quest
 // is the world line's final battle (Kyurem), fought on the eve of Japan's surrender; the surrender and Korea's
 // liberation follow it, in the outro
-const ber = person('ber1945', 584, K('폐허의 바닐리치', 'Vanilluxe in the Ruins'), K('바닐…. (여름이 오는데도 눈이 그치지 않는다. 무너진 도시가 하얗게 얼어 간다.)', 'Vanil.... (Summer is coming, yet the snow does not stop. The ruined city is freezing white.)'));
+const ber = person('ber1945', 584, K('폐허의 배바닐라', 'Vanilluxe in the Ruins'), K('바닐…. (여름이 오는데도 눈이 그치지 않는다. 무너진 도시가 하얗게 얼어 간다.)', 'Vanil.... (Summer is coming, yet the snow does not stop. The ruined city is freezing white.)'));
 const sol45 = person('sol1945', 534, K('귀향병 노보청', 'Homecoming Soldier Conkeldurr'), K('5월 8일, 유럽의 전쟁이 끝났소. 그런데 이 도시만 이상한 겨울에 갇혔소.', 'On May 8 the war in Europe ended. But this one city is trapped in a strange winter.'));
 const kor45 = person('kor1945', 554, K('조선 청년의 달막화', "A Korean Youth's Darumaka"), K('달마! (주인과 함께 고향으로 돌아갈 날을 기다리고 있다.)', 'Daruma! (It is waiting with its owner for the day they can go home.)'), { wander: 2 });
 export const W1945 = era({
@@ -409,10 +409,11 @@ export const W1945 = era({
       boss: boss(635, P(20)[1] + 5, [406, 399, 53, 434], blast(K('용의파동', 'Dragon Pulse'), 16, ['ring', 'x', 'far', 'checker']),
         [N('얼어붙은 폐허 위를 삼삼드래가 세 개의 머리로 울부짖으며 날고 있다. 큐레무의 냉기에 휩쓸려 이성을 잃었다!', 'Hydreigon flies over the frozen ruins, howling from its three heads. Swept up in Kyurem\'s cold, it has lost its reason!')],
         [{ who: 635, text: K('…크와아. (삼삼드래가 북쪽 하늘의 눈구름 한가운데를 가리킨다. 그곳에 큐레무가 있다.)', '...Kwaah. (Hydreigon points into the heart of the snow clouds in the northern sky. Kyurem is there.)') }], { hp: 3, bgm: 'vs_strong' }) }, // as the other 600-total bosses (content_wboss.js strong)
-    // the last battle: the city (Lacunosa as drawn by Pokémon Black, the walled town Kyurem comes to at night) frozen
+    // the last battle: the city (Lacunosa as drawn by Pokémon Black, the walled town Kyurem comes to at night) frozen.
+    // The town is drawn without its bridge (tools/bw/render.py CUT; 1.27) and the fight starts on its open ground (wide)
     kyurem45: { name: K('얼어붙은 도시 · 큐레무', 'The Frozen City: Kyurem'), tiles: T.fortsnow, floors: 1, lv: P(20), fromTown: true, bgm: 'vs_kyurem',
       mons: [613, 614, 615, 583, 584, 215, 461], tint: 'rgba(170,215,255,0.28)',
-      battle: { town: null, foeBuff: 1 }, boss: KYUREM },
+      battle: { town: null, foeBuff: 1, wide: true }, boss: KYUREM },
   },
   npcs: [ber, sol45, kor45],
   main: [
@@ -430,7 +431,7 @@ export const W1945 = era({
     // the last quest of the Second World War, and of the world line: the final battle
     { do: 'battle', d: 'kyurem45', npc: 'ber1945', final: true,
       log: K('최종 결전! 얼어붙은 도시에서 큐레무를 진정시키고 제2차 세계 대전을 끝내자 (큐레무 → 블랙큐레무 → 화이트큐레무)', 'The final battle! Calm Kyurem in the frozen city and end the Second World War (Kyurem → Black Kyurem → White Kyurem)'),
-      say: [{ who: 584, name: K('폐허의 바닐리치', 'Vanilluxe in the Ruins'), text: K('바닐…! (눈구름이 도시 위로 내려앉는다. 큐레무가 온다!)', 'Vanil...! (The snow clouds settle over the city. Kyurem is coming!)') }] },
+      say: [{ who: 584, name: K('폐허의 배바닐라', 'Vanilluxe in the Ruins'), text: K('바닐…! (눈구름이 도시 위로 내려앉는다. 큐레무가 온다!)', 'Vanil...! (The snow clouds settle over the city. Kyurem is coming!)') }] },
   ],
   outro: [
     N('얼음이 녹으며 도시에 늦은 봄이 찾아왔다.', 'The ice melted, and a late spring came to the city.'),

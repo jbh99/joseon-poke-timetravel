@@ -60,6 +60,16 @@ DIM, DIM_ADD = 0.45, np.array([14, 16, 26], np.float32)  # the colour of what li
 # lies outside the town, so the picture offers no way that is not there. Accumula's strip below the railing in its
 # south-west was drawn bright and walked into nothing (1.14)
 WALLED = {'accumula': [(0, 29, 20, 3)]}
+# Terrain a town is drawn without. Lacunosa (Berlin in 1945, the world line's last town and the field of its final battle)
+# loses its bridge (1.27): the ROM's walkable grid has one level, so whoever stood on the road under the deck was drawn on
+# the deck, three tiles from where they could be spoken to, and the battle was fought on it and under it at once.
+# CUT: boxes (tiles x0, x1, rows z0, z1, units above which) whose terrain triangles (by their middle) are neither drawn
+# nor stood on. OPEN, SHUT: tile boxes (x0, x1, y0, y1, inclusive) the walkable grid is changed at to go with it: the
+# paving beside the road that lay under the bridge's ramps opens, the ends of the terraces the ramps climbed from shut
+# (the terraces stand a level above the ground that is now beside them).
+CUT = {'lacunosa': [(8.2, 20.8, 16, 20.01, 1.0)]}
+OPEN = {'lacunosa': [(9, 11, 15, 16), (17, 19, 15, 16)]}
+SHUT = {'lacunosa': [(8, 8, 17, 18), (20, 20, 17, 18)]}
 # occluder pieces (split_sprite): opaque parts closer than GAP px stay one piece; a piece wider than STRIP px that is
 # less than FILL opaque is cut into STRIP-px strips
 GAP, STRIP, FILL = 6, 128, 0.5
@@ -250,6 +260,13 @@ def model_tris(bmd, texset, world):
             tex = tex_src.decode(mat.tex, mat.pal) if mat.tex and tex_src and mat.tex in tex_src.textures else None
             for t in N.triangles(m.shapes[si], mx @ scale @ world, mat=mat):
                 yield t, tex, mat
+
+
+def cut_out(t, boxes):
+    """Whether a terrain triangle is part of what a town is drawn without (CUT)."""
+    p = np.array([t[0][0], t[1][0], t[2][0]])
+    c = p.mean(0)
+    return any(x0 * 16 <= c[0] <= x1 * 16 and z0 * 16 <= c[2] <= z1 * 16 and p[:, 1].max() > above for x0, x1, z0, z1, above in boxes)
 
 
 def tiles_under(p0, p1, p2, W, H):
@@ -509,6 +526,12 @@ def render_town(data, name):
     top = 200  # room above the northern edge for tall things
     cv = Canvas(cw * CHUNK, ch * CHUNK + BOTTOM, top)
     blocked, beyond, outside, free = walk_grids(data, name, zone, x0, y0, cw, ch)
+    for bx0, bx1, by0, by1 in OPEN.get(name, []):
+        blocked[by0:by1 + 1, bx0:bx1 + 1] = False
+        outside[by0:by1 + 1, bx0:bx1 + 1] = False
+        free[by0:by1 + 1, bx0:bx1 + 1] = True
+    for bx0, bx1, by0, by1 in SHUT.get(name, []):
+        blocked[by0:by1 + 1, bx0:bx1 + 1] = True
     heights = np.full((H, W), -1e9, np.float32)
     roof = np.full((H, W), -1e9, np.float32)  # the highest terrain over each tile, and whether it is a tree (1) or a cliff (2)
     top_kind = np.zeros((H, W), np.int8)
@@ -527,7 +550,10 @@ def render_town(data, name):
         world[3, :3] = (ox, 0, oz)
         cv.obj = 0
         terrain = []
+        cuts = CUT.get(name, []) if own else []
         for t, tex, mat in model_tris(N.BMD(model), texset, world):
+            if cuts and cut_out(t, cuts):
+                continue
             cv.tri(t, tex, mat)
             mname = mat.name or ''
             if not mname.startswith(('ki', 'slamp')):  # (a street lamp's top is no ground either: Opelucid's stood people 50 px up)

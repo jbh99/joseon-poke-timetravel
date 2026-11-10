@@ -60,8 +60,41 @@ const BG_CACHE = new Map(); // painted town grounds, most recently used last (To
 // eight tiles beside and above their footprint (the palace is 199x185), so the rest is skipped instead of drawn off-screen.
 export const objInView = (o, vx, vy) => (o.tx + o.fw + 9) * TILE >= vx && (o.tx - 9) * TILE <= vx + VW && (o.ty + o.fd + 1) * TILE >= vy && (o.ty + o.fd - 9) * TILE <= vy + VH;
 
+// A boss's form the games draw with a picture this one has no file for (Black and White Kyurem: Pokémon Black holds only
+// Kyurem's own): its box icon with the greys moved to another range of light (lo..hi, cast: the tint of that grey) and its
+// blue parts to the form's colour (accent), painted once a picture and kept. Up to 1.26 such a form was Kyurem's own
+// picture in a pulsing aura, which faded from sight on pale ground: it seemed to change and change back.
+const TINTS = {
+  black: { lo: 10, hi: 95, cast: [0.9, 0.95, 1.15], accent: [70, 170, 255] },
+  white: { lo: 70, hi: 255, cast: [1, 1, 1], accent: [255, 150, 70] },
+};
+const tintCache = new Map();
+function tinted(im, name) {
+  const key = im.src + '|' + name;
+  if (!tintCache.has(key)) {
+    let cv = null;
+    try {
+      const t = TINTS[name], el = document.createElement('canvas');
+      el.width = im.naturalWidth; el.height = im.naturalHeight;
+      const x = el.getContext('2d');
+      x.drawImage(im, 0, 0);
+      const d = x.getImageData(0, 0, el.width, el.height), p = d.data;
+      for (let i = 0; i < p.length; i += 4) {
+        if (!p[i + 3]) continue;
+        const r = p[i], g = p[i + 1], b = p[i + 2], mx = Math.max(r, g, b);
+        if (mx - Math.min(r, g, b) < 40) { const v = t.lo + (t.hi - t.lo) * mx / 255; for (let k = 0; k < 3; k++) p[i + k] = Math.min(255, Math.round(v * t.cast[k])); }
+        else if (b > r + 30) { p[i] = t.accent[0]; p[i + 1] = t.accent[1]; p[i + 2] = t.accent[2]; }
+      }
+      x.putImageData(d, 0, 0);
+      cv = el;
+    } catch (e) { cv = null; } // a picture the canvas may not read back: the form keeps the picture as it is
+    tintCache.set(key, cv);
+  }
+  return tintCache.get(key) || im;
+}
+
 export function drawMon(c, sp, shiny, x, y, o = {}) {
-  // x, y = tile-centre bottom in pixels
+  // x, y = tile-centre bottom in pixels; o.tint: a form's colours (TINTS), on a box icon only
   if (!o.noShadow) { c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(x, y - 5, 8 * (o.scale || 1), 3 * (o.scale || 1), 0, 0, Math.PI * 2); c.fill(); }
   // Gen 1-3: PMD Blue Rescue Team sprites (8 directions); Gen 4, and a sheet that could not be loaded for now: the
   // Pearl box icon
@@ -73,7 +106,8 @@ export function drawMon(c, sp, shiny, x, y, o = {}) {
     if (shiny) sparkle(c, x, y, o);
     return;
   }
-  const im = img(iconPath(sp, shiny));
+  const tint = o.tint && TINTS[o.tint] ? o.tint : null;
+  const im = img(iconPath(sp, shiny && !tint)); // a form's colours are painted over the usual picture, not the shiny one
   if (!ready(im)) return;
   if (o.scale && o.scale !== 1) { c.save(); c.translate(x, y); c.scale(o.scale, o.scale); drawMon(c, sp, shiny, 0, 0, { ...o, scale: 1, noShadow: true }); c.restore(); return; }
   const frame = Math.floor(G.time * (o.moving ? 8 : 2.5) + (o.phase || 0)) % 2;
@@ -81,8 +115,9 @@ export function drawMon(c, sp, shiny, x, y, o = {}) {
   const bob = o.hurt ? Math.sin(G.time * 40) * 2 : 0;
   c.save();
   if (o.alpha != null) c.globalAlpha = o.alpha;
-  if (flip) { c.translate(Math.round(x + 16 + bob), Math.round(y - 30)); c.scale(-1, 1); c.drawImage(im, 0, frame * 32, 32, 32, 0, 0, 32, 32); }
-  else c.drawImage(im, 0, frame * 32, 32, 32, Math.round(x - 16 + bob), Math.round(y - 30), 32, 32);
+  const pic = tint ? tinted(im, tint) : im;
+  if (flip) { c.translate(Math.round(x + 16 + bob), Math.round(y - 30)); c.scale(-1, 1); c.drawImage(pic, 0, frame * 32, 32, 32, 0, 0, 32, 32); }
+  else c.drawImage(pic, 0, frame * 32, 32, 32, Math.round(x - 16 + bob), Math.round(y - 30), 32, 32);
   c.restore();
   if (shiny) sparkle(c, x, y, o);
 }
@@ -130,9 +165,13 @@ export class Town {
     this.arrive = [this.px, this.py];
     // where the save left you, unless a battlefield (Dungeon), or unless that spot is no longer ground to stand on (a save
     // from before a town's map changed, a damaged one): then you arrive as usual instead of standing stuck in a wall
-    const [sx, sy] = (!this.battle && S.townPos) || [], restored = Number.isInteger(sx) && this.fence[sy]?.[sx] === false && this.reaches(sx, sy);
+    const [sx, sy] = (!this.battle && S.townPos) || [], stands = (x, y) => this.fence[y]?.[x] === false && this.reaches(x, y);
+    let back = Number.isInteger(sx) && stands(sx, sy) ? [sx, sy] : null;
+    // somebody stands there now (Lacunosa's people moved when its bridge went, 1.27): the free tile nearest to it
+    if (back && this.npcs.some((n) => n.x === sx && n.y === sy)) { const [fx, fy] = this.nearestFree(sx, sy); if (stands(fx, fy)) back = [fx, fy]; }
+    const restored = !!back;
     if (!this.battle) S.townPos = null;
-    if (restored) { this.px = sx; this.py = sy; }
+    if (restored) [this.px, this.py] = back;
     this.vx = this.px; this.vy = this.py; this.moving = false; this.moveT = 0;
     // the followers walk in a line behind you: the partner first, then the third member (made in update() when the
     // team has one). `who` is the team slot each one shows; walking into the second one swaps the two (update)
@@ -748,8 +787,14 @@ export class Town {
       const fine = (x, y) => reachable(x, y) && !isExit(x, y) && !hidden(x, y) && !(x === sx && y === sy) && !(x === this.behind[0] && y === this.behind[1]);
       const pool = [...reach].map((k) => [k % MW, Math.floor(k / MW)]).filter(([x, y]) => fine(x, y) && !fronts.some((d) => d.x === x && d.y === y))
         .sort((p, q) => Math.hypot(p[0] - center[0], p[1] - center[1]) - Math.hypot(q[0] - center[0], q[1] - center[1]) + (R() - 0.5) * 0.5);
+      // on the Time Gate's own level while it has room: a terrace a flight of stairs up is a long way round to the notice
+      // board (Lacunosa's crier, 1.27). A slope's few pixels are one level. Five more towns have ground a flight off their
+      // gate's (Accumula, Icirrus, Undella, Driftveil, Nimbasa): today's ten people find the same tiles there either way,
+      // and it would first tell in Accumula, from six era people on
+      const gateLift = this.gate ? this.liftAt(this.gate.tx, this.gate.ty) : null;
+      const level = (x, y) => gateLift == null || Math.abs(this.liftAt(x, y) - gateLift) < 24;
       const nextSpot = () => {
-        for (const [gap, wide] of [[3, true], [2, true], [1, true], [1, false]]) for (const [x, y] of pool) if (this.roomFor(x, y, busy, gap, wide)) return stand([x, y]);
+        for (const same of [true, false]) for (const [gap, wide] of [[3, true], [2, true], [1, true], [1, false]]) for (const [x, y] of pool) if ((!same || level(x, y)) && this.roomFor(x, y, busy, gap, wide)) return stand([x, y]);
         return null;
       };
       const spot = (...ps) => { for (const p of ps) if (p && fine(...p) && this.roomFor(p[0], p[1], busy, 3)) return stand(p); return nextSpot(); };

@@ -296,7 +296,8 @@ export const LANDORUS = legend({ sp: 645, lv: 77, hp: 3.0, bgm: 'vs_strong', mov
 
 // The world line's final battle, the last quest of the Second World War: Kyurem, then Black Kyurem, then White Kyurem.
 // Pokémon Black has no picture of the fused formes (Black 2 and White 2 brought them), so they rise in Kyurem's own
-// body with their aura (Black: dark with lightning; White: its pale shiny colours with white fire) and their names.
+// body in their colours (tint, town.js TINTS: Black dark with blue lightning, White pale with orange fire; 1.27: until
+// 1.26 an aura alone marked Black Kyurem, which faded from sight on the pale ground) with their aura and their names.
 // A final boss sets its own numbers (dungeon.js bossTier). Since 1.19 they stand a step above Reshiram's and Zekrom's: the
 // same HP and attack as GREAT's on a legend's tier, every stat (HP with it) +44% where theirs have +32%, the same blasts
 // from the same ultimates. Its first form fights with its own Blizzard and Glaciate. Black Kyurem takes Reshiram's and
@@ -314,7 +315,7 @@ export const KYUREM = { sp: 646, lv: 180, lvMin: 72, lvUp: 2, lvCap: 180, hp: GR
   ],
   sig: { use: [WSIG.glaciate], at: SIG_AT2[0] },
   revive: [
-    { hp: 2 / 3, atk: 1.35, cap: 0.42 * TOP, aura: '#3a46ff', rename: K('블랙큐레무', 'Black Kyurem'), bgm: 'ba_secret2',
+    { hp: 2 / 3, atk: 1.35, cap: 0.42 * TOP, aura: '#3a46ff', tint: 'black', rename: K('블랙큐레무', 'Black Kyurem'), bgm: 'ba_secret2',
       msg: K('큐레무가 검은 번개를 끌어안았다! 2페이즈, 이상의 힘을 삼킨 블랙큐레무다!', 'Kyurem embraces black lightning! Phase two: Black Kyurem, the power of ideals swallowed!'),
       line: [{ who: 646, name: K('블랙큐레무', 'Black Kyurem'), text: K('…이상도, 진실도, 모두 얼려 주마. 레시라무의 불꽃도, 제크로무의 번개도 이 몸의 것이다!', "...Ideals, truth, I will freeze them all. Reshiram's flame and Zekrom's lightning are mine now!") }],
       sig: { use: [WSIG.fusionFlare, WSIG.bolt, WSIG.flare, WSIG.fusionBolt], at: [0.88, 0.72, 0.56, 0.4, 0.24] },
@@ -322,7 +323,7 @@ export const KYUREM = { sp: 646, lv: 180, lvMin: 72, lvUp: 2, lvCap: 180, hp: GR
         { name: K('프리즈볼트', 'Freeze Shock'), every: 2, dmg: 0.5, stagger: 1, pats: ['rows', 'cols', 'cross', 'far', 'checker'], type: 13, first: 2 },
         { at: 0.5, name: K('프리즈볼트', 'Freeze Shock'), every: 1, dmg: 0.56, stagger: 1, pats: ['checker|cross', 'rows|x', 'quad', 'star|near'], type: 13, summon: 2, summonSp: [604, 523] },
       ] },
-    { hp: 0.5, atk: 1.1, def: 1.2, cap: 0.44 * TOP, shiny: true, aura: '#fff4e0', rename: K('화이트큐레무', 'White Kyurem'), bgm: 'vs_kyurem',
+    { hp: 0.5, atk: 1.1, def: 1.2, cap: 0.44 * TOP, shiny: true, aura: '#fff4e0', tint: 'white', rename: K('화이트큐레무', 'White Kyurem'), bgm: 'vs_kyurem',
       msg: K('큐레무가 하얀 불꽃을 두르고 다시 일어섰다! 3페이즈, 화이트큐레무가 두 궁극기를 한꺼번에 쓴다!', 'Kyurem rises again wrapped in white fire! Phase three: White Kyurem uses two ultimates at once!'),
       line: [{ who: 646, name: K('화이트큐레무', 'White Kyurem'), text: K('…불꽃과 번개를 함께 받아 보아라. 이 몸을, 너희가 녹일 수 있겠느냐!', '...Take flame and lightning together. This body: can you thaw it?') }],
       ult: { use: [[WSIG.fusionFlare, WSIG.bolt], [WSIG.flare, WSIG.fusionBolt], [WSIG.fusionFlare, WSIG.fusionBolt], [WSIG.flare, WSIG.bolt]] } },
