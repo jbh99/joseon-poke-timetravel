@@ -49,10 +49,11 @@ export const WSIG = {
   // falling. Blue Flare falls the same way and its flames stay on the tiles it struck (leave: turns, a share of max HP a
   // turn). Fusion Flare (rain, dungeon.js updateFire) is no matter of turns: for secs seconds fire falls every `every`
   // seconds on the one in control and the teammates near it, `fall` seconds after its mark shows, so whoever keeps moving
-  // gets away. Fusion Bolt (hidden) marks nothing: each turn lightning strikes a share of the floor at random.
+  // gets away. Fusion Bolt (hidden): each turn lightning strikes a share of the floor at random, and only half of those
+  // tiles are marked the turn before (`seen`; up to 1.27 none was, which was too hard).
   bolt: { kind: 'storm', name: K('뇌격', 'Bolt Strike'), type: 13, dmg: 0.3, turns: 4, status: 'par', spots: 14, flash: '#fff3a0', what: K('번개', 'lightning'), bolts: true },
   flare: { kind: 'storm', name: K('푸른불꽃', 'Blue Flare'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#8fd8ff', what: K('푸른 불꽃', 'blue fire'), leave: { turns: 5, dmg: 0.08 } },
-  fusionBolt: { kind: 'hidden', name: K('크로스썬더', 'Fusion Bolt'), type: 13, dmg: 0.16, turns: 5, share: 0.25, status: 'par', chance: 0.2, what: K('번개', 'lightning') },
+  fusionBolt: { kind: 'hidden', name: K('크로스썬더', 'Fusion Bolt'), type: 13, dmg: 0.16, turns: 5, share: 0.25, seen: 0.5, status: 'par', chance: 0.2, what: K('번개', 'lightning') },
   fusionFlare: { kind: 'rain', name: K('크로스플레임', 'Fusion Flare'), type: 10, dmg: 0.06, secs: 5, every: 0.55, fall: 0.7, status: 'brn', chance: 0.1, what: K('불길', 'fire') },
   glaciate: { kind: 'storm', name: K('얼다세계', 'Glaciate'), type: 15, dmg: 0.28, turns: 3, status: 'frz', chance: 0.15, flash: '#d8f4ff', what: K('얼음', 'ice') },
   freezeShock: { kind: 'storm', name: K('프리즈볼트', 'Freeze Shock'), type: 15, dmg: 0.34, turns: 4, status: 'par', spots: 12, flash: '#c8e0ff', what: K('얼음 번개', 'frozen lightning') },

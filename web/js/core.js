@@ -1,6 +1,8 @@
 // Core: canvas, input, assets, UI drawing, dialogue, scene stack.
 export const VW = 480, VH = 270, TILE = 24;
-export const G = { S: 2, time: 0, real: 0, dt: 0, speed: 1, scene: null, overlays: [], touchL: 0 };
+// G.W: how wide the world is drawn, in game pixels. VW everywhere but on a touch screen wider than 16:9, where the
+// field runs on under the button column to the screen's edge (1.28; fit below). The UI keeps to the left VW of it.
+export const G = { S: 2, W: VW, time: 0, real: 0, dt: 0, speed: 1, scene: null, overlays: [], touchL: 0 };
 
 // player preferences kept per browser (sound, key hints); storage can be blocked, so every access is guarded
 export const prefs = { muted: false, hints: true };
@@ -8,6 +10,7 @@ try { Object.assign(prefs, JSON.parse(localStorage.getItem('joseon-prefs') || '{
 export function setPref(k, v) { prefs[k] = v; try { localStorage.setItem('joseon-prefs', JSON.stringify(prefs)); } catch (e) { /* private mode */ } }
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const WIDEST = 640; // the widest the field is drawn (a 21:9 phone); a screen wider still keeps a strip at each side
 export const lerp = (a, b, t) => a + (b - a) * t;
 export const rand = (a, b) => a + Math.random() * (b - a);
 export const randInt = (a, b) => Math.floor(rand(a, b + 1));
@@ -37,26 +40,30 @@ export function initCanvas() {
   // fill the browser window (letterboxed 16:9); the backing store matches device pixels so UI text stays sharp
   const fit = () => {
     const dpr = window.devicePixelRatio || 1, root = document.documentElement.style;
-    let w = innerWidth, hudTop = false;
+    let w = innerWidth, hudTop = false, wide = VW;
     if (touchUI) {
-      // the game takes the full height at the left (inside the safe-area insets body.touch pads itself by), the pad
-      // lies over its lower-left corner, and the menu button and the action buttons take the strip to its right:
-      // 150-210px. A 16:9 or squarer screen has no such strip beside a full-height game, so the game narrows until the
-      // column fits beside it (up to 1.13 the column lay over the game's right edge and took every tap meant for the
-      // game there: closing the Pokédex, a menu's rows, the goal box, the dungeon's PP)
+      // The game takes the screen from edge to edge (inside the safe-area insets body.touch pads itself by). Its UI
+      // (menus, dialogue, the HUD) keeps to the left VW game pixels at the height's scale; the field alone runs on to
+      // the right under the column of buttons, 150-210px, whose buttons alone take touches. A 16:9 or squarer screen
+      // has no room for the column beside a full-height UI, so the scale drops until it has. (Up to 1.27 that strip
+      // was black, a fifth of a phone's screen; up to 1.13 the column lay over the UI's right edge and took every tap
+      // meant for it: closing the Pokédex, a menu's rows, the goal box.) The pad lies over the lower-left corner.
       const b = getComputedStyle(document.body), inner = w - parseFloat(b.paddingLeft) - parseFloat(b.paddingRight);
-      const full = Math.min(inner, innerHeight * VW / VH), roomy = inner - full >= 150;
-      const right = roomy ? Math.min(inner - full, 210) : Math.round(clamp(inner * 0.18, 120, 170));
-      const game = roomy ? full : Math.min(full, inner - right);
-      root.setProperty('--pad', right + 'px');
-      root.setProperty('--gameL', (inner - game - right) / 2 + 'px');
-      w = game;
+      const least = Math.round(clamp(inner * 0.18, 120, 170)), k = Math.min(innerHeight / VH, (inner - least) / VW);
+      wide = clamp(Math.floor(inner / k), VW, WIDEST);
+      const pad = clamp(Math.round((wide - VW) * k), least, 210);
+      root.setProperty('--pad', pad + 'px');
+      // under 156px the move buttons are smaller than their full 56px: the column's narrow layout (index.html #touch.slim)
+      document.getElementById('touch')?.classList.toggle('slim', pad < 156);
+      root.setProperty('--gameL', Math.max(0, (inner - wide * k) / 2) + 'px');
+      w = wide * k;
       const dpad = Math.round(clamp(innerHeight * 0.34, 104, 150));
       root.setProperty('--dpad', dpad + 'px');
       // what the pad covers of the game's lower-left corner, in game pixels: HUD text there moves right of it
-      G.touchL = Math.ceil((dpad + 18) / (game / VW));
+      G.touchL = Math.ceil((dpad + 18) / k);
     }
-    let css = Math.min(w / VW, innerHeight / VH);
+    if (wide !== G.W || G.low.width !== wide) { G.W = wide; G.low.width = wide; G.lctx.imageSmoothingEnabled = false; }
+    let css = Math.min(w / G.W, innerHeight / VH);
     // a window of the game's own shape (960x540, a 16:9 screen in full) has no strip beside or above the game for the
     // HUD buttons, which then lay faded over the goal box: the game gives up a strip at the top for them instead
     // (a window too narrow for their row keeps them faded over the game)
@@ -65,13 +72,18 @@ export function initCanvas() {
     screen.style.marginTop = hudTop ? '40px' : '';
     const S = Math.max(0.5, css * dpr);
     G.S = S;
-    screen.width = Math.round(VW * S); screen.height = Math.round(VH * S);
-    screen.style.width = Math.floor(VW * css) + 'px';
+    screen.width = Math.round(G.W * S); screen.height = Math.round(VH * S);
+    screen.style.width = Math.floor(G.W * css) + 'px';
     screen.style.height = Math.floor(VH * css) + 'px';
     G.sctx.imageSmoothingEnabled = false;
     if (touchUI) { // a co-op guest's streamed picture lies exactly over the game
       const r = screen.getBoundingClientRect();
-      for (const [k, v] of [['--gameX', r.left], ['--gameY', r.top], ['--gameW', r.width], ['--gameH', r.height]]) root.setProperty(k, v + 'px');
+      // (--uiW: the UI's 480 of it, where a guest's 16:9 picture goes)
+      for (const [k, v] of [['--gameX', r.left], ['--gameY', r.top], ['--gameW', r.width], ['--gameH', r.height], ['--uiW', r.width * VW / G.W]]) root.setProperty(k, v + 'px');
+      // the free half beside the Menu and Tab buttons, in game pixels: a dungeon draws its minimap there (1.28). On a
+      // squarer screen that half lies above the game's picture, and the minimap keeps its old place
+      const m = document.querySelector('#touch .mapslot')?.getBoundingClientRect();
+      G.mapSlot = m && m.width > 20 && m.top >= r.top - 1 && m.bottom <= r.bottom ? { x: (m.left - r.left) / css, y: (m.top - r.top) / css, w: m.width / css, h: m.height / css } : null;
     }
     // the HUD buttons go in the free strip beside or above the game (into the menu panel on touch screens); with no room they fade over it
     const hud = document.getElementById('hud');
@@ -79,8 +91,11 @@ export function initCanvas() {
   };
   addEventListener('resize', fit);
   fit();
+  // the minimap's slot moves when the buttons beside it change their width (the fonts arriving, the language)
+  const slot = touchUI && document.querySelector('#touch .mapslot');
+  if (slot && window.ResizeObserver) new ResizeObserver(fit).observe(slot);
   // mouse clicks and taps on the screen, in UI coordinates (VW x VH); read once per frame like a key press
-  const toUI = (e) => { const r = screen.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * VW, y: (e.clientY - r.top) / r.height * VH }; };
+  const toUI = (e) => { const r = screen.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * G.W, y: (e.clientY - r.top) / r.height * VH }; };
   // a press dragged across the screen adds its movement to input.pan (the world map scrolls with it). It counts as a
   // drag once it has travelled a few CSS pixels (more for a finger, whose taps wobble); the click a drag ends in is dropped.
   let press = null, dragged = false;
@@ -168,7 +183,31 @@ export function initTouch() {
   initMenu();
   document.getElementById('touch').addEventListener('contextmenu', (e) => e.preventDefault());
 }
-// The menu button (apart from the move diamond) opens a panel: the game's own menus, offered only where the screen
+// A touch screen's Q W E R buttons carry the leader's moves: each one's name, the PP it has left and how far it
+// reaches (1.28; up to 1.27 they said only their letter, and the list lay over the field beside them). main.js hands
+// over what the dungeon named this frame, [{ name, pp, max, color, reach }], or null on any other screen: there the
+// buttons hide and the field shows, but a co-op guest's keep their bare letters (the moves are the host's to know).
+let padShown = '', padBox, pad8 = false, padGuest = false;
+export function padMoves(list, guest) {
+  if (!touchUI) return;
+  padGuest = !!guest;
+  const key = guest ? 'plain' : list ? JSON.stringify(list) : 'off'; // (a guest who joined from its own dungeon steers the host's Pokémon, not the one whose moves its own screen would name)
+  if (key === padShown) return;
+  padShown = key;
+  padBox ||= document.querySelector('#touch .moves');
+  padBox.classList.toggle('off', key === 'off'); padBox.classList.toggle('plain', key === 'plain');
+  pad8 = key !== 'off'; // a dungeon walks eight ways: the pad's diagonal arrows light up and get their full 45° (initDpad)
+  document.getElementById('dpad').classList.toggle('d8', pad8);
+  padBox.querySelectorAll('button').forEach((b, i) => {
+    const m = list?.[i];
+    b.classList.toggle('none', !!list && !m); b.classList.toggle('out', !!m && !m.pp);
+    b.style.borderColor = m ? m.color : '';
+    b.querySelector('.nm').textContent = m ? m.name : '';
+    b.querySelector('.rg').textContent = m ? m.reach : '';
+    b.querySelector('.pp').textContent = m ? `${m.pp}/${m.max}` : '';
+  });
+}
+// The menu button (apart from the move buttons) opens a panel: the game's own menus, offered only where the screen
 // answers to them (a scene's padKeys) and nothing is open over it, then the HUD buttons, moved into it. A game button
 // closes the panel and acts as its key; sound, speed and language (data-stay) keep it open to show the change.
 function initMenu() {
@@ -176,7 +215,7 @@ function initMenu() {
   panel.querySelector('.slot').append(document.getElementById('hud'));
   const show = (on) => {
     panel.hidden = !on; btn.classList.toggle('on', on); G.menuOpen = on;
-    const keys = G.overlays.length || fade.a > 0 ? [] : G.scene?.padKeys || [];
+    const keys = padGuest ? ['rest'] : G.overlays.length || fade.a > 0 ? [] : G.scene?.padKeys || []; // (a co-op guest: resting is all the host takes of these, netui.js)
     if (on) panel.querySelectorAll('button[data-k]').forEach((b) => { b.disabled = !keys.includes(b.dataset.k); });
   };
   btn.addEventListener('click', () => show(panel.hidden));
@@ -190,8 +229,11 @@ function initMenu() {
     if (k && !G.onPadKey?.(k)) { press(k); release(k); }
   }, true);
 }
-// 8-way pad: straight directions get 60° each and diagonals 30°, so a slightly crooked thumb still walks straight in town
+// 8-way pad. Where walking is four-way (towns, the map, menus) straight directions get 60° each and diagonals 30°, so a
+// slightly crooked thumb still walks straight; in a dungeon, which walks eight ways, each direction gets its 45° (1.28:
+// DIRS8, with the pad's four diagonal arrows lit; up to 1.27 the pad showed four arrows and a diagonal took a careful thumb)
 const DIRS = [[30, ['right']], [60, ['down', 'right']], [120, ['down']], [150, ['down', 'left']], [210, ['left']], [240, ['up', 'left']], [300, ['up']], [330, ['up', 'right']], [361, ['right']]];
+const DIRS8 = [[22.5, ['right']], [67.5, ['down', 'right']], [112.5, ['down']], [157.5, ['down', 'left']], [202.5, ['left']], [247.5, ['up', 'left']], [292.5, ['up']], [337.5, ['up', 'right']], [361, ['right']]];
 function initDpad() {
   const pad = document.getElementById('dpad'), knob = pad.querySelector('i');
   let held = [], id = null;
@@ -208,7 +250,7 @@ function initDpad() {
     knob.style.transform = d ? `translate(${x / d * m}px, ${y / d * m}px)` : '';
     if (d < r.width * 0.12) return set([]); // the middle is a dead zone
     const a = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; // 0 = right, 90 = down
-    set(DIRS.find(([lim]) => a < lim)[1]);
+    set((pad8 && !G.overlays.length ? DIRS8 : DIRS).find(([lim]) => a < lim)[1]); // (a menu or dialogue over the dungeon is four-way again)
   };
   pad.addEventListener('pointerdown', (e) => {
     if (id !== null) return;
@@ -322,7 +364,7 @@ export const failed = (im) => !!im?.failedAt;
 // the same pixels as drawing it whole, without the browser handling the off-screen rest every frame
 export function drawSeen(c, im, vx, vy) {
   const x0 = Math.max(0, Math.floor(vx)), y0 = Math.max(0, Math.floor(vy));
-  const x1 = Math.min(im.width, Math.ceil(vx + VW)), y1 = Math.min(im.height, Math.ceil(vy + VH));
+  const x1 = Math.min(im.width, Math.ceil(vx + G.W)), y1 = Math.min(im.height, Math.ceil(vy + VH));
   if (x1 > x0 && y1 > y0) c.drawImage(im, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
 }
 

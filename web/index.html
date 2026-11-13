@@ -29,12 +29,12 @@
   #hud.side { flex-direction: column; align-items: stretch; }
   #hud.over { opacity: 0.4; transition: opacity 0.2s; }
   #hud.over:hover, #hud.over:focus-within { opacity: 1; }
-  /* touch screens (phones, the Android app): the game takes the screen's full height at the left (core.js fit), or
-     narrows on a 16:9 or squarer screen so that the right column fits beside it. The 8-way pad lies over its
-     lower-left corner, and only it takes touches there; the menu button and the action buttons take the strip to the
-     right of the game, and only the buttons themselves take touches (up to 1.13 the whole column did, lying over the
-     game's right edge). While a dialogue or menu is open the pad fades (body.dim). Every button carries its keyboard
-     letter so the on-screen key hints read the same. */
+  /* touch screens (phones, the Android app): the game takes the whole screen (core.js fit). Its menus, dialogue and
+     HUD keep to the left 480 game pixels; the field alone runs on under the column of buttons at the right, and only
+     the buttons themselves take touches there (up to 1.27 that strip was black; up to 1.13 the column lay over the
+     UI's right edge). The 8-way pad lies over the lower-left corner, and only it takes touches there. While a
+     dialogue or menu is open the pad fades (body.dim). Every button carries its keyboard letter so the on-screen key
+     hints read the same. */
   #touch { display: none; }
   body.touch { padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); box-sizing: border-box; justify-content: flex-start;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
@@ -53,26 +53,70 @@
     touch-action: none; box-shadow: 0 2px 0 rgba(0,0,0,0.45); }
   #touch button small { font: 9px 'Galmuri9', sans-serif; color: var(--ink2); margin-top: 2px; }
   #touch button.on { background: var(--gold); transform: translateY(2px); box-shadow: none; }
-  /* right column: the menu button across its top (the screen's top-right corner, apart from the diamond), ⇧ Tab A
-     below it like shoulder buttons, the moves as a DraStic-style diamond (Q up, W left, E right, R down), X and Z at
-     the bottom under the right thumb. The diamond shrinks on a short screen so X and Z stay on it. */
-  #touch .minis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-  #touch .minis button { height: 36px; font-size: 12px; }
-  #touch .moves { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 2px; width: min(100%, 156px); aspect-ratio: 1; align-self: center; }
-  #touch .moves { width: min(100%, 156px, calc(100dvh - 200px)); }
-  #touch .moves button { border-radius: 50%; font-size: 18px; }
-  #touch .moves .q { grid-area: 1 / 2; } #touch .moves .w { grid-area: 2 / 1; } #touch .moves .e { grid-area: 2 / 3; } #touch .moves .r { grid-area: 3 / 2; }
-  #touch .acts { position: relative; height: 92px; }
+  /* right column, filled from top to bottom: at its top the Menu button and Tab below it, a little under half the
+     column wide at the screen's edge, and beside them a free part where the dungeon draws its minimap (.mapslot,
+     core.js fit); then the four moves as a DraStic-style diamond of round buttons (Q up, W left, E right, R down), each
+     a little larger than before (1.1 times) and well apart so that a thumb does not catch two, carrying its move's name,
+     range and PP left, with the type's colour as its rim
+     (core.js padMoves); X and Z at the bottom under the right thumb, a clear gap between them. Everything scales with
+     the screen's height and the column's width (--bw, --bh: the diamond's width and height, --mv: a move button's
+     diameter; a narrow column, 159px on a 20:9 phone with a camera hole, keeps the buttons' size and makes the
+     diamond taller instead: there the buttons shrank to 47px and their text ran over, found on the phone before 1.28
+     went out). Outside dungeons the diamond hides
+     and the field shows. Resting (A) is in the menu panel; its button and the face-only one (the keyboard's Shift)
+     went in 1.28. */
+  #touch { --vh: 1vh; --bw: min(calc(var(--pad, 180px) - 14px), 180px); --mv: clamp(44px, calc((var(--bw) - 30px) / 2), 56px);
+    --bh: min(calc(var(--vh) * 100 - 185px), max(var(--bw), calc(var(--mv) * 3.3))); }
+  @supports (height: 1dvh) { #touch { --vh: 1dvh; } } /* an older WebView has no dvh: there the buttons would lose their sizes */
+  #touch .top { display: grid; grid-template-columns: 11fr 9fr; gap: 6px; }
+  #touch .tb { display: flex; flex-direction: column; gap: 6px; }
+  #touch .tb button { height: clamp(32px, calc(var(--vh) * 9.6), 40px); font-size: 13px; flex-direction: row; gap: 5px; padding: 0 2px; }
+  #touch .tb button small { margin-top: 0; font-size: 10px; }
+  #touch .tb .menu { background: rgba(243,232,207,0.78); gap: 6px; }
+  #touch .moves { position: relative; flex: none; align-self: center; width: var(--bw); height: var(--bh); }
+  #touch .moves.off { visibility: hidden; }
+  #touch .moves button { position: absolute; width: var(--mv); height: var(--mv); padding: 0; border-radius: 50%; border: 3px solid var(--ink2);
+    background: rgba(243,232,207,0.9); }
+  #touch .moves button:nth-child(1) { left: 50%; top: 0; margin-left: calc(var(--mv) / -2); }
+  #touch .moves button:nth-child(2) { left: 0; top: 50%; margin-top: calc(var(--mv) / -2); }
+  #touch .moves button:nth-child(3) { right: 0; top: 50%; margin-top: calc(var(--mv) / -2); }
+  #touch .moves button:nth-child(4) { left: 50%; bottom: 0; margin-left: calc(var(--mv) / -2); }
+  #touch .moves button b { position: absolute; left: 50%; top: -9px; margin-left: -8px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink); color: var(--paper);
+    font: 10px 'Galmuri11B', sans-serif; display: flex; align-items: center; justify-content: center; }
+  #touch .moves button .tx { display: flex; flex-direction: column; align-items: center; gap: 1px; width: 100%; padding-top: 2px; }
+  #touch .moves button .nm { max-width: calc(var(--mv) - 16px); max-height: 2.2em; overflow: hidden; font: 9px/1.1 'Galmuri11B', sans-serif; text-align: center;
+    text-wrap: balance; overflow-wrap: anywhere; }
+  #touch .moves button .sub { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  #touch .moves button .rg { font: 8px/1 'Galmuri9', sans-serif; color: var(--ink2); white-space: nowrap; }
+  #touch .moves button .pp { font: 9px/1 'Galmuri11B', sans-serif; color: var(--ink); white-space: nowrap; }
+  #touch .moves button.out { background: rgba(214,204,186,0.82); }
+  #touch .moves button.out .nm, #touch .moves button.out .pp { color: #a08f80; }
+  #touch .moves button.none { visibility: hidden; }
+  #touch .moves.plain button b { position: static; margin: 0; width: auto; height: auto; background: none; color: var(--ink); font-size: 18px; }
+  #touch .moves.plain button .tx { display: none; }
+  @media (max-height: 350px) { #touch .moves button .rg { display: none; } #touch .moves button .nm { font-size: 9px; } }
+  /* a narrow column (a 16:9 phone, 120-155px; core.js fit): Menu and Tab take its whole width (halved, their words
+     wrapped a letter a line), the minimap keeps its place over the field, and the smaller move buttons leave their
+     ranges out (name, range and PP ran over a 44px circle) */
+  #touch.slim .top { grid-template-columns: 1fr; }
+  #touch.slim .mapslot { display: none; }
+  #touch.slim .moves button .rg { display: none; }
+  #touch.slim .moves:not(.plain) button b { top: -11px; margin-left: -7px; width: 14px; height: 14px; font-size: 9px; } /* (the key's badge clear of the name's first line) */
+  #touch.slim .acts { height: clamp(80px, calc(var(--vh) * 26), 96px); } /* narrower, so X and Z stand apart by height */
+  #touch .acts { position: relative; height: clamp(70px, calc(var(--vh) * 21), 86px); } /* X up at the left, Z down at the right (1.28: farther apart) */
   #touch .acts .b, #touch .acts .a { position: absolute; border-radius: 50%; font-size: 20px; }
-  #touch .acts .a { right: 0; bottom: 0; width: 64px; height: 64px; background: rgba(178,53,43,0.92); color: #fff4dc; }
+  #touch .acts .a { right: 0; bottom: 0; width: clamp(54px, calc(var(--pad, 180px) * 0.38), 72px); aspect-ratio: 1; background: rgba(178,53,43,0.92); color: #fff4dc; }
   #touch .acts .a small { color: #ffe0c8; }
-  #touch .acts .b { left: 0; top: 0; width: 54px; height: 54px; }
-  #touch .menu { height: 34px; flex: none; padding: 0 12px; flex-direction: row; gap: 8px; font-size: 13px; background: rgba(243,232,207,0.72); }
+  #touch .acts .b { left: 0; top: 0; width: clamp(44px, calc(var(--pad, 180px) * 0.31), 60px); aspect-ratio: 1; }
   #touch .menu i { display: block; width: 16px; height: 2px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; }
   #dpad { position: relative; width: var(--dpad, 128px); aspect-ratio: 1; border-radius: 50%;
     background: rgba(20,16,24,0.22); border: 2px solid rgba(243,232,207,0.6); touch-action: none; }
-  #dpad span { position: absolute; color: rgba(243,232,207,0.85); font: 16px sans-serif; transform: translate(-50%, -50%); pointer-events: none; }
-  #dpad .u { left: 50%; top: 15%; } #dpad .d { left: 50%; top: 85%; } #dpad .l { left: 15%; top: 50%; } #dpad .r { left: 85%; top: 50%; }
+  /* eight arrows, one glyph turned (1.28: the four diagonal ones, .x, were not drawn); the diagonal ones are faint where
+     walking is four-way and lit in a dungeon (#dpad.d8, core.js padMoves) */
+  #dpad span { position: absolute; color: rgba(243,232,207,0.85); font: 16px sans-serif; transform: translate(-50%, -50%) rotate(var(--a, 0deg)); pointer-events: none; }
+  #dpad .u { left: 50%; top: 15%; } #dpad .d { left: 50%; top: 85%; --a: 180deg; } #dpad .l { left: 15%; top: 50%; --a: 270deg; } #dpad .r { left: 85%; top: 50%; --a: 90deg; }
+  #dpad .x { font-size: 15px; opacity: 0.25; } #dpad.d8 .x { opacity: 1; }
+  #dpad .ur { left: 74.7%; top: 25.3%; --a: 45deg; } #dpad .dr { left: 74.7%; top: 74.7%; --a: 135deg; } #dpad .dl { left: 25.3%; top: 74.7%; --a: 225deg; } #dpad .ul { left: 25.3%; top: 25.3%; --a: 315deg; }
   #dpad i { position: absolute; left: 50%; top: 50%; width: 38%; height: 38%; margin: -19% 0 0 -19%; border-radius: 50%;
     background: rgba(243,232,207,0.85); border: 2px solid var(--ink); pointer-events: none; transition: transform 0.05s; }
   #dpad.on i { background: var(--gold); }
@@ -87,13 +131,14 @@
   #tmenu h3 { font: 11px 'Galmuri11B', sans-serif; color: var(--ink2); margin: 10px 0 6px; }
   #tmenu .in { padding: 4px 14px 14px; }
   #tmenu .game, #hud.inmenu { position: static; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  #tmenu .game { grid-template-columns: repeat(5, 1fr); }
   #tmenu button, #hud.inmenu button { min-height: 44px; padding: 6px 4px; font: 13px 'Galmuri11', sans-serif; color: var(--ink); background: #fffaf0;
     border: 2px solid var(--ink); cursor: pointer; }
   #tmenu .game button { font-family: 'Galmuri11B', sans-serif; background: var(--paper2); }
   #tmenu .game button:disabled { opacity: 0.4; cursor: default; }
   #tmenu header button { min-height: 0; width: 36px; height: 30px; padding: 0; }
   body.app #btn-full { display: none; }
-  body.touch #mp-video { inset: auto; left: var(--gameX, 0px); top: var(--gameY, 0px); width: var(--gameW, 100vw); height: var(--gameH, 100vh); }
+  body.touch #mp-video { inset: auto; left: var(--gameX, 0px); top: var(--gameY, 0px); width: var(--uiW, var(--gameW, 100vw)); height: var(--gameH, 100vh); }
   /* roster search box (core.js askText): game paper and ink, near the top so a phone keyboard doesn't cover it */
   #ask { position: fixed; left: 50%; top: max(12%, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 30; width: min(360px, 86vw);
     background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,0.45); padding: 12px 14px;
@@ -199,18 +244,21 @@
 </div>
 <div id="touch">
   <div id="pad-l" class="pad">
-    <div id="dpad"><span class="u">▲</span><span class="l">◀</span><span class="r">▶</span><span class="d">▼</span><i></i></div>
+    <div id="dpad"><span class="u">▲</span><span class="x ur">▲</span><span class="r">▲</span><span class="x dr">▲</span><span class="d">▲</span><span class="x dl">▲</span><span class="l">▲</span><span class="x ul">▲</span><i></i></div>
   </div>
   <div id="pad-r" class="pad">
-    <button type="button" id="btn-tmenu" class="menu"><i></i><span data-lang="ko">메뉴</span><span data-lang="en" hidden>Menu</span></button>
-    <div class="minis">
-      <button type="button" data-k="shift">⇧<small data-lang="ko">방향만</small><small data-lang="en" hidden>Face</small></button>
-      <button type="button" data-k="tag">Tab<small data-lang="ko">태그</small><small data-lang="en" hidden>Tag</small></button>
-      <button type="button" data-k="rest">A<small data-lang="ko">쉬기</small><small data-lang="en" hidden>Rest</small></button>
+    <div class="top">
+      <div class="mapslot"></div>
+      <div class="tb">
+        <button type="button" id="btn-tmenu" class="menu"><i></i><span data-lang="ko">메뉴</span><span data-lang="en" hidden>Menu</span></button>
+        <button type="button" data-k="tag">Tab<small data-lang="ko">태그</small><small data-lang="en" hidden>Tag</small></button>
+      </div>
     </div>
     <div class="moves">
-      <button type="button" class="q" data-k="m1">Q</button><button type="button" class="w" data-k="m2">W</button>
-      <button type="button" class="e" data-k="m3">E</button><button type="button" class="r" data-k="m4">R</button>
+      <button type="button" data-k="m1"><b>Q</b><span class="tx"><span class="nm"></span><span class="sub"><span class="rg"></span><span class="pp"></span></span></span></button>
+      <button type="button" data-k="m2"><b>W</b><span class="tx"><span class="nm"></span><span class="sub"><span class="rg"></span><span class="pp"></span></span></span></button>
+      <button type="button" data-k="m3"><b>E</b><span class="tx"><span class="nm"></span><span class="sub"><span class="rg"></span><span class="pp"></span></span></span></button>
+      <button type="button" data-k="m4"><b>R</b><span class="tx"><span class="nm"></span><span class="sub"><span class="rg"></span><span class="pp"></span></span></span></button>
     </div>
     <div class="acts">
       <button type="button" class="b" data-k="cancel">X<small data-lang="ko">취소</small><small data-lang="en" hidden>Back</small></button>
@@ -227,6 +275,7 @@
         <button type="button" data-k="quest"><span data-lang="ko">퀘스트</span><span data-lang="en" hidden>Quests</span></button>
         <button type="button" data-k="party"><span data-lang="ko">동료</span><span data-lang="en" hidden>Team</span></button>
         <button type="button" data-k="map"><span data-lang="ko">던전 지도</span><span data-lang="en" hidden>Dungeon map</span></button>
+        <button type="button" data-k="rest"><span data-lang="ko">한 턴 쉬기</span><span data-lang="en" hidden>Rest a turn</span></button>
       </div>
       <h3><span data-lang="ko">설정</span><span data-lang="en" hidden>Settings</span></h3>
       <div class="slot"></div>
@@ -264,7 +313,7 @@
         </div>
       </div>
       <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 지도를 끌거나(드래그) 휠을 굴려 둘러볼 수 있어요. 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리, 아래쪽 조작키 안내 보이기/숨기기, 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
-      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전은 대각선까지 8방향), 오른쪽에는 드라스틱처럼 <b>십자 모양으로 놓인 기술 버튼 Q · W · E · R</b>(위 · 왼쪽 · 오른쪽 · 아래)과 Z 확인 · X 취소 · ⇧ 방향만 바꾸기 · Tab 태그 · A 쉬기 버튼이 있어요. X는 마을과 던전에서 게임 메뉴도 엽니다. <b>메뉴</b> 버튼은 십자 버튼과 따로 오른쪽 버튼 줄 맨 위에 있고, 누르면 게임 메뉴 · 퀘스트 · 동료 · 던전 지도와 소리 · 속도 · 멀티 · 구글 로그인 · 언어 · 가이드가 한 화면에 열립니다. 메뉴 · 대화 · 장소는 화면을 직접 눌러 고를 수 있고(긴 목록은 손가락으로 끌어 넘기기), 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다. 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). 메뉴 안의 <b>구글 로그인</b> 버튼으로 로그인하면 세이브(난이도마다 하나씩)가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
+      <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전에서는 대각선 화살표까지 8개가 모두 켜지고 8방향으로 움직여요), 게임은 화면 전체를 쓰고, 오른쪽 버튼들은 그 위에 겹쳐 있어요. 던전에서는 십자 모양으로 놓인 둥근 <b>기술 버튼 Q · W · E · R</b>(위 · 왼쪽 · 오른쪽 · 아래)에 지금 이끄는 포켓몬의 <b>기술 이름 · 범위 · 남은 PP</b>가 적혀 있고, 그 아래위로 Z 확인 · X 취소 · Tab 태그 버튼이 있어요. 미니맵은 메뉴 · Tab 버튼 옆에 나옵니다. 한 턴 쉬기는 메뉴 버튼 안에 있습니다. X는 마을과 던전에서 게임 메뉴도 엽니다. <b>메뉴</b> 버튼은 오른쪽 버튼 줄 맨 위에 있고, 누르면 게임 메뉴 · 퀘스트 · 동료 · 던전 지도 · 한 턴 쉬기와 소리 · 속도 · 멀티 · 구글 로그인 · 언어 · 가이드가 한 화면에 열립니다. 메뉴 · 대화 · 장소는 화면을 직접 눌러 고를 수 있고(긴 목록은 손가락으로 끌어 넘기기). 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). 메뉴 안의 <b>구글 로그인</b> 버튼으로 로그인하면 세이브(난이도마다 하나씩)가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
       <p class="get-app"><b>안드로이드 앱 받기</b>: 휴대폰 크롬에서 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">APK 내려받기</a>를 누르고, 다 받으면 파일을 열어 설치합니다. 경고 창이 뜨면 '다운로드' → '설정'에서 '이 출처 허용' 켜기 → '설치' 순서로 누르면 돼요. 자세한 방법은 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">릴리스 페이지</a>에 있어요.</p>
       <p>화면 옆 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
 
@@ -286,10 +335,10 @@
       <h2>던전 전투와 난이도</h2>
       <ul>
         <li>내가 한 번 움직이면 적도 한 번 움직이는 턴제입니다. 파트너와 동료는 알아서 싸워요.</li>
-        <li>우리 편 기술은 <b>3칸 안에 적</b>이 있으면 방향과 상관없이 그 적을 노려 <b>반드시 맞힙니다</b>. 더 멀면 바라보는 방향 직선으로 나가는데, <b>물리 기술</b>은 4칸, <b>특수 기술</b>은 5칸까지 닿습니다. "주변 전체" 기술은 둘레 8칸을 공격하고, 야생 포켓몬의 기술은 직선 <b>4칸</b>, 보스의 기술과 예고 공격도 보스에게서 <b>4칸</b>까지만 닿아요. 보스는 잠듦·얼음·독에 걸리지 않고, <b>전설의 포켓몬 보스</b>는 마비·화상까지 <b>모든 상태 이상</b>에 걸리지 않습니다.</li>
+        <li>우리 편 기술은 <b>4칸 안에 적</b>이 있으면 방향과 상관없이 그 적을 노려 <b>반드시 맞힙니다</b>. 더 멀면 바라보는 방향 직선으로 나가는데, <b>물리 기술</b>은 4칸, <b>특수 기술</b>은 5칸까지 닿습니다. "주변 전체" 기술은 둘레 8칸을 공격하고, 야생 포켓몬의 기술은 직선 <b>4칸</b>, 보스의 기술과 예고 공격도 보스에게서 <b>4칸</b>까지만 닿아요. 보스는 잠듦·얼음·독에 걸리지 않고, <b>전설의 포켓몬 보스</b>는 마비·화상까지 <b>모든 상태 이상</b>에 걸리지 않습니다.</li>
         <li>지금 조종하는 포켓몬은 머리 위와 팀 창의 이름 옆에 <b>리더 뱃지</b>(왕관 방패)가 붙습니다. 파트너와 동료는 리더 곁을 지키고, 통로에서는 줄지어 뒤따릅니다.</li>
         <li>포켓몬은 본편의 100을 넘어 <b>Lv 180</b>까지 오릅니다. 180이 넘는 적도 동료가 될 때는 Lv 180으로 들어와요.</li>
-        <li><b>보스방</b>에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 그 밖에는 장터의 <b>기력의 조각</b>(1000냥)으로 던전 한 번에 한 마리를 되살릴 수 있어요.</li>
+        <li><b>보스방</b>에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 그 밖에는 장터의 <b>기력의 조각</b>(1000냥)으로 던전 한 번에 한 마리를 되살릴 수 있어요 (큐레무와의 싸움에서는 두 마리, 보스 탑에서는 제한 없이).</li>
         <li>장터의 사기 목록 맨 위에서 <b>10개씩 사기</b>를 켜면 한 번에 10개를 삽니다.</li>
         <li>장터의 팔기 목록은 맨 위에서 <b>1개씩 · 10개씩 · 전부</b>를 고르고, 맨 아래 <b>가진 도구 모두 팔기</b>로 한꺼번에 팔 수 있습니다(구슬 같은 귀한 물건은 빼고).</li>
         <li><b>강철 · 독 타입</b>은 독 상태에 걸리지 않습니다.</li>
@@ -415,7 +464,7 @@
         </div>
       </div>
       <p><b>Mouse</b>: click a place on the world map to go there (drag the map or roll the mouse wheel to look around), and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound and the on-screen key hints on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
-      <p><b>Phones and the Android app</b>: move with the round pad on the left (eight directions in dungeons). On the right, the <b>move buttons Q · W · E · R sit in a cross</b> as on DraStic (up · left · right · down), with Z OK · X back · ⇧ face only · Tab tag · A rest; X also opens the game menu in town and in dungeons. The <b>Menu</b> button stands apart at the top of the right-hand buttons and opens one panel with the game menu, quests, team and dungeon map, and sound, speed, co-op, Google login, language and the guide. Tap menus, dialogue and places on the screen to pick them (drag a long list with a finger to scroll it), and tap a move in the dungeon's move list at the bottom right to use it. Drag the world map with a finger to look around; the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> in the menu to keep your saves (one per difficulty) in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
+      <p><b>Phones and the Android app</b>: move with the round pad on the left (in a dungeon all eight of its arrows light up and you walk eight ways). The game takes the whole screen and the buttons on the right lie over it. In a dungeon the round <b>move buttons Q · W · E · R</b>, in a cross (up · left · right · down), carry your leader's <b>move names, ranges and PP left</b>, the minimap sits beside the Menu and Tab buttons, with Z OK · X back · Tab tag around them (resting a turn is in the Menu panel); X also opens the game menu in town and in dungeons. The <b>Menu</b> button is at the top of the right-hand buttons and opens one panel with the game menu, quests, team, dungeon map and resting a turn, and sound, speed, co-op, Google login, language and the guide. Tap menus, dialogue and places on the screen to pick them (drag a long list with a finger to scroll it). Drag the world map with a finger to look around; the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> in the menu to keep your saves (one per difficulty) in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
       <p class="get-app"><b>Get the Android app</b>: open <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">the APK download</a> in Chrome on the phone, then open the file to install it. Past the warnings, tap Download, turn on "Allow from this source" in Settings, then Install; the <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">release page</a> has the full steps.</p>
       <p>The <b>English / 한국어</b> button beside the screen switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
 
@@ -437,10 +486,10 @@
       <h2>Dungeon battles and difficulty</h2>
       <ul>
         <li>Turn-based: every time you act, the foes act once. Your partner and ally fight on their own.</li>
-        <li>Your team's moves turn to <b>any foe within 3 tiles</b>, whichever way you face, and <b>always hit</b>; farther off they fly in a straight line the way you face, <b>physical moves</b> 4 tiles and <b>special moves</b> 5. "All around" moves hit all 8 neighbors; a wild Pokémon's moves reach <b>4 tiles</b> in a line, and a boss's moves and warning blasts <b>4 tiles</b> at most. Bosses can't be put to sleep, frozen or poisoned, and <b>legendary bosses</b> shrug off <b>every status problem</b>, paralysis and burns too.</li>
+        <li>Your team's moves turn to <b>any foe within 4 tiles</b>, whichever way you face, and <b>always hit</b>; farther off they fly in a straight line the way you face, <b>physical moves</b> 4 tiles and <b>special moves</b> 5. "All around" moves hit all 8 neighbors; a wild Pokémon's moves reach <b>4 tiles</b> in a line, and a boss's moves and warning blasts <b>4 tiles</b> at most. Bosses can't be put to sleep, frozen or poisoned, and <b>legendary bosses</b> shrug off <b>every status problem</b>, paralysis and burns too.</li>
         <li>The Pokémon you control wears the <b>leader badge</b> (a crowned shield) over its head and beside its name in the team panel. Your partner and ally keep close to it and follow in a line through corridors.</li>
         <li>Pokémon grow past the main games' 100, up to <b>Lv 180</b>. Foes above it join at Lv 180.</li>
-        <li>Stepping into a <b>boss room</b> brings fallen teammates back with half their HP; otherwise a <b>Revive</b> from the market (1000 nyang) gets one back up, once per dungeon run.</li>
+        <li>Stepping into a <b>boss room</b> brings fallen teammates back with half their HP; otherwise a <b>Revive</b> from the market (1000 nyang) gets one back up, once per dungeon run (twice against Kyurem, any number of times in the Boss Tower).</li>
         <li>The switch on top of the market's buy list, <b>Buy 10 at a time</b>, buys ten at once.</li>
         <li>The market's sell list lets you choose <b>one, ten or all</b> on its top row, and <b>Sell the whole bag</b> at the bottom sells everything at once (treasures like the orbs stay).</li>
         <li><b>Steel and Poison types</b> can't be poisoned.</li>

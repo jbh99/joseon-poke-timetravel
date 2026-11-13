@@ -62,13 +62,21 @@ export function moveUsable(m) {
 // How far the team's moves fly in a line where their user faces (dungeon.js skillTargets), in tiles: a physical move 4
 // (1.27; until 1.26 it reached the tile in front only), a special one 5 (6 until 1.26)
 export const PHYS_REACH = 4, LINE_REACH = 5;
-// one line about a move for menus: type, category with its reach in the dungeons, power, and whether it hits all around
+// where a move of the team's lands (dungeon.js skillTargets), in a few words: on its user, on the eight tiles around
+// it, or along a line where it faces (a status move flies as far as a special one)
+export function moveReach(id) {
+  const d = DEX.moves[id];
+  if (d.cat === 2 && [16, 1024].includes(d.target)) return tr('자신', 'Self');
+  if (d.target === 4 || d.target === 8) return tr('주변 8칸', 'All around');
+  const n = d.cat === 0 ? PHYS_REACH : LINE_REACH;
+  return tr(`직선 ${n}칸`, `${n}-tile line`);
+}
+// one line about a move for menus: type, category and power, and its range in the dungeons (1.28: every move says
+// its range the same way; up to 1.27 a status move said none)
 export function moveDesc(id) {
   const d = DEX.moves[id];
-  const around = d.target === 4 || d.target === 8; // it hits the eight tiles beside its user and flies no line
-  const cat = d.cat === 0 ? tr('물리', 'Physical') : tr('특수', 'Special'), reach = d.cat === 0 ? PHYS_REACH : LINE_REACH;
-  const kind = d.cat === 2 ? tr('변화', 'Status') : (around ? cat : cat + tr(`(직선 ${reach}칸)`, ` (${reach}-tile line)`)) + tr(' 위력 ', ' power ') + d.power;
-  return `${DEX.types[d.type]} · ${kind}${around ? tr(' · 주변 전체', ' · all around') : ''}`;
+  const kind = d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리', 'Physical') : tr('특수', 'Special')) + tr(' 위력 ', ' power ') + d.power;
+  return `${DEX.types[d.type]} · ${kind} · ${tr('범위', 'Range')} ${moveReach(id)}`;
 }
 
 const STAGE = (s) => (s >= 0 ? (2 + s) / 2 : 2 / (2 - s));
@@ -205,7 +213,7 @@ export class Mon {
 }
 
 // Resolve one move use. Returns {dmg, eff, crit, miss, text[], status, statChange, heal, drain}.
-// sure: no accuracy roll (the team's moves on a foe within 3 tiles, Dungeon.useSkill)
+// sure: no accuracy roll (the team's moves on a foe within 4 tiles, Dungeon.useSkill)
 export function useMove(att, def, moveId, sure = false) {
   const mv = moveId === 'basic' ? { name: tr('공격', 'Attack'), cat: 0, power: 30, type: -1, acc: 100, effect: 0, chance: 0 } : DEX.moves[moveId];
   const out = { mv, text: [] };
@@ -270,8 +278,8 @@ export const ITEMS = {
   rice: withText(['주먹밥', 'Rice Ball'], ['HP를 80 회복하고 상태 이상을 고친다.', 'Restores 80 HP and cures status problems.'], { price: 90, heal: 80, cure: true }),
   // (no item only cures status since 1.10: the Herb is gone, and 'herb' is a quest item now, content.js QITEMS)
   ginseng: withText(['인삼', 'Ginseng'], ['모든 기술의 PP를 회복한다.', 'Restores the PP of every move.'], { price: 220, pp: true }),
-  // one a dungeon run, boss room included (Dungeon.revived); the boss room also stands the fallen up by itself
-  revive: withText(['기력의 조각', 'Revive'], ['쓰러진 포켓몬을 HP 절반으로 되살린다. 던전 한 번(보스방 포함)에 하나만 쓸 수 있다.', 'Revives a fainted Pokémon with half its HP. One per dungeon run, boss room included.'], { price: 1000, revive: 0.5 }),
+  // one a dungeon run, boss room included (Dungeon.reviveCap: two against Kyurem, no limit in the Boss Tower, 1.28); the boss room also stands the fallen up by itself
+  revive: withText(['기력의 조각', 'Revive'], ['쓰러진 포켓몬을 HP 절반으로 되살린다. 던전 한 번(보스방 포함)에 하나, 큐레무와의 싸움에서는 둘, 보스 탑에서는 제한 없이 쓸 수 있다.', 'Revives a fainted Pokémon with half its HP. One per dungeon run (boss room included), two against Kyurem, any number in the Boss Tower.'], { price: 1000, revive: 0.5 }),
   escape: withText(['탈출 부적', 'Escape Charm'], ['던전에서 곧바로 마을로 돌아간다.', 'Takes you straight back to town from a dungeon.'], { price: 150, escape: true }),
   // throw: what it adds to its thrower's level for the damage (1.27; a flat 20 until 1.26, which no late foe felt)
   stone: withText(['돌팔매', 'Sling Stone'], ['앞쪽 일직선으로 던져 적에게 던진 포켓몬의 레벨 + 5만큼 데미지를 준다.', "Thrown straight ahead; deals damage equal to the thrower's level + 5 to a foe."], { price: 12, throw: 5 }),

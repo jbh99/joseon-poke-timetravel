@@ -413,7 +413,7 @@ export const W1945 = era({
     // The town is drawn without its bridge (tools/bw/render.py CUT; 1.27) and the fight starts on its open ground (wide)
     kyurem45: { name: K('얼어붙은 도시 · 큐레무', 'The Frozen City: Kyurem'), tiles: T.fortsnow, floors: 1, lv: P(20), fromTown: true, bgm: 'vs_kyurem',
       mons: [613, 614, 615, 583, 584, 215, 461], tint: 'rgba(170,215,255,0.28)',
-      battle: { town: null, foeBuff: 1, wide: true }, boss: KYUREM },
+      battle: { town: null, foeBuff: 1, wide: true }, revives: 2, boss: KYUREM }, // (revives: two Revives may be used here, 1.28)
   },
   npcs: [ber, sol45, kor45],
   main: [

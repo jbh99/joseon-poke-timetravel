@@ -34,9 +34,10 @@ function backdrop(setId, seed = 1) {
 }
 function drawBackdrop(c, setId, seed, zoom = 1, ox = 0, oy = 0) {
   const cv = backdrop(setId, seed);
-  if (!cv) { c.fillStyle = '#1a1620'; c.fillRect(0, 0, VW, VH); return; }
-  const w = cv.width * zoom, h = cv.height * zoom;
-  c.drawImage(cv, Math.round((VW - w) / 2 + ox), Math.round((VH - h) / 2 + oy), Math.round(w), Math.round(h));
+  if (!cv) { c.fillStyle = '#1a1620'; c.fillRect(0, 0, G.W, VH); return; }
+  const z = Math.max(zoom, (G.W + 2 * Math.abs(ox) + 8) / cv.width); // (it covers a wide phone's field too)
+  const w = cv.width * z, h = cv.height * z;
+  c.drawImage(cv, Math.round((G.W - w) / 2 + ox), Math.round((VH - h) / 2 + oy), Math.round(w), Math.round(h));
 }
 // every era gets a backdrop: its own card, else its first dungeon's chunk set and its NPCs
 const cardOf = (e) => e.card || { set: Object.values(e.dungeons)[0].tiles, mons: e.npcs.slice(0, 4).map((n) => n.sp) };
@@ -120,7 +121,7 @@ export class Title {
   }
   draw(c) {
     drawBackdrop(c, 41, 3, 1.04 + Math.sin(this.t * 0.15) * 0.02);
-    c.fillStyle = 'rgba(10,6,20,0.25)'; c.fillRect(0, 0, VW, VH);
+    c.fillStyle = 'rgba(10,6,20,0.25)'; c.fillRect(0, 0, G.W, VH);
     // Celebi floating
     const im = img('poke/front/251.png');
     if (ready(im)) c.drawImage(im, Math.floor(this.t * 2) % 2 * 80, 0, 80, 80, 356, 62 + Math.sin(this.t * 2) * 4, 80, 80);
@@ -177,7 +178,7 @@ export class Intro {
   }
   draw(c) {
     const g = c.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, '#16304a'); g.addColorStop(1, '#3a6a5a');
-    c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+    c.fillStyle = g; c.fillRect(0, 0, G.W, VH);
     for (let i = 0; i < 40; i++) { c.fillStyle = `rgba(255,255,220,${0.3 + 0.3 * Math.sin(this.t * 2 + i)})`; c.fillRect((i * 83) % VW, (i * 47 + this.t * 6) % VH, 1, 1); }
     if (this.phase === 'talk') {
       const im = img('poke/front/251.png');
@@ -234,7 +235,7 @@ export class EraCard {
     drawBackdrop(c, card.set, this.e.id, 1.02 + this.t * 0.006, -this.t * 0.8, 0);
     card.mons.forEach((sp, i) => drawMon(c, sp, false, 70 + i * 92 - this.t * 4, 150 + (i % 2) * 22, { face: [i % 2 ? -1 : 1, 1], moving: true, phase: i }));
     const g = c.createLinearGradient(0, VH * 0.45, 0, VH); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.6)');
-    c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+    c.fillStyle = g; c.fillRect(0, 0, G.W, VH);
     // landmark sprites from Blender in the foreground
     const props = this.e.artProps || [];
     let x = VW - 20;
@@ -247,7 +248,7 @@ export class EraCard {
       x -= 4;
     }
     S.party.forEach((m, i) => drawMon(c, m.spr, m.shiny, 40 + i * 30 + Math.min(this.t, 3) * 20, VH - 86, { moving: true, facing: 'right', phase: i }));
-    if (this.t < 0.6) { c.fillStyle = `rgba(255,255,255,${1 - this.t / 0.6})`; c.fillRect(0, 0, VW, VH); }
+    if (this.t < 0.6) { c.fillStyle = `rgba(255,255,255,${1 - this.t / 0.6})`; c.fillRect(0, 0, G.W, VH); }
   }
   drawUI() {
     const f = clamp((this.t - 0.4) / 1.6, 0, 1);
@@ -400,7 +401,7 @@ export class WorldMap {
     if (input.hit('cancel')) fadeTo(() => G.goTown());
   }
   draw(c) {
-    c.fillStyle = '#3a5f78'; c.fillRect(0, 0, VW, VH);
+    c.fillStyle = '#3a5f78'; c.fillRect(0, 0, G.W, VH);
     if (!this.nodes) return;
     const im = img(this.mapImg || 'img/worldmap.png');
     if (ready(im)) c.drawImage(im, this.cx / MZ, this.cy / MZ, MVW / MZ, VH / MZ, 0, 0, MVW, VH);
@@ -558,7 +559,7 @@ export class Ending {
   }
   draw(c) {
     drawBackdrop(c, this.phase === 0 ? 41 : 33, this.phase === 0 ? 5 : 9, 1.05 + this.t * 0.002);
-    c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, 0, VW, VH);
+    c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, 0, G.W, VH);
     if (this.phase === 1) S.party.forEach((m, i) => { const im = img(`poke/front/${m.sp}${m.shiny ? 's' : ''}.png`); if (ready(im)) c.drawImage(im, Math.floor(G.time * 2) % 2 * im.height, 0, im.height, im.height, hofX(i) - 48, 70, 96, 96); });
   }
   drawUI() {

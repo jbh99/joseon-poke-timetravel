@@ -1,5 +1,5 @@
 // Boot and main loop.
-import { G, VW, VH, APP, touchUI, initCanvas, initTouch, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs } from './core.js';
+import { G, VW, VH, APP, touchUI, initCanvas, initTouch, padMoves, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
 import { initData, initSaves, S, save, load, newGame, saves, Mon } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
@@ -235,18 +235,23 @@ async function boot() {
     // world
     const c = G.lctx;
     c.setTransform(1, 0, 0, 1, 0, 0);
+    // on a wide touch screen the field runs on past the UI's width (core.js G.W): a scene that paints only its own
+    // 480 leaves that band dark instead of the last scene's picture
+    if (G.W > VW) { c.fillStyle = '#0c0a0e'; c.fillRect(VW, 0, G.W - VW, VH); }
+    G.padMoves = null; // the dungeon names its leader's moves each frame (drawUI); any other screen has none
     G.scene?.draw?.(c);
     const s = G.sctx;
     s.setTransform(1, 0, 0, 1, 0, 0);
     s.imageSmoothingEnabled = false;
-    s.drawImage(G.low, 0, 0, VW * G.S, VH * G.S);
+    s.drawImage(G.low, 0, 0, G.W * G.S, VH * G.S);
     ui.begin();
     G.scene?.drawUI?.();
     for (const o of G.overlays) o.drawUI();
     drawToasts(real);
-    if (fade.a > 0) { s.globalAlpha = fade.a; ui.rect(0, 0, VW, VH, fade.color); s.globalAlpha = 1; }
+    if (fade.a > 0) { s.globalAlpha = fade.a; ui.rect(0, 0, G.W, VH, fade.color); s.globalAlpha = 1; }
     if (fade.hold && fade.a >= 1 && G.real - fade.since > 0.4) ui.text(tr('불러오는 중…', 'Loading…'), VW / 2, VH / 2 - 6, { align: 'center', color: fade.color === '#000' ? '#e8dcc0' : COL.ink });
     NET.frame();
+    padMoves(G.padMoves, NET.role === 'guest');
     // on a phone the pad over the game's corner fades while a dialogue or menu is up (index.html body.dim)
     const dim = touchUI && G.overlays.length > 0;
     if (dim !== G.dimmed) { G.dimmed = dim; document.body.classList.toggle('dim', dim); }

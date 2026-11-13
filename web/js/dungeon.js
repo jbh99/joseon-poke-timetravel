@@ -1,7 +1,7 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, dexMark, PHYS_REACH, LINE_REACH } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
 import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, Town, PEARL, objInView } from './town.js';
@@ -34,11 +34,12 @@ export const curve = () => clamp(S.era / Math.max(1, KOREA_LAST), 0, 1); // the 
 // HP and every stat (Hard: 25%)
 const foeMon = (sp, lv, o = {}) => new Mon(sp, lv, { ...o, buff: (o.buff || 1) * mode().stat });
 
-// The team's moves land on any foe within SURE_REACH tiles, whichever way their user faces (skillTargets); past that
+// The team's moves land on any foe within SURE_REACH tiles, whichever way their user faces (skillTargets; 4 tiles from
+// 1.28, 3 before, which a tester found too near); past that
 // they fly in a line: a physical move PHYS_REACH tiles, a special one LINE_REACH (game.js; 1.27). Foes reach less far:
 // their physical moves land on the tile in front, an ordinary foe's line moves fly FOE_REACH tiles, a boss's BOSS_REACH
 // tiles, its line moves and its telegraphed blasts alike.
-const SURE_REACH = 3, FOE_REACH = 4, BOSS_REACH = 4;
+const SURE_REACH = 4, FOE_REACH = 4, BOSS_REACH = 4;
 // a legend's signature moves cover its whole arena; in a town battle they reach this far from it
 const SIG_REACH = 8;
 // a tile and the four beside it: where a falling thing hits
@@ -546,6 +547,8 @@ export class Dungeon {
     const r = this.roomOf[p.y][p.x];
     const show = (x, y) => { if (x >= 0 && y >= 0 && x < W && y < H) { this.vis[y][x] = true; this.seen[y][x] = true; } };
     if (r >= 0) { const R = this.rooms[r]; for (let y = R.y - 1; y <= R.y + R.h; y++) for (let x = R.x - 1; x <= R.x + R.w; x++) show(x, y); }
+    // an arena on a phone's wide screen: the wall right of it, under the buttons, is seen too (it was a black band)
+    if (this.arena && G.W > VW) { const R = this.rooms[0], n = Math.ceil((G.W - VW) / TILE) + 1; for (let y = R.y - 1; y <= R.y + R.h; y++) for (let x = R.x + R.w + 1; x <= R.x + R.w + n; x++) show(x, y); }
     for (let y = p.y - 2; y <= p.y + 2; y++) for (let x = p.x - 2; x <= p.x + 2; x++) show(x, y);
   }
 
@@ -1236,9 +1239,10 @@ export class Dungeon {
       e[slot] = { sg, rain: true, left: sg.secs, next: 0.3, dmg: pow, side: randInt(0, 3) };
       return tell(`${m.name}의 ${sg.name}! ${sg.secs}초 동안 돌풍의 벽이 칸칸이 날아온다! 벽의 빈틈으로 피해라!`, `${m.name}'s ${sg.name}! For ${sg.secs} seconds walls of wind fly in tile by tile! Get to the gap in each!`);
     }
-    if (sg.kind === 'hidden') { // Fusion Bolt: no tile marked, lightning anywhere (sigStep)
+    if (sg.kind === 'hidden') { // Fusion Bolt: lightning anywhere, and only half of it marked beforehand (sigStep, hiddenNext)
       e[slot] = { sg, hidden: true, left: sg.turns, dmg: pow };
-      return tell(`${m.name}의 ${sg.name}! ${sg.turns}턴 동안 보이지 않는 ${iga(sg.what)} 아무 데나 떨어진다!`, `${m.name}'s ${sg.name}! For ${sg.turns} turns unseen ${sg.what} strikes anywhere!`);
+      this.hiddenNext(e, e[slot]);
+      return tell(`${m.name}의 ${sg.name}! ${sg.turns}턴 동안 ${iga(sg.what)} 아무 데나 떨어진다! 절반은 보이지 않는다!`, `${m.name}'s ${sg.name}! For ${sg.turns} turns ${sg.what} strikes anywhere, and half of it is unseen!`);
     }
     if (sg.kind === 'shadow') { // gone into the dark; next turn it bursts out of the shadow of one of the team
       const t = choice(team.filter((a) => !a.army).concat(team.filter((a) => a.isPlayer)));
@@ -1315,11 +1319,11 @@ export class Dungeon {
   sigStep(e, slot = 'sigRun') {
     const run = e[slot], sg = run.sg, m = e.mon;
     if (run.rain) return true; // it falls by itself (updateFire)
-    if (run.hidden) { // lightning out of nowhere: a share of the floor, nothing marked beforehand
-      const tiles = this.hiddenTiles(e, sg);
+    if (run.hidden) { // lightning out of nowhere: a share of the floor, chosen the turn before with half of it marked
+      const tiles = run.next || this.hiddenTiles(e, sg);
       this.step(() => { this.boltsAt(tiles); this.shake = 0.3; sfx('super'); }, 0.25);
       this.strike(e, { tiles, name: sg.name, dmg: run.dmg, status: sg.status, statusChance: sg.chance });
-      if (--run.left > 0) return true;
+      if (--run.left > 0) { this.hiddenNext(e, run); return true; }
       this.sigOver(e, slot);
       return true;
     }
@@ -1389,6 +1393,13 @@ export class Dungeon {
     const p = this.player, R = this.arena ? this.rooms[0] : { x: p.x - 9, y: p.y - 6, w: 19, h: 13 }, set = new Set();
     for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) if (this.walk(x, y) && !(x === e.x && y === e.y) && Math.random() < sg.share) set.add(y * W + x);
     return set;
+  }
+  // Fusion Bolt's next turn: where it will strike, and the half of those tiles the team is shown (sg.seen; marked like
+  // any blast's, so teammates step off them too). Up to 1.27 nothing was shown at all, which was too hard.
+  hiddenNext(e, run) {
+    const sg = run.sg;
+    run.next = this.hiddenTiles(e, sg);
+    run.tele = { tiles: new Set([...run.next].filter(() => Math.random() < (sg.seen ?? 0.5))), turns: 1, name: sg.name, dmg: run.dmg, color: TYPE_COLORS[sg.type], fx: 'storm' };
   }
   // lightning on show: a jagged bolt falling on each of these tiles for a moment
   boltsAt(tiles) { for (const k of tiles) this.bolts.push({ x: k % W, y: Math.floor(k / W), t: 0.28 }); }
@@ -1703,13 +1714,15 @@ export class Dungeon {
   }
   afterItem() { this.endTurn(() => {}); }
   // a Revive (quests.js useItem): the fallen teammate gets back up beside the leader; one a run
+  // how many Revives a run here takes (quests.js useItem): one, two against Kyurem (def.revives), any number in the Boss Tower (1.28)
+  get reviveCap() { return this.def.tower ? Infinity : this.def.revives || 1; }
   reviveMate(m, pct) {
     m.hp = Math.max(1, Math.floor(m.maxhp * pct)); m.status = null; m.stages = {};
     this.mates = this.mates.filter((a) => a.mon !== m);
     this.ents = this.ents.filter((a) => a.mon !== m);
     const [x, y] = this.freeNear(this.player.x, this.player.y);
     this.mates.push(this.addEnt(m, x, y, 'ally'));
-    this.revived = true;
+    this.revivedN = (this.revivedN || 0) + 1;
     this.msg(tr(`${m.name}이(가) 기운을 되찾고 일어났다!`, `${m.name} got back on its feet!`), COL.green);
     sfx('heal');
   }
@@ -1785,7 +1798,7 @@ export class Dungeon {
     if (key === 'quest') return questMenu();
     if (key === 'tag') return this.tag();
     if (key === 'party') return this.msg(tr('던전에서는 동료를 바꿀 수 없다. 마을이나 세계 지도에서 P를 누르자.', 'You can\'t swap companions in a dungeon. Press P in town or on the world map.'), COL.red);
-    const L = this.moveList(), t = input.tap(L.x, L.y, L.w, L.h); // a tap on the move list uses that move
+    const L = this.moveList(), t = !touchUI && input.tap(L.x, L.y, L.w, L.h); // a tap on the move list uses that move (a phone has its buttons)
     if (t && L.n) return this.playerAct('move-skill', clamp(Math.floor((t.y - L.y - HUD_LIST.top) / L.row), 0, L.n - 1));
     for (let k = 0; k < 4; k++) if (input.hit('m' + (k + 1))) return this.playerAct('move-skill', k);
     if (input.hit('ok')) return this.playerAct('basic');
@@ -1825,7 +1838,7 @@ export class Dungeon {
     if (this.altar && !this.lit && on(this.altar)) { this.pendingFlute = true; return true; }
     return false;
   }
-  get padKeys() { return this.arena ? ['menu', 'quest'] : ['menu', 'quest', 'map']; } // the touch menu panel's game buttons
+  get padKeys() { return this.arena ? ['menu', 'quest', 'rest'] : ['menu', 'quest', 'map', 'rest']; } // the touch menu panel's game buttons
   // the move list in the bottom-right corner (drawUI), whose rows a tap uses like Q W E R
   moveList() { const n = this.player.mon.moves.length, { w, row, top, bottom } = HUD_LIST, h = n * row + top + bottom; return { n, row, w, h, x: VW - 4 - w, y: VH - 8 - h }; }
   menu() {
@@ -1849,17 +1862,20 @@ export class Dungeon {
     // a boss's town battle looks half way to the boss (within reason), along a line a little above the screen's middle: the
     // windows take more of the lower half, and so the leader and the boss both stand where none covers them
     const foe = T && this.boss, fx = p.vx + (foe ? clamp((foe.vx - p.vx) / 2, -4, 4) : 0), fy = p.vy + (foe ? clamp((foe.vy - p.vy) / 2, -2.5, 2.5) : 0);
-    let camX = R ? R.x * TILE + (R.w * TILE - VW) / 2 : Math.round(fx * TILE + 12 - VW / 2);
+    // (G.W: the field's width, the whole of a phone's screen. A boss's arena keeps to the UI's 480, clear of the phone's
+    // buttons: every tile of it matters, and centred on the screen its two right columns lay under them; the wall beyond
+    // shows there instead, updateVis)
+    let camX = R ? R.x * TILE + Math.round((R.w * TILE - VW) / 2) : Math.round(fx * TILE + 12 - G.W / 2);
     let camY = R ? R.y * TILE + (R.h * TILE - VH) / 2 : Math.round(fy * TILE + 12 - (foe ? 120 : VH / 2));
     if (T) { // a town battle: the camera stays over the town (a Black town smaller than the battle window ends at its edge)
       const mw = Math.min(W, T.W - this.crop[0]) * TILE, mh = Math.min(H, T.H - this.crop[1]) * TILE;
-      camX = mw > VW ? clamp(camX, 0, mw - VW) : (mw - VW) / 2;
+      camX = mw > G.W ? clamp(camX, 0, mw - G.W) : (mw - G.W) / 2;
       camY = mh > VH ? clamp(camY, 0, mh - VH) : (mh - VH) / 2;
     }
     camX += sh; camY -= sh;
-    c.fillStyle = '#0b0a10'; c.fillRect(0, 0, VW, VH);
+    c.fillStyle = '#0b0a10'; c.fillRect(0, 0, G.W, VH);
     const x0 = Math.max(0, Math.floor(camX / TILE)), y0 = Math.max(0, Math.floor(camY / TILE));
-    const x1 = Math.min(W - 1, x0 + Math.ceil(VW / TILE) + 1), y1 = Math.min(H - 1, y0 + Math.ceil(VH / TILE) + 1);
+    const x1 = Math.min(W - 1, x0 + Math.ceil(G.W / TILE) + 1), y1 = Math.min(H - 1, y0 + Math.ceil(VH / TILE) + 1);
     if (!this.bg) this.prerender();
     c.save(); c.translate(-camX, -camY);
     if (this.bg) drawSeen(c, this.bg, camX, camY);
@@ -1925,11 +1941,11 @@ export class Dungeon {
     c.fillStyle = 'rgba(5,4,10,0.55)';
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (this.seen[y][x] && !this.vis[y][x]) c.fillRect(x * TILE - camX, y * TILE - camY, TILE, TILE);
     const tint = this.stage?.tint ?? this.def.tint;
-    if (tint) { c.fillStyle = tint; c.fillRect(0, 0, VW, VH); }
-    if (this.lightFx) { c.fillStyle = `rgba(255,238,170,${0.55 * Math.min(1, this.lightFx.t)})`; c.fillRect(0, 0, VW, VH); } // the flute's light
+    if (tint) { c.fillStyle = tint; c.fillRect(0, 0, G.W, VH); }
+    if (this.lightFx) { c.fillStyle = `rgba(255,238,170,${0.55 * Math.min(1, this.lightFx.t)})`; c.fillRect(0, 0, G.W, VH); } // the flute's light
     if (this.timeFx) { // Roar of Time: the world tinted blue, clock rings spreading from Dialga
       const t = this.timeFx, x = t.x * TILE + 12 - camX, y = t.y * TILE + 8 - camY;
-      c.fillStyle = `rgba(60,110,255,${0.32 * t.t})`; c.fillRect(0, 0, VW, VH);
+      c.fillStyle = `rgba(60,110,255,${0.32 * t.t})`; c.fillRect(0, 0, G.W, VH);
       c.strokeStyle = `rgba(200,225,255,${t.t})`; c.lineWidth = 2;
       for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(x, y, (1 - t.t) * 260 + i * 26, 0, Math.PI * 2); c.stroke(); }
     }
@@ -2169,18 +2185,23 @@ export class Dungeon {
       ui.rect(P.x + u1(3.4), y + u1(5.9), (P.w - u1(6.8)) * f, u1(1), f > 0.5 ? COL.hp : f > 0.2 ? COL.hpLow : COL.hpCrit);
     });
     // moves
+    // (a phone shows them on its Q W E R buttons instead, with each move's range: core.js padMoves, 1.28. Up to 1.27
+    // the list lay over the field there too, beside buttons that said only their letter)
     const mv = this.player.mon.moves, L = this.moveList(), u = (n) => n * HUD_K;
-    this.win(L.x, L.y, L.w, L.h, { accent: false }, HUD_K);
-    mv.forEach((m, k) => {
-      const d = DEX.moves[m.id], y = L.y + HUD_LIST.top + k * L.row;
-      ui.rect(L.x + u(4), y + u(1), u(3), u(10), TYPE_COLORS[d.type]);
-      ui.text(`${'QWER'[k]} ${d.name}`, L.x + u(10), y, { size: HUD_TEXT, color: m.pp ? COL.ink : '#a99' });
-      ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, L.x + L.w - u(6), y, { size: HUD_TEXT, align: 'right', color: COL.ink2 });
-    });
+    if (touchUI) G.padMoves = mv.map((m) => ({ name: DEX.moves[m.id].name, pp: m.pp, max: this.player.mon.maxPP(m.id), color: TYPE_COLORS[DEX.moves[m.id].type], reach: moveReach(m.id) }));
+    else {
+      this.win(L.x, L.y, L.w, L.h, { accent: false }, HUD_K);
+      mv.forEach((m, k) => {
+        const d = DEX.moves[m.id], y = L.y + HUD_LIST.top + k * L.row;
+        ui.rect(L.x + u(4), y + u(1), u(3), u(10), TYPE_COLORS[d.type]);
+        ui.text(`${'QWER'[k]} ${d.name}`, L.x + u(10), y, { size: HUD_TEXT, color: m.pp ? COL.ink : '#a99' });
+        ui.text(`${m.pp}/${this.player.mon.maxPP(m.id)}`, L.x + L.w - u(6), y, { size: HUD_TEXT, align: 'right', color: COL.ink2 });
+      });
+    }
     // messages: a long one wraps to the panel's width (worked out once per text and width; a language switch replaces
     // it), and two lines show at most: the newest message, and the one before it if it fits whole (a sentence cut in half
     // reads wrong). On a phone the panel starts right of the pad and stops short of the move list.
-    const lx = 6 + G.touchL, pw = Math.min(300, VW - 158 - lx) * HUD_K, ww = pw - u(12), rowH = u(13), rows = [];
+    const lx = 6 + G.touchL, pw = Math.min(300, VW - (touchUI ? 12 : 158) - lx) * HUD_K, ww = pw - u(12), rowH = u(13), rows = [];
     for (const m of this.msgs.filter((q) => q.t > 0 && q.at <= G.time).reverse()) {
       if (m.wrapOf !== ww + m.text) { m.wrapOf = ww + m.text; m.rows = ui.wrap(m.text, ww, HUD_TEXT); }
       if (rows.length + m.rows.length > 2) {
@@ -2197,13 +2218,15 @@ export class Dungeon {
     }
     // minimap (not needed in the one-room boss arena)
     if (this.showMap && !this.arena) {
-      const s = 2, mx = VW - W * s - 8, my = 36;
+      // two screen pixels a tile under the goal box; on a phone it fits the free half beside the Menu and Tab buttons
+      // instead, off the field's middle (G.mapSlot, 1.28), its marks to the same scale
+      const M = touchUI && G.mapSlot, s = M ? Math.min((M.w - 4) / W, (M.h - 4) / H) : 2, mx = M ? M.x + (M.w - W * s) / 2 : VW - W * s - 8, my = M ? M.y + (M.h - H * s) / 2 : 36;
       const c = ui.c;
-      c.fillStyle = 'rgba(10,10,20,0.45)'; c.fillRect(mx - 2, my - 2, W * s + 4, H * s + 4);
+      c.fillStyle = M ? 'rgba(10,10,20,0.6)' : 'rgba(10,10,20,0.45)'; c.fillRect(mx - 2, my - 2, W * s + 4, H * s + 4);
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (this.seen[y][x] && this.grid[y][x]) { c.fillStyle = 'rgba(160,200,255,0.55)'; c.fillRect(mx + x * s, my + y * s, s, s); }
-      if (this.stairs && this.seen[this.stairs[1]][this.stairs[0]]) { c.fillStyle = '#7fff7f'; c.fillRect(mx + this.stairs[0] * s - 1, my + this.stairs[1] * s - 1, 4, 4); }
-      for (const it of this.items) if (this.seen[it.y][it.x]) { c.fillStyle = it.quest ? '#ff7f7f' : '#e0d070'; c.fillRect(mx + it.x * s, my + it.y * s, 2, 2); }
-      for (const e of this.ents) if (e.alive && this.vis[e.y][e.x]) { c.fillStyle = e.team === 'ally' ? (e.isPlayer ? '#ffe04a' : '#7fd0ff') : e.team === 'npc' ? '#7fa0ff' : '#ff5a4a'; c.fillRect(mx + e.x * s - 1, my + e.y * s - 1, 3, 3); }
+      if (this.stairs && this.seen[this.stairs[1]][this.stairs[0]]) { c.fillStyle = '#7fff7f'; c.fillRect(mx + this.stairs[0] * s - s / 2, my + this.stairs[1] * s - s / 2, s * 2, s * 2); }
+      for (const it of this.items) if (this.seen[it.y][it.x]) { c.fillStyle = it.quest ? '#ff7f7f' : '#e0d070'; c.fillRect(mx + it.x * s, my + it.y * s, s, s); }
+      for (const e of this.ents) if (e.alive && this.vis[e.y][e.x]) { c.fillStyle = e.team === 'ally' ? (e.isPlayer ? '#ffe04a' : '#7fd0ff') : e.team === 'npc' ? '#7fa0ff' : '#ff5a4a'; c.fillRect(mx + e.x * s - s / 2, my + e.y * s - s / 2, s * 1.5, s * 1.5); }
     }
     // boss bars: right of the party panel, a pair side by side; over the minimap, so a long note stays clear (1.19)
     const bars = this.bosses.filter((b) => b.alive), bw = bars.length > 1 ? 140 : 180;
@@ -2220,7 +2243,7 @@ export class Dungeon {
       ui.panel(VW / 2 - tw / 2, 52, tw, 18, { accent: false, fill: '#ffe9c8' });
       ui.text(txt, VW / 2, 56, { align: 'center', bold: true, color: COL.red });
     }
-    if (!rows.length && prefs.hints) ui.text(touchUI ? tr('Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴', 'Z attack · QWER moves · Tab tag · A rest · X menu') : tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8 + G.touchL, VH - 12, { size: 9, color: '#fff', shadow: true });
+    if (!rows.length && prefs.hints) ui.text(touchUI ? tr('Z 공격 · QWER 기술 · Tab 태그 · X 메뉴', 'Z attack · QWER moves · Tab tag · X menu') : tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8 + G.touchL, VH - 12, { size: 9, color: '#fff', shadow: true });
   }
   // a boss's bar: name and level (a star per later form), phase pips, HP, and below it what it is about to do
   drawBossBar(b, bx, w, ny) {
@@ -2236,7 +2259,7 @@ export class Dungeon {
       : roar ? [tr(`[!] ${roar.name} — 다음 턴, 모두 HP ${Math.round(roar.cut * 100)}% 감소`, `[!] ${roar.name} — next turn, everyone loses ${Math.round(roar.cut * 100)}% HP`), '#8ab4ff']
         : rain?.sg.kind === 'wave' ? [tr(`[!] ${names} — 벽의 빈틈으로! ${Math.max(1, Math.ceil(rain.left))}초`, `[!] ${names} — to the gap! ${Math.max(1, Math.ceil(rain.left))}s`), '#7cffb0']
         : rain ? [tr(`[!] ${names} — 멈추지 말고 움직여라! ${Math.max(1, Math.ceil(rain.left))}초`, `[!] ${names} — keep moving! ${Math.max(1, Math.ceil(rain.left))}s`), '#ff8a3a']
-          : hidden ? [tr(`[!] ${names} — 보이지 않는 번개! ${hidden.left}턴`, `[!] ${names} — unseen lightning! ${hidden.left} turn(s)`), '#ffe24a']
+          : hidden ? [tr(`[!] ${names} — 번개의 절반은 보이지 않는다! ${hidden.left}턴`, `[!] ${names} — half the lightning is unseen! ${hidden.left} turn(s)`), '#ffe24a']
             : runs.length > 1 ? [tr(`[!] ${names} — 붉은 칸 밖으로!`, `[!] ${names} — leave the red tiles!`), '#ff5a3a']
         : b.tele && beam ? [tr(`[!] ${beam.name} + ${b.tele.name} — 붉은 칸 밖으로!`, `[!] ${beam.name} + ${b.tele.name} — leave the red tiles!`), '#ff5a3a']
           : tele ? [tr(`[!] ${tele.name} — 붉은 칸 밖으로! ${tele.turns}턴 뒤`, `[!] ${tele.name} — leave the red tiles! ${tele.turns} turn(s)`), tele.turns <= 1 ? '#ff5a3a' : '#ffb070']

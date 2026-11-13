@@ -1,5 +1,5 @@
 // Hub town for the current era: generated tile map + Blender-rendered buildings + NPCs.
-import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, touchUI, held } from './core.js';
+import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, setPref, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL, TMS, tmPrice, tmFits, moveUsable } from './game.js';
 import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content.js';
@@ -58,7 +58,7 @@ const TOWN_DIRS = ['left', 'right', 'up', 'down'], STEP = { left: [-1, 0], right
 const BG_CACHE = new Map(); // painted town grounds, most recently used last (Town.prerender)
 // whether a building or prop can show in the view at (vx, vy) (pixels, town coordinates). Images reach at most about
 // eight tiles beside and above their footprint (the palace is 199x185), so the rest is skipped instead of drawn off-screen.
-export const objInView = (o, vx, vy) => (o.tx + o.fw + 9) * TILE >= vx && (o.tx - 9) * TILE <= vx + VW && (o.ty + o.fd + 1) * TILE >= vy && (o.ty + o.fd - 9) * TILE <= vy + VH;
+export const objInView = (o, vx, vy) => (o.tx + o.fw + 9) * TILE >= vx && (o.tx - 9) * TILE <= vx + G.W && (o.ty + o.fd + 1) * TILE >= vy && (o.ty + o.fd - 9) * TILE <= vy + VH;
 
 // A boss's form the games draw with a picture this one has no file for (Black and White Kyurem: Pokémon Black holds only
 // Kyurem's own): its box icon with the greys moved to another range of light (lo..hi, cast: the tint of that grey) and its
@@ -949,6 +949,8 @@ export class Town {
   }
   update(dt) {
     if (G.overlays.length) { this.tapDir = null; return; }
+    // a tap or click on the goal (under the place's name) folds it to its title beside that name, and opens it again (kept for next time; 1.28)
+    if (this.goalBox && input.tap(...this.goalBox)) { setPref('goalFold', !prefs.goalFold); sfx('cursor'); }
     // arrows: the one pressed last leads while it is held (holding ← and pressing ↑ turns up; up to 1.13 left beat
     // right beat up beat down), and one pressed while a step plays out, however briefly, takes the next step
     for (const k of TOWN_DIRS) if (input.pressed.has(k)) { this.dirs = (this.dirs || []).filter((d) => d !== k).concat(k); this.tapDir = k; }
@@ -1295,27 +1297,27 @@ export class Town {
     // and the view may rise as far into the picture's top margin (up to 1.13 it framed the flat place, so on Compiègne's
     // hill the team stood near the screen's top edge and in the top rows partly above it)
     const L = this.bwmap ? Math.min(this.liftAt(this.vx, this.vy), this.bwmap.oy) : 0;
-    const camX = clamp(this.vx * TILE + 12 - VW / 2, 0, this.W * TILE - VW), camY = clamp(this.vy * TILE + 12 - L - VH / 2, -L, this.H * TILE - VH);
+    const mw = this.W * TILE, camX = mw > G.W ? clamp(this.vx * TILE + 12 - G.W / 2, 0, mw - G.W) : (mw - G.W) / 2, camY = clamp(this.vy * TILE + 12 - L - VH / 2, -L, this.H * TILE - VH);
     this.cam = [camX, camY];
     if (!this.bg) this.prerender();
-    c.fillStyle = '#20301c'; c.fillRect(0, 0, VW, VH);
+    c.fillStyle = '#20301c'; c.fillRect(0, 0, G.W, VH);
     c.save(); c.translate(-Math.round(camX), -Math.round(camY));
     if (this.bwmap) { // the town's picture, tile row 0 at its row oy
       const im = img(`bw/towns/${this.def.bw}.png`), oy = this.bwmap.oy, x0 = Math.max(0, Math.floor(camX)), y0 = Math.max(0, Math.floor(camY + oy));
-      if (ready(im)) { const w = Math.min(im.width - x0, VW + 1), h = Math.min(im.height - y0, VH + 1); if (w > 0 && h > 0) c.drawImage(im, x0, y0, w, h, x0, y0 - oy, w, h); }
+      if (ready(im)) { const w = Math.min(im.width - x0, G.W + 1), h = Math.min(im.height - y0, VH + 1); if (w > 0 && h > 0) c.drawImage(im, x0, y0, w, h, x0, y0 - oy, w, h); }
     } else if (this.bg) drawSeen(c, this.bg, Math.round(camX), Math.round(camY));
     // water shimmer
     if (this.layout) {
       c.fillStyle = 'rgba(255,255,255,0.3)';
       const f = Math.floor(G.time * 2);
-      for (const k of this.waterTiles) if ((k * 7 + f) % 11 === 0) { const x = (k % this.W) * TILE, y = Math.floor(k / this.W) * TILE; if (x > camX - TILE && x < camX + VW && y > camY - TILE && y < camY + VH) c.fillRect(x + ((k * 5 + f * 3) % 16), y + ((k * 3) % 18) + 3, 6, 1); }
+      for (const k of this.waterTiles) if ((k * 7 + f) % 11 === 0) { const x = (k % this.W) * TILE, y = Math.floor(k / this.W) * TILE; if (x > camX - TILE && x < camX + G.W && y > camY - TILE && y < camY + VH) c.fillRect(x + ((k * 5 + f * 3) % 16), y + ((k * 3) % 18) + 3, 6, 1); }
     } else if (this.def.biome === 'coast') {
       c.fillStyle = 'rgba(255,255,255,0.35)';
       for (let i = 0; i < 40; i++) { const x = (i * 97 + Math.floor(G.time * 12) * 3) % (this.W * TILE), y = (this.H - 6) * TILE + (i * 53) % (5 * TILE); c.fillRect(x, y, 6, 1); }
     }
     if (this.gate) this.drawGate(c);
     const list = [], near = [];
-    for (const o of this.objs) if (o.atlas ? o.x + o.w >= camX && o.x <= camX + VW && o.y + o.h >= camY && o.y <= camY + VH : objInView(o, camX, camY)) near.push(o), list.push({ base: o.base, draw: () => {
+    for (const o of this.objs) if (o.atlas ? o.x + o.w >= camX && o.x <= camX + G.W && o.y + o.h >= camY && o.y <= camY + VH : objInView(o, camX, camY)) near.push(o), list.push({ base: o.base, draw: () => {
       if (o.atlas) { const at = img(o.atlas); if (ready(at)) c.drawImage(at, o.sx, o.sy, o.w, o.h, o.x, o.y, o.w, o.h); return; }
       const im = img(o.img);
       if (!ready(im)) return;
@@ -1344,9 +1346,9 @@ export class Town {
     // second picture lies exactly on the first and changes nothing
     for (const t of team) if (near.some((o) => o.base > t.base && this.covers(o, t.x, t.y))) t.draw({ alpha: 0.5, noShadow: true });
     c.restore();
-    if (this.B.tint) { c.fillStyle = this.B.tint; c.fillRect(0, 0, VW, VH); }
+    if (this.B.tint) { c.fillStyle = this.B.tint; c.fillRect(0, 0, G.W, VH); }
     if (S.night) {
-      c.save(); c.globalCompositeOperation = 'multiply'; c.fillStyle = 'rgb(92,100,165)'; c.fillRect(0, 0, VW, VH); c.restore();
+      c.save(); c.globalCompositeOperation = 'multiply'; c.fillStyle = 'rgb(92,100,165)'; c.fillRect(0, 0, G.W, VH); c.restore();
       c.save(); c.globalCompositeOperation = 'lighter';
       for (const o of this.objs) if (o.name === 'lantern' || o.name === 'lamp' || o.name === 'campfire') {
         const x = o.tx * TILE + 12 - camX, y = o.ty * TILE - camY;
@@ -1438,20 +1440,35 @@ export class Town {
   drawUI() {
     // header & tracker
     const era = this.era, goal = trackerText();
-    // the era's title in a box as wide as it needs, up to the goal box, wrapping beyond that (up to 1.13 a fixed 150 px
-    // box, which 30 English and 7 Korean titles ran out of)
-    const room = (goal ? VW - 186 : VW) - 18, year = shownYear(), head = tr(`${year}년 · ${era.title}`, `${year} · ${era.title}`);
+    // The era's title in a box as wide as it needs, wrapping beyond a little over half the screen (up to 1.13 a fixed
+    // 150 px box, which 30 English and 7 Korean titles ran out of), the place under it, and the goal under the place
+    // (1.28; up to 1.27 the goal had a box of its own at the top right, which covered too much of a phone's screen). A
+    // tap on the goal folds it to its title beside the place's name, and a tap there opens it again (update, prefs.goalFold).
+    const room = VW - 204, year = shownYear(), head = tr(`${year}년 · ${era.title}`, `${year} · ${era.title}`);
     let heads = ui.wrap(head, room - 16, 11, true);
     if (heads.length > 2) heads = [heads[0], ui.fit(heads.slice(1).join(' '), room - 16, 11, true)];
-    const sub = ui.fit(this.def.name + (S.night ? tr(' (밤)', ' (night)') : ''), room - 16, 9);
-    ui.panel(6, 6, Math.min(room, Math.max(150, ui.measure(sub, 9) + 16, ...heads.map((l) => ui.measure(l, 11, true) + 16))), 18 + heads.length * 12);
+    const label = goal && (mainStep()?.final && !eraComplete() ? tr('★ 최종 퀘스트', '★ Final Quest') : tr('▶ 목표', '▶ Goal'));
+    const fold = goal && prefs.goalFold, more = fold ? tr('펼치기', 'Show') : tr('접기', 'Hide'), tagW = goal ? ui.measure(label, 9, true) + ui.measure(more, 9) + 8 : 0;
+    const sub = ui.fit(this.def.name + (S.night ? tr(' (밤)', ' (night)') : ''), room - 16 - (fold ? tagW + 10 : 0), 9), subW = ui.measure(sub, 9);
+    let w = Math.min(room, Math.max(150, subW + 16 + (fold ? tagW + 10 : 0), ...heads.map((l) => ui.measure(l, 11, true) + 16)));
+    const lines = goal && !fold ? ui.wrap(goal, Math.max(w, 186) - 16, 9) : [];
+    if (lines.length) w = Math.max(w, Math.min(room, Math.max(tagW, ...lines.map((l) => ui.measure(l, 9))) + 16));
+    const y1 = 12 + heads.length * 12, y2 = y1 + 13; // the place's line, the goal's first
+    ui.panel(6, 6, w, 18 + heads.length * 12 + (lines.length ? 15 + lines.length * 11 : 0));
     heads.forEach((l, i) => ui.text(l, 14, 12 + i * 12, { bold: true }));
-    ui.text(sub, 14, 12 + heads.length * 12, { size: 9, color: COL.ink2 });
-    if (goal) {
-      const lines = ui.wrap(goal, 170, 9);
-      ui.panel(VW - 186, 6, 180, 17 + lines.length * 11); // room below the last row for its descenders
-      ui.text(mainStep()?.final && !eraComplete() ? tr('★ 최종 퀘스트', '★ Final Quest') : tr('▶ 목표', '▶ Goal'), VW - 180, 11, { size: 9, color: COL.red, bold: true });
-      lines.forEach((l, i) => ui.text(l, VW - 180, 22 + i * 11, { size: 9 }));
+    ui.text(sub, 14, y1, { size: 9, color: COL.ink2 });
+    this.goalBox = null;
+    if (fold) { // beside the place's name
+      const x = 14 + subW + 10;
+      this.goalBox = [x - 4, y1 - 3, tagW + 8, 14];
+      ui.text(label, x, y1, { size: 9, color: COL.red, bold: true });
+      ui.text(more, x + tagW, y1, { size: 9, color: COL.ink2, align: 'right' });
+    } else if (goal) { // under it
+      this.goalBox = [6, y2 - 3, w, 15 + lines.length * 11];
+      ui.rect(12, y2 - 3, w - 12, 1, COL.paper2);
+      ui.text(label, 14, y2, { size: 9, color: COL.red, bold: true });
+      ui.text(more, 6 + w - 8, y2, { size: 9, color: COL.ink2, align: 'right' });
+      lines.forEach((l, i) => ui.text(l, 14, y2 + 11 + i * 11, { size: 9 }));
     }
     ui.text(tr(`${S.money}냥`, `${S.money} nyang`), 14 + G.touchL, VH - 16, { size: 9, color: '#fff', shadow: true });
     if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 게임 메뉴 · Tab 교대 · 메뉴: 퀘스트 · 동료', 'Z talk · X game menu · Tab lead · Menu: quests · team') : tr('Z 조사 · X 메뉴 · Tab 교대 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · Tab lead · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });

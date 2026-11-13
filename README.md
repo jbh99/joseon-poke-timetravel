@@ -48,18 +48,17 @@
 ### 앱 화면과 조작
 
 - **화면**: 가로 화면 고정 · 전체 화면. 가운데에 게임, 왼쪽에 이동 패드, 오른쪽에 버튼이 놓여 게임 화면을 가리지 않습니다. 16:9나 태블릿처럼 네모난 화면에서는 게임 화면이 조금 좁아져 버튼 자리를 비웁니다(1.14).
-- **이동 패드**(왼쪽 아래 원): 손가락을 대고 밀면 그쪽으로 움직입니다. 던전에서는 대각선까지 8방향입니다.
+- **이동 패드**(왼쪽 아래 원): 손가락을 대고 밀면 그쪽으로 움직입니다. 화살표가 8개 그려져 있고, 던전에서는 대각선 화살표까지 모두 켜져 8방향으로 움직입니다(마을과 지도는 4방향이라 대각선 화살표가 흐립니다).
 - **버튼**: 키보드와 같은 글자가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다.
 
   | 버튼 | 기능 |
   |---|---|
   | **Z** 확인 · **X** 취소 | 조사·대화·공격·결정 / 취소 (마을과 던전에서는 게임 메뉴) |
-  | **Q W E R** (십자 배치) | 던전에서 기술 1~4. 드라스틱처럼 위 Q · 왼쪽 W · 오른쪽 E · 아래 R |
-  | **⇧** 방향만 | 누른 채로 패드를 밀면 제자리에서 방향만 바꿉니다 |
-  | **Tab** 태그 · **A** 쉬기 | 조종할 포켓몬 교대 / 누르고 있으면 턴 넘기기 (계단 위에서는 계단을 다시 물어요) |
-  | 왼쪽 위 **메뉴** | 십자 버튼과 따로 있는 버튼. 게임 메뉴 · 퀘스트 · 동료 · 던전 지도와 소리 · 속도(1→2→3배) · 멀티 · 구글 로그인 · English · 가이드를 한 화면에 엽니다 |
+  | **Q W E R** (십자 배치) | 던전에서 기술 1~4. 위 Q · 왼쪽 W · 오른쪽 E · 아래 R의 둥근 버튼마다 그 기술의 **이름 · 범위 · 남은 PP**가 적혀 있습니다 (던전 밖에서는 숨겨집니다) |
+  | **Tab** 태그 | 조종할 포켓몬 교대. 한 턴 쉬기는 **메뉴** 안에 있습니다 (키보드는 A) |
+  | 오른쪽 위 **메뉴** | 게임 메뉴 · 퀘스트 · 동료 · 던전 지도 · 한 턴 쉬기와 소리 · 속도(1→2→3배) · 멀티 · 구글 로그인 · English · 가이드를 한 화면에 엽니다 |
 
-- 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수 있고, 긴 목록은 손가락으로 끌어 넘깁니다. 던전 오른쪽 아래의 기술 목록을 눌러도 그 기술을 씁니다.
+- 세계 지도의 장소, 대화 선택지, 메뉴는 화면을 직접 눌러 고를 수 있고, 긴 목록은 손가락으로 끌어 넘깁니다. 게임은 화면 전체를 쓰고, 오른쪽 버튼들은 그 위에 겹쳐 있습니다.
 - 휴대폰의 **뒤로 가기**는 X와 같습니다. 가이드나 멀티 창은 닫고, 타이틀 화면에서 누르면 앱을 끝냅니다.
 - 블루투스·USB 게임패드: A 확인 · B 메뉴 · X/Y/LB/RB 기술 1~4 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트 · 십자키나 왼쪽 스틱 이동.
 - 앱을 내려 두면 음악이 멈춥니다. 기록은 휴대폰 안에 저장되고, **구글 로그인**을 하면 내 구글 드라이브의 앱 전용 숨김 폴더를 거쳐 PC 웹 버전과 같은 세이브로 이어집니다(난이도마다 따로).
@@ -281,7 +280,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - **기술 배우기**: 레벨이 올라 새 기술을 배울 때 기술이 이미 4개면, 본편 포켓몬처럼 **잊을 기술을 고르거나 배우지 않을** 수 있습니다. 마을에서 X 메뉴 → **포켓몬** → Z → **기술 배우기**를 고르면 지금 레벨까지 배우는 기술을 언제든 배웁니다. 잊었거나 건너뛴 기술도 여기서 다시 배우고, 앞으로 배울 기술과 그 레벨도 볼 수 있습니다.
 - **PP 2배**: 1.9부터 내 포켓몬(파티와 동료 명부)의 기술 PP는 원작의 **2배**입니다 (예: 10만볼트 15 → 30). 야생 포켓몬과 보스는 원작 그대로이고, 예전 기록을 불러오면 남아 있던 PP도 2배가 됩니다.
 - **PP 회복**: 던전을 나오면(클리어·실패·탈출 모두) 파티의 기술 PP가 모두 찹니다. 던전 안에서는 인삼으로, 마을에서는 주막에서 쉬어도 회복됩니다. 독·화상·마비 같은 **상태 이상**은 마을에 돌아오면 모두 낫습니다.
-- **기술 조준**: 우리 편 기술은 3칸 안에 적이 있으면 방향과 상관없이 그 적을 노려 **반드시 맞힙니다**. 더 멀면 바라보는 방향 직선으로 나갑니다(물리 기술은 4칸, 특수 기술은 5칸). 야생 포켓몬의 기술은 직선 **4칸**까지만 닿습니다.
+- **기술 조준**: 우리 편 기술은 4칸 안에 적이 있으면 방향과 상관없이 그 적을 노려 **반드시 맞힙니다**. 더 멀면 바라보는 방향 직선으로 나갑니다(물리 기술은 4칸, 특수 기술은 5칸). 야생 포켓몬의 기술은 직선 **4칸**까지만 닿습니다.
 - **리더 뱃지와 동료 따라오기**: 지금 조종하는 포켓몬은 머리 위와 팀 창의 이름 옆에 **리더 뱃지**(왕관 방패)를 답니다. 파트너와 동료는 리더 곁 4칸 안에서 싸우고, 통로에서는 앞 동료 바로 뒤로 줄지어 따라오며, 시야 밖으로 떨어지면 리더 곁으로 따라붙습니다.
 - **보스방 부활**: 보스가 있는 층에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 보스의 기술과 예고 공격은 보스에게서 4칸까지만 닿고(전설의 전용기는 싸움터 전체), 보스는 잠듦·얼음·독에 걸리지 않습니다. **전설의 포켓몬 보스**는 마비·화상까지 모든 상태 이상에 걸리지 않습니다.
 - **한 곳에 전설 하나**: 전설의 포켓몬은 장소마다 한 마리씩만 기다립니다. 아그놈 · 유크시 · 엠라이트는 각자의 장소(전라 우수영 · 규장각 · 탑골 공원)로 옮겨 가서, 메인 던전은 한 번 깨면 끝납니다. 마지막 퀘스트인 천관산과 보스 탑만은 층마다 다른 전설이 기다립니다. 놓친 전설도 전설이 없는 던전에만 다시 나타나고, 레지기가스는 1945년 이후 레지 줄기에서만 만납니다.
@@ -292,7 +291,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 ### 엽전과 상점
 - 엽전은 쓰러뜨린 적(레벨이 높을수록 많이, 보스는 10배), 바닥에 떨어진 엽전, **던전 클리어 보상**(층수 × 시대), 방(榜) 의뢰 보상으로 모읍니다.
 - 셋이 모두 쓰러지면 마을로 돌아오고 엽전의 10%(초반)~30%(후반)를 잃습니다 (챌린지에서는 그 여행이 끝납니다).
-- 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 **55%** + 상태 이상 회복), 주먹밥(HP 80 + 상태 이상 회복), 인삼(PP 회복), 탈출 부적, 돌팔매, 기력의 조각(1000냥: 쓰러진 포켓몬을 HP 절반으로 되살림, 던전 한 번에 하나).
+- 장터 도구: 오랭열매(HP 30 회복), 자뭉열매(최대 HP의 **55%** + 상태 이상 회복), 주먹밥(HP 80 + 상태 이상 회복), 인삼(PP 회복), 탈출 부적, 돌팔매, 기력의 조각(1000냥: 쓰러진 포켓몬을 HP 절반으로 되살림, 던전 한 번에 하나. 큐레무와의 싸움에서는 둘, 보스 탑에서는 제한 없음).
 - 1.10부터 상태 이상만 고치는 **약초**는 팔지 않고 던전 바닥에도 떨어져 있지 않습니다 (가지고 있던 약초는 한 개에 40냥으로 돌려받습니다). 1392년 「북악산 약초 캐기」 의뢰의 약초는 그 의뢰 동안 북악산에서만 나는 의뢰 물건입니다.
 - **기술머신**: 마을마다 보라색 디스크 표지를 단 **기술머신 상인**이 있습니다. 4세대 기술머신 가운데 이 게임에서 쓸 수 있는 55개를 팔고, 사는 자리에서 바로 가르쳐 줍니다(기술이 4개면 하나를 잊음). 센 기술(위력 80 이상)은 15000냥, 나머지는 10000냥입니다 (1.13부터, 전에는 3000냥 · 1000냥). 포켓몬 자신의 타입, 레벨업으로 배우는 기술의 타입, 노말 타입 기술머신을 쓸 수 있습니다.
 
@@ -319,6 +318,22 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동, Z 공격, QWER 기술, A 쉬기). 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 바뀐 점 (1.28)
+
+- **휴대폰: 화면 전체가 게임**: 오른쪽의 검은 띠가 사라지고 게임 화면이 화면 끝까지 넓어졌습니다. 버튼은 그 위에 겹쳐 있고, 메뉴 · 대화 · 목표 창은 버튼에 가리지 않는 자리에 그대로 있습니다. 던전과 마을이 가로로 그만큼 더 보입니다.
+- **휴대폰: 기술 버튼에 기술이 보입니다**: 십자로 놓인 둥근 Q · W · E · R 버튼이 조금 커지고 서로 간격이 벌어졌으며, 그 기술의 이름, 범위, 남은 PP가 적혀 있습니다. 화면 위에 따로 있던 기술 목록은 휴대폰에서 없어졌습니다. PP가 떨어진 기술은 흐리게 보입니다.
+- **휴대폰: A 쉬기 · ⇧ 방향만 버튼 제거**: 한 턴 쉬기는 메뉴 버튼 안으로 옮겼고, 방향만 바꾸는 버튼은 없앴습니다. 메뉴와 Tab(태그) 버튼은 오른쪽 위에 위아래로 놓이고 그 옆 빈자리에 던전 미니맵이 나오며, X와 Z 사이도 조금 벌렸습니다 (키보드 A · Shift, 게임패드 RT · LT는 그대로).
+- **목표는 장소 이름 아래에**: 마을의 목표가 오른쪽 위의 따로 뜬 창 대신 왼쪽 위 장소 이름 아래에 적힙니다. 누르면 접혀서 장소 이름 옆에 '목표 펼치기'만 남고, 다시 누르면 펼쳐집니다.
+- **휴대폰: 좁은 화면(16:9)**: 버튼 열이 좁은 화면에서는 메뉴 · Tab 버튼이 열 너비를 다 쓰고, 기술 버튼에는 이름과 남은 PP만 적힙니다(범위는 기술 메뉴의 설명에 있습니다). 미니맵은 화면 오른쪽 위 그대로입니다.
+- **휴대폰: 보스방**: 한 화면짜리 보스방은 버튼에 가리지 않는 자리에 그대로 있고, 버튼 아래에는 방 바깥의 벽이 보입니다.
+- **멀티플레이**: 휴대폰으로 들어온 손님의 쉬기도 메뉴 버튼 안에 있습니다. 화면이 넓은 휴대폰이 방장이어도 손님에게는 예전과 같은 16:9 화면이 보입니다.
+- **자동 조준 4칸**: 우리 편 기술이 방향과 상관없이 적을 노려 반드시 맞히는 거리가 3칸에서 **4칸**으로 늘었습니다.
+- **휴대폰: 이동 패드에 8방향 화살표**: 패드에 대각선 화살표 4개가 더 그려졌고, 던전에서는 8방향이 똑같이 45°씩이라 대각선으로 가기 쉬워졌습니다(전에는 대각선이 30°로 좁았습니다).
+- **기술 범위 설명**: 기술 설명에 범위가 적힙니다. 예: `노말 · 물리 위력 40 · 범위 직선 4칸`, `범위 주변 8칸`, `범위 자신`.
+- **크로스썬더(제크로무 · 큐레무)**: 보이지 않던 번개의 절반이 떨어지기 한 턴 전에 붉은 칸으로 보입니다. 나머지 절반은 여전히 보이지 않습니다.
+- **기력의 조각**: 큐레무와의 싸움에서는 2개까지, 보스 탑에서는 제한 없이 쓸 수 있습니다 (그 밖에는 던전 한 번에 하나 그대로).
+- **보스 탑 1~5층**: 둘씩 나오는 전설의 HP를 한 마리당 15% 낮췄습니다.
 
 ### 바뀐 점 (1.27)
 
@@ -502,6 +517,7 @@ docs/screenshots/       README 스크린샷
   - The First World War: 1914 Sarajevo (Nacrene City): Scolipede, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Gigalith · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Chandelure · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
   - The Second World War: 1939 Danzig (Nacrene City): Emboar, **Cobalion** (two phases) · 1940 Dunkirk (Driftveil City): Sawk, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, rising twice · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Darmanitan (two phases) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Volcarona (two phases) · 1942 Leningrad (Nacrene City): Haxorus, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion** (two phases), **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom**, rising twice, Samurott · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.28: on a phone the game takes the whole screen (the black strip at the right is gone: the field runs on under the buttons, the menus, dialogue and HUD stay clear of them), the Q W E R buttons carry each move's name, range and PP left (the list over the field is gone there), the A (rest) button moved into the Menu panel and the ⇧ (face only) button is gone; the minimap sits beside the Menu and Tab buttons. The town's goal is written under the place's name (no box of its own) and folds to a word beside that name on a tap. Move descriptions say their range (4-tile line, all around, self). The team's moves turn to a foe within 4 tiles (3 before), and the touch pad shows all eight arrows, each with its 45° in a dungeon. Half of Fusion Bolt's unseen lightning is marked a turn ahead. Two Revives may be used against Kyurem and any number in the Boss Tower, where each legend of a pair has 15% less HP.
   - 1.27: on the world line, only the Korean eras already seen through send their legends back as missed ones (not the eras still ahead, nor the one left with quests open), and a legend that has joined never offers to join again. Berlin (the world line's 1945) is drawn without its bridge: people on the road under it were drawn on its deck and could not be spoken to from there, and the final battle against Kyurem was fought over and under it; the battle now starts on open ground. Black Kyurem and White Kyurem keep a look of their own (dark with blue, pale with orange). Physical moves fly 4 tiles in a line (the tile in front before), special moves 5 (6 before). A Sling Stone deals its thrower's level + 5 (a flat 20 before). Oran and Sitrus Berries on a dungeon floor are the main games' pictures. The Vanilluxe of Stalingrad and Berlin are no longer named Vanillish in Korean.
   - 1.26: from 1945 on the Time Gate leads between Korea and the world at any time, quests done or not, and back into the town you left; the last quest's Dialga takes 25% with its Roar of Time instead of 33%; the black flecks on the maps of the 1950s and later are gone.
   - 1.25: Rayquaza has every stat 35% higher and a third phase built on Dragon Ascent, walls of wind that fly in tile by tile with a gap to reach; when it falls the team is restored and Deoxys (HP +40%) comes down in the same place. Hydreigon is a boss only once, in 1945; Chandelure, Sawk, Gigalith, Seismitoad, Emboar, Samurott, Scolipede and Haxorus took its quests, and Darmanitan (Zen Mode: Fire and Psychic, with Psychic moves) and Volcarona fight in two phases. Cobalion, Terrakion and Virizion fight in two phases in both their quests, every stat 20% higher. The team's HP panel is 20% larger, the blue mark over teammates is gone, Steel and Poison types can't be poisoned, and Reshiram, Zekrom and Kyurem are now said to rise twice, as they do.

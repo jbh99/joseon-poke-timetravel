@@ -103,7 +103,7 @@ export class Pokedex {
     if (c.x >= LIST.x && c.x < LIST.x + LIST.w && j >= 0 && j < ROWS && this.top + j < this.n) { const s = this.sel; this.sel = this.top + j; if (this.sel !== s) G.sfx?.('cursor'); }
   }
   drawUI() {
-    ui.rect(0, 0, VW, VH, COL.dim);
+    ui.rect(0, 0, G.W, VH, COL.dim);
     if (!this.data) { ui.panel(VW / 2 - 70, VH / 2 - 14, 140, 28); ui.text(tr('도감을 펼치는 중…', 'Opening the Pokédex...'), VW / 2, VH / 2 - 6, { align: 'center' }); return; }
     this.drawHeader();
     this.drawList();

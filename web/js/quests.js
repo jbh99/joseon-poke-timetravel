@@ -464,7 +464,7 @@ class Evolution {
     if (this.stage === 1 && this.t > 4 && (input.hit('ok') || input.tap(0, 0, VW, VH) || this.t > 8)) { this.done = true; this.cb(); }
   }
   drawUI() {
-    ui.rect(0, 0, VW, VH, '#141020');
+    ui.rect(0, 0, G.W, VH, '#141020');
     const sp = this.stage === 0 && Math.floor(this.t * (1 + this.t * 2.5)) % 2 ? this.from : this.to;
     const im = img(`poke/front/${sp}${this.mon.shiny ? 's' : ''}.png`);
     const c = ui.c;
@@ -541,7 +541,7 @@ class PartyView {
     return this.mode === 'moves' ? tr('↑↓ 기술 · Z 골라서 바꾸기 · X 돌아가기', '↑↓ move · Z pick to swap · X back') : tr('↑↓ 선택 · Z 기술 배우기·순서 바꾸기 · X 닫기', '↑↓ select · Z learn or reorder · X close');
   }
   drawUI() {
-    ui.rect(0, 0, VW, VH, COL.dim);
+    ui.rect(0, 0, G.W, VH, COL.dim);
     ui.rect(0, VH - 15, VW, 15, 'rgba(20,14,10,0.92)'); // the key hints' line, over the scene's own (the town's ran through them)
     // list
     ui.panel(8, 10, 142, 250);
@@ -813,7 +813,7 @@ function useItem(id, dungeon) {
   const down = (m) => !!dungeon && m.hp <= 0;
   if (d.revive) {
     if (!dungeon) return toast(tr('던전에서만 쓸 수 있다.', 'Only usable in dungeons.'));
-    if (dungeon.revived) return toast(tr('기력의 조각은 던전 한 번에 하나만 쓸 수 있다.', 'Only one Revive per dungeon run.'), COL.red);
+    if ((dungeon.revivedN || 0) >= dungeon.reviveCap) return toast(dungeon.reviveCap > 1 ? tr(`기력의 조각은 이 싸움에서 ${dungeon.reviveCap}개까지 쓸 수 있다.`, `Only ${dungeon.reviveCap} Revives in this battle.`) : tr('기력의 조각은 던전 한 번에 하나만 쓸 수 있다.', 'Only one Revive per dungeon run.'), COL.red);
     if (!S.party.some(down)) return toast(tr('쓰러진 포켓몬이 없다.', 'No one has fainted.'));
     return openMenu(S.party.map((m) => ({ label: m.name, right: down(m) ? tr('쓰러짐', 'Fainted') : `HP ${m.hp}/${m.maxhp}`, disabled: !down(m), fn: () => { takeItem(id); dungeon.reviveMate(m, d.revive); dungeon.afterItem(); } })),
       { title: tr('누구를 되살릴까?', 'Revive whom?'), x: 150, y: 80, sel: S.party.findIndex(down) });

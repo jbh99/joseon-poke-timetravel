@@ -1,6 +1,7 @@
 // The Boss Tower (보스 탑): once the journey's story is over (1979's last quest done), a tower rises on the last era's map
 // where nothing but legendary Pokémon wait, one stage a floor, ten floors, no wild Pokémon in between (dungeon.js
-// stages). Lesser legends come in pairs that cover each other's weaknesses and fight as they did in the story; the
+// stages). Lesser legends come in pairs that cover each other's weaknesses and fight as they did in the story, each with
+// 15% less HP (1.28); the
 // great ones come alone, 15% stronger in HP and attack, and Arceus, 15% stronger too, waits at the top. Nothing in the
 // tower can be caught. Between floors the team is restored (Dungeon.restoreTeam), and a later visit may start above
 // the highest floor cleared (S.flags.towerTop, scenes.js WorldMap).
@@ -14,13 +15,14 @@ const LATIAS = LATI(380, [296, 406, 94, 225], { name: K('미스트볼', 'Mist Ba
 const LATIOS = LATI(381, [295, 406, 94, 337], { name: K('라스트버지', 'Luster Purge'), every: 3, dmg: 0.32, pats: ['cross', 'x', 'far', 'rows'], type: 14 });
 
 const UP = 1.15; // the great legends' edge in the tower: HP and attack
+const PAIR_HP = 0.85; // two at once had too much HP between them (1.28): each of a pair has 15% less
 // a tower boss: the story's own (moves, blasts, later forms), at the team's level like Arceus, never joining
-const keeper = (b, k = 1) => ({ ...b, hp: b.hp * k, atk: b.atk * k, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, noJoin: true, noWander: true, say: [], after: [] });
+const keeper = (b, k = 1, h = 1) => ({ ...b, hp: b.hp * k * h, atk: b.atk * k, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, noJoin: true, noWander: true, say: [], after: [] });
 const narr = (ko, en) => ({ who: 'narr', text: K(ko, en) });
 const tip = (ko, en) => ({ who: 'partner', text: K(ko, en) });
 
 export function addTower(era, bossOf) {
-  const pair = (a, b, tiles, tint, say) => ({ bosses: [keeper(a), keeper(b)], tiles, tint, say });
+  const pair = (a, b, tiles, tint, say) => ({ bosses: [keeper(a, 1, PAIR_HP), keeper(b, 1, PAIR_HP)], tiles, tint, say });
   const one = (b, tiles, tint, say) => ({ boss: keeper(b, UP), tiles, tint, say });
   const stages = [
     pair(bossOf(145), bossOf(144), T.mountain, 'rgba(150,200,255,0.10)', [

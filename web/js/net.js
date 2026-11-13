@@ -2,7 +2,7 @@
 // The host's game stays the single source of truth: it streams its screen and sound to the guests,
 // and each guest steers one of the host's party Pokémon in dungeons (P2 = partner, P3 = third member).
 // Solo play never touches any of this; a solo game can open a room at any time and guests can leave freely.
-import { G, toast, COL } from './core.js';
+import { G, VW, toast, COL } from './core.js';
 import { tr } from './i18n.js';
 import { audioStream } from './audio.js';
 
@@ -107,7 +107,9 @@ export const NET = {
     this.media = s;
     return s;
   },
-  frame() { if (this.capture && this.guests.length) this.cctx.drawImage(G.screen, 0, 0, 960, 540); },
+  // the guests' picture is the UI's 480 x 270 of the host's screen: a phone host's canvas is wider (1.28), and the whole
+  // of it squeezed into 16:9 would be a quarter too narrow
+  frame() { if (this.capture && this.guests.length) this.cctx.drawImage(G.screen, 0, 0, Math.round(G.screen.width * VW / G.W), G.screen.height, 0, 0, 960, 540); },
   // guest side --------------------------------------------------------------------------------
   async join(code) {
     if (this.role) return;
