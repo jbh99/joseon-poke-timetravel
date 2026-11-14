@@ -1,12 +1,16 @@
 // Multiplayer panel (HTML, beside the canvas) and the guest's view: the host's streamed screen plus
 // keyboard / touch controls that are sent to the host as dungeon commands.
-import { G, APP, input, touchUI } from './core.js';
+import { G, APP, input, touchUI, prefs } from './core.js';
 import { tr, onLang } from './i18n.js';
 import { NET } from './net.js';
-import { unlockAudio, stopBgm } from './audio.js';
+import { unlockAudio, stopBgm, setMuted } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const DIRK = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+const STEP_EVERY = 90; // ms between the steps a held direction sends (a turn at the fastest game speed is about that long)
+// the ▶ button shows while a guest's picture is not playing, or plays without the sound the player wants
+const syncPlay = () => { const v = $('mp-video'); $('mp-play').hidden = !(NET.role === 'guest' && NET.remote) || (!v.paused && (!v.muted || prefs.muted)); };
+let letGo = () => {};
 
 export function initNetUI() {
   const panel = $('mp'), btn = $('btn-mp');
@@ -30,29 +34,44 @@ export function initNetUI() {
   });
   NET.onChange = render;
   onLang(render);
-  // guest controls: keys become commands for the Pokémon this player steers
-  let held = new Set(), timer = null;
+  // guest controls: keys become commands for the Pokémon this player steers.
+  // A direction pressed is one step; held, it walks on: the step goes again every STEP_EVERY ms, marked `rep`, and letting
+  // go tells the host to drop a repeat still waiting (net.js command). Up to 1.29 a held arrow sent one step where the
+  // keyboard repeats faster than the 60 ms below (Windows' usual 33 ms: each repeat put the send off again), and a held
+  // pad one step ever, so the whole game stood waiting for the guest's next press.
+  let held = new Set(), fresh = new Set(), timer = null, walk = null, walkDir = null;
+  const dirOf = (keys) => { let dx = 0, dy = 0; for (const k of keys) { dx += DIRK[k][0]; dy += DIRK[k][1]; } return [Math.sign(dx), Math.sign(dy)]; };
+  const step = (dx, dy) => { if (dx || dy) NET.send({ t: 'cmd', kind: 'move', arg: [dx, dy] }); };
+  const hold = (dx, dy) => {
+    if (!dx && !dy) { if (walk) { clearInterval(walk); walk = null; walkDir = null; NET.send({ t: 'cmd', kind: 'stop' }); } return; }
+    walkDir = [dx, dy];
+    walk ||= setInterval(() => NET.send({ t: 'cmd', kind: 'move', arg: walkDir, rep: true }), STEP_EVERY);
+  };
+  // everything held is let go: the window lost its keys (a key held through a window switch never says it was released:
+  // up to 1.29 it stayed "held" and bent the next arrow into a diagonal), or the stay in the room ended
+  letGo = () => { held.clear(); fresh.clear(); clearTimeout(timer); timer = null; hold(0, 0); };
+  addEventListener('blur', letGo);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
   addEventListener('keydown', (e) => {
     if (NET.role !== 'guest' || e.target === chat || e.target === $('mp-code')) return;
     const d = DIRK[e.code];
     if (d) {
-      e.preventDefault(); held.add(e.code);
-      clearTimeout(timer); // a short grace period lets two arrows combine into a diagonal
-      timer = setTimeout(() => {
-        let dx = 0, dy = 0;
-        for (const k of held) { dx += DIRK[k][0]; dy += DIRK[k][1]; }
-        if (dx || dy) NET.send({ t: 'cmd', kind: 'move', arg: [Math.sign(dx), Math.sign(dy)] });
-      }, 60);
+      e.preventDefault();
+      if (held.has(e.code)) return; // the keyboard's own repeats: the walk has its own pace
+      held.add(e.code); fresh.add(e.code);
+      clearTimeout(timer); // a short grace period lets two arrows combine into a diagonal (a tap shorter than it still counts)
+      timer = setTimeout(() => { timer = null; step(...dirOf(new Set([...held, ...fresh]))); fresh.clear(); hold(...dirOf(held)); }, 60);
       return;
     }
     const k = { KeyZ: ['basic'], Enter: ['basic'], Space: ['basic'], KeyA: ['wait'], KeyQ: ['move-skill', 0], KeyW: ['move-skill', 1], KeyE: ['move-skill', 2], KeyR: ['move-skill', 3] }[e.code];
     if (k) { e.preventDefault(); NET.send({ t: 'cmd', kind: k[0], arg: k[1] }); }
   }, true);
-  addEventListener('keyup', (e) => { held.delete(e.code); }, true);
-  // a guest's touch pad steers its Pokémon on the host (core.js initTouch asks these first)
+  addEventListener('keyup', (e) => { if (held.delete(e.code) && !timer && NET.role === 'guest') hold(...dirOf(held)); }, true);
+  // a guest's touch pad steers its Pokémon on the host (core.js initTouch asks these first): a step where it points, and
+  // on for as long as it is held
   G.onPadDir = (dx, dy) => {
     if (NET.role !== 'guest') return false;
-    if (dx || dy) NET.send({ t: 'cmd', kind: 'move', arg: [dx, dy] });
+    step(dx, dy); hold(dx, dy);
     return true;
   };
   G.onPadKey = (k) => {
@@ -63,7 +82,13 @@ export function initNetUI() {
     return true;
   };
   const vid = $('mp-video');
-  $('mp-play').addEventListener('click', () => { vid.muted = false; vid.play().catch(() => {}); $('mp-play').hidden = true; });
+  // the sound of the host's screen is the guest's own to turn on and off, with the sound button like the game's own sound
+  // (1.30; up to 1.29 that button did nothing to it). ▶ asks for the picture with its sound, so it turns the sound on
+  G.onMuted = (on) => { if (NET.role !== 'guest') return; vid.muted = on; if (!on) vid.play().catch(() => {}); syncPlay(); };
+  $('mp-play').addEventListener('click', () => {
+    if (prefs.muted) { setMuted(false); G.onPrefs?.(); }
+    vid.muted = false; vid.play().then(syncPlay, syncPlay);
+  });
   // ?join=CODE opens the panel and connects straight away
   const q = new URLSearchParams(location.search).get('join');
   if (q) { open(); $('mp-code').value = q; NET.join(q); }
@@ -106,10 +131,10 @@ function render() {
   // guest view: the host's screen replaces the local canvas
   const vid = $('mp-video');
   const watching = role === 'guest' && !!NET.remote;
-  if (watching && vid.srcObject !== NET.remote) { vid.srcObject = NET.remote; vid.play().then(() => { $('mp-play').hidden = !vid.muted; }).catch(() => { $('mp-play').hidden = false; }); }
+  if (watching && vid.srcObject !== NET.remote) { vid.srcObject = NET.remote; vid.play().then(syncPlay, syncPlay); }
   vid.hidden = !watching; G.screen.style.visibility = watching ? 'hidden' : '';
   if (role === 'guest' && lastRole !== 'guest') { G.paused = true; stopBgm(0.3); }
-  if (!role && lastRole === 'guest') { G.paused = !$('mp').hidden; vid.srcObject = null; $('mp-play').hidden = true; }
+  if (!role && lastRole === 'guest') { G.paused = !$('mp').hidden; vid.srcObject = null; $('mp-play').hidden = true; letGo(); }
   if (!watching) $('mp-play').hidden = true;
   lastRole = role;
 }

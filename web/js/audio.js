@@ -28,11 +28,13 @@ function awaitGesture(on) {
 }
 awaitGesture(true);
 
-// co-op: the host's mix as a MediaStream track for guests (empty until audio has been unlocked)
+// co-op: the host's mix as a MediaStream track for guests (empty until audio has been unlocked). It is taken before the
+// host's own sound switch (master): turning the sound off here must not turn it off for the guests, who each have their
+// own switch for it (1.30; up to 1.29 the host's switch silenced everybody)
 let netDest = null;
 export function audioStream() {
   if (!ctx) return [];
-  if (!netDest) { netDest = ctx.createMediaStreamDestination(); master.connect(netDest); }
+  if (!netDest) { netDest = ctx.createMediaStreamDestination(); bgmBus.connect(netDest); sfxBus.connect(netDest); }
   return netDest.stream.getAudioTracks();
 }
 export async function initAudio() {
@@ -70,7 +72,7 @@ export function pauseAudio(on) {
   if (on) ctx.suspend(); else unlockAudio();
 }
 // sound on/off silences the master bus (music, cries and effects; co-op guests hear the same mix)
-export function setMuted(on) { setPref('muted', on); if (master) master.gain.setValueAtTime(on ? 0 : 1, ctx.currentTime); }
+export function setMuted(on) { setPref('muted', on); if (master) master.gain.setValueAtTime(on ? 0 : 1, ctx.currentTime); G.onMuted?.(on); } // (onMuted: a co-op guest's picture of the host's screen follows, netui.js)
 
 // decoded sounds, least recently used first: a few tracks (one decodes to ~25 MB at a phone's 48 kHz), the short
 // fanfares and plenty of cries. A load that failed is dropped, so the next play tries it again.

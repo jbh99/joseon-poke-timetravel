@@ -1,5 +1,5 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
-import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, prefs, touchUI, held } from './core.js';
+import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
@@ -2243,7 +2243,6 @@ export class Dungeon {
       ui.panel(VW / 2 - tw / 2, 52, tw, 18, { accent: false, fill: '#ffe9c8' });
       ui.text(txt, VW / 2, 56, { align: 'center', bold: true, color: COL.red });
     }
-    if (!rows.length && prefs.hints) ui.text(touchUI ? tr('Z 공격 · QWER 기술 · Tab 태그 · X 메뉴', 'Z attack · QWER moves · Tab tag · X menu') : tr('방향키 이동 · Z 공격 · QWER 기술 · Tab 태그 · A 쉬기 · X 메뉴 · J 퀘스트', 'Arrows move · Z attack · QWER moves · Tab tag · A rest · X menu · J quests'), 8 + G.touchL, VH - 12, { size: 9, color: '#fff', shadow: true });
   }
   // a boss's bar: name and level (a star per later form), phase pips, HP, and below it what it is about to do
   drawBossBar(b, bx, w, ny) {

@@ -4,8 +4,9 @@ export const VW = 480, VH = 270, TILE = 24;
 // field runs on under the button column to the screen's edge (1.28; fit below). The UI keeps to the left VW of it.
 export const G = { S: 2, W: VW, time: 0, real: 0, dt: 0, speed: 1, scene: null, overlays: [], touchL: 0 };
 
-// player preferences kept per browser (sound, key hints); storage can be blocked, so every access is guarded
-export const prefs = { muted: false, hints: true };
+// player preferences kept per browser (sound; up to 1.29 also `hints`, the line of key hints at the bottom of the
+// screen, which went in 1.30 and is ignored in prefs kept from before); storage can be blocked, so every access is guarded
+export const prefs = { muted: false };
 try { Object.assign(prefs, JSON.parse(localStorage.getItem('joseon-prefs') || '{}')); } catch (e) { /* private mode */ }
 export function setPref(k, v) { prefs[k] = v; try { localStorage.setItem('joseon-prefs', JSON.stringify(prefs)); } catch (e) { /* private mode */ } }
 
@@ -151,7 +152,7 @@ export const input = {
 };
 addEventListener('keydown', (e) => {
   const k = KEYMAP[e.code];
-  if (!k || G.paused) return; // G.paused: the HTML guide is open
+  if (!k || G.paused || G.menuOpen) return; // G.paused: the HTML guide is open; G.menuOpen: a phone's Menu panel
   e.preventDefault();
   if (!input.down.has(k)) input.pressed.add(k);
   input.down.add(k);
@@ -161,7 +162,7 @@ const release = (k) => { input.down.delete(k); delete input.repeatAt[k]; };
 addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) release(k); });
 addEventListener('blur', () => { input.down.clear(); input.repeatAt = {}; });
 
-const press = (k) => { if (G.paused) return; if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); }; // the guide or search box is open
+const press = (k) => { if (G.paused || G.menuOpen) return; if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); }; // the guide, the search box or a phone's Menu panel is open
 // keeps a finger's pointer on the control it started on; capture can be refused (the pointer already ended), which is harmless
 const capture = (el, id) => { try { el.setPointerCapture(id); } catch (e) { /* pointer gone */ } };
 
@@ -215,6 +216,9 @@ function initMenu() {
   panel.querySelector('.slot').append(document.getElementById('hud'));
   const show = (on) => {
     panel.hidden = !on; btn.classList.toggle('on', on); G.menuOpen = on;
+    // nothing held goes on behind the panel (1.30; up to 1.29 a thumb left on the pad kept the team walking there, with a
+    // dungeon's timed attacks held still for it): the keys are let go and the pad stands still until the panel closes
+    if (on) { padDrop(); input.down.clear(); input.pressed.clear(); input.repeatAt = {}; }
     const keys = padGuest ? ['rest'] : G.overlays.length || fade.a > 0 ? [] : G.scene?.padKeys || []; // (a co-op guest: resting is all the host takes of these, netui.js)
     if (on) panel.querySelectorAll('button[data-k]').forEach((b) => { b.disabled = !keys.includes(b.dataset.k); });
   };
@@ -234,6 +238,7 @@ function initMenu() {
 // DIRS8, with the pad's four diagonal arrows lit; up to 1.27 the pad showed four arrows and a diagonal took a careful thumb)
 const DIRS = [[30, ['right']], [60, ['down', 'right']], [120, ['down']], [150, ['down', 'left']], [210, ['left']], [240, ['up', 'left']], [300, ['up']], [330, ['up', 'right']], [361, ['right']]];
 const DIRS8 = [[22.5, ['right']], [67.5, ['down', 'right']], [112.5, ['down']], [157.5, ['down', 'left']], [202.5, ['left']], [247.5, ['up', 'left']], [292.5, ['up']], [337.5, ['up', 'right']], [361, ['right']]];
+let padDrop = () => {}; // lets go of whatever the pad holds (initMenu: the Menu panel opened over it)
 function initDpad() {
   const pad = document.getElementById('dpad'), knob = pad.querySelector('i');
   let held = [], id = null;
@@ -244,11 +249,12 @@ function initDpad() {
     if (!G.onPadDir?.(dx, dy)) for (const k of keys) if (!held.includes(k)) press(k);
     held = keys;
   };
+  padDrop = () => set([]);
   const move = (e) => {
     const r = pad.getBoundingClientRect(), x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
     const d = Math.hypot(x, y), m = Math.min(d, r.width * 0.3);
     knob.style.transform = d ? `translate(${x / d * m}px, ${y / d * m}px)` : '';
-    if (d < r.width * 0.12) return set([]); // the middle is a dead zone
+    if (d < r.width * 0.12 || G.menuOpen) return set([]); // the middle is a dead zone (and the Menu panel stops the pad)
     const a = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; // 0 = right, 90 = down
     set((pad8 && !G.overlays.length ? DIRS8 : DIRS).find(([lim]) => a < lim)[1]); // (a menu or dialogue over the dungeon is four-way again)
   };
@@ -274,7 +280,7 @@ export function pollGamepads() {
     if (ax < -0.5) now.add('left'); else if (ax > 0.5) now.add('right');
     if (ay < -0.5) now.add('up'); else if (ay > 0.5) now.add('down');
   }
-  if (G.paused) now.clear();
+  if (G.paused || G.menuOpen) now.clear();
   for (const k of padHeld) if (!now.has(k)) release(k);
   for (const k of now) if (!padHeld.has(k)) { press(k); G.onFirstInput?.(); }
   padHeld = now;

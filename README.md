@@ -49,7 +49,7 @@
 
 - **화면**: 가로 화면 고정 · 전체 화면. 가운데에 게임, 왼쪽에 이동 패드, 오른쪽에 버튼이 놓여 게임 화면을 가리지 않습니다. 16:9나 태블릿처럼 네모난 화면에서는 게임 화면이 조금 좁아져 버튼 자리를 비웁니다(1.14).
 - **이동 패드**(왼쪽 아래 원): 손가락을 대고 밀면 그쪽으로 움직입니다. 화살표가 8개 그려져 있고, 던전에서는 대각선 화살표까지 모두 켜져 8방향으로 움직입니다(마을과 지도는 4방향이라 대각선 화살표가 흐립니다).
-- **버튼**: 키보드와 같은 글자가 적혀 있어 화면 아래 안내를 그대로 따르면 됩니다.
+- **버튼**: 키보드와 같은 글자가 적혀 있습니다 (Z 확인, X 취소, Q · W · E · R 기술, Tab 태그).
 
   | 버튼 | 기능 |
   |---|---|
@@ -95,7 +95,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 | **H** | 게임 가이드 열기·닫기 |
 | **마우스** | 세계 지도에서 가고 싶은 장소 클릭 · 대화와 선택지, 메뉴 클릭 |
 
-- **X 메뉴 → 설정**에서 소리 켜기/끄기, 화면 아래 조작키 안내 보이기/숨기기, 게임 속도를 바꿀 수 있습니다. 오른쪽 위 **소리** 버튼으로도 바로 끌 수 있습니다.
+- **X 메뉴 → 설정**에서 소리 켜기/끄기와 게임 속도를 바꿀 수 있습니다. 오른쪽 위 **소리** 버튼으로도 바로 끌 수 있습니다.
 - **X 메뉴 → 게임 종료**: 마을에서는 기록을 남기고 타이틀로 돌아갑니다. 던전 안에서 끝내면 던전 진행은 저장되지 않고, 마지막으로 마을에 들렀을 때부터 이어집니다.
 - 오른쪽 위 **English / 한국어** 버튼을 누르면 게임을 다시 시작하지 않고 대사, 이름, 메뉴가 그 자리에서 바뀝니다.
 
@@ -315,9 +315,19 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 혼자 하던 게임에 친구를 불러 이야기를 같이 보고 던전을 같이 깰 수 있습니다. 혼자 하다가 언제든 방을 열 수 있습니다.
 - **방 만들기**: 오른쪽 위 **멀티 → 방 만들기**를 누르면 6자리 방 코드와 초대 링크가 나옵니다.
 - **참가하기**: 친구는 다른 컴퓨터나 휴대폰에서 같은 게임 주소를 열고, 초대 링크를 누르거나 **멀티 → 방 코드 입력 → 참가하기**를 합니다.
-- 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동, Z 공격, QWER 기술, A 쉬기). 최대 2명까지 참가할 수 있습니다.
+- 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동: 누르고 있으면 계속 걷습니다, Z 공격, QWER 기술, A 쉬기). 소리는 각자 **소리** 버튼으로 끄고 켭니다. 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 바뀐 점 (1.30)
+
+- **화면 아래 조작 안내 줄 제거**: 마을 · 던전 · 세계 지도 화면 아래에 떠 있던 조작키 안내 줄을 PC와 휴대폰 모두에서 없앴습니다. 설정의 '조작키 안내' 항목도 함께 없어졌습니다. 조작법은 **가이드**에 그대로 있습니다.
+- **멀티플레이: 누르고 있으면 계속 걷기**: 손님이 방향키나 휴대폰 패드를 누르고 있으면 그 포켓몬이 계속 걷습니다. 지금까지는 한 칸만 움직이고 방장의 턴이 손님의 다음 입력을 기다리며 멈췄습니다(윈도우 키보드와 휴대폰 패드).
+- **멀티플레이: 창을 바꾸면 누르던 키가 풀림**: 손님이 방향키를 누른 채 다른 창으로 갔다 오면 그 방향이 남아 다음 입력이 대각선으로 가던 것을 고쳤습니다.
+- **멀티플레이: 미리 누른 입력은 한 턴 동안만**: 손님이 미리 누른 입력은 12초(한 턴이 기다리는 시간)까지만 다음 차례에 쓰이고, 마을이나 이야기 장면에서 누른 키는 던전의 첫 턴으로 넘어가지 않습니다.
+- **멀티플레이: 소리는 각자**: 방장이 자기 소리를 꺼도 손님에게는 소리가 계속 들리고, 손님은 **소리** 버튼으로 방장 화면의 소리를 끄고 켤 수 있습니다.
+- **멀티플레이: 서버가 잠깐 끊겨도 방 유지**: 방을 찾아 주는 서버와의 연결이 끊겨도 이미 들어온 친구와는 계속 할 수 있고, 방장은 자동으로 다시 연결합니다. 지금까지는 방이 닫혀 모두 튕겼습니다. 방에 연결되지 않으면 25초 뒤 안내가 나옵니다.
+- **휴대폰: 메뉴가 열려 있으면 멈춤**: 패드를 누른 채 메뉴 버튼을 누르면 팀이 메뉴 뒤에서 계속 걷던 것을 고쳤습니다.
 
 ### 바뀐 점 (1.29)
 
@@ -524,6 +534,7 @@ docs/screenshots/       README 스크린샷
   - The First World War: 1914 Sarajevo (Nacrene City): Scolipede, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Gigalith · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Chandelure · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
   - The Second World War: 1939 Danzig (Nacrene City): Emboar, **Cobalion** (two phases) · 1940 Dunkirk (Driftveil City): Sawk, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, rising twice · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Darmanitan (two phases) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Volcarona (two phases) · 1942 Leningrad (Nacrene City): Haxorus, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion** (two phases), **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom**, rising twice, Samurott · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.30: the line of key hints at the bottom of the town, dungeon and world map screens is gone on PC and phone alike, with its setting (the guide still lists the controls). Co-op: a guest's held arrow or touch pad walks on (it sent one step where the keyboard repeats faster than 60 ms, and the host's turn stood waiting), a window switch lets the held keys go, a press waits for its turn no longer than a turn waits for it (12 s) and never from outside a dungeon, each player's sound is their own (the host's switch no longer silences the guests, a guest's sound button works on the host's picture), the room outlives a lost line to the PeerJS server and the host reconnects by itself, and a join that reaches nobody gives up after 25 s. On a phone the Menu panel stops the pad (a thumb left on it kept the team walking behind the panel).
   - 1.29: a Past journey can be deleted from the title (Play it / Delete / Cancel, asked once more with the cursor on Cancel): it leaves this device at once and, on a signed-in device, the cloud and the account's other devices at the next sync, and it does not come back through another device's copy of it or as the cloud's save to continue. Signing out stops the cloud at once: requests under way are cut and an answer that still arrives changes nothing (up to 1.28 a save on its way down replaced this device's after the sign-out); the sign-out button stays open while the cloud is at work. A cloud journey that finds no room on the device leaves everything as it was (up to 1.28 the journey in play was put aside and its place left empty).
   - 1.28: on a phone the game takes the whole screen (the black strip at the right is gone: the field runs on under the buttons, the menus, dialogue and HUD stay clear of them), the Q W E R buttons carry each move's name, range and PP left (the list over the field is gone there), the A (rest) button moved into the Menu panel and the ⇧ (face only) button is gone; the minimap sits beside the Menu and Tab buttons. The town's goal is written under the place's name (no box of its own) and folds to a word beside that name on a tap. Move descriptions say their range (4-tile line, all around, self). The team's moves turn to a foe within 4 tiles (3 before), and the touch pad shows all eight arrows, each with its 45° in a dungeon. Half of Fusion Bolt's unseen lightning is marked a turn ahead. Two Revives may be used against Kyurem and any number in the Boss Tower, where each legend of a pair has 15% less HP.
   - 1.27: on the world line, only the Korean eras already seen through send their legends back as missed ones (not the eras still ahead, nor the one left with quests open), and a legend that has joined never offers to join again. Berlin (the world line's 1945) is drawn without its bridge: people on the road under it were drawn on its deck and could not be spoken to from there, and the final battle against Kyurem was fought over and under it; the battle now starts on open ground. Black Kyurem and White Kyurem keep a look of their own (dark with blue, pale with orange). Physical moves fly 4 tiles in a line (the tile in front before), special moves 5 (6 before). A Sling Stone deals its thrower's level + 5 (a flat 20 before). Oran and Sitrus Berries on a dungeon floor are the main games' pictures. The Vanilluxe of Stalingrad and Berlin are no longer named Vanillish in Korean.

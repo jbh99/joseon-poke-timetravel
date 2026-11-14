@@ -1,5 +1,5 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
-import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, setPref, askText, fadeTo, shuffle } from './core.js';
+import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, askText, fadeTo, shuffle } from './core.js';
 import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, MAX_LV, teamPP } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI, KOREA_LAST, isWorld } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
@@ -756,13 +756,12 @@ export function settingsMenu(sel = 0) {
   const again = (i) => () => { G.onPrefs?.(); settingsMenu(i); };
   openMenu([
     { label: tr('소리', 'Sound'), right: prefs.muted ? tr('끔', 'Off') : tr('켬', 'On'), fn: () => { setMuted(!prefs.muted); again(0)(); } },
-    { label: tr('조작키 안내', 'Key hints'), right: prefs.hints ? tr('보임', 'Shown') : tr('숨김', 'Hidden'), fn: () => { setPref('hints', !prefs.hints); again(1)(); } },
-    { label: tr('게임 속도', 'Game speed'), right: tr(`${G.speed}배`, `${G.speed}x`), fn: () => { G.setSpeed?.(G.speed % 3 + 1); again(2)(); } },
+    { label: tr('게임 속도', 'Game speed'), right: tr(`${G.speed}배`, `${G.speed}x`), fn: () => { G.setSpeed?.(G.speed % 3 + 1); again(1)(); } },
     // Easy / Normal / Hard can be switched any time; a challenge stays a challenge
     { label: tr('난이도', 'Difficulty'), right: MODE_NAMES()[S.mode] || MODE_NAMES().normal, fn: () => {
-      if (challenge()) { toast(tr('챌린지는 난이도를 바꿀 수 없다.', 'A challenge can\'t change difficulty.'), COL.red); return again(3)(); }
+      if (challenge()) { toast(tr('챌린지는 난이도를 바꿀 수 없다.', 'A challenge can\'t change difficulty.'), COL.red); return again(2)(); }
       const order = ['easy', 'normal', 'hard'];
-      S.mode = order[(order.indexOf(S.mode) + 1) % 3]; again(3)();
+      S.mode = order[(order.indexOf(S.mode) + 1) % 3]; again(2)();
     } },
     { label: tr('닫기', 'Close') },
   ], { title: tr('설정', 'Settings'), sel, x: 150, y: 50, w: 190 });

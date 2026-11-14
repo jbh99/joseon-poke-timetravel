@@ -1471,6 +1471,5 @@ export class Town {
       lines.forEach((l, i) => ui.text(l, 14, y2 + 11 + i * 11, { size: 9 }));
     }
     ui.text(tr(`${S.money}냥`, `${S.money} nyang`), 14 + G.touchL, VH - 16, { size: 9, color: '#fff', shadow: true });
-    if (prefs.hints) ui.text(touchUI ? tr('Z 조사 · X 게임 메뉴 · Tab 교대 · 메뉴: 퀘스트 · 동료', 'Z talk · X game menu · Tab lead · Menu: quests · team') : tr('Z 조사 · X 메뉴 · Tab 교대 · J 퀘스트 · P 동료 · 1/2/3 속도', 'Z talk · X menu · Tab lead · J quests · P team · 1/2/3 speed'), VW - 8, VH - 14, { size: 9, color: '#fff', shadow: true, align: 'right' });
   }
 }
