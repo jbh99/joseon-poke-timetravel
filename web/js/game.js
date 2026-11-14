@@ -395,12 +395,28 @@ export function replaceSave(text, slot, eras = Infinity) {
   let o;
   try { o = JSON.parse(text); } catch (e) { throw new Error('not a save'); }
   if (parseSave(o, eras).fixed.length) throw new Error('not a save');
-  // another journey (started anew on another device) taking this one's place puts this one aside (Past journeys)
-  const here = readSave(slot);
-  if (here && !here.over && (here.jid || '') !== (o.jid || '') && !keepJourney(slot)) throw new Error('no room');
-  // the save it replaces stays one step behind, in case the copy from elsewhere turns out to be the wrong one
-  try { const was = localStorage.getItem(slotKey(slot)); if (was) localStorage.setItem(`${slotKey(slot)}-backup`, was); } catch (e) { /* no room for it: the swap still goes on */ }
-  localStorage.setItem(slotKey(slot), text);
+  const key = slotKey(slot), bk = `${key}-backup`;
+  const get = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const put = (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } };
+  const here = readSave(slot), was = get(key), old = get(bk);
+  // another journey (started anew on another device) taking this one's place puts this one aside (Past journeys). aside:
+  // the key of the copy made of it (true: it was kept already), null when it is the same journey and stays
+  const aside = here && !here.over && (here.jid || '') !== (o.jid || '') ? keepJourney(slot) : null;
+  if (aside === false) throw new Error('no room');
+  if (!put(key, text)) {
+    // no room for the new save: the copy one step behind makes way for it, and failing that everything goes back as it
+    // was (1.29; up to 1.28 the journey put aside stayed aside, its place empty and the title without its Continue)
+    localStorage.removeItem(bk);
+    if (!put(key, text)) {
+      if (typeof aside === 'string') localStorage.removeItem(aside);
+      if (aside && !put(key, was) && typeof aside === 'string') put(aside, was);
+      if (old != null) put(bk, old);
+      throw new Error('no room');
+    }
+  }
+  // the save it replaces stays one step behind, in case the copy from elsewhere turns out to be the wrong one (a journey
+  // put aside is whole among the Past journeys; no room for the copy: the swap has gone through all the same)
+  if (was && !aside) put(bk, was);
 }
 // what each field of a save may hold (FRESH names them all; null or missing takes the fresh value, as in a save from
 // before the field was added)
@@ -486,6 +502,24 @@ export function renameKept(from, to) {
 }
 export function dropKept(key) { try { localStorage.removeItem(key); } catch (e) { /* private mode */ } }
 export function keptText(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+// what a journey put aside is, whatever key it is kept under: its difficulty, its journey and the save it stopped at
+export const keptPrint = (slot, o) => `${slot} ${o.jid || ''} ${o.savedAt || 0}`;
+// A Past journey the player deletes (1.29, Title.pickKept; up to 1.28 one left the list only by being played again or by
+// a sixth pushing the oldest out). It leaves this device at once. What it was is noted (keptPrint), so a signed-in
+// device's next sync takes it off the account's other devices too and does not bring the same save back from the cloud
+// (cloud.js syncKept and sync, which clear the notes that have done their work)
+const DROPPED = 'joseon-poke-dropped', DROPPED_MAX = 40;
+export function droppedKept() {
+  try { const v = JSON.parse(localStorage.getItem(DROPPED)); return Array.isArray(v) ? v.filter((d) => typeof d === 'string') : []; } catch (e) { return []; }
+}
+export function setDropped(list) {
+  try { if (list.length) localStorage.setItem(DROPPED, JSON.stringify(list.slice(-DROPPED_MAX))); else localStorage.removeItem(DROPPED); } catch (e) { /* private mode, or no room: the journey is gone from here all the same */ }
+}
+export function deleteKept(k) {
+  dropKept(k.key); // first: the room it frees is the room its note needs
+  const print = keptPrint(k.slot, k.o);
+  setDropped([...droppedKept().filter((d) => d !== print), print]);
+}
 export function keptSaves() {
   const out = [];
   try {
@@ -503,19 +537,22 @@ export function keptSaves() {
 // this one, as both devices may have gone on from one save and this play be in no other copy.
 // evict: the player started a new journey over this one, so a full list lets its oldest go, just the one, even if lists
 // merged from several devices made it longer. Nothing else takes a journey off the list, as what leaves it here leaves the
-// other devices too (cloud.js): up to 1.23 taking another device's new journey with a full list here dropped an unrelated one
+// other devices too (cloud.js): up to 1.23 taking another device's new journey with a full list here dropped an unrelated one.
+// Kept, it answers with the key of the copy it made (replaceSave takes that copy back when the journey coming finds no
+// room), or true when no copy was needed
 export function keepJourney(slot, evict = false) {
   const text = saveText(slot);
-  let o = null;
+  let o = null, made = true;
   try { o = JSON.parse(text); } catch (e) { /* none, or a broken one */ }
   if (!o || !Array.isArray(o.party) || o.over) return true;
   const list = keptSaves().filter((k) => k.slot === slot), at = o.savedAt || 0; // newest first
   if (!list.some((k) => (k.o.jid || '') === (o.jid || '') && (k.o.savedAt || 0) === at)) {
-    try { localStorage.setItem(`${KEPT}${slot}-${Date.now()}`, text); } catch (e) { return false; }
+    made = `${KEPT}${slot}-${Date.now()}`;
+    try { localStorage.setItem(made, text); } catch (e) { return false; }
     if (evict && list.length >= KEPT_MAX) localStorage.removeItem(list[list.length - 1].key);
   }
   localStorage.removeItem(slotKey(slot));
-  return true;
+  return made;
 }
 // a journey put aside comes back to its difficulty's place, the one there (if any) going aside in its stead. It leaves
 // the list first, so the one going aside cannot push it out of a full list; on any failure it goes back to the list.

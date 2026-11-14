@@ -1,7 +1,7 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI, prepImages } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept } from './game.js';
+import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept, deleteKept } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
 import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, sortieMenu, formationMenu, yearOf, shownYear } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
@@ -71,17 +71,26 @@ export class Title {
       { title: tr('어느 기록으로 이어 할까?', 'Continue which journey?'), x: VW / 2 - 105, y: 150, w: 210, onCancel: () => { this.started = false; } });
   }
   // the journeys put aside, the one put aside last on top: picked, it takes its difficulty's place again (the journey
-  // there, if any, going aside in its stead) and goes on at once
+  // there, if any, going aside in its stead) and goes on at once, or it is deleted (1.29: up to 1.28 nothing took one off
+  // the list, here or in the cloud, but playing it again)
   pickKept(kept) {
     const N = MODE_NAMES();
     const back = (k) => {
       const now = journey(k.slot);
       const go = () => { if (restoreKept(k)) this.resume(k.slot); else { this.started = false; toast(tr('지난 여행을 불러오지 못했어요. 기록은 그대로예요.', 'Could not bring that journey back. Nothing was changed.'), COL.red); } };
+      // deleted for good, asked once more: gone from this device at once, and from the account's other devices as they
+      // sync (game.js deleteKept; G.onSaved has a signed-in device sync now). The list comes back for the next one
+      const drop = () => say([{ who: 'narr', text: tr(`이 ${N[k.slot]} 여행(${this.when(k.o)})을 정말 지울까요? 지우면 되돌릴 수 없어요. 구글로 로그인했다면 클라우드와 다른 기기에서도 지워져요.`, `Really delete this ${N[k.slot]} journey (${this.when(k.o)})? It cannot be brought back. If you are signed in with Google, it leaves the cloud and your other devices too.`),
+        choices: tr(['지우기', '취소'], ['Delete', 'Cancel']), sel: 1, onChoice: (i) => { // (the cursor starts on Cancel)
+          if (i === 0) { deleteKept(k); G.onSaved?.(); toast(tr('지난 여행을 지웠어요.', 'Past journey deleted.'), COL.blue); }
+          const rest = keptSaves();
+          if (rest.length) this.pickKept(rest); else this.reopen = true;
+        } }]);
       say([{ who: 'narr', text: now ? tr(`이 ${N[k.slot]} 여행으로 다시 이어 할까요? 지금 ${N[k.slot]} 여행(${this.when(now)})은 지난 여행으로 보관돼요.`, `Play this ${N[k.slot]} journey again? Your ${N[k.slot]} journey in play (${this.when(now)}) goes to Past journeys.`)
-        : tr(`이 ${N[k.slot]} 여행으로 다시 이어 할까요?`, `Play this ${N[k.slot]} journey again?`), choices: tr(['이어 하기', '취소'], ['Play it', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
+        : tr(`이 ${N[k.slot]} 여행으로 다시 이어 할까요?`, `Play this ${N[k.slot]} journey again?`), choices: tr(['이어 하기', '지우기', '취소'], ['Play it', 'Delete', 'Cancel']), onChoice: (i) => { if (i === 0) go(); else if (i === 1) drop(); else this.started = false; } }]);
     };
     openMenu(kept.map((k) => ({ label: N[k.slot], right: this.when(k.o), fn: () => back(k) })),
-      { title: tr('지난 여행 · 고르면 다시 이어 해요', 'Past journeys · play one again'), x: VW / 2 - 115, y: 132, w: 230, onCancel: () => { this.started = false; } });
+      { title: tr('지난 여행 · 이어 하거나 지워요', 'Past journeys · play or delete'), x: VW / 2 - 115, y: 132, w: 230, onCancel: () => { this.started = false; } });
   }
   resume(slot) {
     // the town plays a step left waiting (resumeSteps); a challenge left in the middle of a dungeon ends instead (checkRun)

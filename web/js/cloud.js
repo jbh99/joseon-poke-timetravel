@@ -6,7 +6,7 @@
 import { G, APP, touchUI, input, toast, COL } from './core.js';
 import { tr, onLang } from './i18n.js';
 import { ERAS } from './content.js';
-import { S, SLOTS, MODE_NAMES, slotOf, readSave, saves, saveText, replaceSave, keptSaves, keptText, putKept, renameKept, dropKept } from './game.js';
+import { S, SLOTS, MODE_NAMES, slotOf, readSave, saves, saveText, replaceSave, keptSaves, keptText, putKept, renameKept, dropKept, keptPrint, droppedKept, setDropped } from './game.js';
 
 // web OAuth client of the joseon-poke-timetravel Google Cloud project (origins: both sites and localhost:8790);
 // the app is recognised by its package name and signing certificate instead
@@ -29,7 +29,13 @@ const $ = (id) => document.getElementById(id);
 // Past journeys left some undone, to try again; choice: the player has to pick
 // between this device's save of a journey and the cloud's (newer: only the cloud moved on, but taking it would drop the
 // play in progress)
-const st = { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, busy: false, again: false, msg: '' };
+// session: counts the sign-outs; op: the session the work in hand (one at a time, busy) began in; cut: stops the requests
+// of the session when it ends. Work still waiting on Google when the player signs out belongs to a session that is over:
+// its requests are cut, and whatever answer still arrives changes nothing on this device (live). Up to 1.28 a save on its
+// way down replaced this device's after the sign-out and wrote the link again.
+const st = { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, busy: false, again: false, msg: '', session: 0, op: 0, cut: new AbortController() };
+const stale = () => st.op !== st.session;
+const live = (v) => { if (stale()) throw new Error('signed out'); return v; };
 
 const linked = () => {
   try {
@@ -82,17 +88,19 @@ function appToken(interactive) {
 async function getToken(interactive) {
   if (st.token && Date.now() < st.exp) return st.token;
   if (!APP && !interactive && !navigator.userActivation?.isActive) throw new Error('needs-click');
-  const r = APP ? await appToken(interactive) : await webToken();
+  const r = live(APP ? await appToken(interactive) : await webToken());
   st.token = r.token; st.exp = Date.now() + (r.secs - 120) * 1000;
   return st.token;
 }
 
 // ---------------------------------------------------------------- Drive
+// (every wait on Google is here or in getToken: an answer to a session that is over, its body too, stops at `live`)
 async function api(path, opts = {}) {
-  const r = await fetch(API + path, { ...opts, headers: { Authorization: `Bearer ${st.token}`, ...opts.headers } });
+  live();
+  const r = live(await fetch(API + path, { ...opts, signal: st.cut.signal, headers: { Authorization: `Bearer ${st.token}`, ...opts.headers } }));
   if (r.status === 401) { st.token = null; throw new Error('needs-click'); }
   if (!r.ok) throw new Error(`Drive ${r.status}`);
-  return r;
+  return { json: async () => live(await r.json()), text: async () => live(await r.text()) };
 }
 // the journeys' copies in the app folder; a copy from before 1.7 names no journey, so its own save is read for it. The
 // Past journeys are files of their own, named after their keys (versions before 1.21 pass them by)
@@ -157,8 +165,11 @@ async function pull(slot, before = saveText(slot)) {
 // off a device: a file merely missing proves nothing (Drive's app data can be cleared), so what is here goes up again.
 // link.kept tells what is in the cloud and not here: seen here before, this device took it back or dropped it (it is
 // marked gone); never seen, it comes down. Two devices putting the same save aside (each on taking the other's new
-// journey) keep one copy, under the key the cloud has. The marks last KEPT_MARK, long enough for the other devices.
-const keptPrint = (slot, o) => `${slot} ${o.jid || ''} ${o.savedAt || 0}`, KEPT_MARK = 90 * 86400000;
+// journey) keep one copy, under the key the cloud has (game.js keptPrint tells that two are the same journey). The marks
+// last KEPT_MARK, long enough for the other devices.
+// A journey the player deleted here (1.29, game.js deleteKept) is marked gone like one taken back; the note of what it was
+// (droppedKept) also marks a copy of it this device never saw under that key, which would otherwise come down again.
+const KEPT_MARK = 90 * 86400000;
 // up to n at once, all of them done before this ends (the first failure is thrown then): each one is a round trip to Google,
 // and on a slow line a device with several journeys to fetch waited for them one after another
 async function together(list, n, fn) {
@@ -171,7 +182,7 @@ async function together(list, n, fn) {
 // a renaming that failed cannot read as "taken back" (up to 1.23 that emptied a good file in the cloud). A file Drive refused
 // leaves the others to go on and waits for the next sync; with no connection the sync ends here. What was learnt is kept either way.
 async function syncKept() {
-  const known = new Set(linked()?.kept), kept = st.kept, alive = new Map();
+  const known = new Set(linked()?.kept), kept = st.kept, alive = new Map(), dropped = new Set(droppedKept());
   let changed = false, whole = true;
   const step = async (fn) => { try { await fn(); } catch (e) { whole = false; if (!/^Drive \d/.test(e.message)) throw e; } };
   const del = async (key) => { await api(`/drive/v3/files/${kept[key].id}`, { method: 'DELETE' }); delete kept[key]; };
@@ -202,7 +213,7 @@ async function syncKept() {
     for (const key of Object.keys(kept)) {
       const p = kept[key].appProperties;
       if (p.gone || here.has(key) || here.has(keptPrint(p.slot, p))) continue;
-      if (known.has(key)) await step(async () => { kept[key] = await writeFile(kept[key], null, { gone: String(Date.now()) }, '{}'); known.delete(key); });
+      if (known.has(key) || dropped.has(keptPrint(p.slot, p))) await step(async () => { kept[key] = await writeFile(kept[key], null, { gone: String(Date.now()) }, '{}'); known.delete(key); });
       else if (!st.keptBad.has(key)) coming.push(key);
     }
     await together(coming, 4, (key) => step(async () => {
@@ -210,13 +221,16 @@ async function syncKept() {
       try { putKept(key, text, ERAS.length); known.add(key); changed = true; } catch (e) { if (e.message === 'no room') whole = false; else st.keptBad.add(key); }
     }));
   } finally {
-    setLink({ ...linked(), kept: [...known] });
+    if (!stale()) setLink({ ...linked(), kept: [...known] }); // (signed out meanwhile: the next sync learns it again)
     if (changed) G.scene?.keptChanged?.();
   }
   return whole;
 }
 // (a Past journey that could not be shared this time waits for the next sync, and the panel says so; the saves' own sync goes on regardless)
-const shareKept = () => syncKept().then((whole) => { st.keptLate = !whole; }, () => { st.keptLate = true; });
+const shareKept = () => syncKept().then((whole) => { st.keptLate = !whole; }, () => { live(); st.keptLate = true; });
+// the notes of deleted journeys (game.js deleteKept) that still have work to do once the Past journeys are in step: only
+// one whose save is still the cloud's copy of a journey with no save here, which sync must go on leaving there
+const heldBack = (d, slot) => !readSave(slot) && !!st.files[slot] && d.startsWith(`${slot} `) && d.endsWith(` ${st.files[slot].appProperties.savedAt}`);
 const keptNote = () => (st.keptLate ? tr(' 지난 여행은 아직 다 주고받지 못했어요. 다음 동기화 때 다시 시도해요.', ' Some Past journeys could not be shared yet; the next sync tries again.') : '');
 // saves taken from the cloud: with the journey in play among them (or on the title) the game starts over from the title;
 // another journey's save just waits there for its turn
@@ -235,12 +249,16 @@ async function sync(auto) {
   const link = linked() || {}, was = link.synced || {}, p = playing(), got = [];
   let sent = 0;
   st.choice = null;
+  if (!st.keptLate) setDropped(droppedKept().filter((d) => SLOTS.some((slot) => heldBack(d, slot))));
+  const dropped = droppedKept();
   try {
     for (const slot of SLOTS) {
       const local = readSave(slot), cloud = st.files[slot]?.appProperties, w = was[slot];
       if (!cloud) { if (local) { await push(slot); sent++; } continue; }
-      // the journey the player just put aside for a new one that has no save yet: its cloud copy is no news from another device
-      if (!local && keptSaves().some((k) => k.slot === slot && String(k.o.savedAt || 0) === cloud.savedAt)) continue;
+      // the journey the player just put aside for a new one that has no save yet: its cloud copy is no news from another
+      // device. Nor is it once the player has deleted that journey from the Past journeys (1.29): it would come back as
+      // the save to continue
+      if (!local && (keptSaves().some((k) => k.slot === slot && String(k.o.savedAt || 0) === cloud.savedAt) || dropped.some((d) => heldBack(d, slot)))) continue;
       if (local && String(local.savedAt) === cloud.savedAt) { markSynced(slot, cloud.savedAt); continue; }
       if (local && w && cloud.savedAt === w) { await push(slot); sent++; continue; }
       if (!local || (w && String(local.savedAt) === w)) {
@@ -283,8 +301,9 @@ function explain(e) {
   const m = String(e?.message || e);
   if (m === 'not a save') return tr('클라우드의 세이브가 손상됐거나 더 새로운 버전의 것이라 받지 않았어요. 이 기기의 세이브는 그대로예요.', "The cloud save is damaged or from a newer version, so it wasn't taken. The save on this device is untouched.");
   if (m === 'saved meanwhile') return tr('받는 사이에 이 기기에서 저장해서 바꾸지 않았어요. 이 기기의 세이브는 그대로예요.', 'This device saved while the cloud save came down, so nothing was replaced. The save on this device is untouched.');
-  // another journey from the cloud puts the one here aside (game.js replaceSave); without room for it nothing changes
-  if (m === 'no room') return tr('저장 공간이 부족해 지금 여행을 보관하지 못해서 클라우드 세이브를 받지 않았어요. 이 기기의 세이브는 그대로예요.', "There is no room to keep the journey here aside, so the cloud save wasn't taken. The save on this device is untouched.");
+  // no room on this device for the cloud save, or for keeping aside the journey it would replace (game.js replaceSave,
+  // which then leaves everything as it was)
+  if (m === 'no room') return tr('이 기기의 저장 공간이 부족해 클라우드 세이브를 받지 못했어요. 이 기기의 세이브는 그대로예요. 타이틀의 지난 여행에서 안 쓰는 기록을 지우면 공간이 생겨요.', "This device has no room for the cloud save, so it wasn't taken. The save on this device is untouched. Deleting Past journeys you no longer need (on the title) frees room.");
   if (m === 'needs-click') return tr('구글 연결이 끊겼어요. 버튼을 한 번 더 눌러 주세요.', 'The Google connection expired. Press the button once more.');
   // the app's Play services status codes: 7 = no connection to Google, 16 = the player backed out
   const code = /^auth (\d+)/.exec(m)?.[1];
@@ -293,10 +312,11 @@ function explain(e) {
   if (code) return tr(`구글 로그인 오류 (코드 ${code})`, `Google sign-in error (code ${code})`);
   return tr('문제가 생겼어요: ', 'Something went wrong: ') + m;
 }
+// (work that the player's signing out cut short ends without a word: the panel already says "signed out")
 async function run(fn) {
   if (st.busy) return;
-  st.busy = true; st.msg = ''; render();
-  try { await fn(); } catch (e) { st.msg = explain(e); } finally { st.busy = false; render(); }
+  st.busy = true; st.op = st.session; st.msg = ''; render();
+  try { await fn(); } catch (e) { if (!stale()) st.msg = explain(e); } finally { st.busy = false; render(); }
   syncAgain();
 }
 // a save made while the cloud was busy goes up once it is free (up to 1.18 it waited for the next save, or never went)
@@ -305,12 +325,12 @@ function syncAgain() { if (st.again) { st.again = false; setTimeout(autoSync, 50
 async function autoSync() {
   if (!st.email) return;
   if (st.busy) { st.again = true; return; }
-  st.busy = true;
+  st.busy = true; st.op = st.session; render(); // (an open panel shows it is at work: its save and load buttons wait)
   try {
     await getToken(false);
     if (st.choice) return;
     await sync(true);
-  } catch (e) { st.pending = true; } finally { st.busy = false; render(); }
+  } catch (e) { if (!stale()) st.pending = true; } finally { st.busy = false; render(); }
   syncAgain();
   if (st.choice) { openPanel(); toast(st.choice.newer ? tr('다른 기기에서 더 진행한 세이브가 있어요', 'Another device went further') : tr('이 기기와 클라우드의 세이브가 달라요', 'This device and the cloud differ'), COL.blue, 4); }
 }
@@ -337,9 +357,12 @@ const download = () => run(async () => {
   st.choice = null; took([m]);
 });
 // (what this device has seen of the Past journeys stays, so that one taken back while signed out still leaves the other devices)
+// Signing out is open while the cloud is at work too (a sync on a dead line would otherwise hold the player in): the
+// session ends here, its requests are cut and its work stops at the next answer (live)
 function signOut() {
   const kept = linked()?.kept;
-  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, msg: tr('로그아웃했어요.', 'Signed out.') });
+  st.session++; st.cut.abort(); st.cut = new AbortController();
+  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, again: false, msg: tr('로그아웃했어요.', 'Signed out.') });
   setLink(kept?.length ? { kept } : null); render();
 }
 function render() {
@@ -354,7 +377,7 @@ function render() {
   row.replaceChildren();
   const add = (label, fn, primary) => {
     const b = document.createElement('button');
-    b.type = 'button'; b.textContent = label; b.disabled = st.busy; b.className = primary ? 'primary' : ''; b.onclick = fn;
+    b.type = 'button'; b.textContent = label; b.disabled = st.busy && fn !== signOut; b.className = primary ? 'primary' : ''; b.onclick = fn;
     row.appendChild(b);
   };
   const c = st.choice;
@@ -373,7 +396,7 @@ function render() {
     add(tr(`클라우드에서 불러오기${which}`, `Load from the cloud${which}`), download);
     add(tr('로그아웃', 'Sign out'), signOut);
   }
-  $('cloud-status').textContent = st.busy ? tr('잠시만요…', 'One moment…') : st.msg;
+  $('cloud-status').textContent = st.busy && !stale() ? tr('잠시만요…', 'One moment…') : st.msg; // (stale: signed out, the work only winding down)
 }
 
 let openPanel = () => {};

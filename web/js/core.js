@@ -447,13 +447,14 @@ export const ui = {
 };
 
 // ---------------------------------------------------------------- dialogue
-// lines: [{who, name, text, shiny, choices:[..], onChoice(i)}]; who = species id or 'narr'
+// lines: [{who, name, text, shiny, choices:[..], onChoice(i), sel}]; who = species id or 'narr'; sel: the choice the
+// cursor starts on (the first, unless a question's first answer is one to think twice about: deleting a journey, 1.29)
 // The box shows three rows; a longer line (a dungeon's results with many items found) goes on over more pages.
 const ROWS = 3;
 export class Dialog {
   constructor(lines, onDone) {
     this.lines = lines.filter(Boolean);
-    this.i = 0; this.page = 0; this.chars = 0; this.onDone = onDone; this.sel = 0; this.done = false;
+    this.i = 0; this.page = 0; this.chars = 0; this.onDone = onDone; this.sel = this.lines[0]?.sel || 0; this.done = false;
     G.dialogSpeaker?.(this.lines[0]);
   }
   get line() { return this.lines[this.i]; }
@@ -499,7 +500,7 @@ export class Dialog {
     G.sfx?.('confirm');
     if (!this.lastPage(L)) { this.page++; this.chars = 0; return; }
     if (L.choices) { const s = this.sel; this.sel = 0; L.onChoice?.(s); }
-    this.i++; this.chars = 0; this.page = 0;
+    this.i++; this.chars = 0; this.page = 0; this.sel = this.line?.sel || 0;
     if (this.i >= this.lines.length) { this.done = true; this.onDone?.(); }
     else G.dialogSpeaker?.(this.line);
   }
