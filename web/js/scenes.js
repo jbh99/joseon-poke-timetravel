@@ -1,7 +1,7 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI, prepImages } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept, deleteKept } from './game.js';
+import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept, deleteKept, claim } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
 import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, sortieMenu, formationMenu, yearOf, shownYear } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
@@ -120,7 +120,7 @@ export class Title {
     // a new journey of a difficulty that has one puts that one aside (Past journeys on the title, 1.20; up to 1.19 it
     // was replaced), so a finished journey, or one half-way, can be started over and still be played again
     const pick = (m) => {
-      const go = () => fadeTo(() => setScene(new Intro(m)));
+      const go = () => { claim(m); fadeTo(() => setScene(new Intro(m))); }; // (claim: the place as it stands now is this window's to write)
       const fresh = () => { if (keepJourney(m, true)) go(); else { this.started = false; toast(tr('저장 공간이 부족해 지금 여행을 보관하지 못했어요. 새로 시작하지 않았어요.', 'Not enough storage to keep your journey aside. Nothing was started.'), COL.red); } };
       if (journey(m)) say([{ who: 'narr', text: tr(`새로 시작하면 지금 ${N[m]} 여행(${this.when(journey(m))})은 "지난 여행"으로 보관돼요. 타이틀의 지난 여행에서 언제든 다시 이어 할 수 있어요. 새로 시작할까요?`, `Starting over puts your ${N[m]} journey (${this.when(journey(m))}) aside under "Past journeys" on the title, to be played again any time. Start over?`), choices: tr(['새로 시작', '취소'], ['Start over', 'Cancel']), onChoice: (i) => { if (i === 0) fresh(); else this.started = false; } }]);
       else go();

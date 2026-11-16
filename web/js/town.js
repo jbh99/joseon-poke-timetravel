@@ -1127,7 +1127,7 @@ export class Town {
       choices: [...pair.map((sp) => DEX.species[sp].name), tr('그만둔다', 'Not now')], onChoice: (i) => {
         if (i > 1) return;
         S.flags.lati = pair[i];
-        giveMons([pair[i]]);
+        giveMons([pair[i]]); // (with no place free it waits for one: quests.js claimOwed)
         this.npcs = this.npcs.filter((n) => n.role !== 'lati');
         setTimeout(() => say([{ who: 'narr', text: tr(`${DEX.species[pair[1 - i]].name}은(는) 하늘 높이 날아올라 사라졌다.`, `${DEX.species[pair[1 - i]].name} soared high into the sky and vanished.`) }]), 400);
       } }]);
@@ -1210,7 +1210,10 @@ export class Town {
       [...S.party, ...S.roster].forEach((m) => m.heal(true));
       jingle('fanfa3');
       const ok = save();
-      setTimeout(() => toast(ok ? tr('모두 기운을 되찾았다! 기록을 남겼다.', 'Everyone is refreshed! Game saved.') : tr('기운을 되찾았다! (기록 실패: 브라우저 저장소를 확인하세요)', 'Refreshed! (Save failed: check browser storage)'), ok ? COL.ink : COL.red), 300);
+      // (clash: another window's save stands in the way, and the question about it says so: main.js askClash, which has
+      // taken the word out of G.clash by the time this line shows)
+      const clash = !ok && !!G.clash;
+      setTimeout(() => toast(ok ? tr('모두 기운을 되찾았다! 기록을 남겼다.', 'Everyone is refreshed! Game saved.') : clash ? tr('모두 기운을 되찾았다!', 'Everyone is refreshed!') : tr('기운을 되찾았다! (기록 실패: 브라우저 저장소를 확인하세요)', 'Refreshed! (Save failed: check browser storage)'), ok || clash ? COL.ink : COL.red), 300);
     } }]);
   }
   // the TM dealer: a TM is bought and taught on the spot to a team member who can use it (game.js tmFits); the money
@@ -1283,7 +1286,7 @@ export class Town {
     openMenu([
       { label: tr('포켓몬', 'Pokémon'), fn: partyMenu }, { label: tr('동료 명부', 'Companions'), fn: rosterMenu }, { label: tr('해전 대형', 'Naval formation'), fn: () => formationMenu() }, { label: tr('도구', 'Items'), fn: () => itemMenu(null) }, { label: tr('퀘스트', 'Quests'), fn: questMenu },
       { label: tr('도감', 'Pokédex'), fn: openPokedex },
-      { label: tr('기록하기', 'Save'), fn: () => { S.townPos = [this.px, this.py]; const ok = save(); S.townPos = null; sfx(ok ? 'confirm' : 'cancel'); toast(ok ? tr('기록을 남겼다.', 'Game saved.') : tr('기록 실패: 브라우저 저장소를 확인하세요.', 'Save failed: check browser storage.'), ok ? COL.ink : COL.red); } },
+      { label: tr('기록하기', 'Save'), fn: () => { S.townPos = [this.px, this.py]; const ok = save(); S.townPos = null; sfx(ok ? 'confirm' : 'cancel'); if (ok || !G.clash) toast(ok ? tr('기록을 남겼다.', 'Game saved.') : tr('기록 실패: 브라우저 저장소를 확인하세요.', 'Save failed: check browser storage.'), ok ? COL.ink : COL.red); } },
       { label: tr('세계 지도로', 'World map'), fn: () => this.leave() },
       { label: tr('설정', 'Settings'), fn: () => settingsMenu() },
       quitItem(false, () => { S.townPos = [this.px, this.py]; const ok = save(); S.townPos = null; return ok; }),

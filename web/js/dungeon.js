@@ -140,6 +140,9 @@ export class Dungeon {
     for (const m of crew) if (!m.loan && !home.includes(m) && !S.roster.includes(m)) (S.party.length < 3 ? S.party : S.roster).push(m); // recruited at sea
   }
   enter() {
+    // a co-op guest's press belongs to the run it was made in (1.31: one made as the run before ended, or over its last
+    // words, waited out the town and was played on the first turn here, by whoever now stood in that place)
+    NET.cmds = {};
     playBgm(this.stage?.bgm || this.def.bgm);
     G.dialogSpeaker = (L) => { if (typeof L?.who === 'number' && L.who !== this._lastCry) { cry(L.who); this._lastCry = L.who; } };
     if (!this.def.police) this.msg(tr(`${this.title}에 들어왔다!`, `Entered ${this.title}!`), COL.blue); // a fight in town is entered nowhere
@@ -151,7 +154,7 @@ export class Dungeon {
       if (this.loaned.length) this.msg(tr(`물 포켓몬이 모자라 수군이 ${this.loaned.map((m) => m.name).join(', ')}을(를) 빌려주었다.`, `Short on Water types, the navy lent you ${this.loaned.map((m) => m.name).join(', ')}.`), COL.green);
     }
   }
-  exit() { G.dialogSpeaker = null; }
+  exit() { G.dialogSpeaker = null; NET.cmds = {}; }
   relang(sw) { for (const m of this.msgs) m.text = sw(m.text); }
   // the bosses waiting on this floor: a stage's own (one, or a pair in the Boss Tower; a guardian once beaten stays
   // beaten), a legend's lair, a returning legend, the story boss on the last floor of the story run, or a story
@@ -1671,6 +1674,7 @@ export class Dungeon {
   }
   result(title, ok, extra = []) {
     S.inRun = null;
+    NET.cmds = {}; // (the run is over: net.js command keeps nothing more for it)
     for (const m of [...S.party, ...(S.homeParty || [])]) { m.field = 0; m.primal = false; m.form = ''; m.typeOverride = null; }
     // a cleared dungeon gets everyone who fell back on their feet (before restoreCrew, so a naval crew's fallen too)
     const fallen = ok ? S.party.filter((m) => m.hp <= 0) : [];
@@ -2188,7 +2192,10 @@ export class Dungeon {
     // (a phone shows them on its Q W E R buttons instead, with each move's range: core.js padMoves, 1.28. Up to 1.27
     // the list lay over the field there too, beside buttons that said only their letter)
     const mv = this.player.mon.moves, L = this.moveList(), u = (n) => n * HUD_K;
-    if (touchUI) G.padMoves = mv.map((m) => ({ name: DEX.moves[m.id].name, pp: m.pp, max: this.player.mon.maxPP(m.id), color: TYPE_COLORS[DEX.moves[m.id].type], reach: moveReach(m.id) }));
+    const named = (mon) => mon.moves.map((m) => ({ name: DEX.moves[m.id].name, pp: m.pp, max: mon.maxPP(m.id), color: TYPE_COLORS[DEX.moves[m.id].type], reach: moveReach(m.id) }));
+    // each co-op guest is told the moves of the Pokémon it steers, for its own Q W E R buttons (net.js moveLists, 1.31)
+    if (NET.role === 'host' && NET.guests.length) G.mateMoves = Object.fromEntries(NET.guests.map((g) => [g.slot, S.party[g.slot] && named(S.party[g.slot])]));
+    if (touchUI) G.padMoves = named(this.player.mon);
     else {
       this.win(L.x, L.y, L.w, L.h, { accent: false }, HUD_K);
       mv.forEach((m, k) => {

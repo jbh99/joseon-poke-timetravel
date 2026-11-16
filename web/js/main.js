@@ -1,14 +1,14 @@
 // Boot and main loop.
-import { G, VW, VH, APP, touchUI, initCanvas, initTouch, padMoves, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs } from './core.js';
+import { G, VW, VH, APP, touchUI, initCanvas, initTouch, padMoves, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs, repause, say } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
-import { initData, initSaves, S, save, load, newGame, saves, Mon } from './game.js';
+import { initData, initSaves, S, save, load, newGame, saves, Mon, readSave, saveOver, outdated } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
 import { Town, setBuildings, setPearl, setBW, townSets, townPictures } from './town.js';
 import { initPmd, tileSet, portraitImage, spriteReady } from './pmd.js';
 import { Dungeon } from './dungeon.js';
-import { Title, EraCard, WorldMap, Ending } from './scenes.js';
-import { onDungeonClear, resumeSteps } from './quests.js';
+import { Title, Intro, EraCard, WorldMap, Ending } from './scenes.js';
+import { onDungeonClear, resumeSteps, claimOwed } from './quests.js';
 import { NET } from './net.js';
 import { initNetUI } from './netui.js';
 import { initCloud } from './cloud.js';
@@ -23,6 +23,7 @@ G.goTown = (kind) => {
 const enterTown = (kind) => {
   const pics = townPictures(kind).filter((p) => !prepped.has(p));
   for (const m of [...S.party, ...S.roster]) m.status = null;
+  claimOwed(); // a gift that found the roster full joins once there is room (quests.js)
   const t = new Town(kind);
   setScene(t);
   // a Black town's picture and the people's and the team's sprites load and decode together while the screen stays dark
@@ -75,9 +76,35 @@ G.toKorea = () => fadeTo(() => {
   Object.assign(S, { era: k.era, step: k.step, eraClear: k.eraClear, night: false, lastNode: 'town', townKind: k.townKind || 1, townPos: null });
   G.goTown();
 }, '#fff', 1.2);
-G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; G.policeBack = null; setScene(new Title()); }); // a fight in town left for the title has no town to go back to
+// (G.clash: the journey left for the title is no longer this window's to ask about)
+G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; G.policeBack = null; G.clash = null; setScene(new Title()); }); // a fight in town left for the title has no town to go back to
 G.onFirstInput = () => unlockAudio(); // a gamepad button is no page gesture, but it sets the sound up (audio.js)
 G.kao = portraitImage;
+// Another window saved this journey since this one read it (game.js save, which wrote nothing): the player says which play
+// goes on. Asked once the screen is free (boot's tick), and again at the next save if this window's play then stays unsaved.
+// Asked where a journey rests and a save is whole, a town or the world map (resting): inside a dungeon "this window" would
+// write the run half done (its finds kept whatever comes of it, a fallen member saved fallen), so there the question waits
+// for the way out. On the title and while a new journey's starters are picked no journey is in play at all, though the one
+// left is still in memory: its place is another window's to write (inJourney).
+const resting = () => G.scene instanceof Town || G.scene instanceof WorldMap;
+const inJourney = () => !(G.scene instanceof Title) && !(G.scene instanceof Intro);
+function askClash() {
+  const slot = G.clash;
+  G.clash = null;
+  if (slot !== S.slot || !outdated()) return;
+  const there = readSave(slot), ended = !!there?.over && (there.jid || '') === (S.jid || '');
+  // (a challenge lost in the other window is over for this one too: nothing here may bring it back)
+  if (ended) return say([{ who: 'narr', text: tr('다른 창(탭)에서 이 챌린지 여행이 끝났어요. 타이틀로 돌아갑니다.', 'This challenge journey ended in another window (tab). Back to the title.') }], () => G.goTitle());
+  // (three rows of the dialogue box at most, in either language: a longer question would turn the page before its choices)
+  say([{ who: 'narr', text: tr('다른 창(탭)에서 이 여행을 더 새로 기록했어요. 그 기록으로 이어 하면 이 창에서만 한 진행은 사라지고, 이 창의 진행으로 기록하면 그 기록은 타이틀의 "지난 여행"에 보관돼요.',
+    'Another window (tab) saved this journey more recently. "That save" continues from it and drops what only this window did; "This window" keeps this play and puts that save under Past journeys.'),
+    choices: tr(['그 기록으로 이어 하기', '이 창의 진행으로 기록'], ['That save', 'This window']), cancel: false, onChoice: (i) => {
+      if (i === 0) return G.goTitle();
+      const ok = saveOver();
+      toast(ok ? tr('이 창의 진행을 기록했어요. 다른 창의 기록은 "지난 여행"에 보관했어요.', "This window's play is saved. The other window's save is under Past journeys.") : tr('기록하지 못했어요 (저장 공간 부족). 다른 창의 기록은 그대로 남아 있어요.', "Couldn't save (no storage space). The other window's save is still there."), ok ? COL.blue : COL.red, 6);
+    } }]);
+}
+addEventListener('storage', () => { if (inJourney() && outdated()) G.clash = S.slot; }); // (another window just wrote: asked now, before more is played on what is behind)
 window.__game = { G, S, newGame, setScene, EraCard, Dungeon, Town, ERAS, save, load, NET, audio: audioState }; // handle for automated playtests
 
 // HTML guide overlay: pauses game input while open, opens by itself on the first visit
@@ -134,8 +161,8 @@ function initGuide() {
   document.getElementById('btn-lang').addEventListener('click', (e) => { setLang(EN ? 'ko' : 'en'); e.currentTarget.blur(); });
   document.getElementById('status').textContent = tr('불러오는 중…', 'Loading…');
   const g = document.getElementById('guide');
-  const open = () => { g.hidden = false; G.paused = true; input.down.clear(); input.pressed.clear(); };
-  const close = () => { g.hidden = true; G.paused = false; try { localStorage.setItem('joseon-guide-seen', '1'); } catch (e) { /* private mode */ } };
+  const open = () => { g.hidden = false; repause(); input.down.clear(); input.pressed.clear(); };
+  const close = () => { g.hidden = true; repause(); try { localStorage.setItem('joseon-guide-seen', '1'); } catch (e) { /* private mode */ } };
   document.getElementById('btn-guide').addEventListener('click', open);
   g.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', close));
   document.getElementById('btn-full').addEventListener('click', () => {
@@ -232,6 +259,7 @@ async function boot() {
     // could open its menu again on top of the next scene, and from there start the same dungeon twice
     else if (fade.a < 0.5 && !fade.cb) G.scene?.update(dt);
     updateFade(dt);
+    if (G.clash && !G.overlays.length && fade.a <= 0 && !fade.cb && !G.paused && resting()) askClash();
     // world
     const c = G.lctx;
     c.setTransform(1, 0, 0, 1, 0, 0);
@@ -239,6 +267,7 @@ async function boot() {
     // 480 leaves that band dark instead of the last scene's picture
     if (G.W > VW) { c.fillStyle = '#0c0a0e'; c.fillRect(VW, 0, G.W - VW, VH); }
     G.padMoves = null; // the dungeon names its leader's moves each frame (drawUI); any other screen has none
+    G.mateMoves = null; // and, hosting co-op, each guest's Pokémon's
     G.scene?.draw?.(c);
     const s = G.sctx;
     s.setTransform(1, 0, 0, 1, 0, 0);
@@ -251,7 +280,8 @@ async function boot() {
     if (fade.a > 0) { s.globalAlpha = fade.a; ui.rect(0, 0, G.W, VH, fade.color); s.globalAlpha = 1; }
     if (fade.hold && fade.a >= 1 && G.real - fade.since > 0.4) ui.text(tr('불러오는 중…', 'Loading…'), VW / 2, VH / 2 - 6, { align: 'center', color: fade.color === '#000' ? '#e8dcc0' : COL.ink });
     NET.frame();
-    padMoves(G.padMoves, NET.role === 'guest');
+    NET.moveLists(G.mateMoves);
+    padMoves(NET.role === 'guest' ? NET.moves : G.padMoves, NET.role === 'guest');
     // on a phone the pad over the game's corner fades while a dialogue or menu is up (index.html body.dim)
     const dim = touchUI && G.overlays.length > 0;
     if (dim !== G.dimmed) { G.dimmed = dim; document.body.classList.toggle('dim', dim); }

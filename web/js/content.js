@@ -8,7 +8,7 @@ import { WAR, WAR_QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK } from './content
 import { ERA_1905, ERA_1979, MODERN_QITEMS, addPostWar, addSkyLine, addFinale, spyLog } from './content_modern.js';
 import { addTower } from './content_tower.js';
 import { WORLD, WORLD_QITEMS } from './content_world.js';
-import { S } from './game.js';
+import { S, setQuestItems } from './game.js';
 export { FACTIONS, FACTION_TALK, FACTION_PICK };
 export { EN_EXTRA, CELEBI, T };
 
@@ -976,6 +976,7 @@ export const KOREA_LAST = ERAS.length - 1;
 ERAS.push(...WORLD);
 ERAS.forEach((e, i) => { e.id = i + 1; });
 Object.assign(QITEMS, WORLD_QITEMS);
+setQuestItems(QITEMS); // (what a save may hold: game.js parseSave)
 export const isWorld = (i = S.era) => i > KOREA_LAST;
 export const WORLD_FROM = 1945; // the first Korean era whose gate leads out into the world
 

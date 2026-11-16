@@ -111,6 +111,7 @@ export function wanderBoss(dId) {
   const sp = wanderAt(dId);
   if (!sp) return null;
   const b = ERAS.flatMap((e) => Object.values(e.dungeons).flatMap(legendBosses)).find((x) => x.sp === sp);
+  if (!b) return null; // (a plan naming what is no legend of this game: nobody waits)
   const lv = foeLevels(era().dungeons[dId])[1], name = DEX.species[sp].name;
   return { ...b, lv, lvMin: lv, lvUp: 0, wander: true,
     say: [
@@ -175,10 +176,24 @@ export function giveMons(list) {
   const lv = Math.max(5, Math.round(home.reduce((s, m) => s + m.lv, 0) / home.length));
   for (const sp of list) {
     const { m, where } = recruit(new Mon(sp, lv));
-    if (where === 'full') continue;
+    // no place on the team or in the roster: it waits for one (S.flags.owed, claimOwed). Up to 1.30 the gift was lost,
+    // its story step done all the same: Latias or Latios, picked with a full roster, was gone for good
+    if (where === 'full') {
+      S.flags.owed = [...[].concat(S.flags.owed || []), sp];
+      toast(tr(`동료 명부가 가득 찼다. ${m.name}은(는) 자리가 날 때까지 기다린다. (명부에서 동료를 놓아주면 들어온다)`, `The roster is full. ${m.name} waits until there is room (release a companion and it joins).`), COL.red, 6);
+      continue;
+    }
     cry(sp); jingle('fanfa4');
     toast(where === 'party' ? tr(`${m.name}이(가) 동료가 되어 함께 간다!`, `${m.name} joined and travels with you!`) : tr(`${m.name}이(가) 동료가 되었다! (마을의 동료 명부로)`, `${m.name} joined! (waiting in the town roster)`), COL.blue);
   }
+}
+// the gifts that found no place join once there is one: on arriving in town, and when a companion is released
+export function claimOwed() {
+  const owed = [].concat(S.flags.owed || []).filter((sp) => DEX.species[sp]);
+  delete S.flags.owed;
+  const wait = [];
+  for (const sp of owed) { if (S.party.length < 3 || S.roster.length < ROSTER_MAX) giveMons([sp]); else wait.push(sp); }
+  if (wait.length) S.flags.owed = wait;
 }
 // the Korean War: pick whose side to stay beside, then a companion from that land
 export async function chooseFaction() {
@@ -395,7 +410,7 @@ export async function gainExpFor(mon, n, log) {
   for (const e of ev) {
     if (e.t === 'level') { log?.(tr(`${mon.name}의 레벨이 ${e.lv}(으)로 올랐다!`, `${mon.name} grew to Lv. ${e.lv}!`), COL.blue); jingle('fanfa1'); }
     if (e.t === 'learn') log?.(tr(`${mon.name}은(는) ${DEX.moves[e.move].name}을(를) 배웠다!`, `${mon.name} learned ${DEX.moves[e.move].name}!`), COL.green);
-    if (e.t === 'want' && !mon.loan) await offerMove(mon, e.move, log); // a loaned naval crew member leaves after the run
+    if (e.t === 'want' && !mon.loan && !mon.moves.some((x) => x.id === e.move)) await offerMove(mon, e.move, log); // a loaned naval crew member leaves after the run
   }
   const evo = ev.find((e) => e.t === 'evolve');
   if (evo) await evolveScene(mon, evo.to);
@@ -444,14 +459,16 @@ G.gainAll = async (n, why) => {
   if (!n) return;
   toast(tr(`${why}: 경험치 ${n}`, `${why}: ${n} Exp.`), COL.green);
   for (const m of S.party) await gainExpFor(m, n, toast);
-  shareExp(n * 2);
+  shareExp(n, 1);
 };
-// companions waiting in the town roster train too: half of what the team earns, evolving quietly
-export function shareExp(n) {
+// companions waiting in the town roster train too: 70% of what a member of the team earns from a fight (1.31; half until
+// 1.30), all of a reward's Exp. (a request's, a petal's), evolving quietly
+export const ROSTER_SHARE = 0.7;
+export function shareExp(n, share = ROSTER_SHARE) {
   const out = new Set([...S.party, ...(S.homeParty || [])]);
   for (const m of S.roster) {
     if (out.has(m)) continue;
-    const evo = m.gainExp(Math.floor(n / 2)).find((e) => e.t === 'evolve');
+    const evo = m.gainExp(Math.floor(n * share)).find((e) => e.t === 'evolve');
     if (evo) { const from = m.name; m.evolve(evo.to); toast(tr(`명부의 ${from}이(가) ${m.name}(으)로 진화했다!`, `${from} in the roster evolved into ${m.name}!`), COL.green); }
   }
 }
@@ -660,7 +677,7 @@ function rosterPick(m, row) {
     else if (free && k === slots.length) { S.roster.splice(at, 1); S.party.push(m); cry(m.sp); toast(tr(`${m.name}이(가) 함께 간다!`, `${m.name} is coming along!`), COL.blue); }
     else if (k === slots.length + free) {
       return say([{ who: 'narr', text: tr(`정말 ${m.name}을(를) 자연으로 돌려보낼까? 다시 데려올 수 없다.`, `Really release ${m.name}? You can't bring it back.`), choices: tr(['돌려보낸다', '그만두기'], ['Release', 'Cancel']), onChoice: (j) => {
-        if (j === 0) { S.roster.splice(S.roster.indexOf(m), 1); toast(tr(`${m.name}은(는) 고향으로 돌아갔다. 고마웠어!`, `${m.name} went home. Thank you!`)); }
+        if (j === 0) { S.roster.splice(S.roster.indexOf(m), 1); toast(tr(`${m.name}은(는) 고향으로 돌아갔다. 고마웠어!`, `${m.name} went home. Thank you!`)); claimOwed(); }
         rosterMenu(row);
       } }]);
     }
@@ -778,6 +795,7 @@ export function quitItem(inDungeon, before) {
       if (i) return;
       const leave = () => { if (staked()) endChallenge(); G.goTitle?.(); };
       if (before?.() !== false) return leave();
+      if (G.clash) return; // another window's save stands in its place: the question about it comes up now (main.js askClash)
       // the record could not be written (no room left, a private window): leaving now would lose everything since the last one
       say([{ who: 'narr', text: tr('기록을 남기지 못했다(저장 공간 부족 등). 지금 나가면 마지막 기록 뒤의 진행을 잃는다.', "The record couldn't be written (no storage space, perhaps). Leaving now loses everything since the last one."),
         choices: tr(['계속한다', '그래도 나간다'], ['Keep playing', 'Leave anyway']), cancel: false, onChoice: (k) => { if (k === 1) leave(); } }]); // X mashed through the quit question must not leave
@@ -785,7 +803,7 @@ export function quitItem(inDungeon, before) {
 }
 
 export function itemMenu(dungeon) {
-  const ids = Object.keys(S.items);
+  const ids = Object.keys(S.items).filter((id) => itemDef(id, QITEMS)); // (only what the game knows: a load drops the rest, game.js parseSave)
   if (!ids.length) return toast(tr('가진 도구가 없다.', 'You have no items.'));
   openMenu(ids.map((id) => {
     const d = itemDef(id, QITEMS);

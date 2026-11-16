@@ -19,6 +19,12 @@ const JOIN_WAIT = 25000; // ms a guest waits for the host's welcome before givin
 // without that server, closed the room for everybody)
 const PASSING = new Set(['network', 'socket-error', 'socket-closed', 'server-error', 'disconnected', 'peer-unavailable', 'webrtc', 'unavailable-id']);
 const CHAT_GAP = 800; // ms between one guest's chat lines on the host's screen; more are dropped
+// The host's picture reaches a guest over a link of its own, beside the one its commands go by. It may never come, or stop
+// while the other holds: the guest then asks the host for it again (VIDEO_TRIES times, VIDEO_WAIT ms each), and failing
+// that its stay ends with a word. Up to 1.30 it stayed in the room with no picture for ever, its presses still played.
+const VIDEO_WAIT = 12000, VIDEO_TRIES = 3, CALL_GAP = 3000; // CALL_GAP: ms between two calls the host makes to one guest
+// a move as a guest's button shows it (Dungeon.drawUI names them): only what the button has a place for gets through
+const MOVE_SHOWN = (m) => ({ name: String(m?.name ?? '').slice(0, 24), pp: +m?.pp || 0, max: +m?.max || 0, color: /^#[0-9a-f]{3,8}$/i.test(m?.color) ? m.color : '', reach: String(m?.reach ?? '').slice(0, 12) });
 
 // everything else plays offline (the Android app ships the whole game), but co-op needs the PeerJS servers
 const OFFLINE = () => tr('멀티플레이는 인터넷 연결이 필요해요. Wi-Fi나 모바일 데이터를 켠 뒤 다시 눌러 주세요.', 'Co-op needs an internet connection. Turn on Wi-Fi or mobile data and try again.');
@@ -41,6 +47,7 @@ export const NET = {
   cmds: {}, // host: latest dungeon command per party slot
   conn: null, // guest: connection to the host
   slot: 0, // guest: party slot this player steers
+  feed: null, moves: null, // guest: the host's picture as it comes in (its media link); the moves of the Pokémon it steers (null: not known)
   onChange: null,
   get active() { return !!this.role; },
   // host side ---------------------------------------------------------------------------------
@@ -93,6 +100,8 @@ export const NET = {
   call(g) {
     const stream = this.stream();
     if (!stream) return;
+    g.call?.close();
+    g.callAt = performance.now();
     g.call = this.peer.call(g.conn.peer, stream);
   },
   drop(conn) {
@@ -108,6 +117,7 @@ export const NET = {
     const g = this.guests.find((x) => x.conn === conn);
     if (!g || !m) return;
     if (m.t === 'cmd') this.command(g.slot, m);
+    if (m.t === 'video' && performance.now() - (g.callAt || 0) >= CALL_GAP) this.call(g); // its picture did not come, or stopped: sent again
     if (m.t === 'chat' && typeof m.text === 'string' && performance.now() - (g.chatAt || -CHAT_GAP) >= CHAT_GAP) { g.chatAt = performance.now(); toast(`${g.name}: ${m.text.slice(0, 40)}`, COL.blue); }
   },
   // A guest's command for its Pokémon's next turn, checked here: an eight-way step, one of the four moves, an attack or a
@@ -118,9 +128,20 @@ export const NET = {
     const had = this.cmds[slot];
     if (m.kind === 'stop') { if (had?.rep) delete this.cmds[slot]; return; }
     const ok = m.kind === 'move' ? Array.isArray(m.arg) && m.arg.length === 2 && m.arg.every((d) => d === -1 || d === 0 || d === 1) : m.kind === 'move-skill' ? [0, 1, 2, 3].includes(m.arg) : ['basic', 'wait'].includes(m.kind);
-    if (!ok || typeof G.scene?.resumeTurn !== 'function') return;
+    // (nor once the run has ended, over its last words: Dungeon.enter starts every run with none waiting)
+    if (!ok || typeof G.scene?.resumeTurn !== 'function' || G.scene.done) return;
     if (m.rep === true && had && !had.rep) { if (had.kind === 'move') had.arg = m.arg; return; }
     this.cmds[slot] = { kind: m.kind, arg: m.arg, rep: m.rep === true, at: performance.now() };
+  },
+  // each guest's own moves, by party slot, as the dungeon named them this frame (null anywhere else): told when they change
+  moveLists(by) {
+    if (this.role !== 'host') return;
+    for (const g of this.guests) {
+      const list = by?.[g.slot] || null, key = JSON.stringify(list);
+      if (key === g.movesKey || !g.conn.open) continue;
+      g.movesKey = key;
+      g.conn.send({ t: 'moves', list });
+    }
   },
   // the screen everyone sees: a 960x540 copy of the canvas plus the game's audio
   stream() {
@@ -158,15 +179,33 @@ export const NET = {
         const conn = this.conn = peer.connect(PREFIX + code, { reliable: true });
         conn.on('data', (m) => {
           if (this.conn !== conn) return;
-          if (m?.t === 'hello') { this.slot = m.slot; this.code = code; this.set('guest', tr(`P${m.slot + 1}로 참가! 던전에서 ${m.slot === 1 ? '파트너' : '세 번째 동료'}를 조종해요.`, `Joined as P${m.slot + 1}! You steer the ${m.slot === 1 ? 'partner' : 'third member'} in dungeons.`)); }
+          if (m?.t === 'hello') { this.slot = m.slot; this.code = code; this.videoTries = 0; this.set('guest', this.joined()); this.awaitVideo(); }
+          if (m?.t === 'moves') { this.moves = Array.isArray(m.list) ? m.list.slice(0, 4).map(MOVE_SHOWN) : null; }
           if (m?.t === 'full') this.fail(new Error(tr('방이 가득 찼어요 (최대 3명).', 'The room is full (3 players max).')));
         });
         conn.on('close', () => { if (this.conn === conn && this.role === 'guest') this.fail(new Error(tr('호스트와 연결이 끊겼어요.', 'Lost the connection to the host.'))); });
       });
+      // only the room's host shows its screen here (1.31: any caller that knew this player's id was answered, and its
+      // picture took the host's place). A newer call takes an older one's place; what an older one still says is not heard.
       peer.on('call', (call) => {
-        if (this.peer !== peer) { call.close(); return; }
+        if (this.peer !== peer || call.peer !== PREFIX + code) { call.close(); return; }
+        const old = this.feed;
+        this.feed = call; old?.close();
+        // (a moment later: when the whole room went, the link to the host says so first and the stay is over)
+        const lost = () => setTimeout(() => {
+          if (this.feed !== call || this.role !== 'guest' || !this.conn?.open) return;
+          toast(tr('방장의 화면이 끊겨 다시 받는 중이에요…', "Lost the host's screen; getting it again…"), COL.red, 4);
+          this.askVideo();
+        }, 500);
         call.answer();
-        call.on('stream', (s) => { if (this.peer === peer) { this.remote = s; this.onChange?.(); } });
+        call.on('stream', (s) => {
+          if (this.feed !== call) return;
+          clearTimeout(this.videoT); this.videoTries = 0;
+          this.remote = s;
+          for (const t of s.getVideoTracks()) t.addEventListener('ended', lost);
+          this.set('guest', this.joined());
+        });
+        call.on('close', lost); call.on('error', lost);
       });
       peer.on('error', (e) => {
         if (this.peer !== peer) return;
@@ -175,22 +214,44 @@ export const NET = {
       });
     } catch (e) { this.fail(e); }
   },
-  send(m) { if (this.role === 'guest' && this.conn?.open) this.conn.send(m); },
+  joined() { return tr(`P${this.slot + 1}로 참가! 던전에서 ${this.slot === 1 ? '파트너' : '세 번째 동료'}를 조종해요.`, `Joined as P${this.slot + 1}! You steer the ${this.slot === 1 ? 'partner' : 'third member'} in dungeons.`); },
+  // the picture is asked for (again) when none has come VIDEO_WAIT from now
+  awaitVideo() {
+    const a = this.attempt;
+    clearTimeout(this.videoT);
+    this.videoT = setTimeout(() => { if (a === this.attempt && this.role === 'guest' && !this.remote) this.askVideo(); }, VIDEO_WAIT);
+  },
+  askVideo() {
+    if (this.role !== 'guest' || !this.code) return;
+    const c = this.feed;
+    this.feed = null; this.remote = null; c?.close(); // (what the call given up still says is no longer heard)
+    if ((this.videoTries || 0) >= VIDEO_TRIES) return this.fail(new Error(tr('방장의 화면을 받지 못했어요. 인터넷 연결을 확인하고 다시 참가해 주세요.', "The host's screen did not come through. Check your connection and join again.")));
+    this.videoTries = (this.videoTries || 0) + 1;
+    this.set('guest', tr('방장의 화면을 받는 중…', "Getting the host's screen…"));
+    this.send({ t: 'video' });
+    this.awaitVideo();
+  },
+  // (a command goes only from a guest who sees the game: a press made blind is nobody's move)
+  // (but a thumb lifted is told all the same: the step it was repeating must not be played once more)
+  send(m) { if (this.role === 'guest' && this.conn?.open && (m.t !== 'cmd' || this.remote || m.kind === 'stop')) this.conn.send(m); },
   // shared ------------------------------------------------------------------------------------
   leave() {
     const was = this.role;
     this.attempt++;
     for (const g of this.guests) { g.call?.close(); g.conn.close(); }
-    this.conn?.close(); this.peer?.destroy();
+    clearTimeout(this.videoT);
+    this.feed?.close(); this.conn?.close(); this.peer?.destroy();
     // the screen's capture ends with the room; its sound track is the game's own mix (audio.js), kept for the next room
     for (const t of this.media?.getVideoTracks() || []) t.stop();
-    Object.assign(this, { role: null, code: '', peer: null, guests: [], cmds: {}, conn: null, slot: 0, remote: null, media: null, capture: null });
+    Object.assign(this, { role: null, code: '', peer: null, guests: [], cmds: {}, conn: null, slot: 0, feed: null, moves: null, videoTries: 0, remote: null, media: null, capture: null });
     this.set(null, was ? tr('혼자 하기로 돌아왔어요.', 'Back to solo play.') : '');
   },
   fail(e) {
     const msg = e?.message === 'peerjs' ? tr('멀티플레이 모듈을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.', 'Could not load the multiplayer module. Check your internet connection.') : (e?.message || String(e));
+    const was = this.role;
     this.leave();
     this.set(null, msg);
+    this.onFail?.(msg, was);
   },
   set(role, status) { if (role !== undefined) this.role = role; this.status = status; this.onChange?.(); },
 };

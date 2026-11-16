@@ -3,7 +3,7 @@
 // data and every Google account keeps its own copy. Signed-in devices keep each other current: every save goes up, and
 // a device that starts or comes back behind the cloud takes the newer save. The web gets its token from Google Identity
 // Services; Google refuses its sign-in pages inside a WebView, so the app asks MainActivity (Play services) instead.
-import { G, APP, touchUI, input, toast, COL } from './core.js';
+import { G, APP, touchUI, input, toast, COL, repause } from './core.js';
 import { tr, onLang } from './i18n.js';
 import { ERAS } from './content.js';
 import { S, SLOTS, MODE_NAMES, slotOf, readSave, saves, saveText, replaceSave, keptSaves, keptText, putKept, renameKept, dropKept, keptPrint, droppedKept, setDropped } from './game.js';
@@ -125,7 +125,10 @@ async function find() {
   st.files = files; st.kept = kept;
 }
 // what a save is, in a few words kept beside the file (Drive app properties are short strings)
-const meta = (o, slot) => ({ slot, era: String(o.era), playtime: String(Math.round(o.playtime || 0)), savedAt: String(o.savedAt || 0) });
+// rev (1.31): the save's own mark (game.js save) with the time it belongs to, as `from` below: a device before 1.31 writing
+// over the copy leaves this field as it was, and the time then tells that the mark is another save's (revOf: null, not known)
+const meta = (o, slot) => ({ slot, era: String(o.era), playtime: String(Math.round(o.playtime || 0)), savedAt: String(o.savedAt || 0), ...(o.rev && { rev: `${o.rev} ${o.savedAt || 0}` }) });
+const revOf = (props) => { const [rev, at] = String(props?.rev || '').split(' '); return rev && at === props.savedAt ? rev : null; };
 // a file of the app folder written: over `file`, or new under `name`
 async function writeFile(file, name, props, text) {
   const head = { appProperties: props, ...(file ? {} : { name, parents: ['appDataFolder'] }) };
@@ -169,6 +172,11 @@ async function pull(slot, before = saveText(slot)) {
 // last KEPT_MARK, long enough for the other devices.
 // A journey the player deleted here (1.29, game.js deleteKept) is marked gone like one taken back; the note of what it was
 // (droppedKept) also marks a copy of it this device never saw under that key, which would otherwise come down again.
+// A deletion's mark says so (`del`, 1.31) and then holds for that save under every key: another device that had put the
+// same save aside under a key of its own (while offline, say) no longer sends it up again, its copy goes like the others,
+// and one an older version sent up meanwhile is marked too. A deletion that finds no file to mark leaves a mark of its
+// own. Up to 1.30 the deleted journey came back to every device by that other key. Only that very save (keptPrint) goes:
+// a later save of the journey, the journey in play and one merely taken back are left alone.
 const KEPT_MARK = 90 * 86400000;
 // up to n at once, all of them done before this ends (the first failure is thrown then): each one is a round trip to Google,
 // and on a slow line a device with several journeys to fetch waited for them one after another
@@ -186,11 +194,16 @@ async function syncKept() {
   let changed = false, whole = true;
   const step = async (fn) => { try { await fn(); } catch (e) { whole = false; if (!/^Drive \d/.test(e.message)) throw e; } };
   const del = async (key) => { await api(`/drive/v3/files/${kept[key].id}`, { method: 'DELETE' }); delete kept[key]; };
+  const printOf = (key) => keptPrint(kept[key].appProperties.slot, kept[key].appProperties);
+  const deletions = () => new Set(Object.keys(kept).filter((key) => kept[key].appProperties.gone && kept[key].appProperties.del).map(printOf));
+  const deleted = deletions();
+  const mark = (key, gone) => step(async () => { kept[key] = await writeFile(kept[key], null, { gone: String(Date.now()), ...(gone && { del: '1' }) }, '{}'); known.delete(key); });
   try {
     for (const key of Object.keys(kept).sort()) {
       const p = kept[key].appProperties;
       if (p.gone) { if (Date.now() - +p.gone > KEPT_MARK) await step(() => del(key)); continue; }
       const at = keptPrint(p.slot, p), first = alive.get(at);
+      if (deleted.has(at)) { await mark(key, true); continue; } // the save a player deleted, sent up again under another key
       if (first === undefined) { alive.set(at, key); continue; }
       if (known.has(key)) known.add(first); // what this device did with the copy going (taken back, say) holds for the one staying
       await step(async () => { await del(key); known.delete(key); });
@@ -200,6 +213,7 @@ async function syncKept() {
       if (f?.appProperties.gone) { dropKept(k.key); known.delete(k.key); changed = true; }
       else if (f) known.add(k.key);
       else if (same) { known.add(same); if (renameKept(k.key, same)) changed = true; else whole = false; }
+      else if (deleted.has(keptPrint(k.slot, k.o))) { dropKept(k.key); known.delete(k.key); changed = true; } // deleted on another device, under its key there
       else {
         const text = keptText(k.key);
         if (text == null) continue;
@@ -213,8 +227,18 @@ async function syncKept() {
     for (const key of Object.keys(kept)) {
       const p = kept[key].appProperties;
       if (p.gone || here.has(key) || here.has(keptPrint(p.slot, p))) continue;
-      if (known.has(key) || dropped.has(keptPrint(p.slot, p))) await step(async () => { kept[key] = await writeFile(kept[key], null, { gone: String(Date.now()) }, '{}'); known.delete(key); });
+      if (known.has(key) || dropped.has(keptPrint(p.slot, p))) await mark(key, dropped.has(keptPrint(p.slot, p)));
       else if (!st.keptBad.has(key)) coming.push(key);
+    }
+    // a deletion no file carries yet (the journey never went up from here, or its file went meanwhile): a mark of its own
+    const marked = deletions();
+    let n = 0;
+    for (const d of dropped) {
+      const part = d.split(' '), slot = part[0], savedAt = part[part.length - 1], jid = part.slice(1, -1).join(' ');
+      // (a file still holding that save is marked above, or will be at the next sync if Drive refused this time)
+      if (marked.has(d) || !SLOTS.includes(slot) || Object.keys(kept).some((key) => !kept[key].appProperties.gone && printOf(key) === d)) continue;
+      const key = `joseon-poke-kept-${slot}-${Date.now() + n++}`;
+      await step(async () => { kept[key] = await writeFile(null, `${key}.json`, { slot, savedAt, jid, gone: String(Date.now()), del: '1' }, '{}'); });
     }
     await together(coming, 4, (key) => step(async () => {
       const text = await (await api(`/drive/v3/files/${kept[key].id}?alt=media`)).text();
@@ -259,7 +283,14 @@ async function sync(auto) {
       // device. Nor is it once the player has deleted that journey from the Past journeys (1.29): it would come back as
       // the save to continue
       if (!local && (keptSaves().some((k) => k.slot === slot && String(k.o.savedAt || 0) === cloud.savedAt) || dropped.some((d) => heldBack(d, slot)))) continue;
-      if (local && String(local.savedAt) === cloud.savedAt) { markSynced(slot, cloud.savedAt); continue; }
+      if (local && String(local.savedAt) === cloud.savedAt) {
+        // saved at the same instant on both sides and yet two saves, as their marks tell (meta rev; 1.31: up to 1.30 the
+        // time alone made them one, "up to date", and the play of one side never went up): the player chooses
+        const rev = revOf(cloud);
+        if (local.rev && rev && rev !== local.rev) st.choice ||= { slot, local: meta(local, slot), cloud };
+        else markSynced(slot, cloud.savedAt);
+        continue;
+      }
       if (local && w && cloud.savedAt === w) { await push(slot); sent++; continue; }
       if (!local || (w && String(local.savedAt) === w)) {
         // only the cloud moved on, by a copy that never had this device's own last upload (written over by another
@@ -341,8 +372,11 @@ const signIn = () => run(async () => {
   await sync(false);
 });
 const upload = () => run(async () => {
+  // the journey the button meant when pressed, as for a download below (1.31: read after the wait on Google, a journey
+  // of another difficulty loaded meanwhile went up in its place, over that difficulty's copy)
+  const slot = current();
   await getToken(true); await find();
-  await push(current());
+  await push(slot);
   await shareKept();
   st.choice = null; st.pending = st.keptLate; say(tr('클라우드에 저장했어요.', 'Saved to the cloud.') + keptNote());
 });
@@ -402,8 +436,8 @@ function render() {
 let openPanel = () => {};
 export function initCloud() {
   const panel = $('cloud');
-  openPanel = () => { panel.hidden = false; G.paused = true; input.down.clear(); input.pressed.clear(); if (!APP) loadGis().catch(() => {}); render(); };
-  const close = () => { panel.hidden = true; G.paused = false; };
+  openPanel = () => { panel.hidden = false; repause(); input.down.clear(); input.pressed.clear(); if (!APP) loadGis().catch(() => {}); render(); };
+  const close = () => { panel.hidden = true; repause(); };
   $('btn-cloud').addEventListener('click', (e) => { e.currentTarget.blur(); if (panel.hidden) openPanel(); else close(); });
   panel.querySelector('[data-close]').addEventListener('click', close);
   onLang(render);

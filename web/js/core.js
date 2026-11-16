@@ -162,6 +162,12 @@ const release = (k) => { input.down.delete(k); delete input.repeatAt[k]; };
 addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) release(k); });
 addEventListener('blur', () => { input.down.clear(); input.repeatAt = {}; });
 
+// What holds the game still (G.paused): an HTML panel open over it (the guide, co-op, the cloud, the search box), or being
+// a co-op guest, who watches the host's game (G.guest, netui.js). Whoever opens or closes one says so here (1.31: each
+// wrote G.paused itself, and a guest closing the guide or the cloud panel set its own game going under the host's
+// picture, every press played twice)
+const PANELS = ['guide', 'mp', 'cloud', 'ask'];
+export function repause() { G.paused = !!G.guest || PANELS.some((id) => { const el = document.getElementById(id); return !!el && !el.hidden; }); }
 const press = (k) => { if (G.paused || G.menuOpen) return; if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); }; // the guide, the search box or a phone's Menu panel is open
 // keeps a finger's pointer on the control it started on; capture can be refused (the pointer already ended), which is harmless
 const capture = (el, id) => { try { el.setPointerCapture(id); } catch (e) { /* pointer gone */ } };
@@ -192,7 +198,10 @@ let padShown = '', padBox, pad8 = false, padGuest = false;
 export function padMoves(list, guest) {
   if (!touchUI) return;
   padGuest = !!guest;
-  const key = guest ? 'plain' : list ? JSON.stringify(list) : 'off'; // (a guest who joined from its own dungeon steers the host's Pokémon, not the one whose moves its own screen would name)
+  // a guest's buttons carry the moves of the Pokémon it steers as the host tells them (main.js hands NET.moves over; 1.31:
+  // up to 1.30 they kept their bare letters, and went by the guest's own game for which to show: a guest who joined from
+  // a dungeon of its own with two moves had no E and R for the host's four). A host that does not tell leaves the four letters
+  const key = guest ? (list ? 'g' + JSON.stringify(list) : 'plain') : list ? JSON.stringify(list) : 'off';
   if (key === padShown) return;
   padShown = key;
   padBox ||= document.querySelector('#touch .moves');
@@ -280,6 +289,7 @@ export function pollGamepads() {
     if (ax < -0.5) now.add('left'); else if (ax > 0.5) now.add('right');
     if (ay < -0.5) now.add('up'); else if (ay > 0.5) now.add('down');
   }
+  if (G.onGamepad?.(now, padHeld)) { for (const k of padHeld) release(k); padHeld = now; return; } // a co-op guest's pad steers on the host (netui.js)
   if (G.paused || G.menuOpen) now.clear();
   for (const k of padHeld) if (!now.has(k)) release(k);
   for (const k of now) if (!padHeld.has(k)) { press(k); G.onFirstInput?.(); }
@@ -621,12 +631,12 @@ export function askText(title, value = '', [okText, noText] = ['OK', 'Cancel']) 
     const [label, field] = [box.querySelector('label'), box.querySelector('input')], [ok, no] = box.querySelectorAll('button');
     label.textContent = title; field.value = value;
     ok.textContent = okText; no.textContent = noText;
-    const done = (v) => { box.remove(); G.paused = false; input.down.clear(); input.pressed.clear(); res(v); };
+    const done = (v) => { box.remove(); repause(); input.down.clear(); input.pressed.clear(); res(v); };
     box.addEventListener('submit', (e) => { e.preventDefault(); done(field.value.trim()); });
     no.addEventListener('click', () => done(null));
     field.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') { e.preventDefault(); done(null); } });
-    G.paused = true;
     document.body.append(box);
+    repause();
     field.focus(); field.select();
   });
 }

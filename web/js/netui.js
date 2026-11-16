@@ -1,6 +1,6 @@
 // Multiplayer panel (HTML, beside the canvas) and the guest's view: the host's streamed screen plus
 // keyboard / touch controls that are sent to the host as dungeon commands.
-import { G, APP, input, touchUI, prefs } from './core.js';
+import { G, APP, input, touchUI, prefs, repause, toast, COL } from './core.js';
 import { tr, onLang } from './i18n.js';
 import { NET } from './net.js';
 import { unlockAudio, stopBgm, setMuted } from './audio.js';
@@ -14,8 +14,8 @@ let letGo = () => {};
 
 export function initNetUI() {
   const panel = $('mp'), btn = $('btn-mp');
-  const open = () => { panel.hidden = false; G.paused = true; input.down.clear(); input.pressed.clear(); render(); };
-  const close = () => { panel.hidden = true; if (NET.role !== 'guest') G.paused = false; };
+  const open = () => { panel.hidden = false; repause(); input.down.clear(); input.pressed.clear(); render(); };
+  const close = () => { panel.hidden = true; repause(); };
   btn.addEventListener('click', (e) => { e.currentTarget.blur(); panel.hidden ? open() : close(); });
   panel.querySelector('[data-close]').addEventListener('click', close);
   $('mp-host').addEventListener('click', () => { unlockAudio(); NET.host(); });
@@ -81,6 +81,16 @@ export function initNetUI() {
     else if (/^m[1-4]$/.test(k)) NET.send({ t: 'cmd', kind: 'move-skill', arg: +k[1] - 1 });
     return true;
   };
+  // a guest's gamepad steers its Pokémon like its keys and its touch pad (core.js pollGamepads; 1.31: up to 1.30 a
+  // guest's pad did nothing): the stick or d-pad as the touch pad, A an attack, RT a rest, X Y LB RB the four moves
+  let stick = '0,0';
+  G.onGamepad = (now, was) => {
+    if (NET.role !== 'guest') { stick = '0,0'; return false; }
+    const dx = now.has('right') - now.has('left'), dy = now.has('down') - now.has('up');
+    if (`${dx},${dy}` !== stick) { stick = `${dx},${dy}`; step(dx, dy); hold(dx, dy); }
+    for (const k of now) if (!was.has(k)) G.onPadKey(k);
+    return true;
+  };
   const vid = $('mp-video');
   // the sound of the host's screen is the guest's own to turn on and off, with the sound button like the game's own sound
   // (1.30; up to 1.29 that button did nothing to it). ▶ asks for the picture with its sound, so it turns the sound on
@@ -104,6 +114,9 @@ function shareUrl() {
 }
 
 let lastRole = null;
+// a guest put out of the room with the panel closed (the host left, the line or its picture was lost) is told on the screen
+// too: up to 1.30 the reason stood only in the panel, and the guest found itself back in its own game without a word
+NET.onFail = (msg, was) => { if (was === 'guest' && $('mp').hidden) toast(msg, COL.red, 6); };
 function render() {
   const role = NET.role;
   $('btn-mp').textContent = role === 'host' ? tr(`멀티 · ${NET.guests.length + 1}명`, `Co-op · ${NET.guests.length + 1}`) : role === 'guest' ? tr('멀티 · 참가 중', 'Co-op · joined') : tr('멀티', 'Co-op');
@@ -133,8 +146,10 @@ function render() {
   const watching = role === 'guest' && !!NET.remote;
   if (watching && vid.srcObject !== NET.remote) { vid.srcObject = NET.remote; vid.play().then(syncPlay, syncPlay); }
   vid.hidden = !watching; G.screen.style.visibility = watching ? 'hidden' : '';
-  if (role === 'guest' && lastRole !== 'guest') { G.paused = true; stopBgm(0.3); }
-  if (!role && lastRole === 'guest') { G.paused = !$('mp').hidden; vid.srcObject = null; $('mp-play').hidden = true; letGo(); }
+  // a guest watches the host's game, its own standing still for as long as it stays (core.js repause)
+  G.guest = role === 'guest'; repause();
+  if (role === 'guest' && lastRole !== 'guest') stopBgm(0.3);
+  if (!role && lastRole === 'guest') { vid.srcObject = null; $('mp-play').hidden = true; letGo(); }
   if (!watching) $('mp-play').hidden = true;
   lastRole = role;
 }

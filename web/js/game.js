@@ -157,11 +157,13 @@ export class Mon {
     while (this.lv < MAX_LV && this.exp >= this.expNext) {
       const oldMax = this.maxhp;
       this.lv++;
-      this.hp += this.maxhp - oldMax;
+      // (one that fell stays down: up to 1.30 a member that fainted in the turn its Exp. came stood at 1 or 2 HP, out of
+      // the fight all the same, which no Revive and no tag could reach)
+      if (this.hp > 0) this.hp += this.maxhp - oldMax;
       ev.push({ t: 'level', lv: this.lv });
       for (const [l, m] of this.data.learn) {
         if (l === this.lv && moveUsable(m) && !this.moves.some((x) => x.id === m)) {
-          if (this.moves.length >= 4) { ev.push({ t: 'want', move: m }); continue; }
+          if (this.moves.length >= 4) { if (!ev.some((e) => e.t === 'want' && e.move === m)) ev.push({ t: 'want', move: m }); continue; } // (asked once: a list may name a move at two levels)
           this.moves.push({ id: m, pp: this.maxPP(m) });
           ev.push({ t: 'learn', move: m });
         }
@@ -171,7 +173,7 @@ export class Mon {
     }
     return ev;
   }
-  evolve(to) { const r = this.hp / this.maxhp; this.sp = to; this.hp = Math.max(1, Math.round(this.maxhp * r)); }
+  evolve(to) { const r = this.hp / this.maxhp; this.sp = to; this.hp = r > 0 ? Math.max(1, Math.round(this.maxhp * r)) : 0; } // (one that fell evolves fallen)
   heal(full = true) { this.hp = this.maxhp; this.status = null; if (full) this.restorePP(); }
   // a move's full PP: PP_MUL times the games' number on the team, the games' own for bosses and ordinary foes
   maxPP(id) { return this.boss || this.foe ? DEX.moves[id].pp : teamPP(id); }
@@ -183,10 +185,13 @@ export class Mon {
     for (const x of this.moves) at.delete(x.id);
     return [...at].map(([move, lv]) => ({ move, lv })).sort((a, b) => a.lv - b.lv);
   }
-  // a new move takes a free slot, or the place of the move in `slot`
+  // a new move takes a free slot, or the place of the move in `slot`; false for one it knows already (1.31: several
+  // levels at once could ask for the same move twice, and both answers took a slot)
   learn(move, slot) {
+    if (this.moves.some((x) => x.id === move)) return false;
     const mv = { id: move, pp: this.maxPP(move) };
     if (this.moves.length < 4) this.moves.push(mv); else this.moves[slot] = mv;
+    return true;
   }
   toJSON() { return { sp: this.sp, lv: this.lv, exp: this.exp, hp: this.hp, shiny: this.shiny, status: this.status, moves: this.moves, forme: this.forme || undefined, fleet: this.fleet || undefined }; }
   // a Pokémon as a save holds it (toJSON) and nothing else: a battle's own numbers (buff, hpMul...) must not reach it.
@@ -364,21 +369,53 @@ function migrateV8(o) {
 // journey taking a difficulty's place puts the one there aside instead of losing it (replaceSave, keepJourney)
 const FRESH = () => ({ era: 0, step: 0, side: {}, items: {}, money: 0, flags: {}, night: false, playtime: 0, kills: {}, eraClear: false, roster: [], lastNode: 'town', townPos: null, townKind: 1, faction: null, wander: null, mode: 'normal', slot: 'normal', inRun: null, spy: null, over: false, dex: '', koreaAt: null, worldAt: null, homeParty: null, crewLv: null, jid: '' });
 export const S = { ...FRESH(), party: [] };
+// Two windows on one journey (1.31). Each window plays the state it holds in memory, so a window left open behind a newer
+// save of the same journey (another tab went on, or started that difficulty anew) wrote its old state over it at its next
+// save, and the newer play was in no copy at all. A window now remembers which save of a journey it last read or wrote
+// (`seen`, by the save's mark: stamp); finding another one in its place, save() writes nothing, answers false and leaves
+// word in G.clash, and the player chooses (main.js askClash): go on from that save, or keep this window's play, the other
+// save going to the Past journeys whole (saveOver). A place found empty is no clash (the journey was put aside: writing
+// there loses nothing).
+const seen = {};
+const stamp = (text) => { if (!text) return ''; try { const o = JSON.parse(text); return `${o.jid || ''} ${o.savedAt || 0} ${o.rev || ''}`; } catch (e) { return 'broken'; } };
+const see = (slot) => { seen[slot] = stamp(saveText(slot)); };
+const clash = (slot) => { const there = stamp(saveText(slot)); return !!there && slot in seen && there !== seen[slot]; };
+// the difficulty a new journey is about to start on, as its place stands now (Title.newGame, once the journey there has
+// been put aside): the intro takes a while, and a save another window makes meanwhile is one this window never saw
+let claimed = null;
+export function claim(slot) { see(slot); claimed = slot; }
+export const outdated = () => S.party.length >= 2 && clash(S.slot);
 export function newGame(starter, partner, mode = 'normal') {
   const jid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   Object.assign(S, FRESH(), { items: { oran: 4, stone: 6, escape: 1 }, money: 300, mode, slot: mode, jid });
   S.party = [new Mon(starter, 6, { shiny: true }), new Mon(partner, 6, { shiny: true })];
+  if (claimed !== mode) see(mode);
+  claimed = null;
   syncDex();
 }
-export function save() {
+// rev: a mark of its own for every save, beside its time. Two saves can carry the same savedAt (two devices in the same
+// millisecond, a browser that rounds its clock), and the cloud took them for one save (cloud.js sync). The time also
+// never stands still or goes back on a device: a save is always later than the one it replaces.
+export function save(over = false) {
   if (S.party.length < 2) return false;
   try {
+    if (!over && clash(S.slot)) { G.clash = S.slot; return false; }
     const party = (S.homeParty || S.party).filter((m) => !m.loan); // never save a naval crew or loaned Pokémon as the team
     syncDex();
-    localStorage.setItem(slotKey(S.slot), JSON.stringify({ ...S, homeParty: undefined, crewLv: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt: Date.now() }));
+    const last = +readSave(S.slot)?.savedAt || 0, savedAt = Math.max(Date.now(), last + 1), rev = Math.random().toString(36).slice(2, 10);
+    localStorage.setItem(slotKey(S.slot), JSON.stringify({ ...S, homeParty: undefined, crewLv: undefined, v: SAVE_V, party: party.map((m) => m.toJSON()), roster: S.roster.map((m) => m.toJSON()), savedAt, rev }));
+    see(S.slot);
+    if (G.clash === S.slot) G.clash = null;
     G.onSaved?.(); // the cloud copy follows (cloud.js)
     return true;
   } catch (e) { return false; }
+}
+// this window's play kept after all: the save another window made goes to the Past journeys whole, then this one is
+// written. False when there was no room to keep that save (nothing changed), or none for this one (theirs is kept, and
+// the place stays empty until a save here goes through)
+export function saveOver() {
+  if (keepJourney(S.slot) === false) return false;
+  return save(true);
 }
 // a save from before 1.7 sits under the Normal key whatever its difficulty: it moves to its own journey's key, once
 export function initSaves() {
@@ -426,6 +463,10 @@ const isPlace = (x) => isObj(x) && isInt(x.era) && isInt(x.step) && isBool(x.era
 const isSp = (x) => Number.isInteger(x) && x >= 1 && x <= DEX_N; // a species the game has (a spy hunt's suspects)
 // a spy hunt under way (no more than the six places the base has for its suspects); one that ended leaves only its era and year
 const isHunt = (x) => isInt(x.type) && Number.isFinite(x.kg) && isSp(x.spy) && Array.isArray(x.suspects) && x.suspects.length > 0 && x.suspects.length <= 6 && x.suspects.every(isSp) && x.suspects.includes(x.spy);
+// the quest items (content.js names them here when it loads): with the shop's and the key items, every item a save may hold
+let questItems = null;
+export function setQuestItems(q) { questItems = q; }
+const knownItem = (id) => !!ITEMS[id] || !questItems || !!questItems[id];
 const FIELDS = {
   era: isInt, step: isInt, side: isObj, items: counts, money: Number.isFinite, flags: isObj, night: isBool, playtime: (x) => Number.isFinite(x) && x >= 0,
   kills: counts, eraClear: isBool, lastNode: isStr, townPos: (x) => Array.isArray(x) && x.length === 2 && x.every(isInt), townKind: (x) => x === 1 || x === 2,
@@ -460,6 +501,11 @@ export function parseSave(o, eras = Infinity) {
   if (isObj(s.flags)) delete s.flags.oldEnding;
   const state = { party, roster, ...(s.migrated && { migrated: true }) };
   for (const [k, ok] of Object.entries(FIELDS)) if (s[k] != null) { if (ok(s[k])) state[k] = s[k]; else fix(k); }
+  // an item this game does not have, or a missed legend that is no Pokémon (1.31: a damaged copy, or a newer version's;
+  // both passed, the copy took a good save's place, and the Items menu or that dungeon's door then stopped the game):
+  // the item is dropped and the others stay, the missed-legend plan is made again (quests.js wanderPlan)
+  if (state.items) for (const id of Object.keys(state.items)) if (!knownItem(id)) { delete state.items[id]; fix(`items.${id}`); }
+  if (state.wander && !Object.values(state.wander.at).every(isSp)) { delete state.wander; fix('wander'); }
   if ((state.era || 0) >= eras) throw new Error('not a save');
   // the place kept on the line the team is not on: an era that does not exist would stop the game when the team goes back
   for (const k of ['koreaAt', 'worldAt']) if (state[k]?.era >= eras) { delete state[k]; fix(k); }
@@ -573,6 +619,8 @@ export function load(slot = saves()[0]?.slot, eras = Infinity) {
   try { got = parseSave(o, eras); } catch (e) { console.warn('save load failed', e); return false; }
   if (got.fixed.length) console.warn('save put right:', got.fixed.join(' '));
   Object.assign(S, FRESH(), got.state, { slot }); // the key it was read from names its journey
+  see(slot);
+  if (G.clash === slot) G.clash = null;
   syncDex(); // a save from before the Pokédex fills its record in
   return true;
 }
@@ -603,9 +651,9 @@ export function recruit(mon) {
   // they stand above the team, which stops at 180) joins at 180: up to 1.19 it joined at its own level, every foe after it
   // stood higher again (quests.js foeLevels goes by the team's best), and the cloud refused the save
   const m = new Mon(mon.sp, Math.min(mon.lv, MAX_LV), { shiny: mon.shiny, moves: mon.moves.map((mv) => ({ id: mv.id })) });
+  if (S.party.length >= 3 && S.roster.length >= ROSTER_MAX) return { m, where: 'full' }; // (not caught: up to 1.30 the Pokédex said so all the same)
   dexMark(m.sp, 2);
   if (S.party.length < 3) { S.party.push(m); return { m, where: 'party' }; }
-  if (S.roster.length >= ROSTER_MAX) return { m, where: 'full' };
   S.roster.push(m);
   return { m, where: 'roster' };
 }
