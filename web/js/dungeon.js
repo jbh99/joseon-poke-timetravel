@@ -4,10 +4,10 @@ import { playBgm, sfx, cry, jingle } from './audio.js';
 import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
 import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
-import { drawMon, Town, PEARL, objInView } from './town.js';
+import { drawMon, monHead, Town, PEARL, objInView } from './town.js';
 import { tr, iga } from './i18n.js';
 import { openPokedex } from './pokedex.js';
-import { tileSet, paintTerrain, hasPmdSprite, pmdHeadroom, spriteReady } from './pmd.js';
+import { tileSet, paintTerrain, hasPmdSprite, spriteReady } from './pmd.js';
 import { NET } from './net.js';
 
 // the floor's size in tiles: 44x32, unless a Pearl floor needs more room (fixedFloor sets it per floor)
@@ -226,7 +226,7 @@ export class Dungeon {
     this.bg = null;
     this.seen = Array.from({ length: H }, () => new Array(W).fill(false));
     this.vis = Array.from({ length: H }, () => new Array(W).fill(false));
-    this.ents = []; this.items = []; this.stairs = null; this.pendingStairs = false; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null; this.bossIntro = false;
+    this.ents = []; this.items = []; this.stairs = null; this.pendingStairs = false; this.calling = null; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null; this.bossIntro = false;
     this.flames = new Map(); this.drops = []; this.bolts = []; // Blue Flare's flames, Fusion Flare's falling fire, lightning on show
     // allies
     const startRoom = this.bossFloor || lay ? rooms[0] : choice(rooms);
@@ -322,12 +322,33 @@ export class Dungeon {
   questSpawns(spot) {
     const last = this.floor === this.def.floors || (this.def.boss && this.main && this.floor === this.def.floors - 1);
     const q = this.def.quest;
-    if (this.main && q && (q.perFloor || (q.lastFloor && last))) { const p = spot(); if (p) this.items.push({ x: p[0], y: p[1], id: q.item, quest: true }); }
+    if (this.main && q && (q.perFloor || (q.lastFloor && last))) { const p = spot(); if (p) this.items.push({ x: p[0], y: p[1], id: q.item, quest: true, main: true }); } // (main: the stairs wait for it, stairsHold)
     const r = this.def.rescue;
     if (this.main && r && r.floor === this.floor && !S.flags['rescued_main_' + this.dId]) {
       const p = spot(); if (p) { const e = this.addEnt(new Mon(r.sp, 5), p[0], p[1], 'npc'); e.rescue = { id: 'main_' + this.dId, sp: r.sp }; }
     }
     this.sideSpawns(spot);
+  }
+  // The stairs wait while the floor still holds what the story run came for (1.32): its quest item lying somewhere, or
+  // the Pokémon it came to rescue. Up to 1.31 a run could be finished without them and the story went on as if they had
+  // been brought: the declaration of 1919 "handed over" with none in the bag, 1636 closed with Togepi left on the
+  // mountain. Only what really is on the floor holds the stairs (nothing found a place: nothing to wait for), and where
+  // it lies is put on the map. Returns the words to say, or null when the way is free.
+  stairsHold() {
+    if (!this.main) return null;
+    const it = this.items.find((i) => i.main);
+    if (it) {
+      this.seen[it.y][it.x] = true;
+      const n = QITEMS[it.id].name;
+      return tr(`이 층에 ${n}이(가) 아직 남아 있다. 찾아서 가자! (지도의 붉은 점)`, `The ${n} is still somewhere on this floor. Find it first! (the red dot on the map)`);
+    }
+    const r = this.ents.find((e) => e.alive && e.team === 'npc' && String(e.rescue?.id).startsWith('main_'));
+    if (r) {
+      this.seen[r.y][r.x] = true; this.calling = r;
+      const n = DEX.species[r.mon.sp].name;
+      return tr(`이 층 어딘가에서 ${n}이(가) 도움을 기다리고 있다. 먼저 구하러 가자! (지도의 푸른 점)`, `${n} is waiting for help somewhere on this floor. Rescue it first! (the blue dot on the map)`);
+    }
+    return null;
   }
   // the board's requests taken for this dungeon: a sought item on most floors, a Pokémon to rescue on the floor its
   // request names. A boss floor gets them too (newFloor), since 1.16: a legend missed in an earlier era comes back on
@@ -1789,6 +1810,8 @@ export class Dungeon {
     if (this.pendingFlute) { this.pendingFlute = false; this.latch = null; this.tapDir = null; this.restTap = false; return this.playFlute(); }
     if (this.pendingStairs) {
       this.pendingStairs = false; this.latch = null; this.tapDir = null; this.restTap = false;
+      const hold = this.stairsHold(); // the story's find or rescue of this floor comes first
+      if (hold) { sfx('cancel'); return say([{ who: 'narr', text: hold }]); }
       // a tower or a mountain (def.climb) goes up, and the Azure Flute's stairs of light up into the sky
       const text = this.floor >= this.def.floors ? tr('출구로 이어지는 계단이다. 던전을 나갈까?', 'These stairs lead to the exit. Leave the dungeon?')
         : this.lit ? tr('하늘로 이어진 빛의 계단이다. 올라갈까?', 'A stairway of light into the sky. Climb it?')
@@ -1990,9 +2013,15 @@ export class Dungeon {
         c.save(); c.globalAlpha = Math.min(1, a); c.fillStyle = gr; c.fillRect(x - 36, y - 54, 72, 72); c.restore();
         if (e.reviveT > 0) e.reviveT = Math.max(0, e.reviveT - G.dt);
       }
+      if (e.isPlayer) { // and a gold ring on the leader's own tile (1.32), so the one in control is plain even in a crowd
+        c.save(); c.globalAlpha = (e.fade ?? 1) * 0.9; c.strokeStyle = BADGE_COL.G; c.lineWidth = 1;
+        c.beginPath(); c.ellipse(Math.round(x), Math.round(y) - 5, 10.5, 4.5, 0, 0, Math.PI * 2); c.stroke(); c.restore();
+      }
       drawMon(c, e.mon.spr, e.shiny, x, y, { face: e.face, facing: faceName(e.face) || e.lastF || 'left', anim, t, moving, hurt: e.hurt > 0, alpha: e.fade ?? 1, phase: e.phase, scale: e.isBoss ? (pmd ? 1.3 : e.revived ? 1.9 : 1.6) : 1, tint: e.rev?.tint });
       if (faceName(e.face)) e.lastF = faceName(e.face);
-      if (e.isPlayer) drawBadge(c, Math.round(x) - 5, Math.round(y) - 18 - Math.min(48, (pmd && pmdHeadroom(e.mon.spr)) || 28)); // just above its head
+      // the leader's badge right over its head: over the top of what is painted (monHead), not of the frame around it. Up to
+      // 1.31 it stood a tile higher than a small leader and so on the head of whoever stood to the north of it
+      if (e.isPlayer) drawBadge(c, Math.round(x) - 5, Math.round(y) - 13 - Math.min(48, monHead(e.mon.spr) ?? 28));
       const gslot = e.team === 'ally' && NET.role === 'host' ? S.party.indexOf(e.mon) : -1;
       if (gslot > 0 && NET.guestFor(gslot)) { // co-op: player tag, pulsing while that player is to move
         const my = Math.round(y) - 46 + (this.waitGuest?.m === e ? Math.sin(G.time * 8) * 2 : 0);
@@ -2233,7 +2262,7 @@ export class Dungeon {
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (this.seen[y][x] && this.grid[y][x]) { c.fillStyle = 'rgba(160,200,255,0.55)'; c.fillRect(mx + x * s, my + y * s, s, s); }
       if (this.stairs && this.seen[this.stairs[1]][this.stairs[0]]) { c.fillStyle = '#7fff7f'; c.fillRect(mx + this.stairs[0] * s - s / 2, my + this.stairs[1] * s - s / 2, s * 2, s * 2); }
       for (const it of this.items) if (this.seen[it.y][it.x]) { c.fillStyle = it.quest ? '#ff7f7f' : '#e0d070'; c.fillRect(mx + it.x * s, my + it.y * s, s, s); }
-      for (const e of this.ents) if (e.alive && this.vis[e.y][e.x]) { c.fillStyle = e.team === 'ally' ? (e.isPlayer ? '#ffe04a' : '#7fd0ff') : e.team === 'npc' ? '#7fa0ff' : '#ff5a4a'; c.fillRect(mx + e.x * s - s / 2, my + e.y * s - s / 2, s * 1.5, s * 1.5); }
+      for (const e of this.ents) if (e.alive && (this.vis[e.y][e.x] || e === this.calling)) { c.fillStyle = e.team === 'ally' ? (e.isPlayer ? '#ffe04a' : '#7fd0ff') : e.team === 'npc' ? '#7fa0ff' : '#ff5a4a'; c.fillRect(mx + e.x * s - s / 2, my + e.y * s - s / 2, s * 1.5, s * 1.5); }
     }
     // boss bars: right of the party panel, a pair side by side; over the minimap, so a long note stays clear (1.19)
     const bars = this.bosses.filter((b) => b.alive), bw = bars.length > 1 ? 140 : 180;

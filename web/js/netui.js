@@ -138,7 +138,8 @@ function render() {
   $('mp-players').innerHTML = '';
   const rows = role === 'host' ? [[tr('P1 (나)', 'P1 (you)'), tr('리더 · 메뉴와 이야기 진행', 'Leader · menus and story')], ...[1, 2].map((s) => [`P${s + 1}`, NET.guestFor(s) ? (s === 1 ? tr('파트너 조종', 'steers the partner') : tr('세 번째 동료 조종', 'steers the third member')) : tr('빈자리', 'open')])] : [];
   for (const [a, b] of rows) { const li = document.createElement('li'); li.textContent = `${a} — ${b}`; $('mp-players').appendChild(li); }
-  $('mp-guestinfo').textContent = role === 'guest' ? tr(`방 ${NET.code} · P${NET.slot + 1} — 던전에서 방향키 이동, Z 공격, Q·W·E·R 기술, ${touchUI ? '메뉴 버튼 → 한 턴 쉬기' : 'A 쉬기'}. 자기 차례에 화면 위에 표시가 떠요.`, `Room ${NET.code} · P${NET.slot + 1} — in dungeons: arrows move, Z attacks, Q/W/E/R moves, ${touchUI ? 'Menu → Rest a turn' : 'A rests'}. A banner shows when it's your turn.`) : '';
+  // (a guest's place in the room is known once the host has answered: until then no "P1" is shown, which is the host's)
+  $('mp-guestinfo').textContent = role === 'guest' && NET.code ? tr(`방 ${NET.code} · P${NET.slot + 1} — 던전에서 방향키 이동, Z 공격, Q·W·E·R 기술, ${touchUI ? '메뉴 버튼 → 한 턴 쉬기' : 'A 쉬기'}. 자기 차례에 화면 위에 표시가 떠요.`, `Room ${NET.code} · P${NET.slot + 1} — in dungeons: arrows move, Z attacks, Q/W/E/R moves, ${touchUI ? 'Menu → Rest a turn' : 'A rests'}. A banner shows when it's your turn.`) : '';
   $('mp-status').textContent = NET.status || '';
   $('btn-speed').disabled = role === 'guest'; // the host's speed is the one everybody watches
   // guest view: the host's screen replaces the local canvas

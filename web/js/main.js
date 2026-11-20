@@ -8,7 +8,7 @@ import { Town, setBuildings, setPearl, setBW, townSets, townPictures } from './t
 import { initPmd, tileSet, portraitImage, spriteReady } from './pmd.js';
 import { Dungeon } from './dungeon.js';
 import { Title, Intro, EraCard, WorldMap, Ending } from './scenes.js';
-import { onDungeonClear, resumeSteps, claimOwed } from './quests.js';
+import { onDungeonClear, resumeSteps, claimOwed, dropHandedOver } from './quests.js';
 import { NET } from './net.js';
 import { initNetUI } from './netui.js';
 import { initCloud } from './cloud.js';
@@ -24,6 +24,7 @@ const enterTown = (kind) => {
   const pics = townPictures(kind).filter((p) => !prepped.has(p));
   for (const m of [...S.party, ...S.roster]) m.status = null;
   claimOwed(); // a gift that found the roster full joins once there is room (quests.js)
+  dropHandedOver(); // a story find already handed over, left in the bag by a save from before 1.32 (quests.js)
   const t = new Town(kind);
   setScene(t);
   // a Black town's picture and the people's and the team's sprites load and decode together while the screen stays dark

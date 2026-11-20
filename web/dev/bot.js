@@ -82,8 +82,16 @@ export async function bot(turns = 200, opts = {}) {
       if (adj === undefined && (d.boss?.tele || d.boss?.sigRun?.tele || d.boss?.sigRun2?.tele) && opts.dodge !== false) { d.playerAct('wait'); continue; } // safe spot: wait out the blast (or Hyper Beam)
       if (!foes.length && p.mon.hp < p.mon.maxhp * 0.6) { d.playerAct('wait'); continue; } // rest like a player would
       let step = foes.length ? d.bfs(p, (x, y) => foes.some((f) => Math.max(Math.abs(f.x - x), Math.abs(f.y - y)) <= 1) && !d.entAt(x, y) && (opts.dodge === false || !d.danger(x, y)), 40) : null;
-      const it = d.items.find((i) => d.vis[i.y][i.x]);
-      if (!step && it) step = d.bfs(p, (x, y) => x === it.x && y === it.y, 40);
+      // the story run's own find and the one it came to rescue first: the stairs wait for them (Dungeon.stairsHold, 1.32)
+      const find = d.items.find((i) => i.main), it = find || d.items.find((i) => d.vis[i.y][i.x]);
+      if (!step && it) step = d.bfs(p, (x, y) => x === it.x && y === it.y, find ? 400 : 40);
+      if (!step && find) { stats.jumps = (stats.jumps || 0) + 1; p.x = p.vx = find.x; p.y = p.vy = find.y; d.afterStep(); continue; } // (no way found: counted, a floor's find must be reachable)
+      const res = !step && !foes.length && d.ents.find((e) => e.alive && e.team === 'npc' && e.rescue);
+      if (res) {
+        if (Math.max(Math.abs(res.x - p.x), Math.abs(res.y - p.y)) <= 1) { d.talkNpc(res); continue; }
+        step = d.bfs(p, (x, y) => Math.max(Math.abs(res.x - x), Math.abs(res.y - y)) <= 1 && !d.entAt(x, y), 400);
+        if (!step) { stats.jumps = (stats.jumps || 0) + 1; d.talkNpc(res); continue; }
+      }
       if (!step && d.stairs) step = d.bfs(p, (x, y) => x === d.stairs[0] && y === d.stairs[1], 80);
       if (!step && d.stairs) { p.x = d.stairs[0]; p.y = d.stairs[1]; d.pendingStairs = true; continue; }
       if (step) d.playerAct('move', step); else d.playerAct('wait');

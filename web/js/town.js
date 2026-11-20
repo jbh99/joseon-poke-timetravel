@@ -5,7 +5,7 @@ import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORME
 import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content.js';
 import { tr } from './i18n.js';
 import { openPokedex } from './pokedex.js';
-import { hasPmdSprite, pmdFailed, drawPmd, pmdDir, tileSet, paintTerrain, iconPath } from './pmd.js';
+import { hasPmdSprite, pmdFailed, drawPmd, pmdDir, pmdTop, topRow, tileSet, paintTerrain, iconPath } from './pmd.js';
 import { questMenu, partyMenu, rosterMenu, itemMenu, trackerText, onTalk, boardMenu, eraComplete, mainStep, settingsMenu, quitItem, sideState, spySuspects, spyDue, spyRaid, shownYear, giveMons, forgetMenu, moveInfo, endingOpen, formationMenu } from './quests.js';
 
 // occupied towns (1905-1944) have constables on patrol (Town.patrols); the independence army's base and the
@@ -120,6 +120,18 @@ export function drawMon(c, sp, shiny, x, y, o = {}) {
   else c.drawImage(pic, 0, frame * 32, 32, 32, Math.round(x - 16 + bob), Math.round(y - 30), 32, 32);
   c.restore();
   if (shiny) sparkle(c, x, y, o);
+}
+// how far a Pokémon's picture reaches above the bottom of its tile as drawMon paints it standing (pixels): where its
+// head ends, for what is drawn over it (the leader's badge, dungeon.js). null until its picture has loaded
+const iconTops = new Map();
+export function monHead(sp) {
+  if (hasPmdSprite(sp) && !pmdFailed(sp)) { const t = pmdTop(sp); return t == null ? null : t + 5; }
+  if (iconTops.has(sp)) return iconTops.get(sp);
+  const im = img(iconPath(sp, false));
+  if (!ready(im)) return null;
+  const h = 30 - (topRow(im, 0, 0, 32, 32) ?? 4);
+  iconTops.set(sp, h);
+  return h;
 }
 function sparkle(c, x, y, o) {
   if (Math.floor(G.time * 2 + (o.phase || 0)) % 3 !== 0) return;

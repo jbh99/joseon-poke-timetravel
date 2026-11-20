@@ -89,8 +89,29 @@ export function drawPmd(c, sp, shiny, x, y, o = {}) {
   c.restore();
   return true;
 }
-// how far a sprite's frame reaches above its feet (pixels at scale 1); null until its sheet has loaded
-export const pmdHeadroom = (sp) => sprites.get(sp)?.meta?.ay ?? null;
+// how high a sprite's standing picture reaches above its feet (pixels at scale 1): the topmost painted row of the first
+// frame it walks down in, not the frame's own edge (meta.ay), which stands well clear of a small Pokémon's head.
+// null until its sheet has loaded
+export function pmdTop(sp) {
+  const s = sprites.get(sp), m = s?.meta;
+  if (!m || !ready(s.im)) return null;
+  if (s.top != null) return s.top;
+  const f = m.anims.walk?.[0]?.[0];
+  if (!f) return (s.top = m.ay);
+  const row = topRow(s.im, (f[0] % m.cols) * m.w, Math.floor(f[0] / m.cols) * m.h, m.w, m.h);
+  return (s.top = m.ay - f[3] - (row ?? 0));
+}
+// the first row of a picture's cell with anything painted in it (null: nothing is, or the picture cannot be read)
+export function topRow(im, sx, sy, w, h) {
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const c = cv.getContext('2d', { willReadFrequently: true });
+  c.drawImage(im, sx, sy, w, h, 0, 0, w, h);
+  let px;
+  try { px = c.getImageData(0, 0, w, h).data; } catch (e) { return null; }
+  for (let i = 3; i < px.length; i += 4) if (px[i] > 40) return Math.floor(i / 4 / w);
+  return null;
+}
 export function pmdAnimLength(sp, anim, dir = 0) {
   const m = sprites.get(sp)?.meta;
   const seq = m?.anims[anim]?.[dir];

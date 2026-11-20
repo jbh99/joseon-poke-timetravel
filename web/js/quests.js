@@ -315,9 +315,28 @@ export async function spyRaid(town) {
   fadeTo(() => G.goTown(1));
 }
 
+// What a story dungeon was searched for (its `quest.item`) goes to the one who asked at the first talk after that run
+// (1.32): up to 1.31 nothing took it, and the pages and the declaration lay in the bag to the end of the journey, handed
+// over or not. finds: [the dungeon step's place in the era's story, the item] for each such run.
+const finds = (e) => e.main.map((s, i) => [i, s.do === 'dungeon' && e.dungeons[s.d]?.quest?.item]).filter(([, id]) => id);
+function handOver() {
+  for (const [i, id] of finds(era())) {
+    const n = countItem(id);
+    if (i >= S.step || !n) continue;
+    takeItem(id, n);
+    toast(tr(`${QITEMS[id].name} ${n}개를 건넸다.`, `Handed over ${QITEMS[id].name} ×${n}.`), COL.blue);
+  }
+}
+// ...and a bag that still holds one with nobody left to give it to (a save from before 1.32: the talk after its run is
+// past, or its era is) is cleared of it on arriving in town (main.js). One still to be handed over stays.
+export function dropHandedOver() {
+  const e = era(), due = new Set(finds(e).filter(([i]) => S.step <= i || !e.main.slice(i + 1, S.step).some((s) => s.do === 'talk')).map(([, id]) => id));
+  for (const E of ERAS) for (const [, id] of finds(E)) if (!due.has(id)) delete S.items[id];
+}
+
 export async function onTalk(npc, town) {
   const st = mainStep();
-  if (st?.do === 'talk' && st.npc === npc.id) { await say(lines(st.say)); if (st.gift) giveMons(st.gift); return advanceMain(); }
+  if (st?.do === 'talk' && st.npc === npc.id) { await say(lines(st.say)); if (st.gift) giveMons(st.gift); handOver(); return advanceMain(); }
   if (st?.do === 'battle' && st.npc === npc.id) { // the town itself turns into the battlefield
     await say(lines(st.say));
     return say([{ who: 'narr', text: tr('전투에 나설까? (마을이 그대로 싸움터가 된다)', 'Join the battle? (The town itself becomes the battlefield.)'), choices: tr(['나선다', '아직'], ['Go', 'Not yet']), onChoice: (i) => { if (i === 0) fadeTo(() => G.goDungeon(st.d)); } }]);
