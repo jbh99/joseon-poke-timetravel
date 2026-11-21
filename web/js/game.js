@@ -49,7 +49,7 @@ const STAT_EFFECT = {
 const HIT_STAT = { 68: ['atk', -1], 69: ['def', -1], 70: ['spe', -1], 71: ['spa', -1], 72: ['spd', -1], 73: ['acc', -1] };
 const HIT_STATUS = { 2: 'psn', 4: 'brn', 5: 'frz', 6: 'par' };
 const STATUS_MOVE = { 1: 'slp', 33: 'psn', 66: 'psn', 67: 'par' };
-const HEAL_MOVE = { 32: 0.5, 37: 1 };
+export const HEAL_MOVE = { 32: 0.5, 37: 1 };
 export const STATUS_NAME = bilingual({ psn: ['독', 'poisoned'], brn: ['화상', 'burned'], par: ['마비', 'paralyzed'], slp: ['잠듦', 'asleep'], frz: ['얼음', 'frozen'] });
 export const STAT_NAME = bilingual({ atk: ['공격', 'Attack'], def: ['방어', 'Defense'], spa: ['특수공격', 'Sp. Atk'], spd: ['특수방어', 'Sp. Def'], spe: ['스피드', 'Speed'], acc: ['명중률', 'accuracy'], eva: ['회피율', 'evasiveness'] });
 
@@ -60,15 +60,19 @@ export function moveUsable(m) {
   return mv.effect in STAT_EFFECT || mv.effect in STATUS_MOVE || mv.effect in HEAL_MOVE;
 }
 // How far the team's moves fly in a line where their user faces (dungeon.js skillTargets), in tiles: a physical move 4
-// (1.27; until 1.26 it reached the tile in front only), a special one 5 (6 until 1.26)
+// (1.27; until 1.26 it reached the tile in front only), a special one 5 (6 until 1.26). A move that hits all around
+// reaches as far around its user (1.33; up to 1.32 the eight tiles beside it only).
 export const PHYS_REACH = 4, LINE_REACH = 5;
-// where a move of the team's lands (dungeon.js skillTargets), in a few words: on its user, on the eight tiles around
-// it, or along a line where it faces (a status move flies as far as a special one)
+// a move that hits all around its user (the main games' targets 4, both foes, and 8, everyone beside): Bubble, Growl,
+// Earthquake, Surf... (dungeon.js areaTiles)
+export const isArea = (d) => d.target === 4 || d.target === 8;
+// where a move of the team's lands (dungeon.js skillTargets), in a few words: on its user, on every foe within its reach
+// around it, or along a line where it faces (a status move flies as far as a special one)
 export function moveReach(id) {
   const d = DEX.moves[id];
   if (d.cat === 2 && [16, 1024].includes(d.target)) return tr('자신', 'Self');
-  if (d.target === 4 || d.target === 8) return tr('주변 8칸', 'All around');
   const n = d.cat === 0 ? PHYS_REACH : LINE_REACH;
+  if (isArea(d)) return tr(`주변 ${n}칸`, `${n}-tile area`);
   return tr(`직선 ${n}칸`, `${n}-tile line`);
 }
 // one line about a move for menus: type, category and power, and its range in the dungeons (1.28: every move says
@@ -261,7 +265,9 @@ export function useMove(att, def, moveId, sure = false) {
     if (mv.effect === 44) dmg *= 2;
   }
   out.dmg = dmg;
-  if (mv.effect === 3 || mv.effect === 8) out.drain = Math.max(1, Math.floor(dmg / 2));
+  // a draining move: its user takes back half of what the hit really takes, once the caps and the foe's last HP are
+  // counted (dungeon.js resolve, 1.33; up to 1.32 half of this number, so Absorb on a foe at 1 HP restored 18)
+  if (mv.effect === 3 || mv.effect === 8) out.drain = true;
   if (mv.effect === 48 || mv.effect === 198) out.recoil = Math.max(1, Math.floor(dmg / 4));
   const chance = mv.chance || 100;
   if (HIT_STATUS[mv.effect] && !def.status && Math.random() * 100 < chance) out.status = HIT_STATUS[mv.effect];
@@ -645,13 +651,22 @@ export const MODES = {
 export const mode = () => MODES[S.mode] || MODES.normal;
 export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '어려움', challenge: '챌린지' }, { easy: 'Easy', normal: 'Normal', hard: 'Hard', challenge: 'Challenge' });
 export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
+// how many more Pokémon the team and the roster can take. At sea (a naval battle, S.homeParty) one recruited joins the
+// crew for the run and then the team ashore or the roster (dungeon.js restoreCrew), so the room is theirs, less those
+// already recruited on the way (1.33: up to 1.32 a recruit at sea took the crew's room and went on to a full roster,
+// 501/500)
+export function roomLeft() {
+  const home = S.homeParty || S.party;
+  const atSea = S.homeParty ? S.party.filter((m) => !m.loan && !home.includes(m) && !S.roster.includes(m)).length : 0;
+  return Math.max(0, 3 - home.length) + Math.max(0, ROSTER_MAX - S.roster.length) - atSea;
+}
 // a defeated Pokémon joins: straight into the party if there is room, otherwise into the town roster
 export function recruit(mon) {
   // keeps the moves it fought with (bosses have hand-picked sets) with full PP. A foe above Lv 180 (at the journey's end
   // they stand above the team, which stops at 180) joins at 180: up to 1.19 it joined at its own level, every foe after it
   // stood higher again (quests.js foeLevels goes by the team's best), and the cloud refused the save
   const m = new Mon(mon.sp, Math.min(mon.lv, MAX_LV), { shiny: mon.shiny, moves: mon.moves.map((mv) => ({ id: mv.id })) });
-  if (S.party.length >= 3 && S.roster.length >= ROSTER_MAX) return { m, where: 'full' }; // (not caught: up to 1.30 the Pokédex said so all the same)
+  if (roomLeft() <= 0) return { m, where: 'full' }; // (not caught: up to 1.30 the Pokédex said so all the same)
   dexMark(m.sp, 2);
   if (S.party.length < 3) { S.party.push(m); return { m, where: 'party' }; }
   S.roster.push(m);

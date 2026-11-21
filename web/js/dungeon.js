@@ -1,9 +1,9 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, isArea, HEAL_MOVE, roomLeft } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
-import { era, mainStep, activeSides, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
+import { era, mainStep, activeSides, noteKill, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, monHead, Town, PEARL, objInView } from './town.js';
 import { tr, iga } from './i18n.js';
 import { openPokedex } from './pokedex.js';
@@ -40,6 +40,11 @@ const foeMon = (sp, lv, o = {}) => new Mon(sp, lv, { ...o, buff: (o.buff || 1) *
 // their physical moves land on the tile in front, an ordinary foe's line moves fly FOE_REACH tiles, a boss's BOSS_REACH
 // tiles, its line moves and its telegraphed blasts alike.
 const SURE_REACH = 4, FOE_REACH = 4, BOSS_REACH = 4;
+// how long the ground swept by the team's move that hits all around stays lit, in seconds (useSkill, 1.33)
+const AREA_FX = 0.45;
+// a foe or a teammate saves a healing move till its HP is down to this share of its most: Recover and its kind restore
+// half, Rest all of it but sleeps two turns (pickSkill, 1.33; game.js HEAL_MOVE)
+const HEAL_AT = { 32: 1 / 2, 37: 1 / 3 };
 // a legend's signature moves cover its whole arena; in a town battle they reach this far from it
 const SIG_REACH = 8;
 // a tile and the four beside it: where a falling thing hits
@@ -226,7 +231,7 @@ export class Dungeon {
     this.bg = null;
     this.seen = Array.from({ length: H }, () => new Array(W).fill(false));
     this.vis = Array.from({ length: H }, () => new Array(W).fill(false));
-    this.ents = []; this.items = []; this.stairs = null; this.pendingStairs = false; this.calling = null; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null; this.bossIntro = false;
+    this.ents = []; this.items = []; this.area = null; this.stairs = null; this.pendingStairs = false; this.calling = null; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null; this.bossIntro = false;
     this.flames = new Map(); this.drops = []; this.bolts = []; // Blue Flare's flames, Fusion Flare's falling fire, lightning on show
     // allies
     const startRoom = this.bossFloor || lay ? rooms[0] : choice(rooms);
@@ -740,14 +745,13 @@ export class Dungeon {
 
   // choose a move's targets: the team's single-target moves turn to the nearest foe within SURE_REACH tiles in any
   // direction (useSkill makes those sure hits); otherwise a move goes where its user faces, along a line as far as its
-  // kind reaches from that user (reachOf: a foe's physical move the tile in front, the team's four tiles)
+  // kind reaches from that user (reachOf: a foe's physical move the tile in front, the team's four tiles). A move that
+  // hits all around takes every foe on the ground it covers (areaTiles).
   skillTargets(att, mvId) {
     const mv = DEX.moves[mvId];
     const foeTeam = att.team === 'foe' ? 'ally' : 'foe';
     if (mv.cat === 2 && [16, 1024].includes(mv.target)) return [att];
-    if (mv.target === 4 || mv.target === 8) {
-      return DIRS8.map(([dx, dy]) => this.entAt(att.x + dx, att.y + dy)).filter((e) => e && e.team === foeTeam && this.canStep(att.x, att.y, e.x - att.x, e.y - att.y));
-    }
+    if (isArea(mv)) return this.areaTiles(att, mv).map(([x, y]) => this.entAt(x, y)).filter((e) => e && e.team === foeTeam);
     const near = att.team === 'ally' && this.nearFoe(att);
     if (near) { att.face = [Math.sign(near.x - att.x), Math.sign(near.y - att.y)]; return [near]; }
     const [dx, dy] = att.face;
@@ -759,6 +763,26 @@ export class Dungeon {
       if (t) return t.team === foeTeam ? [t] : [];
     }
     return [];
+  }
+  // the ground a move that hits all around covers, ring by ring out from its user (the eight beside it first, in DIRS8's
+  // order): for the team every tile within its kind's reach (PHYS_REACH for a physical move, LINE_REACH for any other;
+  // a diagonal step is a tile) that single steps reach going only outward, each from a covered tile of the ring
+  // before: a wall shields what stands behind it, while a post or a doorway's corner beside the user hides only what
+  // is behind it (not the whole side, as one fixed path from the user would). A foe's covers the eight tiles beside
+  // it, as everyone's did up to 1.32.
+  areaTiles(att, mv) {
+    const r = att.team === 'foe' ? 1 : mv.cat === 0 ? PHYS_REACH : LINE_REACH, out = [], got = new Set();
+    let ring = [[att.x, att.y]];
+    for (let d = 1; d <= r && ring.length; d++) {
+      const next = [];
+      for (const [x, y] of ring) for (const [dx, dy] of DIRS8) {
+        const nx = x + dx, ny = y + dy, k = ny * 4096 + nx;
+        if (got.has(k) || Math.max(Math.abs(nx - att.x), Math.abs(ny - att.y)) !== d || !this.canStep(x, y, dx, dy)) continue;
+        got.add(k); next.push([nx, ny]);
+      }
+      out.push(...next); ring = next;
+    }
+    return out;
   }
   // the nearest foe within SURE_REACH tiles that a path of single steps reaches (walls in between hide it); ties go
   // to the one in front
@@ -788,10 +812,12 @@ export class Dungeon {
     const targets = this.skillTargets(att, mvs.id), t0 = targets[0];
     const dist = t0 && t0 !== att ? Math.max(Math.abs(t0.x - att.x), Math.abs(t0.y - att.y)) : 0;
     // (a physical move that finds no one shows its line too, where it has one: the team's four tiles, 1.27)
-    const ranged = (mv.cat !== 0 || dist > 1 || (!dist && reachOf(att, mv.cat) > 1)) && !(mv.target === 4 || mv.target === 8) && t0 !== att;
+    const ranged = (mv.cat !== 0 || dist > 1 || (!dist && reachOf(att, mv.cat) > 1)) && !isArea(mv) && t0 !== att;
     // the beam flies to its target (a sure hit may stand off the eight lines), or its full reach when it finds no one
     const beam = dist ? { dir: [(t0.x - att.x) / dist, (t0.y - att.y) / dist], len: dist } : { dir: att.face, len: reachOf(att, mv.cat) };
-    this.step(() => { att.atkT = G.time; this.msg(tr(`${att.mon.name}의 ${mv.name}!`, `${att.mon.name} used ${mv.name}!`), COL.blue); this.flash = { e: att, t: 0.2, color: TYPE_COLORS[mv.type] }; if (ranged) this.beam = { from: att, ...beam, t: 0.25, color: TYPE_COLORS[mv.type] }; sfx(mv.cat === 2 ? 'buff' : 'confirm'); }, 0.2);
+    // the team's move that hits all around lights the ground it sweeps, out from its user (1.33: it reaches 4 or 5 tiles)
+    const area = isArea(mv) && att.team !== 'foe' ? { x: att.x, y: att.y, tiles: this.areaTiles(att, mv), r: mv.cat === 0 ? PHYS_REACH : LINE_REACH, t: AREA_FX, color: TYPE_COLORS[mv.type] } : null;
+    this.step(() => { att.atkT = G.time; this.msg(tr(`${att.mon.name}의 ${mv.name}!`, `${att.mon.name} used ${mv.name}!`), COL.blue); this.flash = { e: att, t: 0.2, color: TYPE_COLORS[mv.type] }; if (ranged) this.beam = { from: att, ...beam, t: 0.25, color: TYPE_COLORS[mv.type] }; if (area) this.area = area; sfx(mv.cat === 2 ? 'buff' : 'confirm'); }, 0.2);
     if (!targets.length) { this.step(() => this.msg(tr('그러나 아무도 맞지 않았다…', 'But it hit nobody...')), 0.12); return; }
     for (const t of targets) this.resolve(att, t, mvs.id, att.team === 'ally' && t !== att && Math.max(Math.abs(t.x - att.x), Math.abs(t.y - att.y)) <= SURE_REACH);
   }
@@ -840,7 +866,9 @@ export class Dungeon {
     // (a boss's summoned minions stay soft so the telegraphed blasts remain the real test)
     // regular foes hit softer than their stats say: x0.45 in the first era up to x0.9 at the end (bosses keep their own numbers)
     if (att.team === 'foe' && !att.isBoss && r.dmg > 0) r.dmg = Math.max(1, Math.round(r.dmg * (att.summoned ? 0.45 : 0.45 + curve() * 0.45)));
+    const before = D.hp;
     D.hp = Math.max(0, D.hp - r.dmg);
+    const dealt = before - D.hp; // what the hit really took: no more than the HP that was left
     const effTxt = r.eff === 0 ? tr('효과가 없는 것 같다…', 'It had no effect...') : r.eff >= 2 ? tr('효과가 굉장했다!', 'It\'s super effective!') : r.eff < 1 ? tr('효과가 별로인 듯하다…', 'It\'s not very effective...') : '';
     this.step(() => {
       def.hurt = 0.3; this.pop(def, String(r.dmg), r.eff >= 2 ? '#ffd23a' : '#fff');
@@ -848,7 +876,9 @@ export class Dungeon {
       this.msg(tr(`${D.name}에게 ${r.dmg} 데미지!${r.gap ? ' 빈틈을 찔렀다!' : ''}${r.crit ? ' 급소에 맞았다!' : ''}`, `${D.name} took ${r.dmg} damage!${r.gap ? ' Opening hit!' : ''}${r.crit ? ' A critical hit!' : ''}`), def.team === 'ally' ? COL.red : r.gap ? COL.green : COL.ink);
       if (effTxt) this.msg(effTxt);
     }, 0.26);
-    if (r.drain && A.hp > 0) { const h = Math.min(A.maxhp - A.hp, r.drain); A.hp += h; this.step(() => this.pop(att, `+${h}`, COL.green), 0.1); }
+    // a draining move takes back half of that (1.33; up to 1.32 half its damage before the caps, the difficulty and the
+    // foe's last HP: Absorb on a foe at 1 HP restored 18, a boss's Giga Drain more than it took)
+    if (r.drain && A.hp > 0 && dealt > 0) { const h = Math.min(A.maxhp - A.hp, Math.max(1, Math.floor(dealt / 2))); A.hp += h; this.step(() => this.pop(att, `+${h}`, COL.green), 0.1); }
     if (r.recoil) { A.hp = Math.max(0, A.hp - r.recoil); this.step(() => this.msg(tr(`${A.name}은(는) 반동을 받았다!`, `${A.name} is hit by recoil!`)), 0.1); }
     if (D.hp > 0 && r.status) { D.status = r.status; if (r.status === 'slp') def.sleepT = 3; this.step(() => this.msg(tr(`${D.name}은(는) ${STATUS_NAME[r.status]} 상태가 되었다!`, `${D.name} is ${STATUS_NAME[r.status]}!`), COL.red), 0.15); }
     if (D.hp > 0 && r.stat) { D.stages[r.stat.k] = clamp((D.stages[r.stat.k] || 0) + r.stat.d, -6, 6); this.step(() => this.msg(tr(`${D.name}의 ${STAT_NAME[r.stat.k]}이(가) 떨어졌다!`, `${D.name}'s ${STAT_NAME[r.stat.k]} fell!`)), 0.12); }
@@ -864,6 +894,7 @@ export class Dungeon {
     this.step(() => { this.msg(tr(`${e.mon.name}은(는) 쓰러졌다!`, `${e.mon.name} fainted!`), e.team === 'ally' ? COL.red : COL.ink2); sfx('faint'); e.fade = 1; }, 0.35);
     if (e.team === 'foe') {
       S.kills[e.mon.sp] = (S.kills[e.mon.sp] || 0) + 1;
+      noteKill(this.dId, e.mon.sp); // a request to defeat it counts it only in its own dungeon (quests.js, 1.33)
       // catch-up: a team far above the foe's level learns little from it, a team below learns more
       const avg = S.party.reduce((s, m) => s + m.lv, 0) / S.party.length;
       const xp = Math.max(1, Math.round(expGain(e.mon) * (e.shiny ? 2 : 1) * clamp(1 + (e.mon.lv - avg) * 0.1, 0.25, 1.3)));
@@ -944,7 +975,12 @@ export class Dungeon {
       const ts = this.skillTargets(e, mv.id);
       e.face = saveFace;
       if (!ts.length) return;
-      if (d.cat === 2) { if (ts[0] === e && (e.mon.stages[STATS_OF(d)] || 0) >= 2) return; opts.push({ k, score: 18 + Math.random() * 20 }); return; }
+      if (d.cat === 2) {
+        // a healing move waits till its HP is down (HEAL_AT; up to 1.32 one was used at full HP, and Rest slept for nothing)
+        if (d.effect in HEAL_MOVE) { if (e.mon.hp > e.mon.maxhp * (HEAL_AT[d.effect] ?? 0.5)) return; }
+        else if (ts[0] === e && (e.mon.stages[STATS_OF(d)] || 0) >= 2) return;
+        opts.push({ k, score: 18 + Math.random() * 20 }); return;
+      }
       const eff = typeMult(d.type, ts[0].mon.types) * (e.mon.types.includes(d.type) ? 1.5 : 1);
       opts.push({ k, score: d.power * eff * (0.75 + Math.random() * 0.5) });
     });
@@ -1645,7 +1681,7 @@ export class Dungeon {
   }
   // a defeated Pokémon may ask to join (always for bosses; RECRUIT_RATE for wild ones)
   offerRecruit(mon, text) {
-    if (S.party.length >= 3 && S.roster.length >= ROSTER_MAX) return Promise.resolve();
+    if (roomLeft() <= 0) return Promise.resolve(); // no room on the team or in the roster (at sea, counting the crew's recruits)
     if (LEGENDS.has(mon.sp) && S.flags['got_' + mon.sp]) return Promise.resolve(); // a legend joins once, wherever it came first (1.27)
     const name = DEX.species[mon.sp].name;
     if (challenge() && LEGENDS.has(mon.sp)) return new Promise((res) => say([{ who: 'narr', text: tr(`챌린지에서는 전설의 포켓몬을 동료로 맞을 수 없다. ${name}은(는) 조용히 모습을 감췄다.`, `Legendary Pokémon can't join a challenge. ${name} quietly vanished.`) }], res));
@@ -1779,6 +1815,7 @@ export class Dungeon {
     for (const m of this.msgs) m.t -= dt;
     if (this.flash) { this.flash.t -= dt; if (this.flash.t <= 0) this.flash = null; }
     if (this.beam) { this.beam.t -= dt; if (this.beam.t <= 0) this.beam = null; }
+    if (this.area) { this.area.t -= dt; if (this.area.t <= 0) this.area = null; }
     if (this.blast) { this.blast.t -= dt; if (this.blast.t <= 0) this.blast = null; }
     if (this.beamFx) { this.beamFx.t -= dt; if (this.beamFx.t <= 0) this.beamFx = null; }
     if (this.timeFx) { this.timeFx.t -= dt; if (this.timeFx.t <= 0) this.timeFx = null; }
@@ -1947,6 +1984,18 @@ export class Dungeon {
       c.strokeStyle = `rgba(255,214,90,${0.6 * a})`; c.lineWidth = 22; c.beginPath(); c.moveTo(x, y); c.lineTo(x + dx * 900, y + dy * 900); c.stroke();
       c.strokeStyle = `rgba(255,255,240,${a})`; c.lineWidth = 8; c.beginPath(); c.moveTo(x, y); c.lineTo(x + dx * 900, y + dy * 900); c.stroke();
       c.lineCap = 'butt';
+    }
+    if (this.area) { // the ground a move that hits all around covers, under everyone standing on it: lit at once and
+      // fading, a brighter ring running out to its edge
+      const a = this.area, f = 1 - a.t / AREA_FX, front = f * (a.r + 1);
+      c.fillStyle = a.color;
+      for (const [x, y] of a.tiles) {
+        if (!this.seen[y]?.[x]) continue;
+        const d = Math.max(Math.abs(x - a.x), Math.abs(y - a.y));
+        c.globalAlpha = 0.28 * (1 - f) + (Math.abs(front - d) < 0.6 ? 0.25 : 0);
+        c.fillRect(x * TILE + 2, y * TILE + 2, TILE - 4, TILE - 4);
+      }
+      c.globalAlpha = 1;
     }
     for (const it of this.items) if (this.vis[it.y][it.x]) this.drawItem(c, it);
     const ents = this.ents.filter((e) => e.shown && !e.hidden && (e.team === 'ally' || this.vis[e.y][e.x]));

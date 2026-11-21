@@ -27,12 +27,12 @@ const FOLK_TIPS = () => tr([
   '던전에 갈 땐 오랭열매를 꼭 챙겨. 장사꾼이 팔고 있어!', '주막에서 쉬면 기록이 남고, 동료 명부도 볼 수 있어.',
   '물 위에서 싸우는 곳엔 물 타입 포켓몬만 배에 오를 수 있대. 명부에 물 타입 동료를 모아 둬!', '보스가 큰 기술을 쓴 직후가 기회래. 그때 때리면 1.5배!',
   '쓰러뜨린 야생 포켓몬이 동료가 되고 싶어 할 때가 꽤 많대.', '전설의 포켓몬은 이기면 꼭 동료가 되어 준대!',
-  '명부에서 쉬는 동료들도 같이 훈련해서 경험치를 반씩 받는대.', '세계 지도에는 마을이 두 개인 시대도 있어. 다른 마을도 들러 봐!',
+  '명부에서 쉬는 동료들도 같이 훈련해서 싸움 경험치를 70%씩 받는대.', '세계 지도에는 마을이 두 개인 시대도 있어. 다른 마을도 들러 봐!',
 ], [
   'Always pack Oran Berries before a dungeon. The merchant sells them!', 'Resting at the inn saves your journey, and the companion roster is there too.',
   'Where the fighting is on water, only Water-type Pokémon can board. Keep some Water types in your roster!', 'Right after a boss uses a big move is your chance. Hits deal 1.5x!',
   'Defeated wild Pokémon quite often want to join you.', 'Legendary Pokémon always join you once you win!',
-  'Companions resting in the roster train too and get half the experience.', 'Some eras have two towns on the world map. Go visit the other one!',
+  'Companions resting in the roster train too and get 70% of the experience from fights.', 'Some eras have two towns on the world map. Go visit the other one!',
 ]);
 
 // the pictures a Black town is drawn from (its picture and its cut-outs) for the era's town of that kind, as the Town

@@ -180,7 +180,8 @@ export function giveMons(list) {
     // its story step done all the same: Latias or Latios, picked with a full roster, was gone for good
     if (where === 'full') {
       S.flags.owed = [...[].concat(S.flags.owed || []), sp];
-      toast(tr(`동료 명부가 가득 찼다. ${m.name}은(는) 자리가 날 때까지 기다린다. (명부에서 동료를 놓아주면 들어온다)`, `The roster is full. ${m.name} waits until there is room (release a companion and it joins).`), COL.red, 6);
+      // (1.33: one line that fits the screen; up to 1.32 it ran past both edges)
+      toast(tr(`명부가 가득 찼다. 동료를 놓아주면 ${m.name}이(가) 들어온다.`, `The roster is full. Release a companion and ${m.name} joins.`), COL.red, 6);
       continue;
     }
     cry(sp); jingle('fanfa4');
@@ -363,16 +364,26 @@ export function sideState(q) {
   if (sideReady(q)) return 'ready';
   return 'active';
 }
+// A request to defeat a species counts it only in the request's own dungeon (1.33; up to 1.32 one beaten anywhere
+// counted, so Hanyang's request for Inwangsan's Rattata ended in Bugaksan): all that fell of it since the request was
+// taken (S.kills over k0_), less what fell anywhere else (kx_, kept by noteKill). A save from before 1.33 keeps what it
+// had counted by then.
+const defeated = (q) => Math.max(0, (S.kills[q.sp] || 0) - (S.flags['k0_' + q.id] || 0) - (S.flags['kx_' + q.id] || 0));
+export function noteKill(dId, sp) {
+  ERAS.forEach((E, i) => {
+    for (const q of E.side || []) if (q.kind === 'defeat' && q.sp === sp && S.side[q.id] === 'active' && !(i === S.era && q.d === dId)) S.flags['kx_' + q.id] = (S.flags['kx_' + q.id] || 0) + 1;
+  });
+}
 export function sideProgress(q) {
   if (q.kind === 'collect') return `${Math.min(countItem(q.item), q.n)}/${q.n}`;
-  if (q.kind === 'defeat') return `${Math.min((S.kills[q.sp] || 0) - (S.flags['k0_' + q.id] || 0), q.n)}/${q.n}`;
+  if (q.kind === 'defeat') return `${Math.min(defeated(q), q.n)}/${q.n}`;
   if (q.kind === 'rescue') return S.flags['rescued_' + q.id] ? tr('구출 완료', 'Rescued') : tr(`${dungeonName(q.d)} ${q.floor}층`, `${dungeonName(q.d)} F${q.floor}`);
   if (q.kind === 'deliver') return S.flags['delivered_' + q.id] ? tr('전달 완료', 'Delivered') : tr('전달 전', 'Not delivered');
   return '';
 }
 function sideReady(q) {
   if (q.kind === 'collect') return countItem(q.item) >= q.n;
-  if (q.kind === 'defeat') return (S.kills[q.sp] || 0) - (S.flags['k0_' + q.id] || 0) >= q.n;
+  if (q.kind === 'defeat') return defeated(q) >= q.n;
   if (q.kind === 'rescue') return !!S.flags['rescued_' + q.id];
   if (q.kind === 'deliver') return !!S.flags['delivered_' + q.id];
   return false;
@@ -396,7 +407,7 @@ async function pickQuest(q) {
     await say([{ who: 441, name: CRIER(), text: q.desc, choices: tr(['맡는다', '그만둔다'], ['Accept', 'Decline']), onChoice: (i) => {
       if (i) return;
       S.side[q.id] = 'active';
-      if (q.kind === 'defeat') S.flags['k0_' + q.id] = S.kills[q.sp] || 0;
+      if (q.kind === 'defeat') { S.flags['k0_' + q.id] = S.kills[q.sp] || 0; delete S.flags['kx_' + q.id]; }
       if (q.kind === 'deliver') addItem(q.item);
       sfx('confirm'); toast(tr(`의뢰 "${q.title}"을(를) 맡았다!`, `Accepted "${q.title}"!`), COL.blue);
     } }]);
@@ -681,7 +692,11 @@ function teamPick(i, row) {
     ...(S.party.length > 2 ? [tr('명부로 보낸다', 'Send to the roster')] : []), tr('그만두기', 'Cancel')];
   say([{ who: m.sp, shiny: m.shiny, name: m.name, text: tr(`지금 ${ROLE()[i]}(으)로 함께하고 있어. 어떻게 할까?`, `I'm travelling with you as ${ROLE()[i]}. What should I do?`), choices: opts, onChoice: (k) => {
     if (k < others.length) { const j = others[k]; [S.party[i], S.party[j]] = [S.party[j], S.party[i]]; sfx('confirm'); toast(tr(`${m.name}이(가) ${ROLE()[j]} 자리로 옮겼다.`, `${m.name} moved to ${ROLE()[j]}.`), COL.blue); }
-    else if (S.party.length > 2 && k === others.length) { S.party.splice(i, 1); S.roster.unshift(m); sfx('confirm'); toast(tr(`${m.name}은(는) 마을에서 쉬기로 했다.`, `${m.name} will rest in town.`)); }
+    else if (S.party.length > 2 && k === others.length) {
+      // the roster holds ROSTER_MAX (1.33; up to 1.32 this sent one past it, 501/500, and on with each recruit after)
+      if (S.roster.length >= ROSTER_MAX) { sfx('cancel'); toast(tr(`명부가 가득 찼다 (${S.roster.length}/${ROSTER_MAX}). 명부의 동료를 고향으로 보내면 자리가 난다.`, `The roster is full (${S.roster.length}/${ROSTER_MAX}). Releasing a companion makes room.`), COL.red); }
+      else { S.party.splice(i, 1); S.roster.unshift(m); sfx('confirm'); toast(tr(`${m.name}은(는) 마을에서 쉬기로 했다.`, `${m.name} will rest in town.`)); }
+    }
     rosterMenu(row);
   } }]);
 }
