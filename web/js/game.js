@@ -8,6 +8,12 @@ export async function initData() {
   // English names were merged into dex.json from PokeAPI (tools/add_english.py); Korean ones come from the ROM
   for (const s of DEX.species) if (s) s.ko = s.name;
   for (const m of DEX.moves) if (m) m.ko = m.name;
+  // A move whose power the games work out as they go (by weight, friendship, the level, the HP left...) carries 1 in
+  // the data and did its user's level in damage here, Dragon Rage a flat 40. From 1.34 it has a power of its own by
+  // its PP, set beside the moves of that PP: 5 PP 120 (Hydro Pump, Fire Blast), 10 PP 105 (Earthquake 100, Thunder
+  // 120), 15 PP 90 (Flamethrower, Surf 95), 20 PP 75 (Slash 70, Strength 80), 30 PP 50. Super Fang (effect 40) keeps
+  // its half of the foe's HP.
+  for (const m of DEX.moves) if (m && m.cat !== 2 && m.power === 1 && m.effect !== HALF_HP) m.power = Math.max(50, 135 - 3 * m.pp);
   DEX.types_ko = DEX.types;
   setNames([...DEX.species, ...DEX.moves].filter(Boolean).map((o) => [o.ko, o.en]).concat(DEX.types_ko.map((t, i) => [t, DEX.types_en[i]])));
   applyDexLang();
@@ -53,6 +59,7 @@ export const HEAL_MOVE = { 32: 0.5, 37: 1 };
 export const STATUS_NAME = bilingual({ psn: ['독', 'poisoned'], brn: ['화상', 'burned'], par: ['마비', 'paralyzed'], slp: ['잠듦', 'asleep'], frz: ['얼음', 'frozen'] });
 export const STAT_NAME = bilingual({ atk: ['공격', 'Attack'], def: ['방어', 'Defense'], spa: ['특수공격', 'Sp. Atk'], spd: ['특수방어', 'Sp. Def'], spe: ['스피드', 'Speed'], acc: ['명중률', 'accuracy'], eva: ['회피율', 'evasiveness'] });
 
+export const HALF_HP = 40; // Super Fang's effect: half of the HP its target has left
 export function moveUsable(m) {
   const mv = DEX.moves[m];
   if (!mv) return false;
@@ -79,9 +86,11 @@ export function moveReach(id) {
 // its range the same way; up to 1.27 a status move said none)
 export function moveDesc(id) {
   const d = DEX.moves[id];
-  const kind = d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리', 'Physical') : tr('특수', 'Special')) + tr(' 위력 ', ' power ') + d.power;
+  const kind = d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리', 'Physical') : tr('특수', 'Special')) + (d.power > 1 ? tr(' 위력 ', ' power ') : ' ') + movePower(d);
   return `${DEX.types[d.type]} · ${kind} · ${tr('범위', 'Range')} ${moveReach(id)}`;
 }
+// a move's power as menus show it (Super Fang has none of its own: half of the HP left)
+export const movePower = (d) => (d.power > 1 ? d.power : d.effect === HALF_HP ? tr('남은 HP 절반', 'half the HP left') : tr('레벨만큼', 'its level'));
 
 const STAGE = (s) => (s >= 0 ? (2 + s) / 2 : 2 / (2 - s));
 export const PRIMAL_MUL = 1.3;
@@ -251,7 +260,7 @@ export function useMove(att, def, moveId, sure = false) {
   out.eff = eff;
   if (eff === 0) { out.dmg = 0; return out; }
   let dmg;
-  if (mv.power <= 1) dmg = mv.effect === 40 ? Math.max(1, Math.floor(def.hp / 2)) : mv.effect === 41 ? 40 : att.lv;
+  if (mv.power <= 1) dmg = mv.effect === HALF_HP ? Math.max(1, Math.floor(def.hp / 2)) : att.lv; // (from 1.34 only Super Fang: initData)
   else {
     const phys = mv.cat === 0;
     let A = phys ? att.stat('atk') : att.stat('spa');
@@ -308,6 +317,12 @@ export const TMS = [264, 337, 352, 347, 46, 92, 258, 339, 331, 237, 241, 269, 58
   85, 87, 89, 216, 91, 94, 247, 280, 104, 115, 351, 53, 188, 201, 126, 317, 332, 259, 263, 290, 156, 213, 168, 211, 285, 289,
   315, 355, 411, 412, 206, 362, 374, 451, 203, 406, 409, 261, 318, 373, 153, 421, 371, 278, 416, 397, 148, 444, 419, 86, 360,
   14, 446, 244, 445, 399, 157, 404, 214, 363, 398, 138, 447, 207, 365, 369, 164, 430, 433];
+// The moves that came with Pokémon Black (468-559) are sold after them from 1.34, as TM93 and on: every one the
+// dungeons can use but the legends' own (Sacred Sword, Psystrike, Searing Shot, Techno Blast, Relic Song, Secret
+// Sword, Glaciate, Bolt Strike, Blue Flare, Freeze Shock, Ice Burn, V-create, Fusion Flare, Fusion Bolt). They reach
+// as every move does: 4 tiles if physical, 5 otherwise (moveReach).
+const TM5_SKIP = [533, 540, 545, 546, 547, 548, 549, 550, 551, 553, 554, 557, 558, 559];
+export const TMS5 = () => DEX.moves.filter((m) => m && m.id >= 468 && m.id <= 559 && !TM5_SKIP.includes(m.id) && moveUsable(m.id)).map((m) => m.id);
 export const tmPrice = (move) => (DEX.moves[move].cat !== 2 && DEX.moves[move].power >= 80 ? 15000 : 10000);
 // who can use a TM: a move of its own types, of a type its level-up list already uses, or a Normal move. An
 // approximation of the games' TM table, which sits in the ROM's personal data and is not extracted (extract_data.py).

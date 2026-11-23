@@ -1,6 +1,6 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, askText, fadeTo, shuffle } from './core.js';
-import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, MAX_LV, teamPP } from './game.js';
+import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, movePower, MAX_LV, teamPP } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI, KOREA_LAST, isWorld } from './content.js';
 import { jingle, sfx, cry, setMuted } from './audio.js';
 import { tr, LANG } from './i18n.js';
@@ -632,7 +632,7 @@ class PartyView {
       if (picking && this.mv === j) ui.text('▶', x + 2, ry + 5, { size: 9, color: COL.red });
       ui.rect(x + 10, ry, 4, 21, TYPE_COLORS[d.type]);
       ui.text(`${'QWER'[j]}. ${d.name}`, x + 18, ry + 5, { size: 11 });
-      ui.text(`${DEX.types[d.type]} · ${d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리 ', 'Phys ') : tr('특수 ', 'Spec ')) + d.power}  PP ${mv.pp}/${m.maxPP(mv.id)}`, x + w - 16, ry + 6, { size: 9, align: 'right', color: COL.ink2 });
+      ui.text(`${DEX.types[d.type]} · ${d.cat === 2 ? tr('변화', 'Status') : (d.cat === 0 ? tr('물리 ', 'Phys ') : tr('특수 ', 'Spec ')) + movePower(d)}  PP ${mv.pp}/${m.maxPP(mv.id)}`, x + w - 16, ry + 6, { size: 9, align: 'right', color: COL.ink2 });
     });
     ui.text(this.hint(), VW - 10, VH - 12, { size: 9, color: '#fff', align: 'right', shadow: true });
   }

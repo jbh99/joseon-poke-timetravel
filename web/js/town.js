@@ -1,7 +1,7 @@
 // Hub town for the current era: generated tile map + Blender-rendered buildings + NPCs.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fade, fadeTo, setScene, clamp, choice, prefs, setPref, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL, TMS, tmPrice, tmFits, moveUsable } from './game.js';
+import { S, DEX, save, ITEMS, SHOP, addItem, takeItem, countItem, itemDef, FORMES, FORME_NORMAL, TMS, TMS5, tmPrice, tmFits, moveUsable } from './game.js';
 import { ERAS, QITEMS, CELEBI, KOREA_LAST, isWorld, WORLD_FROM } from './content.js';
 import { tr } from './i18n.js';
 import { openPokedex } from './pokedex.js';
@@ -1231,8 +1231,9 @@ export class Town {
   // the TM dealer: a TM is bought and taught on the spot to a team member who can use it (game.js tmFits); the money
   // goes only once the move is learned (a full set of four forgets one first, quests.js forgetMenu)
   tmMenu(npc) {
-    const stock = TMS.map((move, i) => ({ move, no: `TM${String(i + 1).padStart(2, '0')}` }))
-      .filter(({ move }) => moveUsable(move) && (DEX.moves[move].cat === 2 || DEX.moves[move].power > 1)); // no level-based damage
+    // two shelves (1.34): the Gen 4 TMs the dungeons can use, and the moves that came with Pokémon Black (game.js TMS5)
+    const shelves = [TMS.map((move, i) => ({ move, no: `TM${String(i + 1).padStart(2, '0')}` })).filter(({ move }) => moveUsable(move)),
+      TMS5().map((move, i) => ({ move, no: `TM${TMS.length + 1 + i}` }))];
     const learns = (m, move) => tmFits(m, move) && !m.moves.some((x) => x.id === move);
     const teach = (move, no) => {
       const price = tmPrice(move), name = DEX.moves[move].name;
@@ -1245,11 +1246,13 @@ export class Town {
         } };
       }), { title: tr(`${no} ${name} · 누구에게?`, `${no} ${name} · Teach whom?`), x: 150, y: 70, w: 210 });
     };
-    say([{ who: npc.sp, name: npc.name, text: tr('기술머신 보고 가세요! 사는 자리에서 바로 가르쳐 드려요. 센 기술은 15000냥, 나머지는 10000냥이에요.', 'TMs for sale! I teach the move right where you buy it. Strong moves are 15000 nyang, the rest 10000.') }], () => openMenu(stock.map(({ move, no }) => {
+    const shelf = (k) => openMenu(shelves[k].map(({ move, no }) => {
       const d = DEX.moves[move], can = () => S.party.filter((m) => learns(m, move)).map((m) => m.name); // who still can, after each lesson
       return { label: `${no} ${d.name}`, right: tr(`${tmPrice(move)}냥`, `${tmPrice(move)} ny`), fn: () => teach(move, no),
         desc: () => `${moveInfo(move)} · ${can().length ? tr(`배울 수 있다: ${can().join(', ')}`, `Can learn: ${can().join(', ')}`) : tr('파티에 배울 수 있는 포켓몬이 없다', 'No one in the team can learn it')}` };
-    }), { title: () => tr(`기술머신 · ${S.money}냥`, `TMs · ${S.money} nyang`), desc: true, keep: true, x: 110, y: 30, w: 260 })); // the money on show follows each purchase
+    }), { title: () => tr(`${k ? '5세대 기술' : '기술머신'} · ${S.money}냥`, `${k ? 'Gen 5 moves' : 'TMs'} · ${S.money} nyang`), desc: true, keep: true, x: 110, y: 30, w: 260 }); // the money on show follows each purchase
+    say([{ who: npc.sp, name: npc.name, text: tr('기술머신 보고 가세요! 사는 자리에서 바로 가르쳐 드려요. 센 기술은 15000냥, 나머지는 10000냥이에요. 5세대 기술도 들여왔어요!', 'TMs for sale! I teach the move right where you buy it. Strong moves are 15000 nyang, the rest 10000. Gen 5 moves are in, too!'),
+      choices: tr([`기술머신 (TM01~${TMS.length})`, `5세대 기술 (TM${TMS.length + 1}~)`, '그만두기'], [`TMs (TM01-${TMS.length})`, `Gen 5 moves (TM${TMS.length + 1} on)`, 'Leave']), onChoice: (k) => { if (k < 2) shelf(k); } }]);
   }
   shopMenu(npc) {
     // the money in the title, the prices and the count in the bag follow each purchase (the menu stays open). The first
