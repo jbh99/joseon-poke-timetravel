@@ -431,6 +431,24 @@ export function save(over = false) {
     return true;
   } catch (e) { return false; }
 }
+// A challenge's run is marked in its save as it starts (S.inRun, dungeon.js): continuing a save left in the middle of
+// a dungeon is that run's wipe (quests.js checkRun). The mark comes off the stored save the moment a run ends in
+// anything but a wipe (Dungeon.result), nothing else in it touched: up to 1.34 it came off only in memory, and the
+// save still carried it until the town's autosave, after the result window, the walk home and a cleared dungeon's
+// story. A page reloaded or an app closed in between (a phone putting the app away) ended a journey whose run had
+// been walked out of or won. Such a reload now finds the journey as it stood before that run, in town. The save gets a
+// later time and a mark of its own, so the cloud takes it for the newer one.
+export function clearRunMark() {
+  try {
+    if (clash(S.slot)) return false; // another window's save stands there (save asks about it)
+    const o = JSON.parse(saveText(S.slot) || 'null');
+    if (!o || !o.inRun || (o.jid || '') !== (S.jid || '')) return false;
+    o.inRun = null; o.savedAt = Math.max(Date.now(), (+o.savedAt || 0) + 1); o.rev = Math.random().toString(36).slice(2, 10);
+    localStorage.setItem(slotKey(S.slot), JSON.stringify(o));
+    see(S.slot);
+    return true;
+  } catch (e) { return false; }
+}
 // this window's play kept after all: the save another window made goes to the Past journeys whole, then this one is
 // written. False when there was no room to keep that save (nothing changed), or none for this one (theirs is kept, and
 // the place stays empty until a save here goes through)

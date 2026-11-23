@@ -1,7 +1,7 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, isArea, HEAL_MOVE, roomLeft } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, isArea, HEAL_MOVE, roomLeft, clearRunMark } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
 import { era, mainStep, activeSides, noteKill, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, monHead, Town, PEARL, objInView } from './town.js';
@@ -1738,6 +1738,8 @@ export class Dungeon {
     this.result(tr('탈출 부적의 힘으로 마을로 돌아왔다.', 'The Escape Charm carried you back to town.'), false);
   }
   result(title, ok, extra = []) {
+    // (a challenge that did not end here: its run's mark comes off the stored save now, not at the town's autosave)
+    if (S.inRun && !S.over) clearRunMark();
     S.inRun = null;
     NET.cmds = {}; // (the run is over: net.js command keeps nothing more for it)
     for (const m of [...S.party, ...(S.homeParty || [])]) { m.field = 0; m.primal = false; m.form = ''; m.typeOverride = null; }
