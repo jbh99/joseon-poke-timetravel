@@ -66,21 +66,25 @@ export function moveUsable(m) {
   if (mv.cat !== 2) return mv.power > 0 && ![38, 7, 26, 8].includes(mv.effect);
   return mv.effect in STAT_EFFECT || mv.effect in STATUS_MOVE || mv.effect in HEAL_MOVE;
 }
-// How far the team's moves fly in a line where their user faces (dungeon.js skillTargets), in tiles: a physical move 4
-// (1.27; until 1.26 it reached the tile in front only), a special one 5 (6 until 1.26). A move that hits all around
-// reaches as far around its user (1.33; up to 1.32 the eight tiles beside it only).
-export const PHYS_REACH = 4, LINE_REACH = 5;
+// How far the team's moves reach (dungeon.js skillTargets), in tiles: a physical move 3, a special or status one 4
+// (1.37; from 1.27 to 1.36 a move turned to a foe within 4 tiles and past that flew on in a line where its user faced,
+// 4 tiles if physical and 5 otherwise). Within its reach a move turns by itself to the nearest foe, whichever way its
+// user faces, and hits for sure; a plain attack reaches as far as a physical move. Ordinary foes reach as far (1.37),
+// bosses keep to their lines (dungeon.js reachOf). A move that hits all around reaches as far around its user (1.33;
+// up to 1.32 the eight tiles beside it only).
+export const PHYS_REACH = 3, LINE_REACH = 4;
 // a move that hits all around its user (the main games' targets 4, both foes, and 8, everyone beside): Bubble, Growl,
 // Earthquake, Surf... (dungeon.js areaTiles)
 export const isArea = (d) => d.target === 4 || d.target === 8;
 // where a move of the team's lands (dungeon.js skillTargets), in a few words: on its user, on every foe within its reach
-// around it, or along a line where it faces (a status move flies as far as a special one)
+// around it, or on the nearest foe within its reach (a status move reaches as far as a special one; up to 1.36 the
+// words were "직선 4칸", when a move flew on in a line)
 export function moveReach(id) {
   const d = DEX.moves[id];
   if (d.cat === 2 && [16, 1024].includes(d.target)) return tr('자신', 'Self');
   const n = d.cat === 0 ? PHYS_REACH : LINE_REACH;
   if (isArea(d)) return tr(`주변 ${n}칸`, `${n}-tile area`);
-  return tr(`직선 ${n}칸`, `${n}-tile line`);
+  return tr(`${n}칸`, `${n} tiles`);
 }
 // one line about a move for menus: type, category and power, and its range in the dungeons (1.28: every move says
 // its range the same way; up to 1.27 a status move said none)
@@ -231,7 +235,7 @@ export class Mon {
 }
 
 // Resolve one move use. Returns {dmg, eff, crit, miss, text[], status, statChange, heal, drain}.
-// sure: no accuracy roll (the team's moves on a foe within 4 tiles, Dungeon.useSkill)
+// sure: no accuracy roll (the team's moves and plain attacks, each on a foe within its reach: Dungeon.useSkill, attack)
 export function useMove(att, def, moveId, sure = false) {
   const mv = moveId === 'basic' ? { name: tr('공격', 'Attack'), cat: 0, power: 30, type: -1, acc: 100, effect: 0, chance: 0 } : DEX.moves[moveId];
   const out = { mv, text: [] };
@@ -301,8 +305,9 @@ export const ITEMS = {
   // one a dungeon run, boss room included (Dungeon.reviveCap: two against Kyurem, no limit in the Boss Tower, 1.28); the boss room also stands the fallen up by itself
   revive: withText(['기력의 조각', 'Revive'], ['쓰러진 포켓몬을 HP 절반으로 되살린다. 던전 한 번(보스방 포함)에 하나, 큐레무와의 싸움에서는 둘, 보스 탑에서는 제한 없이 쓸 수 있다.', 'Revives a fainted Pokémon with half its HP. One per dungeon run (boss room included), two against Kyurem, any number in the Boss Tower.'], { price: 1000, revive: 0.5 }),
   escape: withText(['탈출 부적', 'Escape Charm'], ['던전에서 곧바로 마을로 돌아간다.', 'Takes you straight back to town from a dungeon.'], { price: 150, escape: true }),
-  // throw: what it adds to its thrower's level for the damage (1.27; a flat 20 until 1.26, which no late foe felt)
-  stone: withText(['돌팔매', 'Sling Stone'], ['앞쪽 일직선으로 던져 적에게 던진 포켓몬의 레벨 + 5만큼 데미지를 준다.', "Thrown straight ahead; deals damage equal to the thrower's level + 5 to a foe."], { price: 12, throw: 5 }),
+  // throw: what it adds to its thrower's level for the damage (1.27; a flat 20 until 1.26, which no late foe felt); it
+  // aims by itself at a foe within 3 tiles from 1.37 (Dungeon.throwStone)
+  stone: withText(['돌팔매', 'Sling Stone'], ['3칸 안에 적이 있으면 저절로 겨냥해 던지고, 없으면 앞쪽 일직선으로 던진다. 던진 포켓몬의 레벨 + 5만큼 데미지를 준다.', "Aims by itself at a foe within 3 tiles, else flies straight ahead. Deals damage equal to the thrower's level + 5."], { price: 12, throw: 5 }),
   // key items (never sold, never used up): in a dungeon they wake the Primal Reversion of the legend they belong to
   redorb: withText(['주홍구슬', 'Red Orb'], ['던전에서 쓰면 그란돈이 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오르고 불꽃 타입이 더해진다.', 'Use it in a dungeon and Groudon undergoes Primal Reversion: much stronger, and part Fire type, until the dungeon ends.'], { price: 0, key: true, primal: 383, types: [4, 10] }),
   blueorb: withText(['쪽빛구슬', 'Blue Orb'], ['던전에서 쓰면 가이오가가 원시회귀한다. 그 던전이 끝날 때까지 능력이 크게 오른다.', 'Use it in a dungeon and Kyogre undergoes Primal Reversion: much stronger until the dungeon ends.'], { price: 0, key: true, primal: 382, types: [11] }),
@@ -320,7 +325,7 @@ export const TMS = [264, 337, 352, 347, 46, 92, 258, 339, 331, 237, 241, 269, 58
 // The moves that came with Pokémon Black (468-559) are sold after them from 1.34, as TM93 and on: every one the
 // dungeons can use but the legends' own (Sacred Sword, Psystrike, Searing Shot, Techno Blast, Relic Song, Secret
 // Sword, Glaciate, Bolt Strike, Blue Flare, Freeze Shock, Ice Burn, V-create, Fusion Flare, Fusion Bolt). They reach
-// as every move does: 4 tiles if physical, 5 otherwise (moveReach).
+// as every move does: 3 tiles if physical, 4 otherwise (moveReach; 4 and 5 up to 1.36).
 const TM5_SKIP = [533, 540, 545, 546, 547, 548, 549, 550, 551, 553, 554, 557, 558, 559];
 export const TMS5 = () => DEX.moves.filter((m) => m && m.id >= 468 && m.id <= 559 && !TM5_SKIP.includes(m.id) && moveUsable(m.id)).map((m) => m.id);
 export const tmPrice = (move) => (DEX.moves[move].cat !== 2 && DEX.moves[move].power >= 80 ? 15000 : 10000);

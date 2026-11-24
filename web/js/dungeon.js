@@ -34,12 +34,18 @@ export const curve = () => clamp(S.era / Math.max(1, KOREA_LAST), 0, 1); // the 
 // HP and every stat (Hard: 25%)
 const foeMon = (sp, lv, o = {}) => new Mon(sp, lv, { ...o, buff: (o.buff || 1) * mode().stat });
 
-// The team's moves land on any foe within SURE_REACH tiles, whichever way their user faces (skillTargets; 4 tiles from
-// 1.28, 3 before, which a tester found too near); past that
-// they fly in a line: a physical move PHYS_REACH tiles, a special one LINE_REACH (game.js; 1.27). Foes reach less far:
-// their physical moves land on the tile in front, an ordinary foe's line moves fly FOE_REACH tiles, a boss's BOSS_REACH
-// tiles, its line moves and its telegraphed blasts alike.
-const SURE_REACH = 4, FOE_REACH = 4, BOSS_REACH = 4;
+// Reach (1.37, the user's numbers): the team's moves and plain attacks, and every ordinary foe's, turn by themselves to
+// the nearest one of the other side within their reach, whichever way their user faces (nearFoe): 3 tiles for a
+// physical move or a plain attack (game.js PHYS_REACH), 4 for any other (LINE_REACH); a move that hits all around
+// covers as far around its user (areaTiles). The team's land for sure, a foe's still roll to hit. A boss keeps to its
+// lines: its physical moves and plain attacks reach BOSS_PHYS tiles where it faces, its other moves and its telegraphed
+// blasts BOSS_REACH, and a move of its that hits all around the eight tiles beside it. Up to 1.36 the team's moves
+// turned to a foe within 4 tiles and flew on in a line to 4 (physical) or 5, a plain attack struck the tile in front
+// only, and a foe's physical moves (a boss's too) the tile in front while its others flew 4 tiles where it faced.
+const BOSS_PHYS = 2, BOSS_REACH = 4;
+// a Sling Stone turns by itself to a foe within STONE_AIM tiles, else it flies straight where its thrower faces, up to
+// STONE_FLY tiles (throwStone; 1.37, straight only before)
+const STONE_AIM = 3, STONE_FLY = 8;
 // flames left on the ground, Blue Flare's blue and Sacred Fire's gold: the tile's glow, a tongue of fire, its core, and
 // the colour of the number it burns away
 const FLAME_HUES = { blue: ['rgba(70,150,255,0.28)', '#4aa4ff', '#d8f2ff', '#8fd8ff'], gold: ['rgba(255,170,50,0.3)', '#ff8a2a', '#fff0a8', '#ffb040'] };
@@ -54,8 +60,11 @@ const SIG_REACH = 8;
 const PLUS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
 // a wall of Dragon Ascent (waveVolley): the four ways it flies, in turn, and the seconds it allows a step on the way to its gap
 const WALL = [[1, 0], [0, 1], [-1, 0], [0, -1]], WALL_STEP = 0.28;
-// how far a move of this category (0 physical, 1 special, 2 status) flies in a line from this fighter; without a category, its longest
-const reachOf = (e, cat = 1) => (e.team !== 'foe' ? (cat === 0 ? PHYS_REACH : LINE_REACH) : cat === 0 ? 1 : e.isBoss ? BOSS_REACH : FOE_REACH);
+// a boss of the foe side, which keeps to its own reach and its lines (above)
+const bossFoe = (e) => !!e.isBoss && e.team === 'foe';
+// how far a move of this category (0 physical, 1 special, 2 status) reaches from this fighter (a plain attack as far as
+// a physical move); without a category, its longest
+const reachOf = (e, cat = 1) => (bossFoe(e) ? (cat === 0 ? BOSS_PHYS : BOSS_REACH) : cat === 0 ? PHYS_REACH : LINE_REACH);
 // bosses shrug off sleep, freeze and poison, so they can't be locked down or worn away; a legendary boss shrugs off
 // every status problem, paralysis and burns too (even Rest's own sleep). Poison and Steel types can't be poisoned at all (1.25).
 const NO_POISON = [3, 8]; // the Poison and Steel types
@@ -617,7 +626,8 @@ export class Dungeon {
     } else if (kind === 'basic') {
       const t = this.entAt(p.x + p.face[0], p.y + p.face[1]);
       if (t?.team === 'npc') return this.talkNpc(t);
-      this.endTurn(() => { if (t?.team === 'foe' && this.canStep(p.x, p.y, ...p.face)) this.attack(p, t, 'basic'); else { this.step(() => { this.msg(tr(`${p.mon.name}의 공격! 허공을 갈랐다.`, `${p.mon.name} attacked thin air.`)); sfx('miss'); }, 0.18); } });
+      // a plain attack turns to the nearest foe within PHYS_REACH tiles, as a physical move does (1.37; the tile in front before)
+      this.endTurn(() => { const f = this.nearFoe(p, reachOf(p, 0)); if (f) this.attack(p, f, 'basic'); else { this.step(() => { this.msg(tr(`${p.mon.name}의 공격! 허공을 갈랐다.`, `${p.mon.name} attacked thin air.`)); sfx('miss'); }, 0.18); } });
     } else if (kind === 'move-skill') {
       const mv = p.mon.moves[arg];
       if (!mv) return;
@@ -706,8 +716,8 @@ export class Dungeon {
       if (o) { o.x = e.x; o.y = e.y; this.moveAnim(o, e.x + dx, e.y + dy); }
       e.x += dx; e.y += dy; this.moveAnim(e, fx, fy);
     } else if (kind === 'basic') {
-      const t = this.entAt(e.x + e.face[0], e.y + e.face[1]);
-      if (t?.team === 'foe' && this.inSight(t) && this.canStep(e.x, e.y, ...e.face)) this.attack(e, t, 'basic');
+      const t = this.nearFoe(e, reachOf(e, 0)); // as the leader's: the nearest foe it can see within reach (1.37)
+      if (t) this.attack(e, t, 'basic');
       else this.step(() => { this.msg(tr(`${m.name}의 공격! 허공을 갈랐다.`, `${m.name} attacked thin air.`)); sfx('miss'); }, 0.18);
     } else if (kind === 'move-skill') {
       const mv = m.moves[arg];
@@ -746,10 +756,10 @@ export class Dungeon {
     });
   }
 
-  // choose a move's targets: the team's single-target moves turn to the nearest foe within SURE_REACH tiles in any
-  // direction (useSkill makes those sure hits); otherwise a move goes where its user faces, along a line as far as its
-  // kind reaches from that user (reachOf: a foe's physical move the tile in front, the team's four tiles). A move that
-  // hits all around takes every foe on the ground it covers (areaTiles).
+  // choose a move's targets: a single-target move of the team's or of an ordinary foe turns to the nearest one of the
+  // other side within its reach, in any direction (reachOf; useSkill makes the team's sure hits); a boss's goes where it
+  // faces, along a line as far as its kind reaches (reachOf). A move that hits all around takes everyone of the other
+  // side on the ground it covers (areaTiles).
   skillTargets(att, mvId) {
     const mv = DEX.moves[mvId];
     const foeTeam = att.team === 'foe' ? 'ally' : 'foe';
@@ -757,7 +767,7 @@ export class Dungeon {
     if (att.team === 'foe' && !this.inSight(att)) return []; // a foe the team cannot see strikes no one (inSight)
     const seen = (e) => att.team === 'foe' || this.inSight(e); // and the team's moves pass one it cannot see
     if (isArea(mv)) return this.areaTiles(att, mv).map(([x, y]) => this.entAt(x, y)).filter((e) => e && e.team === foeTeam && seen(e));
-    const near = att.team === 'ally' && this.nearFoe(att);
+    const near = !bossFoe(att) && this.nearFoe(att, reachOf(att, mv.cat));
     if (near) { att.face = [Math.sign(near.x - att.x), Math.sign(near.y - att.y)]; return [near]; }
     const [dx, dy] = att.face;
     let x = att.x, y = att.y;
@@ -775,13 +785,13 @@ export class Dungeon {
   // team's moves found foes it had not seen. A town battle and a boss's hall are seen whole.
   inSight(e) { return !!this.vis[e.y]?.[e.x]; }
   // the ground a move that hits all around covers, ring by ring out from its user (the eight beside it first, in DIRS8's
-  // order): for the team every tile within its kind's reach (PHYS_REACH for a physical move, LINE_REACH for any other;
-  // a diagonal step is a tile) that single steps reach going only outward, each from a covered tile of the ring
-  // before: a wall shields what stands behind it, while a post or a doorway's corner beside the user hides only what
-  // is behind it (not the whole side, as one fixed path from the user would). A foe's covers the eight tiles beside
-  // it, as everyone's did up to 1.32.
+  // order): for the team and ordinary foes every tile within its kind's reach (PHYS_REACH for a physical move,
+  // LINE_REACH for any other; a diagonal step is a tile) that single steps reach going only outward, each from a covered
+  // tile of the ring before: a wall shields what stands behind it, while a post or a doorway's corner beside the user
+  // hides only what is behind it (not the whole side, as one fixed path from the user would). A boss's covers the eight
+  // tiles beside it, as everyone's did up to 1.32 and every foe's up to 1.36.
   areaTiles(att, mv) {
-    const r = att.team === 'foe' ? 1 : mv.cat === 0 ? PHYS_REACH : LINE_REACH, out = [], got = new Set();
+    const r = bossFoe(att) ? 1 : reachOf(att, mv.cat), out = [], got = new Set();
     let ring = [[att.x, att.y]];
     for (let d = 1; d <= r && ring.length; d++) {
       const next = [];
@@ -794,15 +804,17 @@ export class Dungeon {
     }
     return out;
   }
-  // the nearest foe within SURE_REACH tiles that a path of single steps reaches (walls in between hide it); ties go
-  // to the one in front
-  nearFoe(att) {
+  // the nearest one of the other side within r tiles (the longest reach unless told) that a path of single steps
+  // reaches (walls in between hide it); ties go to the one in front. The team aims at the foes it can see; a foe, which
+  // strikes only while it is seen itself (skillTargets, actWith), at anyone of the team.
+  nearFoe(att, r = LINE_REACH) {
+    const other = att.team === 'foe' ? 'ally' : 'foe';
     let best = null, score = Infinity;
     for (const e of this.ents) {
-      if (!e.alive || e.team !== 'foe' || e.hidden || !this.inSight(e)) continue;
+      if (!e.alive || e.team !== other || e.hidden || (other === 'foe' && !this.inSight(e))) continue;
       const dx = e.x - att.x, dy = e.y - att.y, d = Math.max(Math.abs(dx), Math.abs(dy));
       const s = d * 2 + (Math.sign(dx) === att.face[0] && Math.sign(dy) === att.face[1] ? 0 : 1);
-      if (d <= SURE_REACH && s < score && this.pathTo(att, e)) { best = e; score = s; }
+      if (d <= r && s < score && this.pathTo(att, e)) { best = e; score = s; }
     }
     return best;
   }
@@ -821,23 +833,30 @@ export class Dungeon {
     mvs.pp--;
     const targets = this.skillTargets(att, mvs.id), t0 = targets[0];
     const dist = t0 && t0 !== att ? Math.max(Math.abs(t0.x - att.x), Math.abs(t0.y - att.y)) : 0;
-    // (a physical move that finds no one shows its line too, where it has one: the team's four tiles, 1.27)
+    // (a physical move that finds no one shows its line too, where it has one: 3 tiles, a boss's 2; 1.27)
     const ranged = (mv.cat !== 0 || dist > 1 || (!dist && reachOf(att, mv.cat) > 1)) && !isArea(mv) && t0 !== att;
     // the beam flies to its target (a sure hit may stand off the eight lines), or its full reach when it finds no one
     const beam = dist ? { dir: [(t0.x - att.x) / dist, (t0.y - att.y) / dist], len: dist } : { dir: att.face, len: reachOf(att, mv.cat) };
-    // the team's move that hits all around lights the ground it sweeps, out from its user (1.33: it reaches 4 or 5 tiles)
-    const area = isArea(mv) && att.team !== 'foe' ? { x: att.x, y: att.y, tiles: this.areaTiles(att, mv).filter(([x, y]) => this.vis[y]?.[x]), r: mv.cat === 0 ? PHYS_REACH : LINE_REACH, t: AREA_FX, color: TYPE_COLORS[mv.type] } : null;
+    // a move that hits all around lights the ground it sweeps, out from its user (the team's from 1.33, an ordinary
+    // foe's from 1.37: 3 or 4 tiles; a boss's reaches the eight tiles beside it and is not lit)
+    const area = isArea(mv) && !bossFoe(att) ? { x: att.x, y: att.y, tiles: this.areaTiles(att, mv).filter(([x, y]) => this.vis[y]?.[x]), r: reachOf(att, mv.cat), t: AREA_FX, color: TYPE_COLORS[mv.type] } : null;
     this.step(() => { att.atkT = G.time; this.msg(tr(`${att.mon.name}의 ${mv.name}!`, `${att.mon.name} used ${mv.name}!`), COL.blue); this.flash = { e: att, t: 0.2, color: TYPE_COLORS[mv.type] }; if (ranged) this.beam = { from: att, ...beam, t: 0.25, color: TYPE_COLORS[mv.type] }; if (area) this.area = area; sfx(mv.cat === 2 ? 'buff' : 'confirm'); }, 0.2);
     if (!targets.length) { this.step(() => this.msg(tr('그러나 아무도 맞지 않았다…', 'But it hit nobody...')), 0.12); return; }
-    for (const t of targets) this.resolve(att, t, mvs.id, att.team === 'ally' && t !== att && Math.max(Math.abs(t.x - att.x), Math.abs(t.y - att.y)) <= SURE_REACH);
+    // the team's land for sure: every target stands within the move's reach (1.37; up to 1.36 only those within 4 tiles)
+    for (const t of targets) this.resolve(att, t, mvs.id, att.team === 'ally' && t !== att);
     // a boss's own move that burns on where it landed (Ho-Oh's Sacred Fire, 1.36; def.trail: move id → the flames it leaves)
     const trail = att.isBoss && att.def.trail?.[mvs.id];
     if (trail) this.leaveFlames(att, targets.filter((t) => t.team === 'ally').map((t) => t.y * W + t.x), { name: mv.name, leave: trail });
   }
+  // a plain attack (also by walking into a foe): it turns to its target, and one from afar (1.37: up to 3 tiles, a
+  // boss's 2) shows its way; the team's land for sure, as their moves do
   attack(att, def, mvId) {
     const name = mvId === 'basic' ? tr('공격', 'Attack') : DEX.moves[mvId].name;
-    this.step(() => { att.lunge = 0.18; att.atkT = G.time; if (mvId === 'basic') this.msg(tr(`${att.mon.name}의 ${name}!`, `${att.mon.name} attacks!`)); }, 0.12);
-    this.resolve(att, def, mvId);
+    const d = Math.max(Math.abs(def.x - att.x), Math.abs(def.y - att.y));
+    if (d) att.face = [Math.sign(def.x - att.x), Math.sign(def.y - att.y)];
+    const way = d > 1 ? { from: att, dir: [(def.x - att.x) / d, (def.y - att.y) / d], len: d, t: 0.25, color: '#e8e0d0' } : null;
+    this.step(() => { att.lunge = 0.18; att.atkT = G.time; if (way) this.beam = way; if (mvId === 'basic') this.msg(tr(`${att.mon.name}의 ${name}!`, `${att.mon.name} attacks!`)); }, 0.12);
+    this.resolve(att, def, mvId, att.team === 'ally');
   }
   resolve(att, def, mvId, sure) {
     const r = useMove(att.mon, def.mon, mvId, sure);
@@ -1000,11 +1019,12 @@ export class Dungeon {
     opts.sort((a, b) => b.score - a.score);
     return opts[0];
   }
-  inLine(e, t) {
+  // whether t stands on one of e's eight lines within r tiles (its longest reach unless told), nobody in between
+  inLine(e, t, r = reachOf(e)) {
     const dx = t.x - e.x, dy = t.y - e.y;
     if (!(dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy))) return false;
     const n = Math.max(Math.abs(dx), Math.abs(dy));
-    if (n > reachOf(e)) return false;
+    if (n > r) return false;
     const sx = Math.sign(dx), sy = Math.sign(dy);
     let x = e.x, y = e.y;
     for (let i = 0; i < n - 1; i++) { if (!this.canStep(x, y, sx, sy)) return false; x += sx; y += sy; if (this.entAt(x, y)) return false; }
@@ -1014,12 +1034,15 @@ export class Dungeon {
     if (!this.inSight(e.team === 'foe' ? e : target)) return false; // no fight with a foe out of sight: it closes in first
     const d = Math.max(Math.abs(target.x - e.x), Math.abs(target.y - e.y));
     const adj = d === 1 && this.canStep(e.x, e.y, target.x - e.x, target.y - e.y);
-    const sure = e.team === 'ally' && d <= SURE_REACH && this.pathTo(e, target); // the team's moves turn to it (skillTargets)
-    if (adj || sure || this.inLine(e, target)) {
+    // the team's and an ordinary foe's moves turn to it within their reach (skillTargets); a boss's keep to its lines
+    const aimed = !bossFoe(e) && d <= reachOf(e) && this.pathTo(e, target);
+    if (adj || aimed || this.inLine(e, target)) {
       e.face = [Math.sign(target.x - e.x), Math.sign(target.y - e.y)];
       const s = Math.random() < 0.8 ? this.pickSkill(e, target) : null;
       if (s) { this.useSkill(e, s.k); return true; }
-      if (adj) { this.attack(e, target, 'basic'); return true; }
+      // a plain attack reaches as far as a physical move (1.37: 3 tiles, a boss's 2 along its lines; up to 1.36 the tile beside)
+      const r = reachOf(e, 0);
+      if (adj || (bossFoe(e) ? this.inLine(e, target, r) : d <= r && this.pathTo(e, target))) { this.attack(e, target, 'basic'); return true; }
     }
     return false;
   }
@@ -1051,8 +1074,8 @@ export class Dungeon {
     const k = y * W + x;
     return this.flames.has(k) || this.drops.some((d) => !d.hit && d.tiles.has(k)) || this.bosses.some((b) => b.alive && (b.tele?.tiles.has(k) || b.sigRun?.tele?.tiles.has(k) || b.sigRun2?.tele?.tiles.has(k)));
   }
-  // Teammates: out of a telegraphed blast first; then they fight what is near the team (a foe beside them, in line or
-  // within sure reach) and close in on a foe only while both stay within LEASH tiles of the one in control; otherwise
+  // Teammates: out of a telegraphed blast first; then they fight what is near the team (a foe within their reach,
+  // 3 or 4 tiles) and close in on a foe only while both stay within LEASH tiles of the one in control; otherwise
   // they follow it (follow). In a town battle everyone on our side fights on their own: teammates and our side's legend
   // alike go after the nearest foe anywhere on the field and never trail the leader.
   allyAI(e) {
@@ -1792,13 +1815,17 @@ export class Dungeon {
       fadeTo(() => G.goTown());
     });
   }
-  // a Sling Stone: its thrower's level and `plus` more, whatever the foe's defenses (1.27; a flat 20 until 1.26)
+  // a Sling Stone: its thrower's level and `plus` more, whatever the foe's defenses (1.27; a flat 20 until 1.26). It
+  // turns by itself to the nearest foe its thrower can see within STONE_AIM tiles (1.37), else flies straight where its
+  // thrower faces until it hits someone or a wall, STONE_FLY tiles at most.
   throwStone(plus) {
     const p = this.player, dmg = p.mon.lv + plus;
     this.endTurn(() => {
-      let x = p.x, y = p.y, hit = null;
-      for (let i = 0; i < 8; i++) { if (!this.canStep(x, y, ...p.face)) break; x += p.face[0]; y += p.face[1]; const t = this.entAt(x, y); if (t) { hit = t; break; } }
-      this.step(() => { this.msg(tr(`${p.mon.name}은(는) 돌팔매를 던졌다!`, `${p.mon.name} threw a Sling Stone!`)); this.beam = { from: p, dir: p.face, t: 0.25, color: '#999' }; }, 0.2);
+      const aim = this.nearFoe(p, STONE_AIM);
+      let hit = aim, len = 0, dir = p.face;
+      if (aim) { len = Math.max(Math.abs(aim.x - p.x), Math.abs(aim.y - p.y)); dir = [(aim.x - p.x) / len, (aim.y - p.y) / len]; p.face = [Math.sign(aim.x - p.x), Math.sign(aim.y - p.y)]; }
+      else { let x = p.x, y = p.y; for (let i = 0; i < STONE_FLY; i++) { if (!this.canStep(x, y, ...p.face)) break; x += p.face[0]; y += p.face[1]; len++; const t = this.entAt(x, y); if (t) { hit = t; break; } } }
+      this.step(() => { this.msg(tr(`${p.mon.name}은(는) 돌팔매를 던졌다!`, `${p.mon.name} threw a Sling Stone!`)); this.beam = { from: p, dir, len: Math.max(1, len), t: 0.25, color: '#999' }; }, 0.2);
       if (hit && hit.team === 'foe' && this.inSight(hit)) {
         // a phased boss stops at its next mark, as under a move (resolve): the stone takes what stands above it and shows that
         // much, or is blocked (up to 1.26 it showed its full 20 whatever it took, and lifted a boss below its mark back up to it)
