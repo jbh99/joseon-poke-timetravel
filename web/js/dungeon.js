@@ -1,7 +1,7 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, isArea, HEAL_MOVE, roomLeft, clearRunMark } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, isArea, HEAL_MOVE, statOf, roomLeft, clearRunMark } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
 import { era, mainStep, activeSides, noteKill, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, monHead, Town, PEARL, objInView } from './town.js';
@@ -1010,7 +1010,7 @@ export class Dungeon {
       if (d.cat === 2) {
         // a healing move waits till its HP is down (HEAL_AT; up to 1.32 one was used at full HP, and Rest slept for nothing)
         if (d.effect in HEAL_MOVE) { if (e.mon.hp > e.mon.maxhp * (HEAL_AT[d.effect] ?? 0.5)) return; }
-        else if (ts[0] === e && (e.mon.stages[STATS_OF(d)] || 0) >= 2) return;
+        else if (ts[0] === e && (e.mon.stages[statOf(d)] || 0) >= 2) return;
         opts.push({ k, score: 18 + Math.random() * 20 }); return;
       }
       const eff = typeMult(d.type, ts[0].mon.types) * (e.mon.types.includes(d.type) ? 1.5 : 1);
@@ -1825,7 +1825,8 @@ export class Dungeon {
       let hit = aim, len = 0, dir = p.face;
       if (aim) { len = Math.max(Math.abs(aim.x - p.x), Math.abs(aim.y - p.y)); dir = [(aim.x - p.x) / len, (aim.y - p.y) / len]; p.face = [Math.sign(aim.x - p.x), Math.sign(aim.y - p.y)]; }
       else { let x = p.x, y = p.y; for (let i = 0; i < STONE_FLY; i++) { if (!this.canStep(x, y, ...p.face)) break; x += p.face[0]; y += p.face[1]; len++; const t = this.entAt(x, y); if (t) { hit = t; break; } } }
-      this.step(() => { this.msg(tr(`${p.mon.name}은(는) 돌팔매를 던졌다!`, `${p.mon.name} threw a Sling Stone!`)); this.beam = { from: p, dir, len: Math.max(1, len), t: 0.25, color: '#999' }; }, 0.2);
+      // (a stone that cannot leave its thrower's tile, a wall or a wall's corner right there, draws no flight)
+      this.step(() => { this.msg(tr(`${p.mon.name}은(는) 돌팔매를 던졌다!`, `${p.mon.name} threw a Sling Stone!`)); if (len) this.beam = { from: p, dir, len, t: 0.25, color: '#999' }; }, 0.2);
       if (hit && hit.team === 'foe' && this.inSight(hit)) {
         // a phased boss stops at its next mark, as under a move (resolve): the stone takes what stands above it and shows that
         // much, or is blocked (up to 1.26 it showed its full 20 whatever it took, and lifted a boss below its mark back up to it)
@@ -2420,4 +2421,3 @@ export class Dungeon {
     ui.text(note[0], nx, ny + 3, { size: 9, align: 'center', color: note[1], bold: true });
   }
 }
-const STATS_OF = (d) => ({ 10: 'atk', 11: 'def', 12: 'spe', 13: 'spa', 14: 'spd', 50: 'atk', 51: 'def', 52: 'spe', 53: 'spa', 54: 'spd' })[d.effect] || 'atk';

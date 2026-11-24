@@ -52,6 +52,9 @@ const STAT_EFFECT = {
   53: ['spa', 2, 'self'], 54: ['spd', 2, 'self'], 58: ['atk', -2, 'foe'], 59: ['def', -2, 'foe'], 60: ['spe', -2, 'foe'],
   62: ['spd', -2, 'foe'],
 };
+// the stat a status move of the table above raises or lowers (dungeon.js pickSkill: a move that has already lifted
+// its user's stat by 2 waits; 1.37, before it read a partial copy of this table that had no Double Team)
+export const statOf = (d) => STAT_EFFECT[d.effect]?.[0];
 const HIT_STAT = { 68: ['atk', -1], 69: ['def', -1], 70: ['spe', -1], 71: ['spa', -1], 72: ['spd', -1], 73: ['acc', -1] };
 const HIT_STATUS = { 2: 'psn', 4: 'brn', 5: 'frz', 6: 'par' };
 const STATUS_MOVE = { 1: 'slp', 33: 'psn', 66: 'psn', 67: 'par' };
