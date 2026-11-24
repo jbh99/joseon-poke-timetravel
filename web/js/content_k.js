@@ -8,6 +8,8 @@ export const CELEBI = 251;
 // Legends' signature moves (dungeon.js sigStart). A boss's `sig` (and each revive's) lists the moves it takes turns
 // with and `at`, the HP marks (share of the form's max HP) where one goes off: one list, or a few to pick from at random.
 // dmg is a share of max HP, like a telegraphed blast's.
+// the flames Ho-Oh's Sacred Fire leaves on the ground (dungeon.js leaveFlames): three turns, a share of max HP a turn
+export const SACRED_LEAVE = { turns: 3, dmg: 0.04, hue: 'gold', wait: true };
 export const SIG = {
   roar: { kind: 'roar', name: K('시간의 포효', 'Roar of Time'), type: 8, cut: 0.33, back: 10 }, // the team -33%; HP back to 10 s ago, plus what it just took from the team
   rend: { kind: 'rend', name: K('공간절단', 'Spacial Rend'), type: 11, dmg: 0.42 }, // the arena shrinks, long rifts erupt all over the floor
@@ -23,6 +25,18 @@ export const SIG = {
   ascent: { kind: 'wave', name: K('화룡점정', 'Dragon Ascent'), type: 2, dmg: 0.18, secs: 6, every: 1.5, warn: 0.7, tile: 0.09, flash: '#9affc4' },
   meteor: { kind: 'storm', name: K('용성군', 'Draco Meteor'), type: 16, dmg: 0.3, turns: 3, spots: 12, flash: '#ffd0a0', what: K('유성', 'meteors') },
   gale: { kind: 'storm', name: K('폭풍', 'Hurricane'), type: 2, dmg: 0.28, turns: 3, spots: 12, flash: '#e0f0ff', what: K('돌풍', 'gusts') },
+  // 1.36. Palkia's last form uses two at once (dungeon.js ultTurn): Spacial Rend's rifts three turns running, fewer and
+  // weaker than the single tear's, beside water spouts, meteors or an Aura Sphere
+  rend3: { kind: 'rend', name: K('공간절단', 'Spacial Rend'), type: 11, dmg: 0.3, turns: 3, rifts: 5 },
+  spouts: { kind: 'storm', name: K('하이드로펌프', 'Hydro Pump'), type: 11, dmg: 0.28, turns: 3, spots: 6, flash: '#a0d8ff', what: K('물기둥', 'water spouts') },
+  meteor3: { kind: 'storm', name: K('용성군', 'Draco Meteor'), type: 16, dmg: 0.28, turns: 3, spots: 6, flash: '#ffd0a0', what: K('유성', 'meteors') },
+  aura: { kind: 'pulse', name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.3 },
+  // Ho-Oh's second form: Sacred Fire for three turns, burning on where it fell (few spots besides the team's own, and
+  // these flames last two turns: three falls of three-turn flames covered more than a quarter of the arena)
+  sacred: { kind: 'storm', name: K('성스러운불꽃', 'Sacred Fire'), type: 10, dmg: 0.26, turns: 3, status: 'brn', spots: 2, flash: '#ffd060', what: K('성스러운 불꽃', 'sacred fire'), leave: { ...SACRED_LEAVE, turns: 2 } },
+  // the Primal Reversions of 1950 (content_war.js): Primal Groudon's second move, and Primal Kyogre's
+  eruption: { kind: 'storm', name: K('분화', 'Eruption'), type: 10, dmg: 0.3, turns: 3, status: 'brn', spots: 10, flash: '#ff9050', what: K('용암', 'lava') },
+  thunder: { kind: 'storm', name: K('번개', 'Thunder'), type: 13, dmg: 0.3, turns: 3, status: 'par', spots: 10, flash: '#fff3a0', what: K('벼락', 'thunderbolts'), bolts: true },
 };
 // a form's first signature move at 60% of its HP; the second form's two or three spread over its bar
 export const SIG_AT1 = [0.6], SIG_AT2 = [[0.75, 0.4], [0.8, 0.55, 0.3]];

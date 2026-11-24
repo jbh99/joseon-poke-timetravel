@@ -185,7 +185,7 @@ export const ARCEUS = { sp: 493, lv: 180, lvMin: 70, lvUp: 2, lvCap: 180, hp: 8.
 // comes near (wake). A guardian once beaten stays beaten (flag), so a run starts at the first stage still to clear.
 // All three fight 20% stronger in HP and every stat here (Mon buff); one already in the team doesn't join twice.
 const FINALE_UP = 1.2;
-const finale = (b, o) => ({ ...b, buff: FINALE_UP, ...o, get noJoin() { return !!S.flags['got_' + b.sp]; } });
+const finale = (b, o) => ({ ...b, buff: FINALE_UP * (b.buff || 1), ...o, get noJoin() { return !!S.flags['got_' + b.sp]; } }); // (on top of a boss's own edge: Palkia's 20%, 1.36)
 const FINALE = [
   { name: K('공간의 틈', 'Rift in Space'), flag: 'origin_palkia', tiles: T.rift, tint: 'rgba(255,140,210,0.10)', boss: null },
   { name: K('시간의 틈', 'Rift in Time'), flag: 'origin_dialga', tiles: T.crystal, tint: 'rgba(110,150,255,0.12)', boss: null },
@@ -207,7 +207,7 @@ export function addFinale(bossOf) {
     say: [
       { who: 'narr', text: K('천관산을 오르는 길, 공간이 일그러지며 길이 끊겼다. 찢어진 공간 한가운데서 펄기아가 포효한다!', 'On the way up Mt. Coronet, space warps and the path breaks off. In the middle of the torn space, Palkia roars!') },
       { who: 484, name: K('펄기아', 'Palkia'), text: K('그오오오…! 시작의 방으로 가려는 자들이여. 공간을 다스리는 이 힘을 넘어서 보아라!', 'Grooooh...! You who would reach the Hall of Origin. Get past the power that rules space!') },
-      { who: 'partner', text: K('예전보다 훨씬 강해졌어! 공간절단도 더 자주 날아올 거야. 붉은 칸을 잘 보자!', 'It\'s far stronger than before! Spacial Rend will come more often too. Watch the red tiles!') }],
+      { who: 'partner', text: K('예전보다 훨씬 강해졌어! 공간절단도 더 자주 날아오고, 두 번 다시 일어설 거야. 마지막에는 기술 두 개가 한꺼번에 오니까 붉은 칸을 잘 보자!', 'It\'s far stronger than before! Spacial Rend will come more often, and it will rise twice. At the last two moves come at once, so watch the red tiles!') }],
     after: [{ who: 484, name: K('펄기아', 'Palkia'), text: K('…좋다. 공간은 너희에게 길을 열겠다. 이제 시간의 주인에게 가거라.', '...Very well. Space opens the way for you. Now go to the master of time.') }],
     join: K('펄기아가 진주처럼 빛나는 몸을 낮추었다. 함께 가고 싶어 한다!', 'Palkia lowers its pearl-bright body. It wants to come along!') });
   const dialga = bossOf(483);

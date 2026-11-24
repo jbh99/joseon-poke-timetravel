@@ -2,7 +2,7 @@
 // The Joseon-era chapters (1392-1945) live here; earlier eras are in content_ancient.js, the war in content_war.js.
 // NPC species ids come from the ROM's national dex; names are read from dex.json at runtime.
 
-import { K, EN_EXTRA, CELEBI, T, SIG, SIG_AT1, SIG_AT2 } from './content_k.js';
+import { K, EN_EXTRA, CELEBI, T, SIG, SIG_AT1, SIG_AT2, SACRED_LEAVE } from './content_k.js';
 import { ANCIENT, ANCIENT_QITEMS } from './content_ancient.js';
 import { WAR, WAR_QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK } from './content_war.js';
 import { ERA_1905, ERA_1979, MODERN_QITEMS, addPostWar, addSkyLine, addFinale, spyLog } from './content_modern.js';
@@ -25,6 +25,29 @@ function origin(aura, msg, name, type, pats, use) {
         msg: K('오리진폼의 힘이 폭주한다! 공격이 더욱 거세진다!', 'The Origin Forme\'s power runs wild! Its attacks grow fiercer still!') },
     ] };
 }
+
+// Palkia (1.36). Its telegraphed blasts take turns among its moves (dungeon.js charge: mix; k: a later form's harder
+// hits). It rises twice: the Origin Forme, whose blasts are Spacial Rend's and the same moves, and a last form that
+// does nothing but Spacial Rend with a second move beside it, two at once (ult, dungeon.js ultTurn).
+const REND = K('공간절단', 'Spacial Rend'), REND_PATS = ['cross|ring', 'quad', 'star', 'rows|x', 'checker|near'];
+const palkiaMix = (k, first = []) => [...first,
+  { name: K('하이드로펌프', 'Hydro Pump'), type: 11, dmg: 0.36 * k, pats: ['cross', 'quad', 'rows', 'star'] },
+  { name: K('드래곤크루', 'Dragon Claw'), type: 16, dmg: 0.38 * k, pats: ['near', 'x', 'near|x'] },
+  { name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.34 * k, pats: ['target', 'far', 'checker'] },
+  { name: K('대지의힘', 'Earth Power'), type: 4, dmg: 0.34 * k, pats: ['ring', 'rows', 'cols'] }];
+const PALKIA_ORIGIN = { hp: 2 / 3, atk: 1.3, cap: 0.42, form: K('오리진폼', 'Origin Forme'), aura: '#ff9ad8',
+  msg: K('펄기아가 쓰러지지 않는다! 공간이 일그러지며 오리진폼으로 모습을 바꿨다!', "Palkia won't go down! Space warps as it takes its Origin Forme!"),
+  sig: { use: [SIG.rend], at: SIG_AT2 },
+  tele: [
+    { name: REND, every: 3, dmg: 0.42, stagger: 1, pats: REND_PATS, type: 11, first: 2, mix: palkiaMix(1.1, [{ name: REND, type: 11, dmg: 0.42, pats: REND_PATS }]) },
+    { at: 0.5, name: REND, every: 2, dmg: 0.5, stagger: 1, pats: [...REND_PATS, 'quad|target', 'random|cross'], type: 11, summon: 1,
+      mix: palkiaMix(1.25, [{ name: REND, type: 11, dmg: 0.5, pats: [...REND_PATS, 'quad|target', 'random|cross'] }]),
+      msg: K('오리진폼의 힘이 폭주한다! 공격이 더욱 거세진다!', 'The Origin Forme\'s power runs wild! Its attacks grow fiercer still!') },
+  ] };
+const PALKIA_LAST = { hp: 0.6, atk: 1.1, def: 1.2, cap: 0.44, aura: '#ffe6f6', form: K('공간의 지배자', 'Ruler of Space'),
+  msg: K('펄기아가 또다시 일어선다! 3페이즈, 겹쳐진 공간 사이로 공간절단과 또 하나의 기술이 한꺼번에 쏟아진다!', 'Palkia rises yet again! Phase three: through the overlapping spaces, Spacial Rend and a second move come down at once!'),
+  line: [{ who: 484, name: K('펄기아', 'Palkia'), text: K('…공간은 하나가 아니다. 겹쳐진 두 공간의 힘을 한꺼번에 받아 보아라!', '...Space is not one. Take the power of two overlapping spaces at once!') }],
+  ult: { use: [[SIG.rend3, SIG.spouts], [SIG.aura, SIG.rend3], [SIG.rend3, SIG.meteor3]] } };
 
 export const QITEMS = {
   timber: { name: '궁궐 목재', desc: '경복궁을 지을 튼튼한 소나무 목재.' },
@@ -130,9 +153,20 @@ const JOSEON = [
     dungeons: {
       library: { name: '집현전 서고', tiles: T.library, floors: 4, lv: [9, 13], mons: [201, 201, 63, 96, 177, 343, 436, 163], bgm: 'd_02',
         quest: { item: 'hunmin', perFloor: 1 },
-        // 1.20: Ho-Oh, the phoenix said to appear under a wise king (one of the legends the world line gave up)
-        boss: { sp: 250, lv: 16, lvMin: 12, lvUp: 3, hp: 3.8, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [221, 413, 53, 246],
-          tele: { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, pats: ['cross', 'ring', 'x', 'near'], type: 10 },
+        // 1.20: Ho-Oh, the phoenix said to appear under a wise king (one of the legends the world line gave up).
+        // 1.36: its Sacred Fire burns on where it fell, the blast's tiles and the tile the move itself struck (leave,
+        // trail), and it rises once from its ashes (revive), Sacred Fire then falling three turns running as well.
+        boss: { sp: 250, lv: 16, lvMin: 12, lvUp: 3, hp: 3.8, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [221, 413, 53, 246], trail: { 221: SACRED_LEAVE },
+          tele: { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, pats: ['cross', 'ring', 'x', 'near'], type: 10, leave: SACRED_LEAVE },
+          revive: { hp: 0.5, atk: 1.1, cap: 0.38, aura: 'rainbow', form: K('무지개 날개', 'Rainbow Wing'),
+            msg: K('칠색조가 쓰러지지 않는다! 재 속에서 무지갯빛 불꽃을 두르고 다시 날아올랐다!', "Ho-Oh won't go down! Out of the ashes it rises again, wrapped in rainbow fire!"),
+            line: [{ who: 'partner', text: K('다시 일어났어! 성스러운불꽃이 떨어진 자리에는 불이 남으니까 밟지 말자!', "It's back up! Sacred Fire keeps burning where it falls: don't step on it!") }],
+            sig: { use: [SIG.sacred], at: [[0.7, 0.35]] },
+            tele: [
+              { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, stagger: 1, pats: ['cross', 'ring', 'x', 'near', 'star'], type: 10, first: 2, leave: SACRED_LEAVE },
+              { at: 0.5, name: K('성스러운불꽃', 'Sacred Fire'), every: 2, dmg: 0.36, stagger: 1, pats: ['cross', 'ring', 'x', 'near', 'star', 'checker'], type: 10, leave: SACRED_LEAVE,
+                msg: K('무지갯빛 불꽃이 사방을 뒤덮는다! 공격이 더욱 거세진다!', 'Rainbow fire sweeps all around! Its attacks grow fiercer still!') },
+            ] },
           say: [
             { who: 'narr', text: K('서고 가장 깊은 곳이 무지갯빛으로 물들었다. 어진 임금의 시대에만 나타난다는 봉황, 칠색조가 마지막 낱장을 품고 내려앉았다!', 'The deepest stacks glow with rainbow light. Ho-Oh, the phoenix said to appear only under a wise king, has come down holding the last page!') },
             { who: 250, name: K('칠색조', 'Ho-Oh'), text: K('쿠오오오! (이 글자가 정말 백성을 위한 것인지 시험하려는 듯 날개를 펼친다!)', 'Kwooooh! (It spreads its wings as if to test whether these letters are truly for the people!)') },
@@ -772,15 +806,17 @@ const JOSEON = [
     ],
     dungeons: {
       rift: { name: '시간의 틈', tiles: T.rift, floors: 4, lv: [42, 47], mons: [444, 148, 247, 359, 197, 196, 356, 281, 429, 477], bgm: 'd_mount2', // 600-total lines stay boss-only (Garchomp, Tyranitar lead 1950)
-        // HP +30% and attack +15% in 1.7 (was 2.2 / 0.85); Hydro Pump in place of Water Pulse
-        mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.86, atk: 0.98, bgm: 'ba_dpoke1', moves: [56, 337, 414, 246],
-          tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 11 },
+        // HP +30% and attack +15% in 1.7 (was 2.2 / 0.85); Hydro Pump in place of Water Pulse.
+        // 1.36: every stat and its HP +20% (buff; the finale's and the Boss Tower's Palkia are this one, so theirs too),
+        // Dragon Claw, Aura Sphere and Earth Power beside Hydro Pump (palkiaMix), and three phases (PALKIA_LAST)
+        mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.86, atk: 0.98, buff: 1.2, bgm: 'ba_dpoke1', moves: [56, 337, 414, 246],
+          tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 11, mix: palkiaMix(1) },
           sig: { use: [SIG.rend], at: SIG_AT1 },
-          revive: origin('#ff9ad8', K('펄기아가 쓰러지지 않는다! 공간이 일그러지며 오리진폼으로 모습을 바꿨다!', "Palkia won't go down! Space warps as it takes its Origin Forme!"),
-            K('아공절단', 'Subspace Rend'), 11, ['cross|ring', 'quad', 'star', 'rows|x', 'checker|near'], [SIG.rend]),
+          revive: [PALKIA_ORIGIN, PALKIA_LAST],
           say: [
             { who: 484, text: '그오오오오…!! 뒤틀린 공간 한가운데, 펄기아가 포효한다!' },
             { who: CELEBI, name: '세레비', text: '시대를 넘나든 시간이 공간까지 비틀어 버렸어! 펄기아를 진정시켜 줘!' },
+            { who: CELEBI, name: '세레비', text: K('펄기아는 두 번 다시 일어설 거야! 마지막에는 공간절단과 다른 기술을 한꺼번에 쓰니까, 붉은 칸을 끝까지 잘 봐!', 'Palkia will rise twice! At the last it uses Spacial Rend and another move at once, so watch the red tiles to the end!') },
             { who: 'partner', text: '1392년부터 여기까지 왔어. 끝까지 함께야!' }],
           after: [
             { who: 484, text: '…………. 공간을 비튼 것은 내가 아니다. 더 깊은 곳… 모든 것을 만든 자가 눈을 떴다.' },

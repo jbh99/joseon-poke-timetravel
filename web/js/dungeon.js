@@ -40,6 +40,9 @@ const foeMon = (sp, lv, o = {}) => new Mon(sp, lv, { ...o, buff: (o.buff || 1) *
 // their physical moves land on the tile in front, an ordinary foe's line moves fly FOE_REACH tiles, a boss's BOSS_REACH
 // tiles, its line moves and its telegraphed blasts alike.
 const SURE_REACH = 4, FOE_REACH = 4, BOSS_REACH = 4;
+// flames left on the ground, Blue Flare's blue and Sacred Fire's gold: the tile's glow, a tongue of fire, its core, and
+// the colour of the number it burns away
+const FLAME_HUES = { blue: ['rgba(70,150,255,0.28)', '#4aa4ff', '#d8f2ff', '#8fd8ff'], gold: ['rgba(255,170,50,0.3)', '#ff8a2a', '#fff0a8', '#ffb040'] };
 // how long the ground swept by the team's move that hits all around stays lit, in seconds (useSkill, 1.33)
 const AREA_FX = 0.45;
 // a foe or a teammate saves a healing move till its HP is down to this share of its most: Recover and its kind restore
@@ -827,6 +830,9 @@ export class Dungeon {
     this.step(() => { att.atkT = G.time; this.msg(tr(`${att.mon.name}의 ${mv.name}!`, `${att.mon.name} used ${mv.name}!`), COL.blue); this.flash = { e: att, t: 0.2, color: TYPE_COLORS[mv.type] }; if (ranged) this.beam = { from: att, ...beam, t: 0.25, color: TYPE_COLORS[mv.type] }; if (area) this.area = area; sfx(mv.cat === 2 ? 'buff' : 'confirm'); }, 0.2);
     if (!targets.length) { this.step(() => this.msg(tr('그러나 아무도 맞지 않았다…', 'But it hit nobody...')), 0.12); return; }
     for (const t of targets) this.resolve(att, t, mvs.id, att.team === 'ally' && t !== att && Math.max(Math.abs(t.x - att.x), Math.abs(t.y - att.y)) <= SURE_REACH);
+    // a boss's own move that burns on where it landed (Ho-Oh's Sacred Fire, 1.36; def.trail: move id → the flames it leaves)
+    const trail = att.isBoss && att.def.trail?.[mvs.id];
+    if (trail) this.leaveFlames(att, targets.filter((t) => t.team === 'ally').map((t) => t.y * W + t.x), { name: mv.name, leave: trail });
   }
   attack(att, def, mvId) {
     const name = mvId === 'basic' ? tr('공격', 'Attack') : DEX.moves[mvId].name;
@@ -923,9 +929,9 @@ export class Dungeon {
     if (this.flames.size) {
       for (const a of this.ents) {
         const f = a.alive && a.team === 'ally' && this.flames.get(a.y * W + a.x);
-        if (f) this.hitNow(a, f.by, f.dmg, f.name, 'brn', 0.25, '#8fd8ff');
+        if (f && !f.wait) this.hitNow(a, f.by, f.dmg, f.name, 'brn', 0.25, (FLAME_HUES[f.hue] || FLAME_HUES.blue)[3]);
       }
-      for (const [k, f] of this.flames) if (--f.left <= 0) this.flames.delete(k);
+      for (const [k, f] of this.flames) { if (f.wait) f.wait = false; else if (--f.left <= 0) this.flames.delete(k); } // (wait: lit this turn, it burns from the next)
     }
     for (const e of this.ents) {
       if (!e.alive) continue;
@@ -1208,9 +1214,10 @@ export class Dungeon {
     // a telegraph with a `mix` takes turns among several attacks (Giratina), each with its own name, type, shapes and power
     const P = this.teleConf(e), T = P.mix ? { ...P, ...P.mix[(e.mixN = (e.mixN ?? -1) + 1) % P.mix.length] } : P;
     const allies = this.ents.filter((a) => a.alive && a.team === 'ally'), beam = e.sigRun?.tele?.tiles;
+    const lit = T.leave ? [...this.flames.keys()] : []; // a blast that leaves flames: the way out must miss those still burning
     let pick = null;
     for (const name of shuffle(T.pats.slice())) {
-      const tiles = this.patternTiles(name, e, allies), off = beam ? new Set([...tiles, ...beam]) : tiles; // the way out must not cross Hyper Beam's band
+      const tiles = this.patternTiles(name, e, allies), off = beam || lit.length ? new Set([...tiles, ...(beam || []), ...lit]) : tiles; // the way out must not cross Hyper Beam's band
       const delay = Math.max(...name.split('|').map((n) => PATTERNS[n].delay));
       if (tiles.size && allies.every((a) => this.escapeSteps(a, off) <= delay)) { pick = { tiles, delay, name }; break; }
     }
@@ -1218,7 +1225,7 @@ export class Dungeon {
     const nm = T.orbName && pick.name.includes('orbs') ? T.orbName : T.name; // Judgment's orbs go by its own name
     e.teleN = (e.teleN || 0) + 1;
     e.teleCD += T.every / (e.def.pace || 1); // a paced boss (the finale's guardians) charges more often; a fraction carries over
-    e.tele = { tiles: pick.tiles, turns: pick.delay, name: nm, dmg: T.dmg * e.tier.blast, color: TYPE_COLORS[T.type ?? e.mon.types[0]], orbs: pick.tiles.orbs };
+    e.tele = { tiles: pick.tiles, turns: pick.delay, name: nm, dmg: T.dmg * e.tier.blast, color: TYPE_COLORS[T.type ?? e.mon.types[0]], orbs: pick.tiles.orbs, leave: T.leave };
     e.face = [0, 1];
     this.step(() => { this.msg(tr(`${e.mon.name}의 ${nm}! 붉은 칸에서 벗어나라!`, `${e.mon.name}'s ${nm}! Get off the red tiles!`), COL.red); sfx('buff'); this.shake = 0.15; }, 0.3);
   }
@@ -1228,6 +1235,7 @@ export class Dungeon {
     if (t.fx === 'shadow') this.emerge(e, t.at);
     this.step(() => { this.blast = { tiles: t.tiles, t: 0.45, color: t.fx && t.color, orbs: t.orbs }; this.shake = 0.4; sfx('super'); this.msg(tr(`${t.name}이(가) 쏟아졌다!`, `${t.name} came crashing down!`), COL.red); }, 0.4);
     if (!this.strike(e, t).length) this.step(() => this.msg(tr('모두 피했다! 지금이 기회다!', 'Everyone dodged! Now\'s the chance!'), COL.green), 0.2);
+    if (t.leave) this.leaveFlames(e, t.tiles, { name: t.name, leave: t.leave }); // Sacred Fire burns on where it fell
     e.stagger = this.teleConf(e)?.stagger ?? e.tier.stagger;
     this.step(() => this.msg(tr(`${e.mon.name}에게 빈틈이 생겼다! 지금 공격하면 1.5배!`, `${e.mon.name} left an opening! Attacks deal 1.5x now!`), COL.green), 0.15);
   }
@@ -1284,7 +1292,15 @@ export class Dungeon {
     const m = e.mon, team = this.ents.filter((a) => a.alive && a.team === 'ally');
     const tell = (ko, en) => this.step(() => { this.msg(tr(ko, en), COL.red); sfx('buff'); cry(m.sp); this.shake = 0.3; }, 0.45);
     const pow = (sg.dmg || 0.3) * e.tier.blast * (e.def.sigUp || 1), slot = e.sigRun ? 'sigRun2' : 'sigRun'; // the second of two at once (White Kyurem)
-    const blast = (tiles, o = {}) => { e.tele = { tiles, turns: 1, name: sg.name, dmg: pow, color: TYPE_COLORS[sg.type], fx: sg.kind, ...o }; e.teleN = (e.teleN || 0) + 1; };
+    // A blast of its own shape, telegraphed for a turn like any other (e.tele, unleash). A last form's (ultTurn; Palkia's,
+    // 1.36) takes a slot instead, so that two moves can be out at once, and opens again each turn it has left (sg.turns),
+    // its tiles drawn anew (make). The second of two draws its shape so that the first leaves a way out (beside).
+    const allies = () => this.ents.filter((a) => a.alive && a.team === 'ally'), beside = () => (slot === 'sigRun2' ? e.sigRun?.tele?.tiles : undefined);
+    const blast = (make, o = {}) => {
+      const t = { tiles: make(), turns: 1, name: sg.name, dmg: pow, color: TYPE_COLORS[sg.type], fx: sg.kind, ...o };
+      if (e.ult) e[slot] = { sg, once: true, left: sg.turns || 1, tele: t, make }; else e.tele = t;
+      e.teleN = (e.teleN || 0) + 1;
+    };
     e.face = [0, 1];
     if (sg.kind === 'roar') {
       e.sigRun = { sg };
@@ -1316,22 +1332,22 @@ export class Dungeon {
       const t = choice(team.filter((a) => !a.army).concat(team.filter((a) => a.isPlayer)));
       if (!t) return;
       e.hidden = true;
-      blast(this.sigTiles(e, (add) => { for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(t.x + ox, t.y + oy); }), { at: [t.x, t.y] });
+      blast(() => this.sigTiles(e, (add) => { for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(t.x + ox, t.y + oy); }), { at: [t.x, t.y] });
       return tell(`${m.name}의 ${sg.name}! 어둠 속으로 사라졌다… ${t.mon.name}의 그림자가 술렁인다!`, `${m.name}'s ${sg.name}! It vanished into the dark... ${t.mon.name}'s shadow stirs!`);
     }
     if (sg.kind === 'rend') { // space tears: the arena closes in a ring, and long rifts open all over the floor
       const closed = this.rendArena();
-      blast(this.escapable(team, () => this.sigTiles(e, (add, R) => {
-        for (let n = 0; n < 6 + (e.revives || 0) * 2; n++) {
+      blast(() => this.escapable(allies(), () => this.sigTiles(e, (add, R) => {
+        for (let n = 0; n < (sg.rifts ?? 6 + (e.revives || 0) * 2); n++) { // (rifts: its last form's, three turns running, are fewer)
           const cx = randInt(R.x + 1, R.x + R.w - 2), cy = randInt(R.y + 1, R.y + R.h - 2), [dx, dy] = choice(DIRS8);
           for (let i = -3; i <= 3; i++) add(cx + dx * i, cy + dy * i);
         }
-      })));
+      }), beside()));
       return closed ? tell(`${m.name}의 ${sg.name}! 공간이 찢어지며 싸움터가 좁아졌다! 바닥에 벌어진 틈에서 벗어나라!`, `${m.name}'s ${sg.name}! Space tears and the arena closes in! Get away from the rifts in the floor!`)
         : tell(`${m.name}의 ${sg.name}! 바닥에 공간의 틈이 벌어졌다!`, `${m.name}'s ${sg.name}! Rifts in space open in the floor!`);
     }
     if (sg.kind === 'blades') { // fissures run out from it in four directions, stone blades about to burst along them
-      blast(this.escapable(team, () => this.sigTiles(e, (add) => {
+      blast(() => this.escapable(allies(), () => this.sigTiles(e, (add) => {
         for (const [dx, dy] of shuffle(DIRS8.slice()).slice(0, 4)) {
           let x = e.x, y = e.y;
           for (let i = 0; i < 12; i++) {
@@ -1340,19 +1356,19 @@ export class Dungeon {
             add(x, y); add(x + (dy ? 1 : 0), y + (dx ? 1 : 0));
           }
         }
-      })));
+      }), beside()));
       return tell(`${m.name}의 ${sg.name}! 땅이 갈라지며 바위 칼날이 솟아오르려 한다!`, `${m.name}'s ${sg.name}! The ground splits as stone blades rise!`);
     }
     if (sg.kind === 'pulse') { // waves in all eight directions, from the ring around it outward
-      blast(this.sigTiles(e, (add) => { for (const [dx, dy] of DIRS8) for (let i = 2; i < 16; i++) add(e.x + dx * i, e.y + dy * i); }));
+      blast(() => this.sigTiles(e, (add) => { for (const [dx, dy] of DIRS8) for (let i = 2; i < 16; i++) add(e.x + dx * i, e.y + dy * i); }));
       return tell(`${m.name}의 ${sg.name}! 여덟 방향으로 파동이 퍼져 나간다!`, `${m.name}'s ${sg.name}! Waves spread out in eight directions!`);
     }
     if (sg.kind === 'void') { // black holes open under the team and here and there; whoever stays falls asleep
-      blast(this.escapable(team, () => this.sigTiles(e, (add, R) => {
-        const at = team.filter((a) => !a.army).map((a) => [a.x, a.y]);
+      blast(() => this.escapable(allies(), () => this.sigTiles(e, (add, R) => {
+        const at = allies().filter((a) => !a.army).map((a) => [a.x, a.y]);
         for (let k = 0; k < 3; k++) at.push([randInt(R.x, R.x + R.w - 1), randInt(R.y, R.y + R.h - 1)]);
         for (const [x, y] of at) for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(x + ox, y + oy);
-      })), { sleep: true });
+      }), beside()), { sleep: true });
       return tell(`${m.name}의 ${sg.name}! 발밑에 검은 구멍이 열린다! 빠지면 잠들어 버린다!`, `${m.name}'s ${sg.name}! Black holes open underfoot! Fall in and you fall asleep!`);
     }
   }
@@ -1392,6 +1408,15 @@ export class Dungeon {
       this.step(() => { this.boltsAt(tiles); this.shake = 0.3; sfx('super'); }, 0.25);
       this.strike(e, { tiles, name: sg.name, dmg: run.dmg, status: sg.status, statusChance: sg.chance });
       if (--run.left > 0) { this.hiddenNext(e, run); return true; }
+      this.sigOver(e, slot);
+      return true;
+    }
+    if (run.once) { // a last form's blast of its own shape (sigStart): it lands, and opens again while it has turns left
+      const t = run.tele;
+      if (t.fx === 'shadow') this.emerge(e, t.at);
+      this.step(() => { this.blast = { tiles: t.tiles, t: 0.4, color: t.color }; this.shake = 0.4; sfx('super'); this.msg(tr(`${t.name}이(가) 쏟아졌다!`, `${t.name} came crashing down!`), COL.red); }, 0.35);
+      this.strike(e, t);
+      if (--run.left > 0) { run.tele = { ...t, tiles: run.make() }; return true; }
       this.sigOver(e, slot);
       return true;
     }
@@ -1451,10 +1476,11 @@ export class Dungeon {
     if (!e.sigRun && !e.sigRun2) e.stagger = Math.max(e.stagger || 0, 1);
     this.step(() => this.msg(tr(`${sg.name}이(가) 그쳤다! ${m.name}은(는) 숨을 고르고 있다. 지금이 기회다!`, `${sg.name} has passed! ${m.name} is catching its breath. Now's the chance!`), COL.green), 0.2);
   }
-  // Blue Flare leaves its flames on the tiles it struck
+  // Blue Flare leaves its flames on the tiles it struck. So does Ho-Oh's Sacred Fire (1.36): its blasts, its storm and
+  // the move itself, in gold (hue), burning from the turn after they are lit (wait), so that stepping off is enough.
   leaveFlames(e, tiles, sg) {
     const o = sg.leave;
-    for (const k of tiles) this.flames.set(k, { left: o.turns, dmg: o.dmg * (e.def.sigUp || 1), name: sg.name, by: e });
+    for (const k of tiles) if (this.walk(k % W, Math.floor(k / W))) this.flames.set(k, { left: o.turns, dmg: o.dmg * (e.def.sigUp || 1), name: sg.name, by: e, hue: o.hue, wait: !!o.wait });
   }
   // Fusion Bolt's tiles: a share of the floor (in a town battle, of what lies around the team), at random
   hiddenTiles(e, sg) {
@@ -1545,6 +1571,7 @@ export class Dungeon {
   // later form), drawn again until everyone can step off in one turn
   stormTiles(e, sg, beside) {
     const team = this.ents.filter((a) => a.alive && a.team === 'ally');
+    if (sg.leave?.wait && this.flames.size) beside = new Set([...(beside || []), ...this.flames.keys()]); // Sacred Fire: the way out misses the flames still burning
     return this.escapable(team, () => this.sigTiles(e, (add, R) => {
       for (const a of team.filter((x) => !x.army)) { add(a.x, a.y); for (const [ox, oy] of shuffle(DIRS8.slice()).slice(0, 3)) add(a.x + ox, a.y + oy); }
       for (let k = 0; k < (sg.spots || 10) + (e.revives || 0) * 4; k++) {
@@ -2125,17 +2152,18 @@ export class Dungeon {
     }, 0, 0, this.floor * 7919 + this.dId.length);
     this.bg = cv;
   }
-  // Blue Flare's flames: a blue glow on the tile and three tongues of fire
+  // Blue Flare's flames: a blue glow on the tile and three tongues of fire (Sacred Fire's in gold: FLAME_HUES)
   drawFlames(c, x0, y0, x1, y1) {
     for (const [k, f] of this.flames) {
       const x = k % W, y = Math.floor(k / W);
       if (x < x0 || x > x1 || y < y0 || y > y1) continue;
       const px = x * TILE, py = y * TILE, h = (x * 5 + y * 3) % 4, low = f.left <= 1 ? 0.6 : 1;
-      c.fillStyle = 'rgba(70,150,255,0.28)'; c.fillRect(px + 1, py + 1, TILE - 2, TILE - 2);
+      const [glow, body, core] = FLAME_HUES[f.hue] || FLAME_HUES.blue;
+      c.fillStyle = glow; c.fillRect(px + 1, py + 1, TILE - 2, TILE - 2);
       for (let i = 0; i < 3; i++) {
         const fh = Math.round((9 + Math.sin(G.time * 7 + h + i * 2) * 3 + (i % 2) * 3) * low), fx = px + 3 + i * 7;
-        c.fillStyle = '#4aa4ff'; c.fillRect(fx, py + TILE - 3 - fh, 5, fh);
-        c.fillStyle = '#d8f2ff'; c.fillRect(fx + 1, py + TILE - 3 - Math.round(fh * 0.55), 3, Math.round(fh * 0.55));
+        c.fillStyle = body; c.fillRect(fx, py + TILE - 3 - fh, 5, fh);
+        c.fillStyle = core; c.fillRect(fx + 1, py + TILE - 3 - Math.round(fh * 0.55), 3, Math.round(fh * 0.55));
       }
     }
   }
