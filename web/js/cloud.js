@@ -312,6 +312,7 @@ async function sync(auto) {
   say(st.choice ? '' : (sent ? tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud.")
     : SLOTS.some((s) => st.files[s]) ? tr('클라우드와 같은 최신 세이브예요.', 'Up to date with the cloud.') : tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.')) + keptNote());
   if (got.length) took(got);
+  return sent;
 }
 
 // ---------------------------------------------------------------- panel
@@ -357,11 +358,17 @@ async function autoSync() {
   if (!st.email) return;
   if (st.busy) { st.again = true; return; }
   st.busy = true; st.op = st.session; render(); // (an open panel shows it is at work: its save and load buttons wait)
+  // (tell: a dungeon run just ended and its word went up at once, G.onSaved(true): the player hears how that went, since
+  // another device continuing the journey before it is up would still find the run going on)
+  const tell = st.tell;
   try {
     await getToken(false);
     if (st.choice) return;
-    await sync(true);
-  } catch (e) { if (!stale()) st.pending = true; } finally { st.busy = false; render(); }
+    const sent = await sync(true);
+    if (tell && sent && !st.choice) toast(tr('던전 결과를 클라우드에 올렸어요', "The run's result is in the cloud"), COL.blue, 3);
+  } catch (e) {
+    if (!stale()) { st.pending = true; if (tell) toast(tr('던전 결과를 클라우드에 올리지 못했어요 · 연결을 확인해 주세요', "Couldn't send the run's result to the cloud · check the connection"), COL.red, 5); }
+  } finally { st.busy = false; if (tell) st.tell = false; render(); }
   syncAgain();
   if (st.choice) { openPanel(); toast(st.choice.newer ? tr('다른 기기에서 더 진행한 세이브가 있어요', 'Another device went further') : tr('이 기기와 클라우드의 세이브가 달라요', 'This device and the cloud differ'), COL.blue, 4); }
 }
@@ -375,7 +382,22 @@ const upload = () => run(async () => {
   // the journey the button meant when pressed, as for a download below (1.31: read after the wait on Google, a journey
   // of another difficulty loaded meanwhile went up in its place, over that difficulty's copy)
   const slot = current();
+  // The cloud's copy as the player knew it when pressing: the one the question named, else the one last looked up
+  // (before any look-up: the one this device last synced with, by its time alone). Another device may have sent a
+  // newer save since (the panel can stay open for hours), and the press would write this device's save over a copy the
+  // player never saw, which that device then took back as "what the journey went on from" without a word (1.39: an
+  // outside report's two devices lost the newer play both ways). So the copy is looked up again first, and one that
+  // changed is shown with its own era and time for the player to choose again; nothing is written over it unseen.
+  const shown = st.choice?.slot === slot ? st.choice.cloud : st.files?.[slot]?.appProperties;
+  const base = shown ? [shown.savedAt, shown.rev || ''] : [st.files ? '' : linked()?.synced?.[slot] || '', null];
   await getToken(true); await find();
+  const now = st.files[slot]?.appProperties, local = readSave(slot);
+  const moved = !!now && (now.savedAt !== base[0] || (base[1] !== null && (now.rev || '') !== base[1]));
+  const same = !!now && !!local && String(local.savedAt) === now.savedAt && (!local.rev || !revOf(now) || revOf(now) === local.rev); // (the very save here)
+  if (moved && local && !same) {
+    st.choice = { slot, local: meta(local, slot), cloud: now };
+    return say(tr('그 사이 다른 기기가 클라우드에 다른 세이브를 올렸어요. 아무것도 덮어쓰지 않았어요. 바뀐 내용을 보고 다시 골라 주세요.', 'Another device sent a different save to the cloud meanwhile. Nothing was written over it. Look at what changed and choose again.'));
+  }
   await push(slot);
   await shareKept();
   st.choice = null; st.pending = st.keptLate; say(tr('클라우드에 저장했어요.', 'Saved to the cloud.') + keptNote());
@@ -453,14 +475,22 @@ export function initCloud() {
   $('btn-cloud').addEventListener('click', (e) => { e.currentTarget.blur(); if (panel.hidden) openPanel(); else close(); });
   panel.querySelector('[data-close]').addEventListener('click', close);
   onLang(render);
-  // every save goes up a moment later, unless the player still has to choose or another device moved on meanwhile
+  // every save goes up a moment later, unless the player still has to choose or another device moved on meanwhile.
+  // now: the end of a challenge's dungeon run (game.js clearRunMark, quests.js endChallenge) goes up at once and says so
+  // (autoSync, tell): until it is up, another device continuing the journey finds the run still going on, which is its
+  // wipe (1.39; in 1.38 it waited the same 2.5 s as any save, and a tab closed sooner never sent it). A save still
+  // waiting when the page is put away (a tab left, the app sent to the background) goes up then, not when it comes back.
   let timer = null;
-  G.onSaved = () => {
+  const flush = () => { if (timer == null) return; clearTimeout(timer); timer = null; autoSync(); };
+  G.onSaved = (now) => {
     if (!st.email) return;
     if (st.choice) return heldSave();
     clearTimeout(timer);
-    timer = setTimeout(autoSync, 2500);
+    if (now) st.tell = true;
+    timer = setTimeout(() => { timer = null; autoSync(); }, now ? 0 : 2500);
   };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+  addEventListener('pagehide', flush);
   try {
     const list = [].concat(JSON.parse(sessionStorage.getItem(TOOK)) || []).map(describe).join(' / ');
     if (list) { sessionStorage.removeItem(TOOK); toast(tr(`클라우드 세이브를 불러왔어요 · ${list}`, `Loaded the cloud save · ${list}`), COL.blue, 5); }

@@ -1,7 +1,7 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI, prepImages } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept, deleteKept, claim } from './game.js';
+import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept, deleteKept, claim, runElsewhere } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
 import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, sortieMenu, formationMenu, yearOf, shownYear } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
@@ -94,8 +94,17 @@ export class Title {
   }
   resume(slot) {
     // the town plays a step left waiting (resumeSteps); a challenge left in the middle of a dungeon ends instead (checkRun)
-    if (load(slot, ERAS.length)) fadeTo(() => { liftLevels(); if (!checkRun()) G.goTown(); });
-    else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
+    // (a challenge whose dungeon run is going on in another window right now is that window's: game.js holdRun, 1.39)
+    runElsewhere(slot).then((busy) => {
+      if (G.scene !== this) return;
+      if (busy) {
+        this.started = false;
+        return say([{ who: 'narr', text: tr('이 챌린지 여행은 지금 다른 창(탭)에서 던전을 진행하고 있어요. 그 창에서 계속해 주세요. 그 창을 닫은 뒤에 이어 하면 던전 도중에 멈춘 것으로 처리돼요.',
+          'This challenge journey is in the middle of a dungeon in another window (tab) right now. Go on there. Continuing after that window is closed counts as stopping in the middle of the dungeon.') }]);
+      }
+      if (load(slot, ERAS.length)) fadeTo(() => { liftLevels(); if (!checkRun()) G.goTown(); });
+      else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
+    });
   }
   // the language row shows the language in use; rebuild the menu so every label follows a switch
   relang() {

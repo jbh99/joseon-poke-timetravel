@@ -1,7 +1,7 @@
 // Boot and main loop.
 import { G, VW, VH, APP, touchUI, initCanvas, initTouch, padMoves, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs, repause, say } from './core.js';
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, setVolume, volume, audioState } from './audio.js';
-import { initData, initSaves, S, save, load, newGame, saves, Mon, readSave, saveOver, outdated } from './game.js';
+import { initData, initSaves, S, save, load, newGame, saves, Mon, readSave, saveOver, outdated, dropRun } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
 import { Town, setBuildings, setPearl, setBW, townSets, townPictures } from './town.js';
@@ -78,7 +78,7 @@ G.toKorea = () => fadeTo(() => {
   G.goTown();
 }, '#fff', 1.2);
 // (G.clash: the journey left for the title is no longer this window's to ask about)
-G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; G.policeBack = null; G.clash = null; setScene(new Title()); }); // a fight in town left for the title has no town to go back to
+G.goTitle = () => fadeTo(() => { stopBgm(0.3); G.overlays.length = 0; G.policeBack = null; G.clash = null; dropRun(); setScene(new Title()); }); // a fight in town left for the title has no town to go back to
 G.onFirstInput = () => unlockAudio(); // a gamepad button is no page gesture, but it sets the sound up (audio.js)
 G.kao = portraitImage;
 // Another window saved this journey since this one read it (game.js save, which wrote nothing): the player says which play

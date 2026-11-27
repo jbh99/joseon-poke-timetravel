@@ -1,7 +1,7 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, BASIC_REACH, isArea, HEAL_MOVE, statOf, roomLeft, clearRunMark } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, BASIC_REACH, isArea, HEAL_MOVE, statOf, roomLeft, clearRunMark, holdRun, dropRun } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
 import { SP_SIG, SP_BGM } from './content_k.js';
 import { era, mainStep, activeSides, noteKill, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
@@ -151,7 +151,8 @@ export class Dungeon {
     if (def.water) this.boardCrew(o.crew); // first: the foes' levels go by the crew, a returning legend's as well
     this.wander = wanderBoss(dId); // a legend missed in an earlier era, waiting on the last floor (where no other boss waits)
     // a challenge run left unfinished counts as a wipe (quests.js checkRun); the Boss Tower comes after the ending
-    if (atStake() && !def.tower) { S.inRun = dId; save(); }
+    // (and the run is this window's while it lasts: game.js holdRun)
+    if (atStake() && !def.tower) { S.inRun = dId; save(); holdRun(); }
     // a run of stages starts at the first one still to beat (the finale's guardians stay beaten)
     this.floor = this.startFloor = o.floor || 1 + Math.max(0, (def.stages || []).findIndex((st) => !(st.flag && S.flags[st.flag])));
     this.msgs = [];
@@ -1285,14 +1286,28 @@ export class Dungeon {
     }
     return set;
   }
-  escapeSteps(a, tiles) {
+  // The turns one of the team needs to get off the marked tiles: the walk itself to the nearest tile left unmarked, by
+  // the rule for a step (canStep: no wall crossed, no corner cut) and round a boss standing in the way. 99: no way out
+  // within `far` steps. (1.39: up to 1.38 it was the distance as the crow flies, so on a field with walls in it, a town
+  // battle or a Pearl room, a blast could be charged that someone behind a wall could not leave in time: one in 14 of
+  // Groudon's wide crosses in the battle for Seoul.)
+  escapeSteps(a, tiles, far = 4) {
     if (!tiles.has(a.y * W + a.x)) return 0;
-    const R = this.rooms[0];
-    let best = 99;
-    for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) {
-      if (this.walk(x, y) && !tiles.has(y * W + x) && !this.bosses.some((b) => b.alive && b.x === x && b.y === y)) best = Math.min(best, Math.max(Math.abs(x - a.x), Math.abs(y - a.y)));
+    const boss = (x, y) => this.bosses.some((b) => b.alive && b.x === x && b.y === y);
+    const seen = new Set([a.y * W + a.x]);
+    let ring = [[a.x, a.y]];
+    for (let d = 1; d <= far && ring.length; d++) {
+      const next = [];
+      for (const [x, y] of ring) for (const [dx, dy] of DIRS8) {
+        const nx = x + dx, ny = y + dy, k = ny * W + nx;
+        if (seen.has(k) || !this.canStep(x, y, dx, dy) || boss(nx, ny)) continue;
+        seen.add(k);
+        if (!tiles.has(k)) return d;
+        next.push([nx, ny]);
+      }
+      ring = next;
     }
-    return best;
+    return 99;
   }
   charge(e) {
     // a telegraph with a `mix` takes turns among several attacks (Giratina), each with its own name, type, shapes and power
@@ -1305,7 +1320,13 @@ export class Dungeon {
       const delay = Math.max(...name.split('|').map((n) => PATTERNS[n].delay));
       if (tiles.size && allies.every((a) => this.escapeSteps(a, off) <= delay)) { pick = { tiles, delay, name }; break; }
     }
-    if (!pick) pick = { tiles: this.patternTiles('target', e, allies), delay: 1, name: 'target' };
+    if (!pick) {
+      // nothing on its list can be left in time from where the team stands: marks on each of them, with as many turns
+      // of warning as the slowest of them needs to walk off (1.39: one turn whatever the walls, up to 1.38)
+      const tiles = this.patternTiles('target', e, allies), off = beam || lit.length ? new Set([...tiles, ...(beam || []), ...lit]) : tiles;
+      const need = allies.map((a) => this.escapeSteps(a, off)).filter((n) => n < 99);
+      pick = { tiles, delay: clamp(Math.max(1, ...need), 1, 3), name: 'target' };
+    }
     const nm = T.orbName && pick.name.includes('orbs') ? T.orbName : T.name; // Judgment's orbs go by its own name
     e.teleN = (e.teleN || 0) + 1;
     e.teleCD += T.every / (e.def.pace || 1); // a paced boss (the finale's guardians) charges more often; a fraction carries over
@@ -1852,7 +1873,7 @@ export class Dungeon {
   result(title, ok, extra = []) {
     // (a challenge that did not end here: its run's mark comes off the stored save now, not at the town's autosave)
     if (S.inRun && !S.over) clearRunMark();
-    S.inRun = null;
+    S.inRun = null; dropRun();
     NET.cmds = {}; // (the run is over: net.js command keeps nothing more for it)
     for (const m of [...S.party, ...(S.homeParty || [])]) { m.field = 0; m.primal = false; m.form = ''; m.typeOverride = null; }
     // a cleared dungeon gets everyone who fell back on their feet (before restoreCrew, so a naval crew's fallen too)

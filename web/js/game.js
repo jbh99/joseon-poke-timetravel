@@ -456,8 +456,31 @@ export function clearRunMark() {
     o.inRun = null; o.savedAt = Math.max(Date.now(), (+o.savedAt || 0) + 1); o.rev = Math.random().toString(36).slice(2, 10);
     localStorage.setItem(slotKey(S.slot), JSON.stringify(o));
     see(S.slot);
-    G.onSaved?.(); // the cloud copy follows (cloud.js)
+    G.onSaved?.(true); // the cloud copy follows at once (cloud.js: another device must not find the run still going on)
     return true;
+  } catch (e) { return false; }
+}
+// A challenge's run belongs to the window (tab) playing it. Another window of the same browser continuing that journey
+// meanwhile read the run's mark in the save as a run left in the middle and ended the journey, for itself and (the
+// save now marked over) for the window still playing (1.39, an outside report: one press of Continue in a second tab).
+// The window in the run holds a lock by the journey's name for as long as the run lasts (Web Locks: shared by the
+// windows of one browser, let go by the browser itself when the window closes or loads anew), and Continue asks for it
+// first (Title.resume): held elsewhere, that window is pointed to; held by nobody, the run was left and the rule
+// stands. A browser without Web Locks goes on as before.
+const runName = (slot, jid) => `joseon-run ${slot} ${jid || ''}`;
+let runHeld = null; // lets the lock go
+export function holdRun() {
+  if (runHeld || !globalThis.navigator?.locks) return;
+  let done; const until = new Promise((r) => { done = r; });
+  runHeld = done;
+  try { navigator.locks.request(runName(S.slot, S.jid), { ifAvailable: true }, (lock) => (lock ? until : null)).catch(() => {}); } catch (e) { runHeld = null; }
+}
+export function dropRun() { runHeld?.(); runHeld = null; }
+export async function runElsewhere(slot) {
+  try {
+    const o = readSave(slot);
+    if (runHeld || !o?.inRun || o.over || !globalThis.navigator?.locks?.query) return false;
+    return (await navigator.locks.query()).held.some((l) => l.name === runName(slot, o.jid));
   } catch (e) { return false; }
 }
 // this window's play kept after all: the save another window made goes to the Past journeys whole, then this one is

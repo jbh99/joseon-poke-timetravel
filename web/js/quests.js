@@ -1,6 +1,6 @@
 // Main / side quest state machine and shared menus (party, items, quest log, board, evolution).
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, askText, fadeTo, shuffle } from './core.js';
-import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, movePower, MAX_LV, teamPP } from './game.js';
+import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, movePower, MAX_LV, teamPP, dropRun } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI, KOREA_LAST, isWorld } from './content.js';
 import { jingle, sfx, cry, setMuted, setVolume, volume } from './audio.js';
 import { tr, LANG } from './i18n.js';
@@ -43,7 +43,8 @@ export const challenge = () => S.mode === 'challenge';
 // middle of a dungeon, ends it for good, and the next challenge starts from the beginning (1.10). Its save stays
 // behind marked over (game.js journey), so neither this device nor its cloud copy brings the journey back.
 export const atStake = () => challenge() && !endingOpen();
-export function endChallenge() { S.over = true; S.inRun = null; save(); }
+// (its end goes to the cloud at once, like a run's that ended well: game.js clearRunMark)
+export function endChallenge() { S.over = true; S.inRun = null; if (save()) G.onSaved?.(true); dropRun(); }
 export const overText = () => tr('챌린지 실패… 이 여행은 여기서 끝났다. 챌린지는 처음부터 다시 시작해야 한다.', 'Challenge failed... This journey is over: a challenge starts again from the very beginning.');
 // continuing a challenge save that was left in the middle of a dungeon counts as that run's wipe: true when it ended
 // the journey (the title comes back once the player has read why)
