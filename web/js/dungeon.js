@@ -1,8 +1,9 @@
 // Mystery-dungeon style floors: random rooms & corridors, turn-based 8-way movement and moves.
 import { G, VW, VH, TILE, img, ready, drawSeen, input, ui, COL, say, openMenu, toast, fadeTo, clamp, randInt, choice, shuffle, touchUI, held } from './core.js';
 import { playBgm, sfx, cry, jingle } from './audio.js';
-import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, isArea, HEAL_MOVE, statOf, roomLeft, clearRunMark } from './game.js';
+import { S, DEX, Mon, useMove, expGain, typeMult, addItem, ITEMS, STATUS_NAME, STAT_NAME, TYPE_COLORS, recruit, ROSTER_MAX, LEGENDS, PSEUDO, mode, save, moveDesc, moveReach, dexMark, PHYS_REACH, LINE_REACH, BASIC_REACH, isArea, HEAL_MOVE, statOf, roomLeft, clearRunMark } from './game.js';
 import { QITEMS, TELE_TUT, ERAS, KOREA_LAST } from './content.js';
+import { SP_SIG, SP_BGM } from './content_k.js';
 import { era, mainStep, activeSides, noteKill, lines, gainExpFor, shareExp, itemMenu, partyMenu, questMenu, settingsMenu, quitItem, wanderBoss, foeLevels, crewLevel, challenge, atStake, endChallenge, overText, lairDone, spyTick, midWaiting } from './quests.js';
 import { drawMon, monHead, Town, PEARL, objInView } from './town.js';
 import { tr, iga } from './i18n.js';
@@ -28,6 +29,18 @@ function bossTier(b) {
   if (PSEUDO.has(b.sp) || b.pseudo) return PSEUDO_TIER; // b.pseudo: a world quest's strong boss in a 600-total line's place (1.25)
   return { up: 0, hp: era().year >= 1200 ? 1.3 : 1, atk: 1, cap: 0.3, blast: 1, stagger: 2 };
 }
+// a boss's battle music: its species' own where the games have one (content_k.js SP_BGM), else its fight's
+const bossBgm = (b) => SP_BGM[b.sp] || b.bgm || 'ba_gym';
+// From this level on every boss has a telegraphed blast and every legend a signature move (1.38, the user's number).
+const GROWN_LV = 30;
+// the blast of an ordinary boss the story gives none: named after its strongest move and of that move's type, in four
+// shapes that go by its species (the same boss always has the same four)
+const AUTO_PATS = [['slash', 'near', 'lattice', 'cross'], ['rings', 'rows', 'cone', 'x'], ['blocks', 'far', 'pinwheel', 'cols'], ['stripes', 'ring', 'bars', 'target'],
+  ['bombs', 'checker', 'diamond', 'cross'], ['scope', 'frame', 'quad', 'slash'], ['lattice', 'star', 'cone', 'rings'], ['pinwheel', 'bowtie', 'near', 'blocks']];
+function autoTele(mon) {
+  const best = mon.moves.map((mv) => DEX.moves[mv.id]).filter((d) => d && d.cat !== 2 && d.power > 1).sort((a, c) => c.power - a.power)[0];
+  return { name: best?.name ?? tr('강타', 'Smash'), type: best?.type ?? mon.types[0], every: 4, dmg: 0.3, pats: AUTO_PATS[mon.sp % AUTO_PATS.length] };
+}
 // difficulty along the journey: 0 in the first era, 1 in the last. Early floors are sparse and forgiving, late ones crowded and harsh.
 export const curve = () => clamp(S.era / Math.max(1, KOREA_LAST), 0, 1); // the world line, after it, stays at the top
 // a Pokémon fighting for the foe side (wild, boss, summoned, a town battle's constable): the difficulty's edge lifts its
@@ -35,14 +48,15 @@ export const curve = () => clamp(S.era / Math.max(1, KOREA_LAST), 0, 1); // the 
 const foeMon = (sp, lv, o = {}) => new Mon(sp, lv, { ...o, buff: (o.buff || 1) * mode().stat });
 
 // Reach (1.37, the user's numbers): the team's moves and plain attacks, and every ordinary foe's, turn by themselves to
-// the nearest one of the other side within their reach, whichever way their user faces (nearFoe): 3 tiles for a
-// physical move or a plain attack (game.js PHYS_REACH), 4 for any other (LINE_REACH); a move that hits all around
-// covers as far around its user (areaTiles). The team's land for sure, a foe's still roll to hit. A boss keeps to its
-// lines: its physical moves and plain attacks reach BOSS_PHYS tiles where it faces, its other moves and its telegraphed
-// blasts BOSS_REACH, and a move of its that hits all around the eight tiles beside it. Up to 1.36 the team's moves
+// the nearest one of the other side within their reach, whichever way their user faces (nearFoe): 4 tiles for a move
+// (game.js PHYS_REACH and LINE_REACH; 1.38, a physical move 3 in 1.37), 3 for a plain attack (BASIC_REACH); a move that
+// hits all around covers as far around its user (areaTiles). The team's land for sure, a foe's still roll to hit. A
+// boss keeps to its lines: its physical moves reach BOSS_PHYS tiles where it faces and its plain attack BOSS_BASIC
+// (1.38: 3 each; 2 in 1.37), its other moves and its telegraphed blasts BOSS_REACH, and a move of its that hits all
+// around the eight tiles beside it. Up to 1.36 the team's moves
 // turned to a foe within 4 tiles and flew on in a line to 4 (physical) or 5, a plain attack struck the tile in front
 // only, and a foe's physical moves (a boss's too) the tile in front while its others flew 4 tiles where it faced.
-const BOSS_PHYS = 2, BOSS_REACH = 4;
+const BOSS_PHYS = 3, BOSS_REACH = 4, BOSS_BASIC = 3;
 // a Sling Stone turns by itself to a foe within STONE_AIM tiles, else it flies straight where its thrower faces, up to
 // STONE_FLY tiles (throwStone; 1.37, straight only before)
 const STONE_AIM = 3, STONE_FLY = 8;
@@ -65,6 +79,8 @@ const bossFoe = (e) => !!e.isBoss && e.team === 'foe';
 // how far a move of this category (0 physical, 1 special, 2 status) reaches from this fighter (a plain attack as far as
 // a physical move); without a category, its longest
 const reachOf = (e, cat = 1) => (bossFoe(e) ? (cat === 0 ? BOSS_PHYS : BOSS_REACH) : cat === 0 ? PHYS_REACH : LINE_REACH);
+// and a plain attack
+const basicReach = (e) => (bossFoe(e) ? BOSS_BASIC : BASIC_REACH);
 // bosses shrug off sleep, freeze and poison, so they can't be locked down or worn away; a legendary boss shrugs off
 // every status problem, paralysis and burns too (even Rest's own sleep). Poison and Steel types can't be poisoned at all (1.25).
 const NO_POISON = [3, 8]; // the Poison and Steel types
@@ -108,6 +124,21 @@ const PATTERNS = {
   random: { delay: 1, hit: () => Math.random() < 0.45 },
   target: { delay: 1, hit: () => false }, // plus-shapes on every ally, added below
   orbs: { delay: 1, hit: () => false }, // Judgment's orbs falling all over the arena, added below
+  // 1.38, the user's wish for more shapes (most blasts read as the same X or cross): t is the way from the boss to the
+  // nearest of the team, p turns a shape over every other blast
+  slash: { delay: 1, hit: (dx, dy, d, x, y, p) => Math.abs(p ? dx - dy : dx + dy) <= 1 }, // one thick diagonal
+  bars: { delay: 2, hit: (dx, dy) => Math.abs(dx) <= 1 || Math.abs(dy) <= 1 }, // a cross three tiles thick: the corners are safe
+  diamond: { delay: 2, hit: (dx, dy) => Math.abs(dx) + Math.abs(dy) <= 3 },
+  rings: { delay: 1, hit: (dx, dy, d) => d === 2 || d === 4 }, // two rings, the ground between them safe
+  lattice: { delay: 1, hit: (dx, dy, d, x, y, p) => (x + p) % 3 === 0 || (y + p) % 3 === 0 }, // a grid with 2 x 2 pockets
+  blocks: { delay: 1, hit: (dx, dy, d, x, y, p) => ((x >> 1) + (y >> 1) + p) % 2 === 0 }, // a checkerboard of 2 x 2 blocks
+  stripes: { delay: 1, hit: (dx, dy, d, x, y, p) => (x + y + p) % 3 !== 0 }, // slanting bands, every third line free
+  cone: { delay: 2, hit: (dx, dy, d, x, y, p, q, t) => { const along = dx * t[0] + dy * t[1]; return along > 0 && Math.abs(dx * t[1] - dy * t[0]) <= 0.4 * along; } }, // a wedge at the nearest of the team
+  bowtie: { delay: 2, hit: (dx, dy, d, x, y, p) => dx * dy * (p ? 1 : -1) > 0 }, // two opposite quarters, the lines between safe
+  pinwheel: { delay: 1, hit: (dx, dy) => (dx > 0 && (dy === 0 || dy === -1)) || (dy > 0 && (dx === 0 || dx === 1)) || (dx < 0 && (dy === 0 || dy === 1)) || (dy < 0 && (dx === 0 || dx === -1)) },
+  frame: { delay: 1, hit: (dx, dy, d) => d === 4 || d <= 1 }, // the rim of its reach and the tiles beside it
+  scope: { delay: 1, hit: () => false }, // long plus-shapes through every ally, added below
+  bombs: { delay: 1, hit: () => false }, // 3 x 3 bursts here and there within its reach, added below
 };
 
 export class Dungeon {
@@ -243,6 +274,7 @@ export class Dungeon {
     this.bg = null;
     this.seen = Array.from({ length: H }, () => new Array(W).fill(false));
     this.vis = Array.from({ length: H }, () => new Array(W).fill(false));
+    this.visWas = null;
     this.ents = []; this.items = []; this.area = null; this.stairs = null; this.pendingStairs = false; this.calling = null; this.boss = null; this.bosses = []; this.altar = null; this.lit = false; this.stageDone = false; this.rent = null; this.bossIntro = false;
     this.flames = new Map(); this.drops = []; this.bolts = []; // Blue Flare's flames, Fusion Flare's falling fire, lightning on show
     // allies
@@ -322,14 +354,20 @@ export class Dungeon {
     const e = this.addEnt(mon, x, y, 'foe');
     e.isBoss = true; e.def = b; e.bphase = 1; e.stagger = 0; e.tele = null;
     e.tier = t; e.cap = b.cap ?? t.cap;
+    // from Lv 30 on (1.38) a boss the story gives no telegraphed blast has one all the same (autoTele), and a legend
+    // whose fight names no signature move uses its species' (content_k.js SP_SIG, twice in a fight)
+    const grown = lv >= GROWN_LV && !b.final;
+    const tele = b.tele || (grown ? autoTele(mon) : null);
+    const sig = b.sig || (grown && SP_SIG[b.sp] ? { use: [SP_SIG[b.sp]], at: [0.65, 0.3] } : null);
+    e.grown = grown;
     // a legend or 600-class boss with a single telegraph gains a second, faster and harder phase below half HP
-    e.teleSet = t.phase2 && b.tele && !Array.isArray(b.tele)
-      ? [b.tele, { ...b.tele, at: 0.5, every: Math.max(2, b.tele.every - 2), dmg: b.tele.dmg * 1.2, mix: b.tele.mix?.map((m) => ({ ...m, dmg: m.dmg * 1.2 })), stagger: 1,
+    e.teleSet = t.phase2 && tele && !Array.isArray(tele)
+      ? [tele, { ...tele, at: 0.5, every: Math.max(2, tele.every - 2), dmg: tele.dmg * 1.2, mix: tele.mix?.map((m) => ({ ...m, dmg: m.dmg * 1.2 })), stagger: 1,
         msg: t === LEGEND_TIER ? tr(`${mon.name}이(가) 전설의 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} unleashes its legendary power! Its attacks grow fiercer!`)
           : tr(`${mon.name}이(가) 온 힘을 끌어올렸다! 공격이 한층 거세진다!`, `${mon.name} draws on all its strength! Its attacks grow fiercer!`) }]
-      : b.tele;
-    e.teleCD = b.tele ? (this.teleConf(e).first ?? 3) + i * 2 : 0;
-    e.sig = this.sigPlan(b.sig, b.pace, b.sigMore);
+      : tele;
+    e.teleCD = tele ? (this.teleConf(e).first ?? 3) + i * 2 : 0;
+    e.sig = this.sigPlan(sig, b.pace, b.sigMore);
     for (const r of [].concat(b.revive || [])) if (r.forme) spriteReady(`${b.sp}${r.forme}`).catch(() => {}); // a later form's picture, in before it rises in it
     e.waiting = this.stage?.wake || 0;
     return e;
@@ -621,13 +659,14 @@ export class Dungeon {
       this.endTurn(() => { // only if it can act: up to 1.18 a sleeping, frozen or paralysed leader still walked (endTurn)
         if (o) { o.x = p.x; o.y = p.y; }
         p.x += dx; p.y += dy;
+        this.stepSight();
         this.afterStep();
       });
     } else if (kind === 'basic') {
       const t = this.entAt(p.x + p.face[0], p.y + p.face[1]);
       if (t?.team === 'npc') return this.talkNpc(t);
-      // a plain attack turns to the nearest foe within PHYS_REACH tiles, as a physical move does (1.37; the tile in front before)
-      this.endTurn(() => { const f = this.nearFoe(p, reachOf(p, 0)); if (f) this.attack(p, f, 'basic'); else { this.step(() => { this.msg(tr(`${p.mon.name}의 공격! 허공을 갈랐다.`, `${p.mon.name} attacked thin air.`)); sfx('miss'); }, 0.18); } });
+      // a plain attack turns to the nearest foe within BASIC_REACH tiles (1.37; the tile in front before)
+      this.endTurn(() => { const f = this.nearFoe(p, basicReach(p)); if (f) this.attack(p, f, 'basic'); else { this.step(() => { this.msg(tr(`${p.mon.name}의 공격! 허공을 갈랐다.`, `${p.mon.name} attacked thin air.`)); sfx('miss'); }, 0.18); } });
     } else if (kind === 'move-skill') {
       const mv = p.mon.moves[arg];
       if (!mv) return;
@@ -699,6 +738,7 @@ export class Dungeon {
     for (const e of this.ents.slice()) if (e.alive && e.team === 'foe') this.foeAI(e);
     this.turnEffects();
     this.updateVis();
+    this.visWas = null;
   }
   // a guest-steered ally: the same actions the leader has (move / attack / move 1-4 / rest)
   mateAct(e, { kind, arg }) {
@@ -716,7 +756,7 @@ export class Dungeon {
       if (o) { o.x = e.x; o.y = e.y; this.moveAnim(o, e.x + dx, e.y + dy); }
       e.x += dx; e.y += dy; this.moveAnim(e, fx, fy);
     } else if (kind === 'basic') {
-      const t = this.nearFoe(e, reachOf(e, 0)); // as the leader's: the nearest foe it can see within reach (1.37)
+      const t = this.nearFoe(e, basicReach(e)); // as the leader's: the nearest foe it can see within reach (1.37)
       if (t) this.attack(e, t, 'basic');
       else this.step(() => { this.msg(tr(`${m.name}의 공격! 허공을 갈랐다.`, `${m.name} attacked thin air.`)); sfx('miss'); }, 0.18);
     } else if (kind === 'move-skill') {
@@ -783,7 +823,16 @@ export class Dungeon {
   // around the one in control: vis, the same tiles a foe is drawn on) can neither strike nor be struck, by a move, a
   // plain attack or a Sling Stone. Up to 1.33 a foe four tiles down a dark corridor hit with its line moves and the
   // team's moves found foes it had not seen. A town battle and a boss's hall are seen whole.
-  inSight(e) { return !!this.vis[e.y]?.[e.x]; }
+  // The leader's step moves the sight at once (stepSight, 1.38): for the rest of that turn a foe is in the fight only if
+  // it was seen before the step and still is. Up to 1.37 the sight moved after the foes had acted, so one the step had
+  // just left out of sight (the leader backing off down a dark corridor) still struck that turn, undrawn; one the step
+  // has just brought into sight closes in first, as before.
+  inSight(e) { return !!this.vis[e.y]?.[e.x] && (!this.visWas || !!this.visWas[e.y]?.[e.x]); }
+  stepSight() {
+    const was = this.vis.map((row) => row.slice());
+    this.updateVis();
+    this.visWas = was;
+  }
   // the ground a move that hits all around covers, ring by ring out from its user (the eight beside it first, in DIRS8's
   // order): for the team and ordinary foes every tile within its kind's reach (PHYS_REACH for a physical move,
   // LINE_REACH for any other; a diagonal step is a tile) that single steps reach going only outward, each from a covered
@@ -833,7 +882,7 @@ export class Dungeon {
     mvs.pp--;
     const targets = this.skillTargets(att, mvs.id), t0 = targets[0];
     const dist = t0 && t0 !== att ? Math.max(Math.abs(t0.x - att.x), Math.abs(t0.y - att.y)) : 0;
-    // (a physical move that finds no one shows its line too, where it has one: 3 tiles, a boss's 2; 1.27)
+    // (a physical move that finds no one shows its line too, where it has one: 4 tiles, a boss's 3; 1.27)
     const ranged = (mv.cat !== 0 || dist > 1 || (!dist && reachOf(att, mv.cat) > 1)) && !isArea(mv) && t0 !== att;
     // the beam flies to its target (a sure hit may stand off the eight lines), or its full reach when it finds no one
     const beam = dist ? { dir: [(t0.x - att.x) / dist, (t0.y - att.y) / dist], len: dist } : { dir: att.face, len: reachOf(att, mv.cat) };
@@ -1040,8 +1089,8 @@ export class Dungeon {
       e.face = [Math.sign(target.x - e.x), Math.sign(target.y - e.y)];
       const s = Math.random() < 0.8 ? this.pickSkill(e, target) : null;
       if (s) { this.useSkill(e, s.k); return true; }
-      // a plain attack reaches as far as a physical move (1.37: 3 tiles, a boss's 2 along its lines; up to 1.36 the tile beside)
-      const r = reachOf(e, 0);
+      // a plain attack reaches 3 tiles, a boss's along its lines (1.38; a boss's 2 in 1.37, the tile beside up to 1.36)
+      const r = basicReach(e);
       if (adj || (bossFoe(e) ? this.inLine(e, target, r) : d <= r && this.pathTo(e, target))) { this.attack(e, target, 'basic'); return true; }
     }
     return false;
@@ -1202,15 +1251,27 @@ export class Dungeon {
   patternTiles(name, e, allies) {
     const R = this.rooms[0], set = new Set();
     const p = (e.teleN || 0) % 2, q = [choice([-1, 1]), choice([-1, 1])];
+    const off = (a) => Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
+    const aim = allies.slice().sort((a, c) => off(a) - off(c))[0], al = aim ? Math.hypot(aim.x - e.x, aim.y - e.y) : 0;
+    const t = al ? [(aim.x - e.x) / al, (aim.y - e.y) / al] : [0, 1]; // the way to the nearest of the team (cone)
     // a boss's blasts reach BOSS_REACH tiles; Judgment's orbs (orbs) fall anywhere in the arena
     const add = (x, y, any) => { if (x >= R.x && y >= R.y && x < R.x + R.w && y < R.y + R.h && !(x === e.x && y === e.y) && (any || Math.max(Math.abs(x - e.x), Math.abs(y - e.y)) <= BOSS_REACH)) set.add(y * W + x); };
     for (const part of name.split('|')) {
       const P = PATTERNS[part];
       for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) {
         const dx = x - e.x, dy = y - e.y;
-        if (P.hit(dx, dy, Math.max(Math.abs(dx), Math.abs(dy)), x, y, p, q)) add(x, y);
+        if (P.hit(dx, dy, Math.max(Math.abs(dx), Math.abs(dy)), x, y, p, q, t)) add(x, y);
       }
       if (part === 'target') for (const a of allies) for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) add(a.x + ox, a.y + oy);
+      if (part === 'scope') for (const a of allies) for (let k = -2; k <= 2; k++) { add(a.x + k, a.y); add(a.x, a.y + k); }
+      if (part === 'bombs') {
+        for (let k = 0, tries = 0; k < 5 && tries < 200; tries++) {
+          const cx = randInt(e.x - BOSS_REACH, e.x + BOSS_REACH), cy = randInt(e.y - BOSS_REACH, e.y + BOSS_REACH);
+          if (cx < R.x || cy < R.y || cx >= R.x + R.w || cy >= R.y + R.h || !this.walk(cx, cy)) continue;
+          k++;
+          for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) add(cx + ox, cy + oy);
+        }
+      }
       if (part === 'orbs') { // round blasts of light raining on random spots of the field (its floor, not its walls)
         set.orbs = [];
         for (let k = 0, tries = 0; k < 6 + Math.floor(R.w * R.h / 80) && tries < 400; tries++) {
@@ -1380,7 +1441,7 @@ export class Dungeon {
           }
         }
       }), beside()));
-      return tell(`${m.name}의 ${sg.name}! 땅이 갈라지며 바위 칼날이 솟아오르려 한다!`, `${m.name}'s ${sg.name}! The ground splits as stone blades rise!`);
+      return sg.tell ? tell(...sg.tell(m.name)) : tell(`${m.name}의 ${sg.name}! 땅이 갈라지며 바위 칼날이 솟아오르려 한다!`, `${m.name}'s ${sg.name}! The ground splits as stone blades rise!`);
     }
     if (sg.kind === 'pulse') { // waves in all eight directions, from the ring around it outward
       blast(() => this.sigTiles(e, (add) => { for (const [dx, dy] of DIRS8) for (let i = 2; i < 16; i++) add(e.x + dx * i, e.y + dy * i); }));
@@ -1651,7 +1712,8 @@ export class Dungeon {
     if (r.cap) e.cap = r.cap;
     e.teleSet = r.tele || null; e.bphase = 1; e.tele = null; e.stagger = 0; e.teleCD = this.teleConf(e)?.first ?? 2;
     e.ult = r.ult ? { use: r.ult.use, k: 0 } : null; // nothing but its ultimates from here on (ultTurn)
-    e.sig = this.sigPlan(r.sig, e.def.pace, e.def.sigMore); e.hpLog = [];
+    // (a later form with no signature move or ultimates of its own keeps the species' as well, 1.38)
+    e.sig = this.sigPlan(r.sig || (!r.ult && e.grown && !e.def.sig && SP_SIG[e.def.sp] ? { use: [SP_SIG[e.def.sp]], at: [0.65, 0.3] } : null), e.def.pace, e.def.sigMore); e.hpLog = [];
     this.step(() => { this.shake = 0.9; e.reviveT = 1.2; sfx('super'); cry(m.sp); this.msg(r.msg, COL.red); if (r.bgm) playBgm(r.bgm, 0.2); }, 0.9);
     if (r.line) this.step(() => say(lines(r.line)), 0.1);
   }
@@ -1861,7 +1923,7 @@ export class Dungeon {
       if (this.def.tower) this.restoreTeam();
       this.newFloor();
       this.msg(this.stage?.name ? tr(`${this.stage.name}에 도착했다.`, `Reached the ${this.stage.name}.`) : tr(`${this.floor}층에 도착했다.`, `Reached floor ${this.floor}.`), COL.blue);
-      if (this.bossFloor && !this.stage?.wake) playBgm(this.bossDef.bgm || 'ba_gym', 0.4);
+      if (this.bossFloor && !this.stage?.wake) playBgm(bossBgm(this.bossDef), 0.4);
       else if (this.stage) playBgm(this.stage.bgm || this.def.bgm, 0.6);
     }, '#000', 4);
   }
@@ -1903,9 +1965,9 @@ export class Dungeon {
     if (this.bossIntro) {
       this.bossIntro = false; this.latch = null; this.tapDir = null; this.restTap = false;
       const b = this.boss.def;
-      playBgm(b.bgm || 'ba_gym', 0.4); cry(b.sp);
+      playBgm(bossBgm(b), 0.4); cry(b.sp);
       const L = lines(this.stage?.say || b.say || []); // a Boss Tower floor introduces its pair in its own words
-      if (b.tele && !S.flags.teleTut) { S.flags.teleTut = true; L.push(...lines(TELE_TUT)); }
+      if (this.boss.teleSet && !S.flags.teleTut) { S.flags.teleTut = true; L.push(...lines(TELE_TUT)); }
       say(L);
       return;
     }

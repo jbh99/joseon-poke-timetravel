@@ -6,7 +6,8 @@ export const G = { S: 2, W: VW, time: 0, real: 0, dt: 0, speed: 1, scene: null, 
 
 // player preferences kept per browser (sound; up to 1.29 also `hints`, the line of key hints at the bottom of the
 // screen, which went in 1.30 and is ignored in prefs kept from before); storage can be blocked, so every access is guarded
-export const prefs = { muted: false };
+// volume: how loud the game is, 0 to 100 (1.38; the sound switch still turns it all off)
+export const prefs = { muted: false, volume: 100 };
 try { Object.assign(prefs, JSON.parse(localStorage.getItem('joseon-prefs') || '{}')); } catch (e) { /* private mode */ }
 export function setPref(k, v) { prefs[k] = v; try { localStorage.setItem('joseon-prefs', JSON.stringify(prefs)); } catch (e) { /* private mode */ } }
 
@@ -574,6 +575,10 @@ export class Menu {
     const page = this.box?.rows || n;
     if (n > page && input.repeat('left')) { this.sel = Math.max(0, this.sel - page); G.sfx?.('cursor'); }
     if (n > page && input.repeat('right')) { this.sel = Math.min(n - 1, this.sel + page); G.sfx?.('cursor'); }
+    // ◀ ▶ on a row with a value to turn (Settings: the volume) turn it, in a list short enough to need no paging
+    const turn = n <= page && this.items[this.sel]?.adj;
+    if (turn && input.repeat('left')) { turn(-1); G.sfx?.('cursor'); }
+    if (turn && input.repeat('right')) { turn(1); G.sfx?.('cursor'); }
     // a finger dragged over a long list scrolls it a row per 16 px (the click a drag ends in is dropped, see initCanvas)
     if (n > page && input.pan.y) {
       this.drag = (this.drag || 0) + input.pan.y;

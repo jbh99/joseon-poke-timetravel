@@ -60,7 +60,7 @@ export const W1940A = era({
     mole: { name: K('됭케르크 방파제', 'The Dunkirk Mole'), at: [2.8, 51.32], tiles: T.sand, floors: 3, lv: P(11), bgm: 'd_04',
       mons: [557, 558, 551, 552, 278, 279, 580, 581, 594, 98, 99],
       boss: WB.mole },
-    channel: { name: K('영국 해협', 'The English Channel'), at: [1.5, 51.0], tiles: T.strait, water: true, floors: 3, lv: P(11), bgm: 'd_04',
+    channel: { name: K('영국 해협', 'The English Channel'), at: [1.5, 51.0], tiles: T.strait, water: true, floors: 3, lv: P(11), bgm: 'h_03',
       mons: [592, 593, 594, 550, 73, 279, 278, 580, 581, 320],
       boss: WB.channel },
     yser: { name: K('이제르 강 물길', 'The Waterways of the Yser'), at: [3.0, 50.9], tiles: T.moss, floors: 3, lv: P(11), legend: true, bgm: 'd_lake', tint: 'rgba(140,200,255,0.08)',
@@ -246,7 +246,7 @@ const vee = person('vee1942', 628, K('종군 기자 워글', 'War Correspondent 
 const camel = person('camel1942', 450, K('대상의 하마돈', "Caravan Hippowdon"), K('히포. (모래바람 속에서 지친 사람들을 등에 태우고 오아시스로 가고 있다.)', 'Hippo. (It is carrying weary people through the sandstorm to an oasis.)'), { wander: 2 });
 export const W1942E = era({
   year: 1942, years: K('1942 10월 – 11월', 'Oct – Nov 1942'), title: K('엘알라메인 전투', 'The Battle of El Alamein'), sub: K('사막의 승리', 'Victory in the desert'),
-  place: K('알렉산드리아', 'Alexandria'), bw: 'undella', map: 'europe', at: [29.92, 31.2], bgm: 'town05_su', world: 'road_f', card: [T.sand, [494, 553, 628, 450]], inn: 531, shop: 509,
+  place: K('알렉산드리아', 'Alexandria'), bw: 'undella', map: 'europe', at: [29.92, 31.2], bgm: 'town05_au', world: 'road_f', card: [T.sand, [494, 553, 628, 450]], inn: 531, shop: 509,
   intro: [
     K('북아프리카에서는 독일·이탈리아군과 영국군이 사막을 오가며 싸웠다. 독일의 롬멜은 "사막의 여우"라 불렸다.', 'In North Africa, German and Italian forces fought the British back and forth across the desert. Germany\'s Rommel was called "the Desert Fox".'),
     K('1942년 10월 23일, 몽고메리가 이끄는 영국군이 이집트의 엘알라메인에서 공세를 시작했다.', 'On October 23, 1942 the British under Montgomery opened their attack at El Alamein in Egypt.'),
@@ -406,7 +406,7 @@ export const W1945 = era({
   dungeons: {
     ruins45: { name: K('얼어붙은 폐허', 'The Frozen Ruins'), at: [13.75, 52.85], tiles: T.fortsnow, floors: 3, lv: P(20), bgm: 'd_ice', tint: 'rgba(170,210,255,0.12)',
       mons: [613, 614, 582, 583, 584, 615, 215, 461, 473, 478, 362, 571, 609, 635, 623, 633, 634],
-      boss: boss(635, P(20)[1] + 5, [406, 399, 53, 434], blast(K('용의파동', 'Dragon Pulse'), 16, ['ring', 'x', 'far', 'checker']),
+      boss: boss(635, P(20)[1] + 5, [406, 399, 53, 434], blast(K('용의파동', 'Dragon Pulse'), 16, ['pinwheel', 'blocks', 'far', 'checker']),
         [N('얼어붙은 폐허 위를 삼삼드래가 세 개의 머리로 울부짖으며 날고 있다. 큐레무의 냉기에 휩쓸려 이성을 잃었다!', 'Hydreigon flies over the frozen ruins, howling from its three heads. Swept up in Kyurem\'s cold, it has lost its reason!')],
         [{ who: 635, text: K('…크와아. (삼삼드래가 북쪽 하늘의 눈구름 한가운데를 가리킨다. 그곳에 큐레무가 있다.)', '...Kwaah. (Hydreigon points into the heart of the snow clouds in the northern sky. Kyurem is there.)') }], { hp: 3, bgm: 'vs_strong' }) }, // as the other 600-total bosses (content_wboss.js strong)
     // the last battle: the city (Lacunosa as drawn by Pokémon Black, the walled town Kyurem comes to at night) frozen.

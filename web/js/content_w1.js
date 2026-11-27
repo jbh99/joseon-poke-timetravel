@@ -10,7 +10,7 @@ const mien = person('mien1860', 620, K('무도가 비조도', 'Martial Artist Mi
 const fur = person('fur1860', 613, K('모피 상인 코고미', 'Fur Trader Cubchoo'), K('북쪽 우수리강 너머 땅을 러시아가 가져간다는 이야기가 있어요. 그럼 조선과 러시아가 국경을 맞대게 되죠.', 'Word is Russia will take the land past the Ussuri in the north. Then Joseon and Russia will share a border.'));
 export const W1860 = era({
   year: 1860, years: '1856 – 1860', title: K('베이징 조약', 'The Convention of Peking'), sub: K('불타는 정원, 바뀌는 국경', 'A burning garden, a moving border'),
-  place: K('베이징', 'Peking'), bw: 'opelucid', map: 'eastasia', at: [116.4, 39.9], bgm: 'city10_d', world: 'road_e', card: [T.castle, [621, 620, 612, 610]], inn: 113, shop: 572,
+  place: K('베이징', 'Peking'), bw: 'opelucid', map: 'eastasia', at: [116.4, 39.9], bgm: 'city08_w', world: 'road_e', card: [T.castle, [621, 620, 612, 610]], inn: 113, shop: 572,
   intro: [
     K('1856년 영국과 프랑스는 청나라와 두 번째 아편 전쟁을 벌였다.', 'In 1856 Britain and France went to war with Qing China a second time: the Second Opium War.'),
     K('1860년 10월, 영국·프랑스 연합군이 베이징에 들어와 황제의 정원 원명원을 약탈하고 불태웠다.', 'In October 1860 the Anglo-French army entered Peking, looted the emperor\'s garden palace, the Yuanmingyuan, and burned it.'),
@@ -51,7 +51,7 @@ const gull = person('gull1894', 279, K('등대지기 패리퍼', 'Lighthouse Kee
 const swan = person('swan1894', 581, K('어부 스완나', 'Fisher Swanna'), K('압록강 어귀까지 큰 배들이 몰려간대요. 고기잡이도 못 나가겠어요.', 'Big ships are crowding toward the mouth of the Yalu. We can\'t even go out fishing.'));
 export const W1894 = era({
   year: 1894, years: '1894 – 1895', title: K('청일 전쟁', 'The Sino-Japanese War'), sub: K('풍도와 황해, 바다에서 시작된 전쟁', 'Pungdo and the Yellow Sea: a war begun at sea'),
-  place: K('웨이하이웨이', 'Weihaiwei'), bw: 'undella', map: 'eastasia', at: [122.1, 37.5], bgm: 'town05_su', world: 'naminori', card: [T.sea, [565, 593, 130, 581]], inn: 594, shop: 279,
+  place: K('웨이하이웨이', 'Weihaiwei'), bw: 'undella', map: 'eastasia', at: [122.1, 37.5], bgm: 'town05_wi', world: 'naminori', card: [T.sea, [565, 593, 130, 581]], inn: 594, shop: 279,
   intro: [
     K('1894년 조선에서 동학 농민 운동이 일어나자, 청과 일본이 앞다투어 조선에 군대를 보냈다.', 'When the Donghak Peasant Revolution broke out in Joseon in 1894, Qing and Japan raced to send troops into Korea.'),
     K('7월 25일 아산만 앞 풍도에서 일본 함대가 청의 군함을 공격하며 전쟁이 시작되었다.', 'On July 25, off Pungdo before Asan Bay, the Japanese fleet attacked Qing warships and the war began.'),
@@ -99,7 +99,7 @@ export const W1904 = era({
     K('1905년 5월 쓰시마(대한 해협) 해전에서 러시아 발트 함대가 무너졌다.', 'In May 1905 the Russian Baltic Fleet was destroyed at the Battle of Tsushima, in the Korea Strait.'),
   ],
   dungeons: {
-    chemulpo: { name: K('제물포 해전', 'Battle of Chemulpo'), at: [126.6, 37.45], tiles: T.strait, water: true, floors: 3, lv: P(2), bgm: 'd_04',
+    chemulpo: { name: K('제물포 해전', 'Battle of Chemulpo'), at: [126.6, 37.45], tiles: T.strait, water: true, floors: 3, lv: P(2), bgm: 'h_02',
       mons: [565, 564, 592, 593, 581, 580, 73, 279, 550],
       boss: WB.chemulpo },
     hill203: { name: K('203고지', '203 Meter Hill'), at: [121.5, 39.2], tiles: T.cliff, floors: 3, lv: P(2), bgm: 'd_mount2',
@@ -226,7 +226,7 @@ export const W1915 = era({
     K('8개월 동안 양쪽 모두 큰 희생을 치렀고, 연합군은 1916년 1월 끝내 물러났다.', 'Both sides suffered terribly for eight months, and the Allies finally withdrew in January 1916.'),
   ],
   dungeons: {
-    dardanelles: { name: K('다르다넬스 해협', 'The Dardanelles'), at: [26.47, 40.03], tiles: T.strait, water: true, floors: 3, lv: P(5), bgm: 'd_04',
+    dardanelles: { name: K('다르다넬스 해협', 'The Dardanelles'), at: [26.47, 40.03], tiles: T.strait, water: true, floors: 3, lv: P(5), bgm: 'h_01',
       mons: [592, 593, 594, 565, 564, 73, 72, 550, 580, 581],
       boss: WB.dardanelles },
     anzac: { name: K('안작 만 절벽', 'The Cliffs of Anzac Cove'), at: [26.2, 40.38], tiles: T.cliff, floors: 3, lv: P(5), bgm: 'd_mount2',
@@ -304,7 +304,7 @@ export const W1916B = era({
     K('양쪽 모두 승리를 주장했지만, 독일 함대는 그 뒤 다시 큰 바다로 나오지 못했다.', 'Both sides claimed victory, but the German fleet never again came out into the open sea in force.'),
   ],
   dungeons: {
-    northsea: { name: K('북해의 안개', 'The North Sea Fog'), at: [2.0, 57.5], tiles: T.sea, water: true, floors: 3, lv: P(7), bgm: 'd_04',
+    northsea: { name: K('북해의 안개', 'The North Sea Fog'), at: [2.0, 57.5], tiles: T.sea, water: true, floors: 3, lv: P(7), bgm: 'h_05',
       mons: [592, 593, 594, 550, 580, 581, 73, 320, 86, 87],
       boss: WB.northsea },
     jutland: { name: K('유틀란트 해전', 'Battle of Jutland'), at: [6.0, 56.7], tiles: T.deepsea, water: true, floors: 3, lv: P(7), bgm: 'ba_dpoke2',
@@ -334,7 +334,7 @@ const flu = person('flu1918', 531, K('간호사 다부니', 'Nurse Audino'), K('
 const kid18 = person('kid1918', 506, K('소녀의 요테리', "A Girl's Lillipup"), K('아빠가 곧 집에 온대요! 진짜예요!', 'Papa is coming home soon! Really!'), { wander: 3 });
 export const W1918 = era({
   year: 1918, years: K('1918 11월', 'Nov 1918'), title: K('휴전', 'The Armistice'), sub: K('11월 11일 11시', 'The eleventh hour of the eleventh day'),
-  place: K('콩피에뉴', 'Compiègne'), bw: 'accumula', map: 'europe', at: [2.83, 49.42], bgm: 'town02_d', world: 'road_a', card: [T.forest, [589, 531, 506, 585]], inn: 531, shop: 572,
+  place: K('콩피에뉴', 'Compiègne'), bw: 'accumula', map: 'europe', at: [2.83, 49.42], bgm: 'city10_w', world: 'road_a', card: [T.forest, [589, 531, 506, 585]], inn: 531, shop: 572,
   intro: [
     K('1917년 미국이 전쟁에 뛰어들고, 러시아에서는 혁명이 일어나 전쟁에서 빠졌다.', 'In 1917 the United States entered the war, and Russia, in revolution, left it.'),
     K('1918년 가을, 지친 독일은 휴전을 청했다.', 'In the autumn of 1918 an exhausted Germany asked for an armistice.'),
@@ -384,7 +384,7 @@ export const W1919 = era({
     mirrors: { name: K('거울의 방', 'The Hall of Mirrors'), at: [2.0, 48.42], tiles: T.castle, floors: 3, lv: P(9), bgm: 'd_lake',
       mons: [574, 575, 576, 577, 578, 579, 517, 518, 561, 605, 606],
       boss: WB.mirrors },
-    seine: { name: K('센 강 다리 밑', 'Under the Seine Bridges'), at: [2.7, 48.98], tiles: T.alley, floors: 3, lv: P(9), bgm: 'd_agito',
+    seine: { name: K('센 강 다리 밑', 'Under the Seine Bridges'), at: [2.7, 48.98], tiles: T.alley, floors: 3, lv: P(9), bgm: 'h_04',
       mons: [509, 510, 527, 528, 568, 569, 572, 573, 607, 608, 562, 563, 515, 516],
       boss: WB.seine },
   },

@@ -137,7 +137,7 @@ const phase3 = (o) => ({ hp: 0.75, atk: 1.1, def: 1.2, cap: 0.44 * TOP, aura: o.
 export const RESHIRAM = { sp: 643, ...GREAT, bgm: 'vs_reshiram', moves: [406, 53, 225, 126], joinMoves: [551, 558, 406, 53],
   tele: firstBlast(K('용의파동', 'Dragon Pulse'), 16, ['ring', 'cross', 'x', 'near', 'rows']),
   revive: [
-    phase2({ aura: '#8fd8ff', form: K('진실의 불꽃', 'Flame of Truth'), name: K('화염방사', 'Flamethrower'), type: 10, pats: ['far', 'checker', 'star', 'ring|x'], ults: [WSIG.fusionFlare, WSIG.flare],
+    phase2({ aura: '#8fd8ff', form: K('진실의 불꽃', 'Flame of Truth'), name: K('화염방사', 'Flamethrower'), type: 10, pats: ['far', 'checker', 'pinwheel', 'ring|blocks'], ults: [WSIG.fusionFlare, WSIG.flare],
       msg: K('레시라무의 꼬리가 하얗게 타오른다! 크로스플레임과 푸른불꽃이 시작된다!', "Reshiram's tail blazes white! Fusion Flare and Blue Flare begin!"),
       line: [{ who: 643, name: K('레시라무', 'Reshiram'), text: K('…거짓은 모두 태워 주마. 하늘에서 쏟아지는 불길을 피할 수 있겠느냐!', '...I will burn away every lie. Can you dodge the fire pouring from the sky?') }] }),
     phase3({ aura: '#e8f6ff', form: K('백색 불꽃', 'White Flame'), ults: [WSIG.fusionFlare, WSIG.flare],
@@ -154,7 +154,7 @@ export const RESHIRAM = { sp: 643, ...GREAT, bgm: 'vs_reshiram', moves: [406, 53
 export const ZEKROM = { sp: 644, ...GREAT, bgm: 'vs_zekrom', moves: [337, 85, 406, 87], joinMoves: [550, 559, 337, 85],
   tele: firstBlast(K('용의파동', 'Dragon Pulse'), 16, ['cross', 'rows', 'x', 'cols', 'near']),
   revive: [
-    phase2({ aura: '#ffe24a', form: K('이상의 번개', 'Thunder of Ideals'), name: K('10만볼트', 'Thunderbolt'), type: 13, pats: ['checker', 'far', 'quad', 'star|near'], ults: [WSIG.bolt, WSIG.fusionBolt],
+    phase2({ aura: '#ffe24a', form: K('이상의 번개', 'Thunder of Ideals'), name: K('10만볼트', 'Thunderbolt'), type: 13, pats: ['bars', 'far', 'quad', 'stripes|near'], ults: [WSIG.bolt, WSIG.fusionBolt],
       msg: K('제크로무의 꼬리가 발전기처럼 돌아간다! 뇌격과 크로스썬더가 시작된다!', "Zekrom's tail spins like a generator! Bolt Strike and Fusion Bolt begin!"),
       line: [{ who: 644, name: K('제크로무', 'Zekrom'), text: K('…이 폭풍에 맞설 각오가 있느냐. 어디에 떨어질지 모르는 번개까지 견뎌 보아라!', '...Have you the resolve to face this storm? Then endure even the lightning no one can foresee!') }] }),
     phase3({ aura: '#3a3a5a', form: K('칠흑의 번개', 'Pitch-Black Thunder'), ults: [WSIG.bolt, WSIG.fusionBolt],
@@ -169,9 +169,9 @@ export const ZEKROM = { sp: 644, ...GREAT, bgm: 'vs_zekrom', moves: [337, 85, 40
   join: K('제크로무가 번개를 거두었다. 너희의 이상을 함께 보고 싶어 한다!', 'Zekrom draws its lightning in. It wants to see your ideal with you!') };
 
 export const VICTINI = legend({ sp: 494, lv: 70, hp: 2.9, bgm: 'vs_strong', moves: [557, 545, 94, 7],
-  tele: blast(K('화염탄', 'Searing Shot'), 10, ['ring', 'near', 'x', 'target']),
+  tele: blast(K('화염탄', 'Searing Shot'), 10, ['slash', 'near', 'bombs', 'target']),
   sig: { use: [WSIG.searing], at: SIG_AT1 },
-  revive: rise({ aura: '#ff9a3a', form: K('승리의 V', 'Victory V'), name: K('V제너레이트', 'V-create'), type: 10, pats: ['x', 'star', 'checker', 'far|ring'], use: [WSIG.vcreate, WSIG.searing],
+  revive: rise({ aura: '#ff9a3a', form: K('승리의 V', 'Victory V'), name: K('V제너레이트', 'V-create'), type: 10, pats: ['frame', 'diamond', 'checker', 'far|ring'], use: [WSIG.vcreate, WSIG.searing],
     msg: K('비크티니의 귀가 V자로 타오른다! 승리의 불꽃이 사막을 덮는다!', "Victini's ears blaze in a V! Victory fire covers the desert!") }),
   say: [
     N('모래바람 너머, 작은 포켓몬이 불꽃을 튀기며 웃고 있다. 이긴 쪽에 승리를 가져다준다는 비크티니다.', 'Beyond the sandstorm, a small Pokémon laughs as it throws off sparks. It is Victini, said to bring victory to whoever it sides with.'),
@@ -181,9 +181,9 @@ export const VICTINI = legend({ sp: 494, lv: 70, hp: 2.9, bgm: 'vs_strong', move
   join: K('비크티니가 어깨 위로 뛰어올랐다. 함께 가고 싶어 한다!', 'Victini hops onto your shoulder. It wants to come along!') });
 
 export const GENESECT = legend({ sp: 649, lv: 74, hp: 3.0, atk: 1.06, bgm: 'vs_strong', moves: [546, 400, 430, 85],
-  tele: blast(K('러스터캐논', 'Flash Cannon'), 8, ['rows', 'cols', 'cross', 'far']),
+  tele: blast(K('러스터캐논', 'Flash Cannon'), 8, ['rows', 'cols', 'rings', 'lattice']),
   sig: { use: [WSIG.techno], at: SIG_AT1 },
-  revive: rise({ aura: '#c060ff', form: K('하이퍼 드라이브', 'Hyper Drive'), name: K('테크노버스터', 'Techno Blast'), type: 13, pats: ['rows|cols', 'quad', 'checker', 'far|cross'], use: [WSIG.techno, WSIG.bolt],
+  revive: rise({ aura: '#c060ff', form: K('하이퍼 드라이브', 'Hyper Drive'), name: K('테크노버스터', 'Techno Blast'), type: 13, pats: ['rows|cols', 'quad', 'bowtie', 'far|scope'], use: [WSIG.techno, WSIG.bolt],
     msg: K('게노세크트의 등 대포가 번개 카세트를 삼켰다! 포신이 하얗게 달아오른다!', "Genesect's back cannon swallows the Shock Drive! The barrel glows white-hot!") }),
   say: [
     N('불타는 전차들 사이로, 등에 대포를 단 보라색 포켓몬이 걸어 나왔다. 3억 년 전의 몸이 전쟁의 쇳덩이로 다시 만들어졌다.', 'Out from between burning tanks walks a purple Pokémon with a cannon on its back. A body three hundred million years old, remade into a lump of war iron.'),
@@ -193,9 +193,9 @@ export const GENESECT = legend({ sp: 649, lv: 74, hp: 3.0, atk: 1.06, bgm: 'vs_s
   join: K('게노세크트가 대포를 내렸다. 자기 길을 찾을 때까지 함께 가고 싶어 한다!', 'Genesect lowers its cannon. It wants to come along until it finds its own way!') });
 
 export const MELOETTA = legend({ sp: 648, lv: 72, hp: 2.9, bgm: 'vs_strong', moves: [547, 94, 304, 215],
-  tele: blast(K('하이퍼보이스', 'Hyper Voice'), 0, ['ring', 'near', 'far', 'x']),
+  tele: blast(K('하이퍼보이스', 'Hyper Voice'), 0, ['blocks', 'near', 'far', 'cone']),
   sig: { use: [WSIG.relic], at: SIG_AT1 },
-  revive: rise({ aura: '#7affc8', form: K('스텝폼', 'Pirouette Forme'), name: K('옛노래', 'Relic Song'), type: 1, pats: ['star', 'ring|cross', 'checker', 'far'], use: [WSIG.relic, WSIG.relic],
+  revive: rise({ aura: '#7affc8', form: K('스텝폼', 'Pirouette Forme'), name: K('옛노래', 'Relic Song'), type: 1, pats: ['slash', 'ring|bombs', 'checker', 'far'], use: [WSIG.relic, WSIG.relic],
     msg: K('메로엣타가 옛노래를 부르며 춤추듯 모습을 바꿨다! 스텝폼이다!', 'Singing the Relic Song, Meloetta changes its form as if dancing! The Pirouette Forme!') }),
   say: [
     N('포위된 도시의 얼어붙은 공연장. 아무도 없는 무대에서 맑은 노랫소리가 들려온다.', 'A frozen concert hall in the besieged city. A clear voice sings on the empty stage.'),
@@ -212,9 +212,9 @@ export const MELOETTA = legend({ sp: 648, lv: 72, hp: 2.9, bgm: 'vs_strong', mov
 // two-form design, every stat and their HP a fifth over the legends' 1.1.
 const SWORD = 1.1 * 1.2;
 export const COBALION = legend({ sp: 638, lv: 69, hp: 3.0, buff: SWORD, bgm: 'vs_strong', moves: [533, 442, 370, 232],
-  tele: blast(K('아이언헤드', 'Iron Head'), 8, ['cross', 'rows', 'near', 'x']),
+  tele: blast(K('아이언헤드', 'Iron Head'), 8, ['stripes', 'rows', 'near', 'pinwheel']),
   sig: { use: [WSIG.sacredSword], at: SIG_AT1 },
-  revive: rise({ aura: '#bfe8ff', form: K('강철의 의지', 'Will of Steel'), name: K('메탈버스트', 'Metal Burst'), type: 8, pats: ['rows|cols', 'checker', 'far', 'star'], use: [WSIG.sacredSword, WSIG.metalBurst],
+  revive: rise({ aura: '#bfe8ff', form: K('강철의 의지', 'Will of Steel'), name: K('메탈버스트', 'Metal Burst'), type: 8, pats: ['rows|cols', 'lattice', 'far', 'rings'], use: [WSIG.sacredSword, WSIG.metalBurst],
     msg: K('코바르온의 뿔이 칼처럼 빛난다! 강철 파편이 쏟아진다!', "Cobalion's horn shines like a blade! Steel shards rain down!") }),
   say: [
     N('포탄 구덩이 사이로 강철빛 사슴이 걸어 나왔다. 사람의 전쟁에서 포켓몬을 지켜 왔다는 코바르온이다.', 'Out from between the shell craters walks a steel-coloured stag. It is Cobalion, said to have protected Pokémon from the wars of people.'),
@@ -224,9 +224,9 @@ export const COBALION = legend({ sp: 638, lv: 69, hp: 3.0, buff: SWORD, bgm: 'vs
   join: K('코바르온이 뿔을 낮추었다. 너희 곁에서 끝까지 지켜보겠다고 한다!', 'Cobalion lowers its horn. It will watch over you to the end!') });
 
 export const TERRAKION = legend({ sp: 639, lv: 64, hp: 3.0, buff: SWORD, bgm: 'vs_strong', moves: [533, 444, 370, 157],
-  tele: blast(K('스톤샤워', 'Rock Slide'), 5, ['near', 'ring', 'x', 'cross']),
+  tele: blast(K('스톤샤워', 'Rock Slide'), 5, ['near', 'ring', 'bars', 'frame']),
   sig: { use: [WSIG.stoneEdge], at: SIG_AT1 },
-  revive: rise({ aura: '#e8c890', form: K('바위의 의지', 'Will of Stone'), name: K('스톤에지', 'Stone Edge'), type: 5, pats: ['quad', 'far', 'checker', 'ring|x'], use: [WSIG.stoneEdge, WSIG.sacredSword],
+  revive: rise({ aura: '#e8c890', form: K('바위의 의지', 'Will of Stone'), name: K('스톤에지', 'Stone Edge'), type: 5, pats: ['quad', 'far', 'checker', 'blocks|cone'], use: [WSIG.stoneEdge, WSIG.sacredSword],
     msg: K('테라키온이 벽을 들이받았다! 무너진 바위가 사방으로 쏟아진다!', 'Terrakion rams the wall! Fallen rock pours down everywhere!') }),
   say: [
     N('포탄에 깎인 203고지의 암벽이 무너지고, 바위 같은 몸의 포켓몬이 돌진해 나왔다. 성벽을 부수고 갇힌 포켓몬을 구했다는 테라키온이다.', 'The rock face of 203 Meter Hill, gouged by shells, gives way and a Pokémon with a body like a boulder charges out. It is Terrakion, said to have broken a castle wall to free the Pokémon trapped inside.'),
@@ -236,9 +236,9 @@ export const TERRAKION = legend({ sp: 639, lv: 64, hp: 3.0, buff: SWORD, bgm: 'v
   join: K('테라키온이 바위 같은 어깨를 들이밀었다. 함께 가고 싶어 한다!', 'Terrakion pushes in with its boulder shoulders. It wants to come along!') });
 
 export const VIRIZION = legend({ sp: 640, lv: 71, hp: 2.9, buff: SWORD, bgm: 'vs_strong', moves: [533, 348, 370, 202],
-  tele: blast(K('리프블레이드', 'Leaf Blade'), 12, ['x', 'far', 'cross', 'near']),
+  tele: blast(K('리프블레이드', 'Leaf Blade'), 12, ['diamond', 'far', 'scope', 'near']),
   sig: { use: [WSIG.sacredSword], at: SIG_AT1 },
-  revive: rise({ aura: '#9cff9c', form: K('풀의 의지', 'Will of Leaves'), name: K('리프스톰', 'Leaf Storm'), type: 12, pats: ['star', 'checker', 'ring|cross', 'far'], use: [WSIG.leafStorm, WSIG.sacredSword],
+  revive: rise({ aura: '#9cff9c', form: K('풀의 의지', 'Will of Leaves'), name: K('리프스톰', 'Leaf Storm'), type: 12, pats: ['stripes', 'checker', 'ring|pinwheel', 'far'], use: [WSIG.leafStorm, WSIG.sacredSword],
     msg: K('비리디온의 뿔에서 잎사귀가 휘몰아친다! 숲 전체가 칼날이 된다!', "Leaves whirl from Virizion's horns! The whole forest becomes a blade!") }),
   say: [
     N('포탄에 꺾인 나무들 사이에서, 풀빛 사슴이 바람처럼 나타났다. 숲을 지키는 비리디온이다.', 'Among trees broken by the shelling, a grass-green stag appears like the wind. It is Virizion, the guardian of forests.'),
@@ -248,9 +248,9 @@ export const VIRIZION = legend({ sp: 640, lv: 71, hp: 2.9, buff: SWORD, bgm: 'vs
   join: K('비리디온이 풀잎 같은 뿔을 흔들었다. 함께 가고 싶어 한다!', 'Virizion shakes its leaf-like horns. It wants to come along!') });
 
 export const KELDEO = legend({ sp: 647, lv: 72, hp: 2.9, bgm: 'vs_strong', moves: [548, 56, 453, 370],
-  tele: blast(K('하이드로펌프', 'Hydro Pump'), 11, ['rows', 'cross', 'near', 'cols']),
+  tele: blast(K('하이드로펌프', 'Hydro Pump'), 11, ['bombs', 'bowtie', 'near', 'cols']),
   sig: { use: [WSIG.secretSword], at: SIG_AT1 },
-  revive: rise({ aura: '#7fd4ff', form: K('각오의 모습', 'Resolute Form'), name: K('신비의칼', 'Secret Sword'), type: 1, pats: ['x', 'rows|cols', 'quad', 'far'], use: [WSIG.secretSword, WSIG.waterSpouts],
+  revive: rise({ aura: '#7fd4ff', form: K('각오의 모습', 'Resolute Form'), name: K('신비의칼', 'Secret Sword'), type: 1, pats: ['bars', 'rows|cols', 'frame', 'far'], use: [WSIG.secretSword, WSIG.waterSpouts],
     msg: K('케르디오의 뿔이 각오로 빛난다! 물기둥이 해협 위로 솟는다!', "Keldeo's horn shines with resolve! Water spouts rise over the Channel!") }),
   say: [
     N('해협의 물결 위를 달리는 작은 망아지 같은 포켓몬. 세 영웅에게 배우며 자란다는 케르디오다.', 'A Pokémon like a small colt runs over the waves of the Channel. It is Keldeo, who grows up learning from the three heroes.'),
@@ -260,9 +260,9 @@ export const KELDEO = legend({ sp: 647, lv: 72, hp: 2.9, bgm: 'vs_strong', moves
   join: K('케르디오가 각오를 다진 얼굴로 다가왔다. 함께 가고 싶어 한다!', 'Keldeo comes over with a resolute face. It wants to come along!') });
 
 export const TORNADUS = legend({ sp: 641, lv: 70, hp: 2.9, bgm: 'vs_strong', moves: [542, 403, 242, 369],
-  tele: blast(K('에어슬래시', 'Air Slash'), 2, ['ring', 'far', 'x', 'near']),
+  tele: blast(K('에어슬래시', 'Air Slash'), 2, ['rings', 'far', 'slash', 'near']),
   sig: { use: [WSIG.hurricane], at: SIG_AT1 },
-  revive: therian({ aura: '#cfe9ff', form: K('영물폼', 'Therian Forme'), name: K('폭풍', 'Hurricane'), type: 2, pats: ['far', 'star', 'checker', 'quad|ring'], use: [WSIG.hurricane, WSIG.hurricane],
+  revive: therian({ aura: '#cfe9ff', form: K('영물폼', 'Therian Forme'), name: K('폭풍', 'Hurricane'), type: 2, pats: ['far', 'diamond', 'checker', 'quad|scope'], use: [WSIG.hurricane, WSIG.hurricane],
     msg: K('토네로스가 영물의 모습으로 변했다! 모든 능력이 오르고, 돌풍이 바다를 뒤집는다!', 'Tornadus takes its Therian Forme! Every stat rises, and gusts turn the sea upside down!') }),
   say: [
     N('짙은 안개가 돌풍에 찢겨 나간다. 북해 위에서 구름을 탄 포켓몬이 웃고 있다. 바람을 일으켜 바다를 뒤집는 토네로스다.', 'Gusts tear the thick fog apart. Above the North Sea, a Pokémon riding a cloud is laughing. It is Tornadus, who raises winds that turn the sea over.'),
@@ -272,9 +272,9 @@ export const TORNADUS = legend({ sp: 641, lv: 70, hp: 2.9, bgm: 'vs_strong', mov
   join: K('토네로스가 구름에서 내려왔다. 함께 바람을 타고 가고 싶어 한다!', 'Tornadus comes down from its cloud. It wants to ride the wind with you!') });
 
 export const THUNDURUS = legend({ sp: 642, lv: 81, hp: 2.9, bgm: 'vs_strong', moves: [87, 435, 399, 359],
-  tele: blast(K('방전', 'Discharge'), 13, ['near', 'ring', 'cross', 'x']),
+  tele: blast(K('방전', 'Discharge'), 13, ['near', 'ring', 'cone', 'lattice']),
   sig: { use: [WSIG.thunder], at: SIG_AT1 },
-  revive: therian({ aura: '#fff07a', form: K('영물폼', 'Therian Forme'), name: K('번개', 'Thunder'), type: 13, pats: ['checker', 'far', 'quad', 'star|near'], use: [WSIG.thunder, WSIG.thunder],
+  revive: therian({ aura: '#fff07a', form: K('영물폼', 'Therian Forme'), name: K('번개', 'Thunder'), type: 13, pats: ['bombs', 'far', 'quad', 'bowtie|near'], use: [WSIG.thunder, WSIG.thunder],
     msg: K('볼트로스가 영물의 모습으로 변했다! 모든 능력이 오르고, 하늘 전체가 번개로 갈라진다!', 'Thundurus takes its Therian Forme! Every stat rises, and the whole sky splits with lightning!') }),
   say: [
     N('수리가오 해협의 밤하늘이 검게 물들고, 꼬리로 번개를 내리치는 포켓몬이 나타났다. 볼트로스다.', 'The night sky over the Surigao Strait turns black, and a Pokémon that strikes lightning with its tail appears. It is Thundurus.'),
@@ -284,9 +284,9 @@ export const THUNDURUS = legend({ sp: 642, lv: 81, hp: 2.9, bgm: 'vs_strong', mo
   join: K('볼트로스가 번개를 거두었다. 함께 가고 싶어 한다!', 'Thundurus draws its lightning in. It wants to come along!') });
 
 export const LANDORUS = legend({ sp: 645, lv: 77, hp: 3.0, bgm: 'vs_strong', moves: [414, 89, 157, 326],
-  tele: blast(K('지진', 'Earthquake'), 4, ['ring', 'near', 'cross', 'far']),
+  tele: blast(K('지진', 'Earthquake'), 4, ['pinwheel', 'near', 'blocks', 'far']),
   sig: { use: [WSIG.earthPower], at: SIG_AT1 },
-  revive: therian({ aura: '#ffc870', form: K('영물폼', 'Therian Forme'), name: K('대지의힘', 'Earth Power'), type: 4, pats: ['quad', 'checker', 'far|ring', 'star'], use: [WSIG.earthPower, WSIG.stoneEdge],
+  revive: therian({ aura: '#ffc870', form: K('영물폼', 'Therian Forme'), name: K('대지의힘', 'Earth Power'), type: 4, pats: ['quad', 'checker', 'far|rings', 'slash'], use: [WSIG.earthPower, WSIG.stoneEdge],
     msg: K('랜드로스가 영물의 모습으로 변했다! 모든 능력이 오르고, 진흙길이 사방에서 터져 오른다!', 'Landorus takes its Therian Forme! Every stat rises, and the mud road bursts open everywhere!') }),
   say: [
     N('끝없는 진흙길 위에 구름을 탄 포켓몬이 내려앉았다. 밭을 풍요롭게 한다는 땅의 수호자 랜드로스다.', 'A Pokémon riding a cloud settles on the endless mud road. It is Landorus, the guardian of the land who makes the fields rich.'),
@@ -308,10 +308,10 @@ const UP = 1.2;
 export const KYUREM = { sp: 646, lv: 180, lvMin: 72, lvUp: 2, lvCap: 180, hp: GREAT.hp * LEGEND_HP, atk: GREAT.atk * LEGEND_ATK, cap: GREAT.cap, buff: 1.2 * UP, sigUp: LEGEND_BLAST * TOP, final: true, retry: true, noWander: true,
   bgm: 'vs_kyurem', moves: [549, 304, 59, 337], joinMoves: [549, 553, 554, 337], // joining, it keeps Freeze Shock and Ice Burn
   tele: [
-    { name: K('눈보라', 'Blizzard'), every: 2, dmg: 0.5, stagger: 1, pats: ['cross', 'x', 'target', 'near', 'ring'], type: 15, first: 2 },
-    { at: 0.66, name: K('눈보라', 'Blizzard'), every: 2, dmg: 0.56, stagger: 1, pats: ['star', 'rows', 'cols', 'checker', 'ring', 'quad'], type: 15, summon: 2, summonSp: [614, 615],
+    { name: K('눈보라', 'Blizzard'), every: 2, dmg: 0.5, stagger: 1, pats: ['cone', 'lattice', 'target', 'near', 'ring'], type: 15, first: 2 },
+    { at: 0.66, name: K('눈보라', 'Blizzard'), every: 2, dmg: 0.56, stagger: 1, pats: ['blocks', 'rows', 'cols', 'checker', 'pinwheel', 'quad'], type: 15, summon: 2, summonSp: [614, 615],
       msg: K('큐레무의 몸에서 얼음 기둥이 솟는다! 얼음 포켓몬들이 몰려온다!', 'Pillars of ice burst from Kyurem! Ice Pokémon swarm in!') },
-    { at: 0.33, name: K('얼다세계', 'Glaciate'), every: 1, dmg: 0.6, stagger: 1, pats: ['quad', 'random', 'checker|cross', 'ring|x', 'far'], type: 15,
+    { at: 0.33, name: K('얼다세계', 'Glaciate'), every: 1, dmg: 0.6, stagger: 1, pats: ['quad', 'random', 'checker|bars', 'ring|stripes', 'far'], type: 15,
       msg: K('도시가 통째로 얼어붙는다! 공격이 한층 거세진다!', 'The whole city freezes over! The attacks grow fiercer!') },
   ],
   sig: { use: [WSIG.glaciate], at: SIG_AT2[0] },
@@ -321,8 +321,8 @@ export const KYUREM = { sp: 646, lv: 180, lvMin: 72, lvUp: 2, lvCap: 180, hp: GR
       line: [{ who: 646, name: K('블랙큐레무', 'Black Kyurem'), text: K('…이상도, 진실도, 모두 얼려 주마. 레시라무의 불꽃도, 제크로무의 번개도 이 몸의 것이다!', "...Ideals, truth, I will freeze them all. Reshiram's flame and Zekrom's lightning are mine now!") }],
       sig: { use: [WSIG.fusionFlare, WSIG.bolt, WSIG.flare, WSIG.fusionBolt], at: [0.88, 0.72, 0.56, 0.4, 0.24] },
       tele: [
-        { name: K('프리즈볼트', 'Freeze Shock'), every: 2, dmg: 0.5, stagger: 1, pats: ['rows', 'cols', 'cross', 'far', 'checker'], type: 13, first: 2 },
-        { at: 0.5, name: K('프리즈볼트', 'Freeze Shock'), every: 1, dmg: 0.56, stagger: 1, pats: ['checker|cross', 'rows|x', 'quad', 'star|near'], type: 13, summon: 2, summonSp: [604, 523] },
+        { name: K('프리즈볼트', 'Freeze Shock'), every: 2, dmg: 0.5, stagger: 1, pats: ['rows', 'cols', 'frame', 'far', 'diamond'], type: 13, first: 2 },
+        { at: 0.5, name: K('프리즈볼트', 'Freeze Shock'), every: 1, dmg: 0.56, stagger: 1, pats: ['checker|bowtie', 'rows|scope', 'quad', 'star|near'], type: 13, summon: 2, summonSp: [604, 523] },
       ] },
     { hp: 0.5, atk: 1.1, def: 1.2, cap: 0.44 * TOP, shiny: true, aura: '#fff4e0', tint: 'white', rename: K('화이트큐레무', 'White Kyurem'), bgm: 'vs_kyurem',
       msg: K('큐레무가 하얀 불꽃을 두르고 다시 일어섰다! 3페이즈, 화이트큐레무가 두 궁극기를 한꺼번에 쓴다!', 'Kyurem rises again wrapped in white fire! Phase three: White Kyurem uses two ultimates at once!'),

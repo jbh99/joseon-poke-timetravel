@@ -2,7 +2,8 @@
 //   const c = await import('/dev/check.js'); await c.checkAll()   → { problems: [...], stats }
 // Covers: story/quest references, sprites and moves, town reachability (NPCs, gate, exit),
 // world-map nodes, and every dungeon floor (stairs / boss reachable from the start).
-const PATS = ['cross', 'x', 'star', 'near', 'ring', 'far', 'rows', 'cols', 'checker', 'quad', 'random', 'target', 'orbs'];
+const PATS = ['cross', 'x', 'star', 'near', 'ring', 'far', 'rows', 'cols', 'checker', 'quad', 'random', 'target', 'orbs',
+  'slash', 'bars', 'diamond', 'rings', 'lattice', 'blocks', 'stripes', 'cone', 'bowtie', 'pinwheel', 'frame', 'scope', 'bombs']; // (the second row from 1.38)
 const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 
 export async function checkAll(opts = {}) {

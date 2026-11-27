@@ -2,7 +2,7 @@
 import { G, VW, VH, ui, COL, say, openMenu, toast, input, img, clamp, prefs, askText, fadeTo, shuffle } from './core.js';
 import { S, DEX, Mon, ITEMS, addItem, takeItem, countItem, itemDef, TYPE_COLORS, STATUS_NAME, ROSTER_MAX, recruit, LEGENDS, mode, MODE_NAMES, save, moveDesc, movePower, MAX_LV, teamPP } from './game.js';
 import { ERAS, QITEMS, FACTIONS, FACTION_TALK, FACTION_PICK, CELEBI, KOREA_LAST, isWorld } from './content.js';
-import { jingle, sfx, cry, setMuted } from './audio.js';
+import { jingle, sfx, cry, setMuted, setVolume, volume } from './audio.js';
 import { tr, LANG } from './i18n.js';
 import { iconPath } from './pmd.js';
 
@@ -806,13 +806,15 @@ export function sortieMenu(what, go) {
 export function settingsMenu(sel = 0) {
   const again = (i) => () => { G.onPrefs?.(); settingsMenu(i); };
   openMenu([
-    { label: tr('소리', 'Sound'), right: prefs.muted ? tr('끔', 'Off') : tr('켬', 'On'), fn: () => { setMuted(!prefs.muted); again(0)(); } },
-    { label: tr('게임 속도', 'Game speed'), right: tr(`${G.speed}배`, `${G.speed}x`), fn: () => { G.setSpeed?.(G.speed % 3 + 1); again(1)(); } },
+    { label: tr('소리', 'Sound'), right: () => (prefs.muted ? tr('끔', 'Off') : tr('켬', 'On')), fn: () => { setMuted(!prefs.muted); again(0)(); } },
+    // the volume: ◀ ▶ turn it by 10 (core.js Menu adj), a press or a tap takes it up by 10 and from 100 back to 0
+    { label: tr('소리 크기 ◀ ▶', 'Volume ◀ ▶'), right: () => `${volume()}%`, adj: (d) => setVolume(volume() + d * 10), fn: () => { setVolume(volume() >= 100 ? 0 : volume() + 10); again(1)(); } },
+    { label: tr('게임 속도', 'Game speed'), right: tr(`${G.speed}배`, `${G.speed}x`), fn: () => { G.setSpeed?.(G.speed % 3 + 1); again(2)(); } },
     // Easy / Normal / Hard can be switched any time; a challenge stays a challenge
     { label: tr('난이도', 'Difficulty'), right: MODE_NAMES()[S.mode] || MODE_NAMES().normal, fn: () => {
-      if (challenge()) { toast(tr('챌린지는 난이도를 바꿀 수 없다.', 'A challenge can\'t change difficulty.'), COL.red); return again(2)(); }
+      if (challenge()) { toast(tr('챌린지는 난이도를 바꿀 수 없다.', 'A challenge can\'t change difficulty.'), COL.red); return again(3)(); }
       const order = ['easy', 'normal', 'hard'];
-      S.mode = order[(order.indexOf(S.mode) + 1) % 3]; again(2)();
+      S.mode = order[(order.indexOf(S.mode) + 1) % 3]; again(3)();
     } },
     { label: tr('닫기', 'Close') },
   ], { title: tr('설정', 'Settings'), sel, x: 150, y: 50, w: 190 });

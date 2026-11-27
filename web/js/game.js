@@ -69,13 +69,13 @@ export function moveUsable(m) {
   if (mv.cat !== 2) return mv.power > 0 && ![38, 7, 26, 8].includes(mv.effect);
   return mv.effect in STAT_EFFECT || mv.effect in STATUS_MOVE || mv.effect in HEAL_MOVE;
 }
-// How far the team's moves reach (dungeon.js skillTargets), in tiles: a physical move 3, a special or status one 4
-// (1.37; from 1.27 to 1.36 a move turned to a foe within 4 tiles and past that flew on in a line where its user faced,
-// 4 tiles if physical and 5 otherwise). Within its reach a move turns by itself to the nearest foe, whichever way its
-// user faces, and hits for sure; a plain attack reaches as far as a physical move. Ordinary foes reach as far (1.37),
-// bosses keep to their lines (dungeon.js reachOf). A move that hits all around reaches as far around its user (1.33;
-// up to 1.32 the eight tiles beside it only).
-export const PHYS_REACH = 3, LINE_REACH = 4;
+// How far the team's moves reach (dungeon.js skillTargets), in tiles: 4, physical, special or status (1.38; in 1.37 a
+// physical move reached 3; from 1.27 to 1.36 a move turned to a foe within 4 tiles and past that flew on in a line
+// where its user faced, 4 tiles if physical and 5 otherwise). Within its reach a move turns by itself to the nearest
+// foe, whichever way its user faces, and hits for sure; a plain attack reaches BASIC_REACH tiles. Ordinary foes reach
+// as far (1.37), bosses keep to their lines (dungeon.js reachOf). A move that hits all around reaches as far around its
+// user (1.33; up to 1.32 the eight tiles beside it only).
+export const PHYS_REACH = 4, LINE_REACH = 4, BASIC_REACH = 3;
 // a move that hits all around its user (the main games' targets 4, both foes, and 8, everyone beside): Bubble, Growl,
 // Earthquake, Surf... (dungeon.js areaTiles)
 export const isArea = (d) => d.target === 4 || d.target === 8;
@@ -445,7 +445,9 @@ export function save(over = false) {
 // save still carried it until the town's autosave, after the result window, the walk home and a cleared dungeon's
 // story. A page reloaded or an app closed in between (a phone putting the app away) ended a journey whose run had
 // been walked out of or won. Such a reload now finds the journey as it stood before that run, in town. The save gets a
-// later time and a mark of its own, so the cloud takes it for the newer one.
+// later time and a mark of its own, so the cloud takes it for the newer one, and is told of it like any save (1.38: it
+// was not, so the cloud's copy kept the mark from the run's start until the town's next save, and another device that
+// continued it meanwhile got that run's wipe).
 export function clearRunMark() {
   try {
     if (clash(S.slot)) return false; // another window's save stands there (save asks about it)
@@ -454,6 +456,7 @@ export function clearRunMark() {
     o.inRun = null; o.savedAt = Math.max(Date.now(), (+o.savedAt || 0) + 1); o.rev = Math.random().toString(36).slice(2, 10);
     localStorage.setItem(slotKey(S.slot), JSON.stringify(o));
     see(S.slot);
+    G.onSaved?.(); // the cloud copy follows (cloud.js)
     return true;
   } catch (e) { return false; }
 }

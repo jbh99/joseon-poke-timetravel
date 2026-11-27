@@ -1,7 +1,7 @@
 // Web Audio: looping BGM rendered from the DP sound archive, jingles, cries and synthesized UI SFX.
-import { G, loadJSON, prefs, setPref, touchUI } from './core.js';
+import { G, loadJSON, prefs, setPref, touchUI, clamp } from './core.js';
 
-let ctx = null, master = null, bgmBus = null, sfxBus = null;
+let ctx = null, master = null, vol = null, bgmBus = null, sfxBus = null;
 let meta = {};
 const buffers = new Map();
 const cur = { id: null, src: null, gain: null };
@@ -44,7 +44,8 @@ export function unlockAudio() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)(CONTEXT_OPTIONS);
     master = ctx.createGain(); master.gain.value = prefs.muted ? 0 : 1;
-    if (touchUI) phoneOut(master); else master.connect(ctx.destination);
+    vol = ctx.createGain(); vol.gain.value = volumeGain(); vol.connect(ctx.destination);
+    if (touchUI) phoneOut(master, vol); else master.connect(vol);
     bgmBus = ctx.createGain(); bgmBus.gain.value = settings.bgm; bgmBus.connect(master);
     sfxBus = ctx.createGain(); sfxBus.gain.value = settings.sfx; sfxBus.connect(master);
     ctx.onstatechange = () => awaitGesture(ctx.state !== 'running' && !paused);
@@ -54,15 +55,15 @@ export function unlockAudio() {
   awaitGesture(ctx.state !== 'running' && !paused);
 }
 let pending = null;
-// touch screens: master -> drive -> compressor -> make-up -> limiter -> 1 dB of headroom -> speaker (see settings)
-function phoneOut(from) {
+// touch screens: master -> drive -> compressor -> make-up -> limiter -> 1 dB of headroom -> volume -> speaker (see settings)
+function phoneOut(from, to) {
   const gain = (v) => { const g = ctx.createGain(); g.gain.value = v; return g; };
   const comp = (threshold, knee, ratio, attack, release) => {
     const c = ctx.createDynamicsCompressor();
     for (const [k, v] of Object.entries({ threshold, knee, ratio, attack, release })) c[k].value = v;
     return c;
   };
-  [gain(1.4), comp(-22, 6, 6, 0.003, 0.2), gain(1.6), comp(-1, 0, 20, 0.001, 0.08), gain(0.89), ctx.destination]
+  [gain(1.4), comp(-22, 6, 6, 0.003, 0.2), gain(1.6), comp(-1, 0, 20, 0.001, 0.08), gain(0.89), to]
     .reduce((a, b) => { a.connect(b); return b; }, from);
 }
 // the Android app silences everything while it sits in the background
@@ -70,6 +71,20 @@ export function pauseAudio(on) {
   paused = on;
   if (!ctx) return;
   if (on) ctx.suspend(); else unlockAudio();
+}
+// The volume, 0 to 100 (1.38): what the player sets, kept with the other preferences. The gain goes by its square, so
+// that half on the slider sounds about half as loud (-12 dB) and the low end stays usable; 100 is the mix as it always
+// was. It is the last gain before the speaker, after a phone's compressor and limiter. Raising it from nothing while the
+// sound is switched off switches it on (the switch would otherwise leave the slider doing nothing).
+export const volume = () => clamp(Math.round(+prefs.volume), 0, 100) || (prefs.volume === 0 ? 0 : 100);
+const volumeGain = () => (volume() / 100) ** 2;
+export function setVolume(v) {
+  v = clamp(Math.round(+v) || 0, 0, 100);
+  setPref('volume', v);
+  if (vol) vol.gain.setTargetAtTime(volumeGain(), ctx.currentTime, 0.02);
+  G.onVolume?.(volumeGain()); // (a co-op guest's picture of the host's screen follows, netui.js)
+  if (v > 0 && prefs.muted) setMuted(false);
+  G.onPrefs?.();
 }
 // sound on/off silences the master bus (music, cries and effects; co-op guests hear the same mix)
 export function setMuted(on) { setPref('muted', on); if (master) master.gain.setValueAtTime(on ? 0 : 1, ctx.currentTime); G.onMuted?.(on); } // (onMuted: a co-op guest's picture of the host's screen follows, netui.js)
@@ -123,7 +138,7 @@ export function stopBgm(fadeSec = 0.6) {
 }
 export function currentBgm() { return cur.id; }
 // for playtests and on-device checks (window.__game.audio)
-export const audioState = () => ({ state: ctx?.state ?? 'none', bgm: cur.src ? cur.id : null, muted: !!prefs.muted, decoded: buffers.size });
+export const audioState = () => ({ state: ctx?.state ?? 'none', bgm: cur.src ? cur.id : null, muted: !!prefs.muted, volume: volume(), gain: vol ? vol.gain.value : null, decoded: buffers.size });
 
 // short fanfare that ducks the BGM, then restores it
 export async function jingle(id) {

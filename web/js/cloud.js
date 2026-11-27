@@ -433,6 +433,18 @@ function render() {
   $('cloud-status').textContent = st.busy && !stale() ? tr('잠시만요…', 'One moment…') : st.msg; // (stale: signed out, the work only winding down)
 }
 
+// A save made while the player still has to choose (nothing goes up until then). "Another device went further" was
+// found while this device's save stood as last synced, so only taking the cloud's was offered; once this device saves
+// too, both sides have moved on and it is a choice between the two saves, as a sync started afresh would make it (1.38:
+// up to 1.37 the panel went on offering only the cloud's save, and this device's play could not be sent up until the
+// page was loaded again). The save shown for this device is the one just made.
+function heldSave() {
+  const c = st.choice, local = c.slot === S.slot && readSave(c.slot);
+  if (!local) return;
+  st.choice = { slot: c.slot, local: meta(local, c.slot), cloud: c.cloud };
+  if (c.newer) toast(tr('이 기기에서도 진행했어요 · 클라우드 버튼에서 이어 갈 세이브를 골라 주세요', 'This device went on too · pick the save to keep under Cloud'), COL.blue, 5);
+  render();
+}
 let openPanel = () => {};
 export function initCloud() {
   const panel = $('cloud');
@@ -444,7 +456,8 @@ export function initCloud() {
   // every save goes up a moment later, unless the player still has to choose or another device moved on meanwhile
   let timer = null;
   G.onSaved = () => {
-    if (!st.email || st.choice) return;
+    if (!st.email) return;
+    if (st.choice) return heldSave();
     clearTimeout(timer);
     timer = setTimeout(autoSync, 2500);
   };

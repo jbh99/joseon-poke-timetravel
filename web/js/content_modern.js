@@ -16,8 +16,8 @@ export const spyLog = () => tr(`기지에 숨은 밀정을 찾자 · 지금 ${S.
 // HP +30% and attack +15% in 1.7 (was 2.35 / 0.9)
 const MEWTWO = { sp: 150, lv: 54, lvMin: 47, lvUp: 4, hp: 3.06, atk: 1.04, cap: 0.38, bgm: 'ba_secret2', moves: [94, 396, 247, 58],
   tele: [
-    { name: K('사이코키네시스', 'Psychic'), every: 3, dmg: 0.35, stagger: 1, pats: ['ring', 'target', 'x', 'checker'], type: 14, first: 2 },
-    { at: 0.5, name: K('파동탄', 'Aura Sphere'), every: 2, dmg: 0.39, stagger: 1, pats: ['star', 'quad', 'far', 'target', 'random'], type: 1,
+    { name: K('사이코키네시스', 'Psychic'), every: 3, dmg: 0.35, stagger: 1, pats: ['slash', 'target', 'bombs', 'checker'], type: 14, first: 2 },
+    { at: 0.5, name: K('파동탄', 'Aura Sphere'), every: 2, dmg: 0.39, stagger: 1, pats: ['rings', 'lattice', 'far', 'target', 'random'], type: 1,
       msg: K('뮤츠의 눈이 차갑게 빛난다! 공격이 빨라진다!', 'Mewtwo\'s eyes flash cold! Its attacks speed up!'),
       line: [{ who: 150, name: K('뮤츠', 'Mewtwo'), text: K('억지로 맺은 약속에 무슨 힘이 있지? 힘이 있는 자가 이기는 것이 이 세상이다!', 'What power does a promise forced on others have? In this world the strong win!') }] },
   ],
@@ -26,8 +26,8 @@ const MEWTWO = { sp: 150, lv: 54, lvMin: 47, lvUp: 4, hp: 3.06, atk: 1.04, cap: 
     msg: K('뮤츠가 쓰러지지 않는다! 억눌려 있던 힘이 한꺼번에 터져 나왔다!', 'Mewtwo will not fall! All the power it held back bursts out at once!'),
     line: [{ who: 150, name: K('뮤츠', 'Mewtwo'), text: K('…좋다. 이것이 내 진짜 힘이다. 그래도 너희의 뜻이 꺾이지 않는지 보겠다!', '...Very well. This is my true strength. Let us see whether your will still holds!') }],
     tele: [
-      { name: K('사이코브레이크', 'Psystrike'), every: 2, dmg: 0.42, stagger: 1, pats: ['star|ring', 'checker|cross', 'quad', 'target|far', 'rows|x'], type: 14, first: 2 },
-      { at: 0.5, name: K('미래예지', 'Future Sight'), every: 2, dmg: 0.46, stagger: 1, pats: ['random|ring', 'quad|target', 'checker|x', 'star|near'], type: 14, summon: 1, summonSp: [64, 97],
+      { name: K('사이코브레이크', 'Psystrike'), every: 2, dmg: 0.42, stagger: 1, pats: ['star|ring', 'checker|blocks', 'quad', 'target|far', 'rows|cone'], type: 14, first: 2 },
+      { at: 0.5, name: K('미래예지', 'Future Sight'), every: 2, dmg: 0.46, stagger: 1, pats: ['random|ring', 'quad|target', 'checker|pinwheel', 'stripes|near'], type: 14, summon: 1, summonSp: [64, 97],
         msg: K('각성한 뮤츠가 온 궁궐의 시간을 비튼다! 공격이 더욱 거세진다!', 'Awakened Mewtwo bends the very time of the palace! Its attacks grow fiercer still!') },
     ] },
   say: [
@@ -42,7 +42,7 @@ export const ERA_1905 = {
   year: 1905, years: '1905 – 1907', title: K('을사늑약', 'The Eulsa Treaty'), sub: K('빼앗긴 외교권, 헤이그로 간 특사', 'A stolen sovereignty, envoys to The Hague'),
   card: { set: T.autumn, mons: [150, 475, 178, 64] }, artProps: ['palace'], inn: 440, shop: 53,
   town: {
-    name: K('한성 (1905)', 'Hanseong (1905)'), bgm: 'city05_d', bgmN: 'city05_n', biome: 'spring', landmark: 'palace', pearl: 'C05', // Hearthome: the old capital round its palace
+    name: K('한성 (1905)', 'Hanseong (1905)'), bgm: 'dp_city05', bgmN: 'dp_city05', biome: 'spring', landmark: 'palace', pearl: 'C05', // Hearthome: the old capital round its palace
     houses: ['hanok', 'western', 'hanok', 'hanok', 'western', 'choga', 'hanok', 'western'], props: ['persimmon', 'maple', 'lamp', 'pole', 'rickshaw', 'jars', 'lantern'],
   },
   world: 'road_f',
@@ -61,7 +61,7 @@ export const ERA_1905 = {
   dungeons: {
     jungmyeong: { name: K('경운궁 중명전', 'Jungmyeongjeon Hall'), tiles: T.library, floors: 4, lv: [46, 50], mons: [92, 93, 96, 97, 198, 200, 202, 203, 281, 355], bgm: 'd_ginlobby',
       tint: 'rgba(90,40,120,0.12)', boss: MEWTWO },
-    jeongdong: { name: K('정동 골목', 'Jeongdong Lanes'), tiles: T.street, floors: 3, lv: [45, 49], mons: [19, 20, 52, 53, 198, 228, 431, 432, 163], bgm: 'road_b' },
+    jeongdong: { name: K('정동 골목', 'Jeongdong Lanes'), tiles: T.street, floors: 3, lv: [45, 49], mons: [19, 20, 52, 53, 198, 228, 431, 432, 163], bgm: 'dp_road_b' },
   },
   npcs: [
     { id: 'gallade05', sp: 475, name: K('궁궐 시위대 엘레이드', 'Palace Guard Gallade'), x: 22, y: 15, say: [{ text: K('궁궐을 지키는 것이 우리 시위대의 일이오. 그런데 오늘 밤은 칼을 뽑을 수조차 없구려.', 'Guarding the palace is our duty. Yet tonight we cannot even draw our swords.') }] },
@@ -105,21 +105,21 @@ const DARKRAI_REVIVE = [
   { hp: 0.6, atk: 1.15, cap: 0.36, aura: '#7a3cff', form: K('악몽', 'Nightmare'),
     msg: K('다크라이가 쓰러지지 않는다! 악몽이 짙어지며 다시 일어섰다!', "Darkrai won't go down! The nightmare deepens as it rises again!"),
     tele: [
-      { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.4, stagger: 1, pats: ['ring', 'target', 'checker', 'x|near', 'quad'], type: 17, first: 2 },
-      { at: 0.5, name: K('나이트메어', 'Bad Dreams'), every: 2, dmg: 0.46, stagger: 1, pats: ['ring|x', 'target|checker', 'quad|near', 'star', 'random|cross'], type: 17,
+      { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.4, stagger: 1, pats: ['frame', 'target', 'checker', 'bars|near', 'quad'], type: 17, first: 2 },
+      { at: 0.5, name: K('나이트메어', 'Bad Dreams'), every: 2, dmg: 0.46, stagger: 1, pats: ['ring|diamond', 'target|checker', 'quad|near', 'star', 'random|scope'], type: 17,
         msg: K('악몽이 걷잡을 수 없이 번진다! 공격이 더욱 거세진다!', 'The nightmare spreads out of control! Its attacks grow fiercer still!') },
     ],
     sig: { use: [SIG.void, SIG.shadow], at: SIG_AT2 } },
   { hp: 0.45, atk: 1.1, def: 1.2, cap: 0.38, aura: '#d02050', form: K('칠흑', 'Pitch Black'),
     msg: K('다크라이가 또다시 일어선다! 칠흑 같은 어둠이 모든 것을 삼킨다!', 'Darkrai rises yet again! A pitch-black darkness swallows everything!'),
     line: [{ who: 491, name: K('다크라이', 'Darkrai'), text: K('…깨어 있으려 할수록 악몽은 깊어진다. 끝까지 버틸 수 있겠느냐.', '...The harder you try to stay awake, the deeper the nightmare. Can you hold out to the end?') }],
-    tele: [{ name: K('영원한 악몽', 'Endless Nightmare'), every: 2, dmg: 0.5, stagger: 1, pats: ['ring|target', 'checker|x', 'quad|near', 'star|far', 'random|cross', 'rows|cols'], type: 17, first: 2 }],
+    tele: [{ name: K('영원한 악몽', 'Endless Nightmare'), every: 2, dmg: 0.5, stagger: 1, pats: ['ring|target', 'checker|bowtie', 'quad|near', 'star|far', 'random|bombs', 'rows|cols'], type: 17, first: 2 }],
     sig: { use: [SIG.shadow, SIG.dark, SIG.void], at: [[0.75, 0.45, 0.2], [0.7, 0.35]] } },
 ];
 // December 12: the town itself turns into the battlefield (a 'battle' step started by talking to the officer), where
 // Darkrai fights alone, 25% stronger in HP and every stat (buff) on top of the Hanahoe side's 15% (foeBuff)
 const DARKRAI_1212 = { sp: 491, lv: 70, lvMin: 63, lvUp: 4, hp: 1.35, atk: 0.8, cap: 0.32, buff: 1.25, bgm: 'ba_secret1', moves: [399, 95, 185, 98],
-  tele: { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.34, pats: ['ring', 'target', 'checker', 'x', 'near'], type: 17 },
+  tele: { name: K('나이트메어', 'Bad Dreams'), every: 3, dmg: 0.34, pats: ['rings', 'target', 'checker', 'slash', 'near'], type: 17 },
   sig: DARKRAI_SIG, revive: DARKRAI_REVIVE, // three phases: Dark Void, then Shadow Force, then Dark Pulse as well
   say: [
     { who: 'narr', text: K('12월 12일 밤. 반란군의 탱크 소리가 울리는 거리 한가운데, 어둠이 사람의 모양으로 일어섰다.', 'The night of December 12. In the middle of streets echoing with the rebels\' tanks, the darkness rose in a human-like shape.') },
@@ -130,11 +130,11 @@ const DARKRAI_1212 = { sp: 491, lv: 70, lvMin: 63, lvUp: 4, hp: 1.35, atk: 0.8, 
 
 // ---------------------------------------------------------------- the last quest: Arceus (until now the 1950 finale)
 const ARCEUS_TELE = [
-  { name: '심판의 뭉치', every: 2, dmg: 0.5, stagger: 1, pats: ['cross', 'x', 'target', 'near', 'ring'], type: 0, first: 2 },
-  { at: 0.66, name: '심판의 뭉치', every: 2, dmg: 0.56, stagger: 1, pats: ['star', 'rows', 'cols', 'checker', 'ring', 'quad'], type: 16, typeTo: 16, summon: 2, summonSp: [436, 343],
+  { name: '심판의 뭉치', every: 2, dmg: 0.5, stagger: 1, pats: ['cone', 'lattice', 'target', 'near', 'ring'], type: 0, first: 2 },
+  { at: 0.66, name: '심판의 뭉치', every: 2, dmg: 0.56, stagger: 1, pats: ['blocks', 'rows', 'cols', 'checker', 'pinwheel', 'quad'], type: 16, typeTo: 16, summon: 2, summonSp: [436, 343],
     msg: '아르세우스가 용의 플레이트를 해방했다! 타입이 드래곤으로 바뀌었다!',
     line: [{ who: 493, name: '아르세우스', text: '…아직이다. 너희가 지켜 온 마음을, 끝까지 보여 다오.' }] },
-  { at: 0.33, name: '창세의 빛', every: 1, dmg: 0.65, stagger: 1, pats: ['quad', 'random', 'checker|cross', 'ring|x', 'target|rows', 'far'], type: 17, typeTo: 17,
+  { at: 0.33, name: '창세의 빛', every: 1, dmg: 0.65, stagger: 1, pats: ['quad', 'random', 'checker|bars', 'ring|stripes', 'target|rows', 'far'], type: 17, typeTo: 17,
     msg: '아르세우스가 어둠의 플레이트를 꺼내 들었다! 공격이 한층 거세진다!',
     line: [{ who: 493, name: '아르세우스', text: '시간이 시작되기 전의 빛이다. 피할 수 있겠느냐!' }] },
 ];
@@ -145,8 +145,8 @@ const ARCEUS_REVIVE = { hp: 2 / 3, atk: 1.35, shiny: true, cap: 0.34, aura: '#ff
   msg: K('아르세우스가 쓰러지지 않는다! 온몸이 황금빛으로 물들었다!', 'Arceus refuses to fall! Its whole body turns to gold!'),
   line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('…좋다. 이것이 창조의 진짜 모습이다. 마지막까지 버텨 보아라!', '...Very well. This is the true face of creation. Hold out to the very end!') }],
   tele: [
-    { name: K('황금 심판', 'Golden Judgment'), orbName: JUDGMENT, every: 2, dmg: 0.55, stagger: 1, pats: ['orbs', 'star|ring', 'orbs|cross', 'checker|cross', 'quad', 'orbs|x', 'rows|x', 'cols|near', 'target|far'], type: 0, first: 2 },
-    { at: 0.5, name: K('황금 창세', 'Golden Genesis'), orbName: JUDGMENT, every: 1, dmg: 0.68, stagger: 1, pats: ['orbs|target', 'quad|target', 'random|cross', 'orbs|ring', 'checker|x', 'ring|rows', 'orbs|cols', 'star|far', 'cols|near'], type: 17, summon: 2, summonSp: [436, 343],
+    { name: K('황금 심판', 'Golden Judgment'), orbName: JUDGMENT, every: 2, dmg: 0.55, stagger: 1, pats: ['orbs', 'star|ring', 'orbs|cross', 'checker|diamond', 'quad', 'orbs|x', 'rows|frame', 'cols|near', 'target|far'], type: 0, first: 2 },
+    { at: 0.5, name: K('황금 창세', 'Golden Genesis'), orbName: JUDGMENT, every: 1, dmg: 0.68, stagger: 1, pats: ['orbs|target', 'quad|target', 'random|bowtie', 'orbs|ring', 'checker|scope', 'ring|rows', 'orbs|cols', 'star|far', 'cols|near'], type: 17, summon: 2, summonSp: [436, 343],
       msg: K('황금빛 아르세우스가 모든 플레이트를 한꺼번에 해방했다!', 'Golden Arceus unleashes every plate at once!'),
       line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('이 빛을 견뎌 낸다면… 너희에게 이 시대의 꽃잎을 맡기겠다.', 'Endure this light... and I will entrust you with this era\'s petal.') }] },
   ] };
@@ -157,7 +157,7 @@ const ARCEUS_REVIVE3 = { hp: 0.5, atk: 1.1, def: 1.2, shiny: true, cap: 0.36, au
   msg: K('아르세우스가 또다시 일어선다! 모든 플레이트가 하나로 겹쳐지며 무지갯빛을 내뿜는다!', 'Arceus rises yet again! Every plate merges into one, blazing with rainbow light!'),
   line: [{ who: 493, shiny: true, name: K('아르세우스', 'Arceus'), text: K('…이것이 마지막이다. 시간과 공간이 태어나기 전의 힘, 받아 보아라!', '...This is the last. The power from before time and space were born: take it!') }],
   tele: [
-    { name: K('창세의 심판', 'Genesis Judgment'), orbName: JUDGMENT, every: 1, dmg: 0.6, stagger: 1, pats: ['orbs|cross', 'orbs|x', 'star|orbs', 'quad|target', 'checker|ring', 'random|cols', 'orbs|rows'], type: 0, first: 2 },
+    { name: K('창세의 심판', 'Genesis Judgment'), orbName: JUDGMENT, every: 1, dmg: 0.6, stagger: 1, pats: ['orbs|cross', 'orbs|x', 'star|orbs', 'quad|target', 'slash|bombs', 'random|cols', 'orbs|rows'], type: 0, first: 2 },
     { at: 0.4, name: K('무한의 심판', 'Endless Judgment'), orbName: JUDGMENT, every: 1, dmg: 0.7, stagger: 1, pats: ['orbs|star', 'orbs|quad', 'checker|cross|orbs', 'ring|x|orbs', 'target|far|orbs'], type: 17, summon: 2, summonSp: [436, 343],
       msg: K('아르세우스의 빛이 끝없이 쏟아진다! 공격이 한층 거세진다!', 'Arceus\'s light pours down without end! Its attacks grow fiercer!') },
   ],
@@ -224,7 +224,7 @@ export const ERA_1979 = {
   year: 1979, years: '1979 – 1980', title: K('10·26과 12·12', 'October 26 and December 12'), sub: K('끝나지 않은 겨울, 기다리는 봄', 'A winter that would not end, a spring yet to come'),
   card: { set: T.street, mons: [491, 448, 475, 430] }, artProps: [], inn: 242, shop: 52,
   town: {
-    name: K('서울 (1979)', 'Seoul (1979)'), bgm: 'city09_d', bgmN: 'city09_n', biome: 'modern', landmark: null, pearl: 'C06', // Pastoria's streets: where the night of December 12 is fought
+    name: K('서울 (1979)', 'Seoul (1979)'), bgm: 'dp_city06', bgmN: 'dp_city06', biome: 'modern', landmark: null, pearl: 'C06', // Pastoria's streets: where the night of December 12 is fought
     houses: ['western', 'western', 'hanok', 'western', 'western', 'hanok', 'western', 'choga'], props: ['pole', 'lamp', 'pole', 'lamp', 'crates', 'baretree'],
   },
   world: 'city08_n',
@@ -246,7 +246,7 @@ export const ERA_1979 = {
       mons: [262, 229, 430, 461, 435, 452, 359], tint: 'rgba(20,24,70,0.30)',
       battle: { town: null, foeBuff: 1.15 },
       boss: DARKRAI_1212 },
-    cheonggye: { name: K('청계천 판자촌', 'Cheonggyecheon Shanties'), tiles: T.alley, floors: 3, lv: [60, 64], mons: [88, 89, 19, 20, 109, 110, 52, 53, 41, 42], bgm: 'road_a' },
+    cheonggye: { name: K('청계천 판자촌', 'Cheonggyecheon Shanties'), tiles: T.alley, floors: 3, lv: [60, 64], mons: [88, 89, 19, 20, 109, 110, 52, 53, 41, 42], bgm: 'dp_road_f' },
     // the last quest: Mt. Coronet, four stages (FINALE): Palkia, Dialga, the Spear Pillar where the Azure Flute they
     // leave behind brings down the stairs, and the Hall of Origin at their top, where Arceus waits
     origin: { name: K('천관산', 'Mt. Coronet'), tiles: T.rift, floors: 4, lv: [66, 70], mons: [], bgm: 'd_mount2', climb: true, stages: FINALE,
@@ -307,22 +307,22 @@ export const MODERN_QITEMS = {
 // These legends can be fought again until they join, never move on to later eras, and stay closed in a challenge.
 const got = (sp) => !!S.flags['got_' + sp];
 const REGI = (sp, name, moves, tele, extra = {}) => ({ sp, lv: 60, lvMin: 54, lvUp: 4, hp: 1.9, atk: 0.85, cap: 0.34, bgm: 'ba_secret2', moves, tele, retry: true, noWander: true, ...extra });
-const REGISTEEL = REGI(379, K('레지스틸', 'Registeel'), [442, 309, 334, 89], { name: K('러스트캐논', 'Flash Cannon'), every: 3, dmg: 0.34, pats: ['cross', 'x', 'rows', 'cols'], type: 8 }, {
+const REGISTEEL = REGI(379, K('레지스틸', 'Registeel'), [442, 309, 334, 89], { name: K('러스트캐논', 'Flash Cannon'), every: 3, dmg: 0.34, pats: ['lattice', 'rings', 'rows', 'cols'], type: 8 }, {
   say: [
     { who: 'narr', text: K('점자가 새겨진 강철 거인이 삐걱이며 몸을 일으켰다. 몸속 깊은 곳에서 기계 소리 같은 울림이 난다.', 'The steel colossus carved with braille creaks to its feet. A machine-like hum rises from deep inside it.') },
     { who: 379, name: K('레지스틸', 'Registeel'), text: K('…삐… 삐빗… 강철… 시대… 깨어남…', '...Bee... bee-beep... steel... era... awakening...') }],
   after: [{ who: 379, name: K('레지스틸', 'Registeel'), text: K('…삐빗. 바위와 얼음의 형제가 깨어난다. 셋이 모이면, 거인의 신전이 열린다.', '...Beep. The brothers of rock and ice awaken. When three gather, the giant\'s temple opens.') }],
   join: K('레지스틸이 묵직하게 걸어왔다. 형제들을 찾으러 함께 가고 싶어 한다!', 'Registeel walks over heavily. It wants to come along to find its brothers!') });
-const REGIROCK = REGI(377, K('레지락', 'Regirock'), [444, 157, 89, 7], { name: K('스톤에지', 'Stone Edge'), every: 3, dmg: 0.34, pats: ['near', 'ring', 'rows', 'checker'], type: 5 }, {
+const REGIROCK = REGI(377, K('레지락', 'Regirock'), [444, 157, 89, 7], { name: K('스톤에지', 'Stone Edge'), every: 3, dmg: 0.34, pats: ['near', 'cone', 'rows', 'blocks'], type: 5 }, {
   say: [{ who: 377, name: K('레지락', 'Regirock'), text: K('…쿠웅… 쿠웅… (바위로 된 몸이 무너진 산 속에서 일어섰다!)', '...Boom... boom... (A body of stone rises from the collapsed mountain!)') }],
   after: [{ who: 377, name: K('레지락', 'Regirock'), text: K('…쿠웅. 강철의 형제가 너희와 함께 있구나.', '...Boom. Our steel brother is with you.') }],
   join: K('레지락이 바위 몸을 낮추었다. 함께 가고 싶어 한다!', 'Regirock lowers its stone body. It wants to come along!') });
-const REGICE = REGI(378, K('레지아이스', 'Regice'), [58, 59, 85, 63], { name: K('눈보라', 'Blizzard'), every: 3, dmg: 0.34, pats: ['cols', 'rows', 'far', 'x'], type: 15 }, {
+const REGICE = REGI(378, K('레지아이스', 'Regice'), [58, 59, 85, 63], { name: K('눈보라', 'Blizzard'), every: 3, dmg: 0.34, pats: ['cols', 'rows', 'stripes', 'pinwheel'], type: 15 }, {
   say: [{ who: 378, name: K('레지아이스', 'Regice'), text: K('…피이잉… (만 년 얼음으로 된 거인이 차가운 숨을 내뿜는다!)', '...Peeeng... (A giant of ten-thousand-year ice breathes out a freezing breath!)') }],
   after: [{ who: 378, name: K('레지아이스', 'Regice'), text: K('…피잉. 셋이 모이면, 선단의 신전에서 거인이 깨어난다.', '...Peeng. When the three gather, the giant wakes in the Snowpoint temple.') }],
   join: K('레지아이스가 차가운 빛을 거두었다. 함께 가고 싶어 한다!', 'Regice dims its icy light. It wants to come along!') });
 const REGIGIGAS = { sp: 486, lv: 64, lvMin: 58, lvUp: 4, hp: 2.0, atk: 0.9, cap: 0.36, slow: 5, retry: true, noWander: true, bgm: 'ba_secret2', moves: [276, 5, 8, 9],
-  tele: { name: K('거인의 손바닥', 'Giant\'s Palm'), every: 4, dmg: 0.36, pats: ['quad', 'near', 'cross', 'rows'], type: 0 },
+  tele: { name: K('거인의 손바닥', 'Giant\'s Palm'), every: 4, dmg: 0.36, pats: ['frame', 'near', 'bars', 'rows'], type: 0 },
   say: [
     { who: 'narr', text: K('세 거인이 신전 바닥의 점자 앞에 나란히 섰다. 얼음 아래 잠들어 있던 거대한 몸이 천천히 눈을 떴다.', 'The three giants stand side by side before the braille on the temple floor. The vast body asleep beneath the ice slowly opens its eyes.') },
     { who: 486, name: K('레지기가스', 'Regigigas'), text: K('……대륙을 끌어 옮긴 거인이 깨어났다. 처음에는 힘이 다 돌아오지 않았지만, 곧 그 힘이 돌아올 것이다!', '......The giant that towed the continents has woken. Its strength hasn\'t fully returned yet, but it soon will!') },
@@ -370,11 +370,11 @@ export function addPostWar(eras) {
 // name, as for Mewtwo); and last nothing but its great moves one after the other, every other one Dragon Ascent's walls of
 // wind (content_k.js SIG.ascent).
 const RAYQUAZA = { sp: 384, lv: 66, lvMin: 60, lvUp: 4, hp: 2.0, atk: 0.8, cap: 0.34, buff: 1.35, retry: true, noWander: true, bgm: 'ba_secret2', moves: [200, 406, 245, 89], joinMoves: [200, 406, 245, 89],
-  tele: { name: K('용의파동', 'Dragon Pulse'), every: 3, dmg: 0.36, pats: ['x', 'star', 'cols', 'far'], type: 16,
+  tele: { name: K('용의파동', 'Dragon Pulse'), every: 3, dmg: 0.36, pats: ['diamond', 'scope', 'cols', 'far'], type: 16,
     mix: [
-      { name: K('용의파동', 'Dragon Pulse'), type: 16, dmg: 0.36, pats: ['x', 'star', 'cols', 'far'] },
-      { name: K('에어슬래시', 'Air Slash'), type: 2, dmg: 0.34, pats: ['rows', 'checker', 'ring', 'cross'] },
-      { name: K('지진', 'Earthquake'), type: 4, dmg: 0.36, pats: ['near', 'ring', 'quad'] },
+      { name: K('용의파동', 'Dragon Pulse'), type: 16, dmg: 0.36, pats: ['bowtie', 'bombs', 'cols', 'far'] },
+      { name: K('에어슬래시', 'Air Slash'), type: 2, dmg: 0.34, pats: ['rows', 'checker', 'rings', 'slash'] },
+      { name: K('지진', 'Earthquake'), type: 4, dmg: 0.36, pats: ['near', 'lattice', 'quad'] },
     ] },
   sig: { use: [SIG.meteor], at: SIG_AT1 },
   revive: [
@@ -383,8 +383,8 @@ const RAYQUAZA = { sp: 384, lv: 66, lvMin: 60, lvUp: 4, hp: 2.0, atk: 0.8, cap: 
       line: [{ who: 384, name: K('레쿠쟈', 'Rayquaza'), text: K('……하늘이 내게 힘을 빌려준다. 끝까지 보여 다오!', '......The sky lends me its strength. Show me everything you have!') }],
       sig: { use: [SIG.gale, SIG.beam], at: SIG_AT2 },
       tele: [
-        { name: K('역린', 'Outrage'), every: 2, dmg: 0.4, stagger: 1, pats: ['x|cols', 'star', 'far|rows', 'cross'], type: 16, first: 2 },
-        { at: 0.5, name: K('용성군', 'Draco Meteor'), every: 2, dmg: 0.44, stagger: 1, pats: ['random', 'quad|target', 'star|ring', 'checker'], type: 16,
+        { name: K('역린', 'Outrage'), every: 2, dmg: 0.4, stagger: 1, pats: ['cone|cols', 'star', 'far|rows', 'blocks'], type: 16, first: 2 },
+        { at: 0.5, name: K('용성군', 'Draco Meteor'), every: 2, dmg: 0.44, stagger: 1, pats: ['random', 'quad|target', 'pinwheel|stripes', 'checker'], type: 16,
           msg: K('메가레쿠쟈가 하늘 끝에서 유성을 불러냈다!', 'Mega Rayquaza calls meteors down from the edge of the sky!') },
       ] },
     { hp: 0.7, atk: 1.1, def: 1.15, cap: 0.44, form: K('화룡점정', 'Dragon Ascent'), aura: '#d8ffe8',
@@ -403,14 +403,14 @@ const RAYQUAZA = { sp: 384, lv: 66, lvMin: 60, lvUp: 4, hp: 2.0, atk: 0.8, cap: 
 // its second page the Speed Forme, which dodges (game.js FORMES eva). HP 40% over 1.24's.
 const DEOXYS = { sp: 386, lv: 68, lvMin: 62, lvUp: 4, hp: 2.3 * 1.4, atk: 0.9, cap: 0.36, retry: true, noWander: true, bgm: 'ba_secret1', moves: [354, 94, 245, 276],
   tele: [
-    { name: K('사이코부스트', 'Psycho Boost'), every: 3, dmg: 0.36, stagger: 1, pats: ['random', 'checker', 'target', 'ring'], type: 14, first: 2 },
-    { at: 0.5, forme: 'a', name: K('사이코부스트', 'Psycho Boost'), every: 2, dmg: 0.42, stagger: 1, pats: ['star', 'quad', 'far', 'checker|x', 'target'], type: 14,
+    { name: K('사이코부스트', 'Psycho Boost'), every: 3, dmg: 0.36, stagger: 1, pats: ['random', 'frame', 'target', 'bars'], type: 14, first: 2 },
+    { at: 0.5, forme: 'a', name: K('사이코부스트', 'Psycho Boost'), every: 2, dmg: 0.42, stagger: 1, pats: ['scope', 'quad', 'far', 'checker|diamond', 'target'], type: 14,
       msg: K('테오키스가 어택폼으로 모습을 바꿨다! 공격이 한층 거세진다!', 'Deoxys changes into its Attack Forme! Its attacks grow fiercer!') },
   ],
   revive: { hp: 0.6, atk: 1.1, cap: 0.4, forme: 's', aura: '#ff8a5a',
     msg: K('테오키스가 쓰러지지 않는다! 스피드폼으로 바뀌어 다시 일어섰다! (공격이 잘 맞지 않는다)', 'Deoxys will not fall! It rises again in its Speed Forme! (attacks hit it less often)'),
     tele: [
-      { name: K('사이코부스트', 'Psycho Boost'), every: 2, dmg: 0.4, stagger: 1, pats: ['ring|x', 'random', 'checker|cross', 'target|far'], type: 14, first: 2 },
+      { name: K('사이코부스트', 'Psycho Boost'), every: 2, dmg: 0.4, stagger: 1, pats: ['ring|bowtie', 'random', 'checker|bombs', 'target|far'], type: 14, first: 2 },
     ] },
   say: [
     { who: 'narr', text: K('하늘기둥 꼭대기에 붉은 별똥별이 내리꽂혔다! 깨진 운석 속에서 무언가가 일어선다!', 'A red shooting star slams into the top of the Sky Pillar! Something rises from the broken meteorite!') },

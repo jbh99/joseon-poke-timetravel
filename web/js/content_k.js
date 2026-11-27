@@ -40,6 +40,44 @@ export const SIG = {
 };
 // a form's first signature move at 60% of its HP; the second form's two or three spread over its bar
 export const SIG_AT1 = [0.6], SIG_AT2 = [[0.75, 0.4], [0.8, 0.55, 0.3]];
+// A legend whose story fight names no signature move (boss.sig) uses its species' from Lv 30 on (1.38, the user's
+// wish; dungeon.js spawnBoss): the move the main games give that Pokemon alone where there is one (Psystrike, Magma
+// Storm, Crush Grip), else the great move it is known for. The others have theirs already: as their fight's sig (Dialga,
+// Palkia, Giratina, Groudon's Precipice Blades, Genesect's Techno Blast and so on) or as the name of their telegraphed
+// blast (Lugia's Aeroblast, Ho-Oh's Sacred Fire, Latias's Mist Ball, Latios's Luster Purge, Jirachi's Doom Desire,
+// Deoxys's Psycho Boost, Arceus's Judgment).
+// A legend's own battle music where the games have one (1.38), whatever its fight's dungeon names: Pearl's for
+// Dialga and Palkia, the lake guardians, Sinnoh's other legends and Arceus; Black's for the legends met standing in
+// their place (the Swords of Justice, Victini and the other mythicals) and for the roaming Forces of Nature. Reshiram,
+// Zekrom and Kyurem have theirs already (their fights' own bgm), and the older legends have none in these two games.
+export const SP_BGM = {
+  483: 'dp_ba_dpoke1', 484: 'dp_ba_dpoke1',
+  480: 'dp_ba_dpoke2', 481: 'dp_ba_dpoke2', 482: 'dp_ba_dpoke2',
+  485: 'dp_ba_secret1', 486: 'dp_ba_secret1', 487: 'dp_ba_secret1', 488: 'dp_ba_secret1', 491: 'dp_ba_secret1', 492: 'dp_ba_secret1', 489: 'dp_ba_secret1', 490: 'dp_ba_secret1',
+  493: 'dp_ba_secret2',
+  638: 'ba_dpoke1', 639: 'ba_dpoke1', 640: 'ba_dpoke1', 647: 'ba_dpoke1', 494: 'ba_dpoke1', 648: 'ba_dpoke1', 649: 'ba_dpoke1',
+  641: 'ba_dpoke2', 642: 'ba_dpoke2', 645: 'ba_dpoke2',
+};
+const storm = (ko, en, type, flash, whatKo, whatEn, o = {}) => ({ kind: 'storm', name: K(ko, en), type, dmg: 0.3, turns: 3, spots: 10, flash, what: K(whatKo, whatEn), ...o });
+const SHEER = storm('절대영도', 'Sheer Cold', 15, '#d8f4ff', '냉기', 'freezing air', { status: 'frz', chance: 0.15 });
+const ZAP = { kind: 'pulse', name: K('전자포', 'Zap Cannon'), type: 13, dmg: 0.32 };
+const FUTURE = storm('미래예지', 'Future Sight', 14, '#f0b0ff', '염력', 'psychic force');
+export const SP_SIG = {
+  144: SHEER, // Articuno
+  145: SIG.thunder, // Zapdos
+  146: storm('열풍', 'Heat Wave', 10, '#ffb060', '열풍', 'scorching wind', { status: 'brn' }), // Moltres
+  150: { kind: 'pulse', name: K('사이코브레이크', 'Psystrike'), type: 14, dmg: 0.34 }, // Mewtwo
+  243: SIG.thunder, // Raikou
+  244: storm('불대문자', 'Fire Blast', 10, '#ff9050', '불길', 'fire', { status: 'brn' }), // Entei
+  245: storm('하이드로펌프', 'Hydro Pump', 11, '#a0d8ff', '물기둥', 'water spouts'), // Suicune
+  377: ZAP, 378: ZAP, 379: ZAP, // Regirock, Regice, Registeel
+  480: FUTURE, 481: FUTURE, 482: FUTURE, // Uxie, Mesprit, Azelf
+  485: storm('마그마스톰', 'Magma Storm', 10, '#ff7a3a', '마그마', 'magma', { status: 'brn' }), // Heatran
+  486: { kind: 'blades', name: K('묵사발', 'Crush Grip'), type: 0, dmg: 0.36, // Regigigas
+    tell: (name) => [`${name}의 묵사발! 거대한 손이 땅을 움켜쥐며 금이 간다!`, `${name}'s Crush Grip! A giant hand grips the ground and it cracks!`] },
+  488: { kind: 'blades', name: K('사이코커터', 'Psycho Cut'), type: 14, dmg: 0.32, // Cresselia
+    tell: (name) => [`${name}의 사이코커터! 염력의 칼날이 바닥을 가르려 한다!`, `${name}'s Psycho Cut! Blades of psychic force are about to cut the floor!`] },
+};
 
 // dungeon chunk sets from PMD Blue Rescue Team (assets/pmd/tiles/<id>)
 export const T = {

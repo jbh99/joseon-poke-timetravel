@@ -68,7 +68,7 @@ const NORTH = {
     houses: ['choga', 'western', 'tent', 'hanok', 'choga', 'tent', 'hanok', 'tent'], props: ['crates', 'pole', 'jars', 'logs', 'campfire', 'lamp'],
   },
   town2: {
-    name: K('흥남 부두', 'Hungnam Docks'), bgm: 'city02_d', bgmN: 'city02_n', biome: 'snow', pearl: 'C09', // Snowpoint's snowy harbour: the December evacuation
+    name: K('흥남 부두', 'Hungnam Docks'), bgm: 'dp_city09', bgmN: 'dp_city09', biome: 'snow', pearl: 'C09', // Snowpoint's snowy harbour: the December evacuation
     houses: ['choga', 'tent', 'choga', 'western'], props: ['crates', 'logs', 'jars', 'campfire'], ships: ['boat'],
     npcs: [
       { id: 'lapras1950', sp: 131, name: K('라프라스', 'Lapras'), x: 22, y: 15, say: [{ text: K('부두에 사람들이 잔뜩 모였어. 남쪽으로 가는 배를 기다린대. 다시 돌아올 수 있을까…', 'The docks are packed with people waiting for ships south. Will they ever come back...') }] },
@@ -129,9 +129,9 @@ const primal = (o) => ({ hp: 0.7, atk: 1.25, cap: 0.4, aura: o.aura, rename: o.r
 // the enemy legend: 25% stronger in HP and every stat (buff)
 const COMMANDER = { lv: 60, lvMin: 54, lvUp: 3, hp: 1.5, atk: 0.85, cap: 0.32, buff: 1.25, noJoin: true, noWander: true, bgm: 'ba_dpoke1' };
 const GROUDON_CMD = { ...COMMANDER, sp: 383, moves: [89, 53, 157, 444],
-  tele: { name: K('대지의 힘', 'Earth Power'), every: 3, dmg: 0.32, pats: ['near', 'rows', 'cross', 'ring'], type: 4 },
+  tele: { name: K('대지의 힘', 'Earth Power'), every: 3, dmg: 0.32, pats: ['near', 'rows', 'stripes', 'bars'], type: 4 },
   sig: { use: [SIG.blades], at: CMD_SIG_AT },
-  revive: primal({ aura: '#ff6a2a', rename: K('원시 그란돈', 'Primal Groudon'), name: K('분화', 'Eruption'), type: 10, pats: ['near', 'rows', 'cross', 'ring', 'star'], use: [SIG.blades, SIG.eruption],
+  revive: primal({ aura: '#ff6a2a', rename: K('원시 그란돈', 'Primal Groudon'), name: K('분화', 'Eruption'), type: 10, pats: ['near', 'rows', 'frame', 'ring', 'diamond'], use: [SIG.blades, SIG.eruption],
     msg: K('그란돈이 쓰러지지 않는다! 땅속 깊은 곳의 힘을 끌어올려 원시회귀했다!', "Groudon won't go down! Drawing power from deep in the earth, it undergoes Primal Reversion!"),
     line: [{ who: 383, name: K('원시 그란돈', 'Primal Groudon'), text: K('그오오오오…!! 태곳적 대지의 힘이다. 끓어오르는 땅 위에서도 버틸 수 있겠느냐!', 'Grooooh...!! This is the power of the ancient land. Can you stand even on boiling ground?') }] }),
   say: [
@@ -140,9 +140,9 @@ const GROUDON_CMD = { ...COMMANDER, sp: 383, moves: [89, 53, 157, 444],
     { who: 'partner', text: K('그란돈이 북쪽 군대를 이끌고 있어! 가이오가가 함께 싸워 줄 거야. 시민들을 지키자!', 'Groudon leads the northern army! Kyogre will fight with us. Let\'s protect the people!') }],
   after: [{ who: 383, name: K('그란돈', 'Groudon'), text: K('…그르르. 이 땅을 지키려는 마음, 단단하구나. 오늘은 물러나겠다.', '...Grrr. Your will to defend this land is firm. Today I will fall back.') }] };
 const KYOGRE_CMD = { ...COMMANDER, sp: 382, moves: [57, 58, 87, 56],
-  tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 3, dmg: 0.32, pats: ['far', 'ring', 'cols', 'x'], type: 11 },
+  tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 3, dmg: 0.32, pats: ['far', 'bowtie', 'cols', 'scope'], type: 11 },
   sig: { use: [SIG.pulse], at: CMD_SIG_AT },
-  revive: primal({ aura: '#4a9aff', rename: K('원시 가이오가', 'Primal Kyogre'), name: K('해수스파우팅', 'Water Spout'), type: 11, pats: ['far', 'ring', 'cols', 'x', 'checker'], use: [SIG.pulse, SIG.thunder],
+  revive: primal({ aura: '#4a9aff', rename: K('원시 가이오가', 'Primal Kyogre'), name: K('해수스파우팅', 'Water Spout'), type: 11, pats: ['far', 'slash', 'cols', 'bombs', 'checker'], use: [SIG.pulse, SIG.thunder],
     msg: K('가이오가가 쓰러지지 않는다! 바다 깊은 곳의 힘을 끌어올려 원시회귀했다!', "Kyogre won't go down! Drawing power from the depths of the sea, it undergoes Primal Reversion!"),
     line: [{ who: 382, name: K('원시 가이오가', 'Primal Kyogre'), text: K('부오오오오…!! 태곳적 바다의 힘이다. 벼락이 내리치는 물결 속에서도 버틸 수 있겠느냐!', 'Boooooh...!! This is the power of the ancient sea. Can you hold out even in waves struck by lightning?') }] }),
   say: [
@@ -200,8 +200,8 @@ export const WAR = [
         field: [{ sp: 383, mul: 1.2, msg: (n) => tr(`낙동강 전선의 뜨거운 여름 볕에 ${n}의 힘이 끓어오른다! (능력 +20%)`, `The blazing summer sun over the Nakdong front makes ${n}'s power boil over! (stats +20%)`) }],
         boss: { sp: 445, lv: 64, lvMin: 58, lvUp: 4, hp: 2.2, atk: 0.95, cap: 0.35, bgm: 'ba_chanp', moves: [407, 89, 242, 337], // 600-class tier (dungeon.js bossTier) scales these
           tele: [
-            { name: K('지진', 'Earthquake'), every: 3, dmg: 0.38, stagger: 1, pats: ['near', 'ring', 'rows', 'cols'], type: 4, first: 2 },
-            { at: 0.5, name: K('드래곤다이브', 'Dragon Rush'), every: 2, dmg: 0.42, stagger: 1, pats: ['target', 'cross', 'x', 'star', 'quad'], type: 16,
+            { name: K('지진', 'Earthquake'), every: 3, dmg: 0.38, stagger: 1, pats: ['near', 'rings', 'lattice', 'cols'], type: 4, first: 2 },
+            { at: 0.5, name: K('드래곤다이브', 'Dragon Rush'), every: 2, dmg: 0.42, stagger: 1, pats: ['target', 'blocks', 'cone', 'star', 'quad'], type: 16,
               msg: K('한카리아스가 날개를 펼쳤다! 마하의 속도로 덮쳐 온다!', 'Garchomp spreads its wings! It\'s coming at Mach speed!'),
               line: [{ who: 445, name: K('한카리아스', 'Garchomp'), text: K('크롸아아!! 이 소리… 멈추지 않아… 전부 날려 버리겠다!', 'Grraaah!! This noise... it won\'t stop... I\'ll blow it all away!') }] },
           ],
@@ -222,7 +222,7 @@ export const WAR = [
           { who: 350, text: K('…아파, 차가워. 다리가 부서지는 소리에 놀란 밀로틱이 강물을 휘젓는다!', '...It hurts, it\'s cold. Startled by the bridge collapsing, Milotic is churning the river!') },
           { who: 'partner', text: K('다리에 매달린 사람들이 떨어지면 큰일이야! 밀로틱을 진정시키자!', 'If the people on the bridge fall it\'ll be a disaster! Calm Milotic!') }],
           after: [{ who: 350, text: K('…미안해. 사람들이 무사히 건널 수 있게 물살을 잔잔히 할게.', '...I\'m sorry. I\'ll calm the current so everyone can cross safely.') }] } },
-      chosin: { name: K('장진호', 'Chosin Reservoir'), tiles: T.snow, floors: 4, lv: [58, 62], mons: [87, 124, 215, 221, 225, 362, 365, 460, 461, 473], bgm: 'road_snow',
+      chosin: { name: K('장진호', 'Chosin Reservoir'), tiles: T.snow, floors: 4, lv: [58, 62], mons: [87, 124, 215, 221, 225, 362, 365, 460, 461, 473], bgm: 'dp_road_snow',
         tint: 'rgba(150,180,230,0.12)',
         boss: { sp: 460, lv: 64, bgm: 'ba_secret1', say: [
           { who: 460, text: K('부오오오… 이 산은 너무 춥다. 모두 얼어붙어 버려라…!', 'Booooh... This mountain is too cold. Let everything freeze...!') },
@@ -231,7 +231,7 @@ export const WAR = [
       baengma: { name: K('백마고지', 'White Horse Hill'), tiles: T.cliff, floors: 3, lv: [58, 62], legend: true, mons: [74, 75, 76, 95, 111, 112, 246, 247, 208], bgm: 'd_mount2',
         tint: 'rgba(90,70,50,0.10)',
         boss: { sp: 248, lv: 66, lvMin: 59, lvUp: 4, hp: 2.2, atk: 0.95, cap: 0.33, bgm: 'ba_secret2', moves: [242, 157, 89, 444], // 600-class tier (dungeon.js bossTier) scales these
-          tele: { name: K('스톤에지', 'Stone Edge'), every: 3, dmg: 0.36, stagger: 1, pats: ['cols', 'rows', 'near', 'checker', 'target'], type: 5 },
+          tele: { name: K('스톤에지', 'Stone Edge'), every: 3, dmg: 0.36, stagger: 1, pats: ['cols', 'stripes', 'near', 'pinwheel', 'target'], type: 5 },
           say: [
             { who: 'narr', text: K('1952년 10월, 열흘 동안 주인이 스물네 번이나 바뀐 고지. 포탄에 깎인 산 위에서 마기라스가 울부짖는다!', 'October 1952: a hill that changed hands twenty-four times in ten days. On the shell-carved summit, Tyranitar roars!') },
             { who: 248, name: K('마기라스', 'Tyranitar'), text: K('그아아앙!! 산이 깎여 나간다… 내 산을 돌려 다오!!', 'Graaah!! My mountain is being carved away... Give it back!!') },
@@ -241,7 +241,7 @@ export const WAR = [
       panmun: { name: K('판문점 · 시간의 틈', 'Panmunjom · Rift'), tiles: T.rift, floors: 4, lv: [60, 64], mons: [443, 444, 359, 197, 229, 247, 281, 429, 477, 356], bgm: 'd_mount2',
         // the rift's keeper: Salamence, stirred up by the torn sky (Arceus waits at the very end of the journey, in 1979)
         boss: { sp: 373, lv: 66, lvUp: 3, hp: 2.2, atk: 0.95, cap: 0.33, bgm: 'ba_dpoke1', moves: [337, 53, 242, 89], // 600-class tier (dungeon.js bossTier) scales these
-          tele: { name: K('용성군', 'Draco Meteor'), every: 3, dmg: 0.38, stagger: 1, pats: ['random', 'star', 'quad', 'far'], type: 16 },
+          tele: { name: K('용성군', 'Draco Meteor'), every: 3, dmg: 0.38, stagger: 1, pats: ['random', 'bars', 'frame', 'far'], type: 16 },
           say: [
             { who: 373, name: K('보만다', 'Salamence'), text: K('크오오오! 하늘을 나는 것이 꿈이었던 나다. 이 갈라진 하늘을 날게 두지 않겠다면, 힘으로 증명해 봐라!', 'Kroooh! I who dreamed of flight! If you would keep me from this torn sky, prove it with strength!') },
             { who: CELEBI, name: '세레비', text: K('시간의 틈 때문에 보만다가 흥분했어! 별이 떨어지는 칸을 피해!', 'The rift has Salamence riled up! Dodge where the stars fall!') }],

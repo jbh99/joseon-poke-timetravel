@@ -95,6 +95,9 @@ export function initNetUI() {
   // the sound of the host's screen is the guest's own to turn on and off, with the sound button like the game's own sound
   // (1.30; up to 1.29 that button did nothing to it). ▶ asks for the picture with its sound, so it turns the sound on
   G.onMuted = (on) => { if (NET.role !== 'guest') return; vid.muted = on; if (!on) vid.play().catch(() => {}); syncPlay(); };
+  // and as loud as the guest's own volume says (1.38; the gain audio.js gives its own sound)
+  G.onVolume = (gain) => { try { vid.volume = gain; } catch (e) { /* a browser that keeps a video's volume to itself */ } };
+  G.onVolume(((prefs.volume ?? 100) / 100) ** 2);
   $('mp-play').addEventListener('click', () => {
     if (prefs.muted) { setMuted(false); G.onPrefs?.(); }
     vid.muted = false; vid.play().then(syncPlay, syncPlay);

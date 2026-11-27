@@ -143,7 +143,7 @@ export const ANCIENT = [
       // 668: Goguryeo's last battle. The siege of its capital, the gate opened from inside, the walls' last guardian
       pyongyang: { name: K('평양성', 'Pyongyang Fortress'), tiles: T.castle, floors: 4, lv: [9, 13], mons: [74, 66, 56, 304, 95, 75, 67, 57], bgm: 'd_01',
         boss: { sp: 306, lv: 17, lvMin: 13, lvUp: 3, hp: 1.4, atk: 0.95, bgm: 'ba_gym', moves: [232, 36, 157, 231],
-          tele: { name: K('성벽 무너뜨리기', 'Toppling Wall'), every: 4, dmg: 0.3, pats: ['near', 'cross', 'rows'], type: 5 },
+          tele: { name: K('성벽 무너뜨리기', 'Toppling Wall'), every: 4, dmg: 0.3, pats: ['near', 'rings', 'rows'], type: 5 },
           say: [
             { who: 'narr', text: K('668년 9월. 한 달 넘게 버틴 평양성의 성문이, 끝내 안에서 열렸다.', 'September 668. After holding out for more than a month, the gate of Pyongyang was at last opened from within.') },
             { who: 306, name: K('보스로라', 'Aggron'), text: K('그롸아아…! 칠백 년을 지킨 성벽이다… 누구도 넘어오지 못한다…!', 'Grraaah...! These walls have stood for seven hundred years... No one gets past them...!') },
@@ -227,7 +227,7 @@ export const ANCIENT = [
       maeso: { name: K('매소성', 'Maeso Fortress'), tiles: T.castle, floors: 4, lv: [9, 13], mons: [74, 95, 66, 67, 81, 100, 179, 180, 309], bgm: 'd_01',
         // eased after playtest feedback: HP 4.2 → 2.94 (−30%), hits, hit cap and Thunderstorm all −20%
         boss: { sp: 145, lv: 18, lvMin: 14, lvUp: 3, hp: 2.94, atk: 1.04, cap: 0.34, relentless: true, bgm: 'ba_secret1', moves: [85, 65, 84, 86],
-          tele: { name: K('번개 폭풍', 'Thunderstorm'), every: 3, dmg: 0.3, pats: ['cross', 'x', 'target', 'rows'], type: 13 },
+          tele: { name: K('번개 폭풍', 'Thunderstorm'), every: 3, dmg: 0.3, pats: ['cone', 'lattice', 'target', 'rows'], type: 13 },
           say: [
             { who: 'narr', text: K('당나라 20만 대군 위로 먹구름이 몰려들었다. 하늘을 가르는 번개 속에서 거대한 새가 내려온다!', 'Storm clouds gather over the 200,000 Tang troops. A great bird descends amid splitting lightning!') },
             { who: 145, name: K('썬더', 'Zapdos'), text: K('끼아아앗!! 이 땅의 하늘을 어지럽히는 자는 누구냐!', 'Kyaaah!! Who dares disturb the skies of this land?!') },
@@ -242,7 +242,7 @@ export const ANCIENT = [
       daewangam: { name: K('대왕암', 'Daewangam Rock'), tiles: T.sea, floors: 3, lv: [11, 15], water: true, legend: true, mons: [120, 121, 222, 226, 170, 171], bgm: 'd_lake',
         tint: 'rgba(120,170,255,0.08)',
         boss: { sp: 249, lv: 24, lvMin: 17, lvUp: 4, hp: 1.8, atk: 0.85, bgm: 'ba_secret2', moves: [177, 94, 56, 239],
-          tele: { name: K('에어로블라스트', 'Aeroblast'), every: 4, dmg: 0.3, pats: ['cross', 'far', 'ring', 'x'], type: 2 },
+          tele: { name: K('에어로블라스트', 'Aeroblast'), every: 4, dmg: 0.3, pats: ['pinwheel', 'far', 'ring', 'blocks'], type: 2 },
           say: [
             { who: 'narr', text: K('파도가 갈라지고, 바위 아래 깊은 바다에서 은빛 날개가 떠올랐다!', 'The waves part, and silver wings rise from the deep below the rock!') },
             { who: 249, name: K('루기아', 'Lugia'), text: K('…죽어서 바다의 용이 되어서라도 나라를 지키겠다는 임금이 있다. 그 마음을 지키는 것이 나의 일.', '...There is a king who vows to become a sea dragon after death to guard his land. Keeping that wish is my task.') },
@@ -294,7 +294,7 @@ export const ANCIENT = [
       houses: ['hanok', 'hanok', 'choga', 'hanok', 'choga', 'hanok', 'hanok', 'choga', 'hanok'], props: ['persimmon', 'cherry', 'pagoda', 'jars', 'lantern', 'bamboo'],
     },
     town2: {
-      name: K('서경', 'Seogyeong'), bgm: 'town03_d', bgmN: 'town03_n', biome: 'autumn', walls: true,
+      name: K('서경', 'Seogyeong'), bgm: 'dp_town04', bgmN: 'dp_town04', biome: 'autumn', walls: true,
       houses: ['hanok', 'choga', 'choga', 'hanok'], props: ['maple', 'logs', 'jars', 'persimmon'],
       npcs: [
         { id: 'diglett1019', sp: 50, name: K('디그다', 'Diglett'), x: 22, y: 15, say: [{ text: K('서경은 옛 고구려의 평양이야. 고려는 고구려를 잇는다는 뜻으로 이곳을 아꼈지.', 'Seogyeong is old Goguryeo\'s Pyongyang. Goryeo cherished it as heir to Goguryeo.') }] },
@@ -324,7 +324,7 @@ export const ANCIENT = [
       gwiju: { name: K('귀주 벌판', 'Gwiju Plain'), tiles: T.plain, floors: 4, lv: [13, 17], mons: [20, 22, 77, 84, 128, 203, 234, 262], bgm: 'road_e',
         // 1.20: Entei, one of the legends the world line gave up (content_wboss.js), between Zapdos (676) and Moltres (1232)
         boss: { sp: 244, lv: 21, lvMin: 17, lvUp: 3, hp: 3.6, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [53, 23, 44, 83],
-          tele: { name: K('분화', 'Eruption'), every: 3, dmg: 0.3, pats: ['ring', 'near', 'cross', 'far'], type: 10 },
+          tele: { name: K('분화', 'Eruption'), every: 3, dmg: 0.3, pats: ['bars', 'near', 'stripes', 'far'], type: 10 },
           say: [
             { who: 'narr', text: K('물러가는 거란군의 뒤로 귀주 벌판에 불길이 번졌다. 불길 한가운데서 화산의 힘을 품은 앤테이가 포효한다!', 'Behind the retreating Khitan, fire spreads over the Gwiju plain. In its heart roars Entei, who carries the power of volcanoes!') },
             { who: 244, name: K('앤테이', 'Entei'), text: K('그오오오! (짓밟힌 벌판의 분노가 불꽃이 되어 타오른다!)', 'Groooh! (The fury of the trampled plain blazes up as fire!)') },
@@ -407,7 +407,7 @@ export const ANCIENT = [
       hwangnyong: { name: K('황룡사', 'Hwangnyongsa'), tiles: T.temple, floors: 4, lv: [16, 20], mons: [37, 58, 77, 126, 218, 228, 322], bgm: 'd_06',
         // eased after playtest feedback: HP 5.6 → 4.48 (−20%), hits, hit cap and Fire Vortex all −20%
         boss: { sp: 146, lv: 23, lvMin: 18, lvUp: 3, hp: 4.48, atk: 1.04, cap: 0.4, relentless: true, bgm: 'ba_secret1', moves: [53, 403, 246, 17],
-          tele: { name: K('불꽃 소용돌이', 'Fire Vortex'), every: 3, dmg: 0.32, pats: ['near', 'ring', 'cross', 'far'], type: 10 },
+          tele: { name: K('불꽃 소용돌이', 'Fire Vortex'), every: 3, dmg: 0.32, pats: ['near', 'diamond', 'frame', 'far'], type: 10 },
           say: [
             { who: 'narr', text: K('1238년, 몽골군이 지른 불이 황룡사 구층목탑을 집어삼켰다. 불길 한가운데서 붉은 날개가 펼쳐진다!', '1238. The fire the Mongols set engulfs the nine-story wooden pagoda of Hwangnyongsa. Crimson wings spread from the heart of the blaze!') },
             { who: 146, name: K('파이어', 'Moltres'), text: K('끼오오오!! 이 불길은 나의 것이 아니다… 그런데도 멈출 수가 없구나!', 'Kyoooh!! This fire is not mine... and yet I cannot stop it!') },
@@ -456,7 +456,7 @@ export const ANCIENT = [
     year: 1388, years: '1380 – 1388', title: K('위화도 회군', 'The Wihwado Retreat'), sub: K('고려의 끝, 새 나라의 시작', 'The end of Goryeo'),
     card: { set: T.fortsnow, mons: [144, 359, 324, 224] }, artProps: ['gate'], inn: 113, shop: 52,
     town: {
-      name: K('개경 · 고려 말', 'Gaegyeong, late Goryeo'), bgm: 'city04_d', bgmN: 'city04_n', biome: 'autumn', landmark: 'gate',
+      name: K('개경 · 고려 말', 'Gaegyeong, late Goryeo'), bgm: 'dp_city04', bgmN: 'dp_city04', biome: 'autumn', landmark: 'gate',
       houses: ['hanok', 'hanok', 'choga', 'hanok', 'choga', 'hanok', 'hanok', 'choga', 'choga'], props: ['maple', 'persimmon', 'jars', 'logs', 'lantern', 'pagoda'],
     },
     town2: {
@@ -496,7 +496,7 @@ export const ANCIENT = [
         tint: 'rgba(140,170,220,0.10)',
         // eased after playtest feedback: HP 4.6 → 3.68 (−20%), hits, hit cap and Blizzard all −20%
         boss: { sp: 144, lv: 26, lvMin: 21, lvUp: 3, hp: 3.68, atk: 1.04, cap: 0.4, relentless: true, bgm: 'ba_secret1', moves: [58, 246, 59, 16],
-          tele: { name: K('눈보라', 'Blizzard'), every: 3, dmg: 0.32, pats: ['rows', 'cols', 'checker', 'near'], type: 15 },
+          tele: { name: K('눈보라', 'Blizzard'), every: 3, dmg: 0.32, pats: ['bowtie', 'cols', 'scope', 'near'], type: 15 },
           say: [
             { who: 'narr', text: K('장맛비로 불어난 압록강 한가운데, 위화도에 때아닌 얼음 바람이 몰아친다!', 'In the middle of the rain-swollen Yalu, an out-of-season icy wind howls across Wihwado!') },
             { who: 144, name: K('프리져', 'Articuno'), text: K('삐요오오… 이 물을 건너는 자, 돌아갈 길을 잃으리라.', 'Pyooo... Those who cross this water shall lose their way home.') },

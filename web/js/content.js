@@ -31,10 +31,10 @@ function origin(aura, msg, name, type, pats, use) {
 // does nothing but Spacial Rend with a second move beside it, two at once (ult, dungeon.js ultTurn).
 const REND = K('공간절단', 'Spacial Rend'), REND_PATS = ['cross|ring', 'quad', 'star', 'rows|x', 'checker|near'];
 const palkiaMix = (k, first = []) => [...first,
-  { name: K('하이드로펌프', 'Hydro Pump'), type: 11, dmg: 0.36 * k, pats: ['cross', 'quad', 'rows', 'star'] },
-  { name: K('드래곤크루', 'Dragon Claw'), type: 16, dmg: 0.38 * k, pats: ['near', 'x', 'near|x'] },
-  { name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.34 * k, pats: ['target', 'far', 'checker'] },
-  { name: K('대지의힘', 'Earth Power'), type: 4, dmg: 0.34 * k, pats: ['ring', 'rows', 'cols'] }];
+  { name: K('하이드로펌프', 'Hydro Pump'), type: 11, dmg: 0.36 * k, pats: ['slash', 'quad', 'rows', 'rings'] },
+  { name: K('드래곤크루', 'Dragon Claw'), type: 16, dmg: 0.38 * k, pats: ['near', 'lattice', 'near|x'] },
+  { name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.34 * k, pats: ['target', 'far', 'cone'] },
+  { name: K('대지의힘', 'Earth Power'), type: 4, dmg: 0.34 * k, pats: ['blocks', 'rows', 'cols'] }];
 const PALKIA_ORIGIN = { hp: 2 / 3, atk: 1.3, cap: 0.42, form: K('오리진폼', 'Origin Forme'), aura: '#ff9ad8',
   msg: K('펄기아가 쓰러지지 않는다! 공간이 일그러지며 오리진폼으로 모습을 바꿨다!', "Palkia won't go down! Space warps as it takes its Origin Forme!"),
   sig: { use: [SIG.rend], at: SIG_AT2 },
@@ -74,7 +74,7 @@ const JOSEON = [
   {
     id: 1, year: 1392, years: '1392 – 1395', title: '조선 건국', sub: '새 나라, 새 도읍 한양',
     art: 'e1', artProps: ['palace'], town: {
-      name: '한양', bgm: 'town01_d', bgmN: 'town01_n', biome: 'spring', landmark: 'palace',
+      name: '한양', bgm: 'dp_town01', bgmN: 'dp_town01', biome: 'spring', landmark: 'palace',
       houses: ['hanok', 'choga', 'choga', 'hanok', 'choga', 'hanok', 'choga', 'hanok'], props: ['cherry', 'persimmon', 'maple', 'jars', 'logs', 'logs', 'lantern'],
     },
     world: 'road_a',
@@ -90,10 +90,10 @@ const JOSEON = [
       { mark: true, name: '개경', lon: 126.55, lat: 38.05, text: '1392년 7월 17일, 이성계가 개경 수창궁에서 즉위했다.' },
     ],
     dungeons: {
-      inwang: { name: '인왕산 숲길', tiles: T.forest, floors: 4, lv: [4, 7], mons: [396, 399, 10, 13, 16, 19, 401, 165], bgm: 'road_c',
+      inwang: { name: '인왕산 숲길', tiles: T.forest, floors: 4, lv: [4, 7], mons: [396, 399, 10, 13, 16, 19, 401, 165], bgm: 'dp_road_c',
         // 1.20: Raikou, the thunder tiger, on the mountain of Hanyang's tigers (one of the legends the world line gave up)
         boss: { sp: 243, lv: 10, lvMin: 7, lvUp: 3, hp: 3.6, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [85, 422, 44, 98],
-          tele: { name: K('방전', 'Discharge'), every: 3, dmg: 0.3, pats: ['rows', 'cols', 'quad', 'far'], type: 13 },
+          tele: { name: K('방전', 'Discharge'), every: 3, dmg: 0.3, pats: ['rows', 'cols', 'pinwheel', 'stripes'], type: 13 },
           say: [
             { who: 'narr', text: K('숲 깊은 곳에 마른번개가 떨어지고, 호랑이를 닮은 포켓몬이 길을 막아섰다. 인왕산의 호랑이라 불리던 라이코다!', 'Dry lightning strikes deep in the forest, and a tiger-like Pokémon blocks the way. It is Raikou, called the tiger of Inwangsan!') },
             { who: 243, name: K('라이코', 'Raikou'), text: K('크르르르! (나무가 베여 나간 자리마다 번개가 내리친다!)', 'Krrrrr! (Lightning strikes every spot where a tree was felled!)') },
@@ -135,7 +135,7 @@ const JOSEON = [
   {
     id: 2, year: 1443, years: '1443 – 1446', title: '훈민정음', sub: '백성을 가르치는 바른 소리',
     art: 'e2', artProps: ['hanok_hall'], town: {
-      name: '한양 · 집현전', bgm: 'town02_d', bgmN: 'town02_n', biome: 'spring', landmark: 'hanok_hall',
+      name: '한양 · 집현전', bgm: 'dp_town03', bgmN: 'dp_town03', biome: 'spring', landmark: 'hanok_hall',
       houses: ['hanok', 'hanok', 'choga', 'hanok', 'hanok', 'choga', 'hanok', 'choga'], props: ['persimmon', 'cherry', 'bamboo', 'jars', 'lantern', 'board'],
     },
     world: 'road_b',
@@ -157,14 +157,14 @@ const JOSEON = [
         // 1.36: its Sacred Fire burns on where it fell, the blast's tiles and the tile the move itself struck (leave,
         // trail), and it rises once from its ashes (revive), Sacred Fire then falling three turns running as well.
         boss: { sp: 250, lv: 16, lvMin: 12, lvUp: 3, hp: 3.8, atk: 1.04, cap: 0.36, relentless: true, bgm: 'ba_secret1', moves: [221, 413, 53, 246], trail: { 221: SACRED_LEAVE },
-          tele: { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, pats: ['cross', 'ring', 'x', 'near'], type: 10, leave: SACRED_LEAVE },
+          tele: { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, pats: ['frame', 'ring', 'bars', 'near'], type: 10, leave: SACRED_LEAVE },
           revive: { hp: 0.5, atk: 1.1, cap: 0.38, aura: 'rainbow', form: K('무지개 날개', 'Rainbow Wing'),
             msg: K('칠색조가 쓰러지지 않는다! 재 속에서 무지갯빛 불꽃을 두르고 다시 날아올랐다!', "Ho-Oh won't go down! Out of the ashes it rises again, wrapped in rainbow fire!"),
             line: [{ who: 'partner', text: K('다시 일어났어! 성스러운불꽃이 떨어진 자리에는 불이 남으니까 밟지 말자!', "It's back up! Sacred Fire keeps burning where it falls: don't step on it!") }],
             sig: { use: [SIG.sacred], at: [[0.7, 0.35]] },
             tele: [
-              { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, stagger: 1, pats: ['cross', 'ring', 'x', 'near', 'star'], type: 10, first: 2, leave: SACRED_LEAVE },
-              { at: 0.5, name: K('성스러운불꽃', 'Sacred Fire'), every: 2, dmg: 0.36, stagger: 1, pats: ['cross', 'ring', 'x', 'near', 'star', 'checker'], type: 10, leave: SACRED_LEAVE,
+              { name: K('성스러운불꽃', 'Sacred Fire'), every: 3, dmg: 0.3, stagger: 1, pats: ['scope', 'ring', 'diamond', 'near', 'star'], type: 10, first: 2, leave: SACRED_LEAVE },
+              { at: 0.5, name: K('성스러운불꽃', 'Sacred Fire'), every: 2, dmg: 0.36, stagger: 1, pats: ['bombs', 'ring', 'bowtie', 'near', 'star', 'checker'], type: 10, leave: SACRED_LEAVE,
                 msg: K('무지갯빛 불꽃이 사방을 뒤덮는다! 공격이 더욱 거세진다!', 'Rainbow fire sweeps all around! Its attacks grow fiercer still!') },
             ] },
           say: [
@@ -173,7 +173,7 @@ const JOSEON = [
             { who: 'partner', text: '아니야! 임금님은 누구나 쉽게 익히라고 이 글자를 만드셨어!' }],
           after: [{ who: 250, name: K('칠색조', 'Ho-Oh'), text: K('…쿠오. (칠색조가 품고 있던 낱장을 내려놓자, 서고 가득 무지갯빛 깃털이 흩날렸다.)', '...Kwoh. (Ho-Oh sets down the page it held, and rainbow feathers drift all through the stacks.)') }],
           join: K('칠색조가 일곱 빛깔 날개를 접었다. 함께 가고 싶어 한다!', 'Ho-Oh folds its seven-coloured wings. It wants to come along!') } },
-      gwanak: { name: '관악산', tiles: T.hill, floors: 3, lv: [8, 12], mons: [74, 66, 56, 37, 77, 58], bgm: 'road_e' },
+      gwanak: { name: '관악산', tiles: T.hill, floors: 3, lv: [8, 12], mons: [74, 66, 56, 37, 77, 58], bgm: 'dp_road_e' },
     },
     npcs: [
       { id: 'slowking', sp: 199, name: '학사 야도킹', x: 22, y: 15, say: [{ text: '"나라의 말이 중국과 달라 문자로 서로 통하지 아니하니…" 임금님의 뜻이 담긴 서문이라네.' }] },
@@ -207,7 +207,7 @@ const JOSEON = [
   {
     id: 3, year: 1592, years: '1592 – 1598', title: '임진왜란', sub: '바다를 지킨 수군',
     art: 'e3', artProps: ['geobukseon', 'panokseon'], town: {
-      name: '여수 · 전라좌수영', bgm: 'city02_d', bgmN: 'city02_n', biome: 'coast', landmark: 'gate',
+      name: '여수 · 전라좌수영', bgm: 'dp_city08', bgmN: 'dp_city08', biome: 'coast', landmark: 'gate',
       houses: ['hanok', 'choga', 'choga', 'hanok', 'choga', 'hanok'], props: ['maple', 'logs', 'logs', 'jars', 'lantern', 'crates'],
       ships: ['geobukseon', 'panokseon', 'boat'],
     },
@@ -243,7 +243,7 @@ const JOSEON = [
       usuyeong: { name: K('전라 우수영', 'Jeolla Right Naval Base'), tiles: T.fort, floors: 3, lv: [15, 19], mons: [72, 98, 278, 307, 308, 66], bgm: 'd_lake', legend: true,
         tint: 'rgba(90,150,255,0.08)',
         boss: { sp: 482, lv: 23, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [93, 326],
-          tele: { name: '의지의 섬광', every: 4, dmg: 0.3, pats: ['cross', 'x', 'target'], type: 14 },
+          tele: { name: '의지의 섬광', every: 4, dmg: 0.3, pats: ['cross', 'slash', 'target'], type: 14 },
           say: [
             { who: 482, name: '아그놈', text: '…멈춰라. 열세 척의 배로 백서른 척에 맞서겠다고? 그 의지가 진짜인지 시험하겠다.' },
             { who: 'partner', text: '의지의 신 아그놈이야! 물러서지 않는 마음을 보여 주자!' }],
@@ -287,7 +287,7 @@ const JOSEON = [
   {
     id: 4, year: 1636, years: '1636 – 1637', title: '병자호란', sub: '남한산성의 겨울',
     art: 'e4', artProps: ['fortgate'], town: {
-      name: '남한산성', bgm: 'city09_d', bgmN: 'city09_n', biome: 'snow', landmark: 'fortgate', walls: true,
+      name: '남한산성', bgm: 'dp_city09', bgmN: 'dp_city09', biome: 'snow', landmark: 'fortgate', walls: true,
       houses: ['hanok_snow', 'hanok_snow', 'hanok_snow', 'hanok_snow', 'hanok_snow', 'hanok_snow'], props: ['snowpine', 'snowpine', 'baretree', 'pagoda', 'logs', 'jars'],
     },
     world: 'road_snow',
@@ -316,7 +316,7 @@ const JOSEON = [
         tint: 'rgba(120,170,255,0.10)',
         // Suicune, the north wind's incarnation, over a frozen spring (Regigigas waits for the Regi line after 1945)
         boss: { sp: 245, lv: 32, lvMin: 24, lvUp: 4, hp: 2.2, atk: 0.9, bgm: 'ba_secret2', moves: [62, 61, 326, 59],
-          tele: { name: K('오로라빔', 'Aurora Beam'), every: 4, dmg: 0.33, pats: ['near', 'rows', 'cols', 'ring'], type: 15 },
+          tele: { name: K('오로라빔', 'Aurora Beam'), every: 4, dmg: 0.33, pats: ['near', 'lattice', 'cols', 'rings'], type: 15 },
           say: [
             { who: 'narr', text: K('얼음 신전 가장 깊은 곳, 얼어붙은 샘 위로 차가운 북풍이 모여들었다!', 'In the deepest hall of the Ice Temple, a cold north wind gathers over a frozen spring!') },
             { who: 245, name: K('스이쿤', 'Suicune'), text: K('……(북풍을 두른 푸른 짐승이 샘 위에 조용히 내려섰다. 맑은 눈이 너희를 꿰뚫어 본다)', '......(A blue beast cloaked in the north wind alights on the spring. Its clear eyes see right through you)') },
@@ -357,7 +357,7 @@ const JOSEON = [
   {
     id: 5, year: 1794, years: '1794 – 1796', title: '수원 화성', sub: '정조의 꿈, 실학의 성',
     art: 'e5', artProps: [], town: {
-      name: '수원 화성', bgm: 'city05_d', bgmN: 'city05_n', biome: 'autumn', landmark: 'fortgate', walls: true,
+      name: '수원 화성', bgm: 'dp_town05', bgmN: 'dp_town05', biome: 'autumn', landmark: 'fortgate', walls: true,
       houses: ['hanok', 'hanok', 'hanok', 'choga', 'hanok', 'hanok', 'choga', 'hanok'], props: ['maple', 'persimmon', 'logs', 'logs', 'jars', 'lantern', 'board'],
     },
     world: 'road_e',
@@ -384,7 +384,7 @@ const JOSEON = [
       kyujanggak: { name: K('규장각', 'Kyujanggak'), tiles: T.library, floors: 3, lv: [22, 26], mons: [63, 64, 201, 177, 178, 436], bgm: 'd_lake', legend: true,
         tint: 'rgba(240,210,120,0.08)',
         boss: { sp: 480, lv: 30, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [326, 93, 248],
-          tele: { name: '지식의 봉인', every: 4, dmg: 0.3, pats: ['checker', 'rows', 'near', 'cols'], type: 14 },
+          tele: { name: '지식의 봉인', every: 4, dmg: 0.3, pats: ['cone', 'blocks', 'near', 'cols'], type: 14 },
           say: [
             { who: 480, name: '유크시', text: K('…규장각의 책 한 권이 거중기가 되어 무거운 돌을 들어 올렸지. 사람은 지식으로 산도 옮기는구나.', '...A single book from this library became the crane that lifts the heavy stones. With knowledge, people even move mountains.') },
             { who: 480, name: '유크시', text: '그 지식이 바르게 쓰이는지, 내가 시험하겠다.' },
@@ -423,7 +423,7 @@ const JOSEON = [
   {
     id: 6, year: 1866, years: '1866 – 1871', title: '병인양요 · 신미양요', sub: '강화도를 지켜라',
     art: 'e6', artProps: ['wallseg', 'wallseg', 'wallseg'], town: {
-      name: '강화도', bgm: 'city07_d', bgmN: 'city07_n', biome: 'coast', landmark: 'hanok_hall', walls: true,
+      name: '강화도', bgm: 'dp_city07', bgmN: 'dp_city07', biome: 'coast', landmark: 'hanok_hall', walls: true,
       houses: ['hanok', 'choga', 'hanok', 'choga', 'hanok', 'choga'], props: ['maple', 'jars', 'logs', 'lantern', 'crates', 'pagoda'],
       ships: ['boat', 'boat'],
     },
@@ -447,7 +447,7 @@ const JOSEON = [
           { who: 376, text: '철컹… 철컹… 포성에 혼란에 빠진 메타그로스가 산성 길을 막아섰다!' },
           { who: 'partner', text: '양헌수 장군의 부대가 산성을 지키고 있어. 우리도 힘을 보태자!' }],
         after: [{ who: 376, text: '…계산 완료. 이곳은 지켜야 할 장소다. 길을 열겠다.' }] } },
-      gwangseong: { name: '광성보', tiles: T.bastion, floors: 4, lv: [29, 33], mons: [81, 82, 100, 101, 125, 227], bgm: 'road_d',
+      gwangseong: { name: '광성보', tiles: T.bastion, floors: 4, lv: [29, 33], mons: [81, 82, 100, 101, 125, 227], bgm: 'dp_road_d',
         boss: { sp: 462, lv: 37, bgm: 'ba_rival', say: [
           { who: 462, text: '지지지직! 쇳덩이 배의 굉음에 자포코일이 폭주하고 있다!' },
           { who: 'partner', text: '어재연 장군과 병사들이 끝까지 지킨 곳이야. 우리도 물러서지 않아!' }],
@@ -456,7 +456,7 @@ const JOSEON = [
       moonisle: { name: '달빛 섬', tiles: T.sea, floors: 3, lv: [27, 31], mons: [278, 279, 422, 120, 223, 98], bgm: 'd_lake', legend: true,
         tint: 'rgba(40,50,140,0.20)',
         boss: { sp: 488, lv: 40, lvMin: 32, lvUp: 4, hp: 2.0, atk: 0.9, bgm: 'ba_secret2', moves: [94, 62, 427],
-          tele: { name: '초승달 빛', every: 4, dmg: 0.33, pats: ['ring', 'checker', 'x', 'far'], type: 14 },
+          tele: { name: '초승달 빛', every: 4, dmg: 0.33, pats: ['stripes', 'checker', 'pinwheel', 'far'], type: 14 },
           say: [
             { who: 'narr', text: '바다 위로 둥근 달이 떠오르자, 갯바위 위에 은빛 날개가 내려앉았다.' },
             { who: 488, text: '…낯선 시간에서 온 아이들. 너희 꿈은 어떤 빛깔이지?' },
@@ -500,7 +500,7 @@ const JOSEON = [
   {
     id: 7, year: 1887, years: '1887 – 1899', title: '대한제국', sub: '전깃불과 전차의 시대',
     art: 'e7', artProps: ['western'], town: {
-      name: '한성', bgm: 'city01_d', bgmN: 'city01_n', biome: 'modern', landmark: 'palace',
+      name: '한성', bgm: 'dp_city01', bgmN: 'dp_city01', biome: 'modern', landmark: 'palace',
       houses: ['western', 'hanok', 'hanok', 'western', 'hanok', 'choga', 'hanok', 'western'], props: ['pole', 'pole', 'lamp', 'lamp', 'rickshaw', 'persimmon', 'tram'],
     },
     world: 'road_f',
@@ -527,7 +527,7 @@ const JOSEON = [
       clocktower: { name: K('소원의 시계탑', 'Wishing Clock Tower'), tiles: T.rift, floors: 3, lv: [31, 35], mons: [81, 82, 436, 437, 374, 375], bgm: 'd_mount2', legend: true, climb: true,
         tint: 'rgba(60,120,200,0.10)',
         boss: { sp: 385, lv: 42, lvMin: 34, lvUp: 4, hp: 2.0, atk: 0.85, bgm: 'ba_dpoke1', moves: [353, 94, 442, 129],
-          tele: { name: K('파멸의 소원', 'Doom Desire'), every: 4, dmg: 0.36, pats: ['far', 'ring', 'random', 'x'], type: 8 },
+          tele: { name: K('파멸의 소원', 'Doom Desire'), every: 4, dmg: 0.36, pats: ['far', 'frame', 'random', 'bars'], type: 8 },
           say: [
             { who: 'narr', text: K('째깍, 째깍… 시계탑 꼭대기에서 별 모양의 빛이 깜박인다.', 'Tick, tock... A star-shaped light blinks atop the clock tower.') },
             { who: 385, text: K('…후아암. 천 년 만에 눈을 떴는데 세상이 이렇게 시끄러워졌네? (지라치가 별빛을 번뜩인다!)', '...Yawn. I wake up after a thousand years and the world got this noisy? (Jirachi flashes with starlight!)') },
@@ -565,7 +565,7 @@ const JOSEON = [
   {
     id: 8, year: 1919, years: '1910 – 1919', title: '3 · 1 운동', sub: '대한 독립 만세',
     art: 'e8', artProps: ['pavilion8'], town: {
-      name: '경성', bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: 'pavilion8',
+      name: '경성', bgm: 'dp_town07', bgmN: 'dp_town07', biome: 'modern', landmark: 'pavilion8',
       houses: ['western', 'hanok', 'western', 'hanok', 'western', 'hanok', 'choga', 'western'], props: ['pole', 'lamp', 'lamp', 'baretree', 'cherry', 'rickshaw'],
     },
     world: 'road_a_n',
@@ -586,7 +586,7 @@ const JOSEON = [
       alley: { name: '경성 뒷골목', tiles: T.alley, floors: 4, lv: [34, 38], mons: [198, 92, 93, 353, 355, 434, 435, 228, 200], bgm: 'd_agito',
         quest: { item: 'declaration', lastFloor: true },
         boss: { sp: 483, lv: 42, lvMin: 36, lvUp: 4, hp: 2.673, atk: 0.98, bgm: 'ba_dpoke1', moves: [337, 430, 414, 246], // 1.7: HP +30% and attack +15% (was 1.87 / 0.85); 1.17: HP +10% (was 2.43)
-          tele: { name: K('러스터캐논', 'Flash Cannon'), every: 4, dmg: 0.36, pats: ['cols', 'rows', 'cross', 'quad'], type: 8 },
+          tele: { name: K('러스터캐논', 'Flash Cannon'), every: 4, dmg: 0.36, pats: ['cols', 'rows', 'diamond', 'scope'], type: 8 },
           sig: { use: [SIG.roar], at: SIG_AT1 }, sigMore: 2, // 1.9: Roar of Time twice as often, in either form (dungeon.js sigPlan)
           revive: origin('#6a9cff', K('디아루가가 쓰러지지 않는다! 시간이 거꾸로 흐르며 오리진폼으로 모습을 바꿨다!', "Dialga won't go down! Time flows backwards as it takes its Origin Forme!"),
             K('시간 붕괴', 'Time Collapse'), 8, ['cols|cross', 'rows|x', 'quad', 'checker', 'star|near'], [SIG.roar]),
@@ -602,7 +602,7 @@ const JOSEON = [
       tapgol: { name: K('탑골 공원', 'Tapgol Park'), tiles: T.street, floors: 3, lv: [33, 37], mons: [280, 281, 311, 312, 183, 39], bgm: 'd_lake', legend: true,
         tint: 'rgba(255,140,200,0.08)',
         boss: { sp: 481, lv: 40, lvUp: 3, hp: 1.8, atk: 0.85, bgm: 'ba_secret1', moves: [326, 94, 248],
-          tele: { name: '감정의 파동', every: 4, dmg: 0.32, pats: ['ring', 'target', 'x', 'checker'], type: 14 },
+          tele: { name: '감정의 파동', every: 4, dmg: 0.32, pats: ['bombs', 'target', 'bowtie', 'checker'], type: 14 },
           say: [
             { who: 481, name: '엠라이트', text: K('두려움, 분노, 슬픔… 그리고 희망. 이 공원에는 사람들의 마음이 소용돌이치고 있어.', 'Fear, anger, sorrow... and hope. People\'s hearts are swirling in this park.') },
             { who: 481, name: '엠라이트', text: '너희 마음은 어느 쪽이지? 부딪혀 보면 알 수 있겠지!' },
@@ -641,7 +641,7 @@ const JOSEON = [
   {
     id: 9, year: 1920, years: '1920 – 1932', title: '독립군', sub: '청산리의 가을',
     art: 'e9', artProps: [], town: {
-      name: '독립군 기지 (만주)', bgm: 'city11_d', bgmN: 'city11_n', biome: 'camp', landmark: null, police: false, // no constables patrol the army's own base
+      name: '독립군 기지 (만주)', bgm: 'dp_city11', bgmN: 'dp_city11', biome: 'camp', landmark: null, police: false, // no constables patrol the army's own base
       houses: ['tent', 'tent', 'tent', 'tent', 'tent', 'tent'], props: ['campfire', 'crates', 'crates', 'tower', 'baretree', 'maple', 'logs'],
     },
     world: 'road_bza',
@@ -669,7 +669,7 @@ const JOSEON = [
       cheonji: { name: '백두산 천지 화구', tiles: T.volcano, floors: 3, lv: [38, 42], mons: [126, 218, 219, 322, 323, 324], bgm: 'd_06', legend: true,
         tint: 'rgba(255,80,20,0.12)',
         boss: { sp: 485, lv: 50, lvMin: 42, lvUp: 4, hp: 2.1, atk: 0.85, bgm: 'ba_secret2', moves: [436, 53, 442, 414],
-          tele: { name: '마그마 분출', every: 4, dmg: 0.36, pats: ['near', 'ring', 'random', 'rows'], type: 10 },
+          tele: { name: '마그마 분출', every: 4, dmg: 0.36, pats: ['near', 'slash', 'random', 'rings'], type: 10 },
           say: [
             { who: 'narr', text: '백두산 천지 아래, 잠든 화산의 심장부. 용암 속에서 무언가가 기어 나왔다.' },
             { who: 485, text: '그르르르…! (화구에 사는 히드런이 뜨거운 숨을 내뿜는다!)' },
@@ -713,7 +713,7 @@ const JOSEON = [
   {
     id: 10, year: 1940, years: '1938 – 1943', title: K('민족 말살 통치', 'Erasing a People'), sub: K('빼앗긴 이름, 지켜 낸 말', 'Stolen names, words kept safe'),
     card: { set: T.rift, mons: [487, 164, 448, 427] }, artProps: [], town: {
-      name: K('경성 (1940)', 'Gyeongseong (1940)'), bgm: 'city04_d', bgmN: 'city04_n', biome: 'modern', landmark: null, pearl: 'C03', // Oreburgh: the mines and factories of the war years
+      name: K('경성 (1940)', 'Gyeongseong (1940)'), bgm: 'dp_city03', bgmN: 'dp_city03', biome: 'modern', landmark: null, pearl: 'C03', // Oreburgh: the mines and factories of the war years
       houses: ['western', 'hanok', 'western', 'hanok', 'western', 'choga', 'hanok', 'western'], props: ['pole', 'lamp', 'baretree', 'baretree', 'rickshaw', 'jars'],
     },
     world: 'road_a_n',
@@ -734,13 +734,13 @@ const JOSEON = [
         // Aura Sphere answers the Dark types brought against a Ghost. HP +30% and attack +15% in 1.7 (was 2.31 / 0.85).
         // Its first form takes turns among five telegraphed attacks (dungeon.js charge: mix) and two signature moves.
         boss: { sp: 487, lv: 46, lvMin: 38, lvUp: 4, hp: 3.0, atk: 0.98, bgm: 'ba_secret2', moves: [247, 337, 396, 414],
-          tele: { name: K('그림자 폭풍', 'Shadow Storm'), every: 3, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'], type: 7,
+          tele: { name: K('그림자 폭풍', 'Shadow Storm'), every: 3, dmg: 0.36, pats: ['lattice', 'random', 'quad', 'cone'], type: 7,
             mix: [
-              { name: K('그림자 폭풍', 'Shadow Storm'), type: 7, dmg: 0.36, pats: ['x', 'random', 'quad', 'checker'] },
-              { name: K('대지의힘', 'Earth Power'), type: 4, dmg: 0.34, pats: ['near', 'rows', 'cols', 'ring'] },
-              { name: K('용성군', 'Draco Meteor'), type: 16, dmg: 0.38, pats: ['random', 'far', 'star', 'quad'] },
-              { name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.34, pats: ['target', 'cross', 'checker'] },
-              { name: K('원시의힘', 'Ancient Power'), type: 5, dmg: 0.34, pats: ['ring', 'x', 'cols', 'near'] },
+              { name: K('그림자 폭풍', 'Shadow Storm'), type: 7, dmg: 0.36, pats: ['blocks', 'random', 'quad', 'pinwheel'] },
+              { name: K('대지의힘', 'Earth Power'), type: 4, dmg: 0.34, pats: ['near', 'bars', 'cols', 'stripes'] },
+              { name: K('용성군', 'Draco Meteor'), type: 16, dmg: 0.38, pats: ['random', 'far', 'frame', 'diamond'] },
+              { name: K('파동탄', 'Aura Sphere'), type: 1, dmg: 0.34, pats: ['target', 'scope', 'checker'] },
+              { name: K('원시의힘', 'Ancient Power'), type: 5, dmg: 0.34, pats: ['bombs', 'bowtie', 'cols', 'near'] },
             ] },
           sig: { use: [SIG.shadow, SIG.dragon], at: [0.8, 0.55] },
           revive: origin('#ff4a3a', K('기라티나가 쓰러지지 않는다! 그림자 날개를 펼치며 오리진폼으로 모습을 바꿨다!', "Giratina won't go down! It spreads its shadow wings and takes its Origin Forme!"),
@@ -752,7 +752,7 @@ const JOSEON = [
             { who: 'partner', text: '세상이 뒤집힌 것 같은 어두운 시대라도, 우리는 길을 잃지 않아!' }],
           after: [{ who: 487, text: '……………… (기라티나가 그림자를 거두었다. 뒤집혔던 세계가 천천히 제자리를 찾는다)' }],
           join: K('기라티나가 그림자 날개를 접고 고개를 숙였다. 함께 가고 싶어 한다!', 'Giratina folds its shadow wings and bows its head. It wants to come along!') } },
-      inwang: { name: K('인왕산', 'Mount Inwang'), tiles: T.mountain, floors: 3, lv: [38, 42], mons: [163, 164, 198, 430, 215, 461, 447, 302], bgm: 'road_a_n' },
+      inwang: { name: K('인왕산', 'Mount Inwang'), tiles: T.mountain, floors: 3, lv: [38, 42], mons: [163, 164, 198, 430, 215, 461, 447, 302], bgm: 'dp_road_a' },
     },
     npcs: [
       { id: 'scholar40', sp: 164, name: K('조선어학회 야부엉', 'Language Society Noctowl'), x: 22, y: 15, say: [{ text: K('말은 겨레의 얼이라네. 말을 잃으면 겨레도 잃는 것이지.', 'Language is the soul of a people. Lose the words and you lose the people.') }] },
@@ -790,7 +790,7 @@ const JOSEON = [
   {
     id: 10, year: 1945, years: '1945', title: '광복', sub: '빛을 되찾은 날',
     art: 'e10', artProps: [], town: {
-      name: '서울', bgm: 'city08_d', bgmN: 'city08_n', biome: 'modern', landmark: 'gate',
+      name: '서울', bgm: 'dp_city10', bgmN: 'dp_city10', biome: 'modern', landmark: 'gate',
       houses: ['hanok', 'western', 'hanok', 'western', 'hanok', 'hanok', 'choga', 'western'], props: ['cherry', 'persimmon', 'lamp', 'pole', 'tram', 'jars'],
     },
     world: 'city10_d',
@@ -810,7 +810,7 @@ const JOSEON = [
         // 1.36: every stat and its HP +20% (buff; the finale's and the Boss Tower's Palkia are this one, so theirs too),
         // Dragon Claw, Aura Sphere and Earth Power beside Hydro Pump (palkiaMix), and three phases (PALKIA_LAST)
         mid: { floor: 3, sp: 484, lv: 52, lvUp: 3, hp: 2.86, atk: 0.98, buff: 1.2, bgm: 'ba_dpoke1', moves: [56, 337, 414, 246],
-          tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 4, dmg: 0.36, pats: ['cross', 'quad', 'rows', 'star'], type: 11, mix: palkiaMix(1) },
+          tele: { name: K('하이드로펌프', 'Hydro Pump'), every: 4, dmg: 0.36, pats: ['slash', 'quad', 'rows', 'rings'], type: 11, mix: palkiaMix(1) },
           sig: { use: [SIG.rend], at: SIG_AT1 },
           revive: [PALKIA_ORIGIN, PALKIA_LAST],
           say: [
@@ -825,11 +825,11 @@ const JOSEON = [
         // final boss: three phases; every blast is telegraphed and must be dodged
         boss: { sp: 493, lv: 60, lvMin: 54, lvUp: 5, hp: 5.5, atk: 0.75, cap: 0.2, bgm: 'ba_dpoke2', moves: [449, 304, 245, 414],
           tele: [
-            { name: '심판의 뭉치', every: 2, dmg: 0.42, stagger: 1, pats: ['cross', 'x', 'target', 'near', 'ring'], type: 0, first: 2 },
-            { at: 0.66, name: '심판의 뭉치', every: 2, dmg: 0.48, stagger: 1, pats: ['star', 'rows', 'cols', 'checker', 'ring', 'quad'], type: 16, typeTo: 16, summon: 2, summonSp: [436, 343],
+            { name: '심판의 뭉치', every: 2, dmg: 0.42, stagger: 1, pats: ['cone', 'lattice', 'target', 'near', 'ring'], type: 0, first: 2 },
+            { at: 0.66, name: '심판의 뭉치', every: 2, dmg: 0.48, stagger: 1, pats: ['blocks', 'rows', 'cols', 'checker', 'pinwheel', 'quad'], type: 16, typeTo: 16, summon: 2, summonSp: [436, 343],
               msg: '아르세우스가 용의 플레이트를 해방했다! 타입이 드래곤으로 바뀌었다!',
               line: [{ who: 493, name: '아르세우스', text: '…아직이다. 너희가 지켜 온 마음을, 끝까지 보여 다오.' }] },
-            { at: 0.33, name: '창세의 빛', every: 1, dmg: 0.55, stagger: 1, pats: ['quad', 'random', 'checker|cross', 'ring|x', 'target|rows', 'far'], type: 17, typeTo: 17,
+            { at: 0.33, name: '창세의 빛', every: 1, dmg: 0.55, stagger: 1, pats: ['quad', 'random', 'checker|bars', 'ring|stripes', 'target|rows', 'far'], type: 17, typeTo: 17,
               msg: '아르세우스가 어둠의 플레이트를 꺼내 들었다! 공격이 한층 거세진다!',
               line: [{ who: 493, name: '아르세우스', text: '시간이 시작되기 전의 빛이다. 피할 수 있겠느냐!' }] },
           ],
@@ -897,7 +897,7 @@ const J = (y) => JOSEON.find((e) => e.year === y);
 { // 1866: Gardevoir guards the royal archive the French came to loot
   const d = J(1866).dungeons.jeongjok;
   d.boss = { sp: 282, lv: 35, lvMin: 30, lvUp: 3, hp: 2.2, atk: 0.9, cap: 0.3, bgm: 'ba_secret1', moves: [94, 247, 85, 95],
-    tele: { name: K('미래예지', 'Future Sight'), every: 3, dmg: 0.32, stagger: 1, pats: ['far', 'target', 'ring', 'checker'], type: 14 },
+    tele: { name: K('미래예지', 'Future Sight'), every: 3, dmg: 0.32, stagger: 1, pats: ['far', 'target', 'frame', 'diamond'], type: 14 },
     say: [
       { who: 282, name: K('가디안', 'Gardevoir'), text: K('…이 산성의 사고에는 왕실의 기록이 잠들어 있어요. 누구도 함부로 가져가게 두지 않겠어요.', '...The royal records sleep in this fortress\'s archive. I will let no one carry them off.') },
       { who: 'partner', text: K('가디안은 앞날을 내다봐! 붉은 칸이 나타나면 미리 피하자!', 'Gardevoir can see the future! When red tiles appear, get out of the way early!') }],
@@ -909,8 +909,8 @@ const J = (y) => JOSEON.find((e) => e.year === y);
   d.mid = { ...d.boss, floor: 2 };
   d.boss = { sp: 376, lv: 44, lvMin: 38, lvUp: 4, hp: 2.1, atk: 0.9, cap: 0.35, bgm: 'ba_chanp', moves: [309, 428, 418, 89], // 600-class tier (dungeon.js bossTier) scales these
     tele: [
-      { name: K('코멧펀치', 'Meteor Mash'), every: 3, dmg: 0.36, stagger: 1, pats: ['cols', 'rows', 'cross', 'target'], type: 8, first: 2 },
-      { at: 0.5, name: K('사이코키네시스', 'Psychic'), every: 2, dmg: 0.4, stagger: 1, pats: ['checker', 'quad', 'x', 'ring', 'star'], type: 14,
+      { name: K('코멧펀치', 'Meteor Mash'), every: 3, dmg: 0.36, stagger: 1, pats: ['cols', 'bowtie', 'scope', 'target'], type: 8, first: 2 },
+      { at: 0.5, name: K('사이코키네시스', 'Psychic'), every: 2, dmg: 0.4, stagger: 1, pats: ['checker', 'quad', 'bombs', 'ring', 'slash'], type: 14,
         msg: K('메타그로스의 네 개의 뇌가 한꺼번에 계산을 시작했다! 공격이 빨라진다!', 'Metagross\'s four brains start calculating at once! Its attacks speed up!'),
         line: [{ who: 376, name: K('메타그로스', 'Metagross'), text: K('…계산 완료. 너희의 다음 움직임, 모두 예측했다.', '...Calculation complete. I have predicted your every next move.') }] },
     ],
@@ -932,13 +932,13 @@ const J = (y) => JOSEON.find((e) => e.year === y);
 
 // second towns for the Joseon-era chapters (each era's world map shows both)
 const TOWN2 = {
-  1392: { node: [126.55, 37.97], town: { name: K('개경 · 옛 도읍', 'Gaegyeong, the old capital'), bgm: 'town03_d', bgmN: 'town03_n', biome: 'autumn',
+  1392: { node: [126.55, 37.97], town: { name: K('개경 · 옛 도읍', 'Gaegyeong, the old capital'), bgm: 'dp_town06', bgmN: 'dp_town06', biome: 'autumn',
     houses: ['hanok', 'choga', 'hanok', 'choga'], props: ['maple', 'persimmon', 'jars', 'logs'],
     npcs: [
       { id: 'kg1392a', sp: 79, name: K('개경 토박이 야돈', 'Gaegyeong Local Slowpoke'), x: 22, y: 15, say: [{ text: K('도읍이 한양으로 옮겨 간다니… 오백 년 고려의 도읍도 이제 조용해지겠구먼.', 'The capital is moving to Hanyang... After five hundred years, Goryeo\'s old capital will go quiet.') }] },
       { id: 'kg1392b', sp: 133, name: K('이브이', 'Eevee'), x: 14, y: 19, wander: 2, say: [{ text: K('선죽교 돌다리에는 붉은 자국이 남아 있대. 정몽주 선생의 이야기야.', 'They say there is a red stain on the stones of Seonjuk Bridge. It\'s the story of Jeong Mong-ju.') }] },
     ] } },
-  1592: { node: [128.66, 35.02], town: { name: K('한산도 통제영', 'Hansan Naval Command'), bgm: 'city07_d', bgmN: 'city07_n', biome: 'coast',
+  1592: { node: [128.66, 35.02], town: { name: K('한산도 통제영', 'Hansan Naval Command'), bgm: 'dp_town02', bgmN: 'dp_town02', biome: 'coast',
     houses: ['hanok', 'choga', 'choga', 'hanok'], props: ['logs', 'crates', 'jars', 'maple'], ships: ['panokseon', 'boat'],
     npcs: [
       { id: 'hs1592a', sp: 230, name: K('수군 킹드라', 'Navy Kingdra'), x: 22, y: 15, say: [{ text: K('이곳 한산도에 삼도수군통제영을 두었다. 장군께서는 제승당에서 작전을 세우신다.', 'The Three-Province Naval Command was set up here on Hansan. The admiral plans his battles at Jeseungdang.') }] },
@@ -950,7 +950,7 @@ const TOWN2 = {
       { id: 'gh1636a', sp: 80, name: K('피란 온 야도란', 'Refugee Slowbro'), x: 22, y: 15, say: [{ text: K('왕실 가족은 이곳 강화도로 피했지. 바다가 지켜 줄 거라 믿었는데…', 'The royal family fled here to Ganghwa. We believed the sea would protect us...') }] },
       { id: 'gh1636b', sp: 220, name: K('꾸꾸리', 'Swinub'), x: 14, y: 19, wander: 2, say: [{ text: K('꾸꾸… 바닷물까지 얼 것 같은 추위야.', 'Oink... It\'s so cold even the sea might freeze.') }] },
     ] } },
-  1887: { node: [126.52, 37.42], town: { name: K('제물포 항구', 'Jemulpo Port'), bgm: 'city02_d', bgmN: 'city02_n', biome: 'coast', pearl: 'C02', // Canalave's harbour and canal
+  1887: { node: [126.52, 37.42], town: { name: K('제물포 항구', 'Jemulpo Port'), bgm: 'dp_city02', bgmN: 'dp_city02', biome: 'coast', pearl: 'C02', // Canalave's harbour and canal
     houses: ['western', 'hanok', 'western', 'choga'], props: ['crates', 'lamp', 'pole', 'jars'], ships: ['boat'],
     npcs: [
       { id: 'jm1887a', sp: 52, name: K('무역상 나옹', 'Trader Meowth'), x: 22, y: 15, say: [{ text: K('1883년에 항구가 열린 뒤로 서양 배가 끊이질 않아. 성냥, 석유, 옷감… 별게 다 들어온다냥.', 'Since the port opened in 1883, Western ships never stop coming. Matches, kerosene, cloth... everything comes in, meow.') }] },

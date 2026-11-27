@@ -24,6 +24,13 @@
   #hud button { font: 12px 'Galmuri11', sans-serif; color: var(--ink); background: rgba(243,232,207,0.78); border: 2px solid var(--ink);
     padding: 4px 9px; cursor: pointer; }
   #hud button:hover { background: var(--paper); }
+  /* the volume beside the sound button: a short slider and its percent */
+  #hud .vol { display: flex; align-items: center; gap: 4px; font: 12px 'Galmuri11', sans-serif; color: var(--ink); background: rgba(243,232,207,0.78); border: 2px solid var(--ink); padding: 2px 6px; }
+  #hud .vol input { width: 64px; margin: 0; accent-color: var(--red); cursor: pointer; }
+  #hud .vol output { min-width: 32px; text-align: right; }
+  #hud.side .vol input { flex: 1; width: 40px; }
+  /* a narrow window's row of buttons (English labels are longer): a shorter slider, its percent left to the tooltip */
+  @media (max-width: 860px) { #hud:not(.side):not(.inmenu) .vol input { width: 44px; } #hud:not(.side):not(.inmenu) .vol output { display: none; } }
   #hud button:disabled { opacity: 0.5; cursor: default; }
   /* core.js fit() picks the layout: a column in the strip beside the game, a row above it, or faded over it */
   #hud.side { flex-direction: column; align-items: stretch; }
@@ -135,6 +142,8 @@
   #tmenu button, #hud.inmenu button { min-height: 44px; padding: 6px 4px; font: 13px 'Galmuri11', sans-serif; color: var(--ink); background: #fffaf0;
     border: 2px solid var(--ink); cursor: pointer; }
   #tmenu .game button { font-family: 'Galmuri11B', sans-serif; background: var(--paper2); }
+  #hud.inmenu .vol { grid-column: span 2; min-height: 44px; box-sizing: border-box; padding: 4px 8px; font-size: 13px; background: #fffaf0; }
+  #hud.inmenu .vol input { flex: 1; width: 40px; height: 30px; }
   #tmenu .game button:disabled { opacity: 0.4; cursor: default; }
   #tmenu header button { min-height: 0; width: 36px; height: 30px; padding: 0; }
   body.app #btn-full { display: none; }
@@ -209,7 +218,7 @@
 <body>
 <canvas id="screen"></canvas>
 <div id="status">불러오는 중…</div>
-<div id="hud"><button id="btn-sound" type="button" data-stay>소리 켬</button><button id="btn-speed" type="button" data-stay>속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-cloud" type="button">구글 로그인</button><button id="btn-lang" type="button" data-stay>English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-full" type="button">전체화면</button></div>
+<div id="hud"><button id="btn-sound" type="button" data-stay>소리 켬</button><label id="vol" class="vol" data-stay><input id="vol-range" type="range" min="0" max="100" step="5" value="100" tabindex="-1" aria-label="소리 크기"><output id="vol-pct">100%</output></label><button id="btn-speed" type="button" data-stay>속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-cloud" type="button">구글 로그인</button><button id="btn-lang" type="button" data-stay>English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-full" type="button">전체화면</button></div>
 <video id="mp-video" playsinline autoplay muted hidden></video>
 <button id="mp-play" type="button" hidden>▶</button>
 <div id="mp" hidden role="dialog" aria-labelledby="mp-title">
@@ -312,7 +321,7 @@
           <span><kbd>H</kbd></span><span>이 가이드 열기·닫기</span>
         </div>
       </div>
-      <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 지도를 끌거나(드래그) 휠을 굴려 둘러볼 수 있어요. 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리와 게임 속도를 바꾸고, <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
+      <p><b>마우스</b>: 세계 지도에서 가고 싶은 장소를 클릭하면 바로 이동하고, 지도를 끌거나(드래그) 휠을 굴려 둘러볼 수 있어요. 대화창·선택지·메뉴도 클릭으로 고를 수 있어요. <b>X 메뉴 → 설정</b>에서 소리(켬·끔, 크기 0~100%)와 게임 속도를 바꾸고(소리 크기는 화면 위 소리 버튼 옆 막대로도 바꿉니다), <b>게임 종료</b>로 기록을 남기고 타이틀로 돌아갑니다.</p>
       <p><b>스마트폰 · 안드로이드 앱</b>: 왼쪽 원형 패드로 움직이고(던전에서는 대각선 화살표까지 8개가 모두 켜지고 8방향으로 움직여요), 게임은 화면 전체를 쓰고, 오른쪽 버튼들은 그 위에 겹쳐 있어요. 던전에서는 십자 모양으로 놓인 둥근 <b>기술 버튼 Q · W · E · R</b>(위 · 왼쪽 · 오른쪽 · 아래)에 지금 이끄는 포켓몬의 <b>기술 이름 · 범위 · 남은 PP</b>가 적혀 있고, 그 아래위로 Z 확인 · X 취소 · Tab 태그 버튼이 있어요. 미니맵은 메뉴 · Tab 버튼 옆에 나옵니다. 한 턴 쉬기는 메뉴 버튼 안에 있습니다. X는 마을과 던전에서 게임 메뉴도 엽니다. <b>메뉴</b> 버튼은 오른쪽 버튼 줄 맨 위에 있고, 누르면 게임 메뉴 · 퀘스트 · 동료 · 던전 지도 · 한 턴 쉬기와 소리 · 속도 · 멀티 · 구글 로그인 · 언어 · 가이드가 한 화면에 열립니다. 메뉴 · 대화 · 장소는 화면을 직접 눌러 고를 수 있고(긴 목록은 손가락으로 끌어 넘기기). 세계 지도는 손가락으로 끌어서 둘러봅니다. 휴대폰의 뒤로 가기 버튼은 X와 같아요. 소리는 휴대폰의 <b>미디어 볼륨</b>을 따르니, 소리가 안 나면 게임 중에 볼륨 키로 올려 주세요 (앱은 미디어 볼륨이 0이거나 너무 낮으면 알려 줘요). 메뉴 안의 <b>구글 로그인</b> 버튼으로 로그인하면 세이브(난이도마다 하나씩)가 내 구글 드라이브의 앱 전용 숨김 폴더에 저장되어 PC와 폰에서 이어 할 수 있고, 다른 기기에 다른 세이브가 있으면 어느 쪽을 쓸지 고를 수 있어요. 앱은 인터넷 없이 플레이되고, <b>멀티</b>만 인터넷이 필요합니다. 블루투스 게임패드도 쓸 수 있어요 (A 확인 · B 메뉴 · X/Y/LB/RB 기술 · LT 방향만 · RT 쉬기 · Start 메뉴 · Select 퀘스트).</p>
       <p class="get-app"><b>안드로이드 앱 받기</b>: 휴대폰 크롬에서 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">APK 내려받기</a>를 누르고, 다 받으면 파일을 열어 설치합니다. 경고 창이 뜨면 '다운로드' → '설정'에서 '이 출처 허용' 켜기 → '설치' 순서로 누르면 돼요. 자세한 방법은 <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">릴리스 페이지</a>에 있어요.</p>
       <p>화면 옆 <b>English / 한국어</b> 버튼을 누르면 게임을 다시 시작하지 않고 그 자리에서 대사와 이름이 바로 바뀝니다.</p>
@@ -335,7 +344,7 @@
       <h2>던전 전투와 난이도</h2>
       <ul>
         <li>내가 한 번 움직이면 적도 한 번 움직이는 턴제입니다. 파트너와 동료는 알아서 싸워요.</li>
-        <li>우리 편 기술은 범위 안의 가장 가까운 적을 방향과 상관없이 스스로 노려 <b>반드시 맞힙니다</b>. <b>물리 기술</b>은 <b>3칸</b>, <b>특수·변화 기술</b>은 <b>4칸</b>까지이고, 그보다 먼 적에게는 닿지 않습니다. <b>기본 공격</b>(Z)도 3칸 안의 적을 노리고, <b>돌팔매</b>는 3칸 안의 적을 노려 던지며 없으면 바라보는 방향으로 곧게 날아갑니다. <b>주변 기술</b>(지진·거품·파도타기·울음소리 등)은 물리 기술이면 <b>3칸</b>, 특수·변화 기술이면 <b>4칸</b> 안의 적을 모두 칩니다(대각선도 1칸, 벽 뒤의 적은 빼고). <b>보이지 않는 적</b>(어두운 통로에서 2칸 넘게 떨어진 적, 지금 있는 방 밖의 적)은 우리 기술에 맞지 않고, 그 적도 우리를 공격하지 못합니다. 야생 포켓몬 같은 <b>일반 적</b>도 같은 거리(물리 3칸, 특수·변화 4칸, 주변 기술도 같게)에서 우리 편을 노리지만 빗나갈 수 있습니다. <b>보스</b>는 바라보는 방향 직선으로만 공격해서, 물리 기술과 기본 공격은 <b>2칸</b>, 다른 기술은 <b>4칸</b>, 주변 기술은 바로 옆 칸까지 닿고, 예고 공격도 보스에게서 <b>4칸</b>까지만 닿습니다. 보스는 잠듦·얼음·독에 걸리지 않고, <b>전설의 포켓몬 보스</b>는 마비·화상까지 <b>모든 상태 이상</b>에 걸리지 않습니다.</li>
+        <li>우리 편 기술은 범위 안의 가장 가까운 적을 방향과 상관없이 스스로 노려 <b>반드시 맞힙니다</b>. 기술은 물리·특수·변화 모두 <b>4칸</b>까지이고, 그보다 먼 적에게는 닿지 않습니다. <b>기본 공격</b>(Z)은 <b>3칸</b> 안의 적을 노리고, <b>돌팔매</b>는 3칸 안의 적을 노려 던지며 없으면 바라보는 방향으로 곧게 날아갑니다. <b>주변 기술</b>(지진·거품·파도타기·울음소리 등)은 <b>4칸</b> 안의 적을 모두 칩니다(대각선도 1칸으로 세어 가로세로 9칸의 네모, 벽 뒤의 적은 빼고). <b>보이지 않는 적</b>(어두운 통로에서 2칸 넘게 떨어진 적, 지금 있는 방 밖의 적)은 우리 기술에 맞지 않고, 그 적도 우리를 공격하지 못합니다. 야생 포켓몬 같은 <b>일반 적</b>도 같은 거리(기술 4칸, 기본 공격 3칸, 주변 기술도 같게)에서 우리 편을 노리지만 빗나갈 수 있습니다. <b>보스</b>는 바라보는 방향 직선으로만 공격해서, 물리 기술과 기본 공격은 <b>3칸</b>, 다른 기술은 <b>4칸</b>, 주변 기술은 바로 옆 칸까지 닿고, 예고 공격도 보스에게서 <b>4칸</b>까지만 닿습니다. 레벨 30 이상의 보스는 모두 예고 공격을 쓰고, 전설의 포켓몬은 전용기도 씁니다. 보스는 잠듦·얼음·독에 걸리지 않고, <b>전설의 포켓몬 보스</b>는 마비·화상까지 <b>모든 상태 이상</b>에 걸리지 않습니다.</li>
         <li>지금 조종하는 포켓몬은 머리 위와 팀 창의 이름 옆에 <b>리더 뱃지</b>(왕관 방패)가 붙습니다. 파트너와 동료는 리더 곁을 지키고, 통로에서는 줄지어 뒤따릅니다.</li>
         <li>포켓몬은 본편의 100을 넘어 <b>Lv 180</b>까지 오릅니다. 180이 넘는 적도 동료가 될 때는 Lv 180으로 들어와요.</li>
         <li><b>보스방</b>에 들어서면 쓰러졌던 동료가 HP 절반으로 다시 일어납니다. 그 밖에는 장터의 <b>기력의 조각</b>(1000냥)으로 던전 한 번에 한 마리를 되살릴 수 있어요 (큐레무와의 싸움에서는 두 마리, 보스 탑에서는 제한 없이).</li>
@@ -464,7 +473,7 @@
           <span><kbd>H</kbd></span><span>Open or close this guide</span>
         </div>
       </div>
-      <p><b>Mouse</b>: click a place on the world map to go there (drag the map or roll the mouse wheel to look around), and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound on or off and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
+      <p><b>Mouse</b>: click a place on the world map to go there (drag the map or roll the mouse wheel to look around), and click dialogue, choices and menus to pick them. <b>X menu → Settings</b> turns sound on or off, sets its volume from 0 to 100% (the slider beside the Sound button does the same) and sets the game speed; <b>Quit game</b> saves and returns to the title screen.</p>
       <p><b>Phones and the Android app</b>: move with the round pad on the left (in a dungeon all eight of its arrows light up and you walk eight ways). The game takes the whole screen and the buttons on the right lie over it. In a dungeon the round <b>move buttons Q · W · E · R</b>, in a cross (up · left · right · down), carry your leader's <b>move names, ranges and PP left</b>, the minimap sits beside the Menu and Tab buttons, with Z OK · X back · Tab tag around them (resting a turn is in the Menu panel); X also opens the game menu in town and in dungeons. The <b>Menu</b> button is at the top of the right-hand buttons and opens one panel with the game menu, quests, team, dungeon map and resting a turn, and sound, speed, co-op, Google login, language and the guide. Tap menus, dialogue and places on the screen to pick them (drag a long list with a finger to scroll it). Drag the world map with a finger to look around; the phone's back button works like X. Sound follows the phone's <b>media volume</b>: if you hear nothing, turn it up with the volume keys while playing (the app tells you when it is at 0 or very low). Press <b>Google login</b> in the menu to keep your saves (one per difficulty) in a hidden app folder of your own Google Drive and carry on between PC and phone; when another device left a different save, you pick which one to keep. The app plays offline; only <b>Co-op</b> needs the internet. Bluetooth gamepads work too (A OK · B menu · X/Y/LB/RB moves · LT face · RT rest · Start menu · Select quests).</p>
       <p class="get-app"><b>Get the Android app</b>: open <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk">the APK download</a> in Chrome on the phone, then open the file to install it. Past the warnings, tap Download, turn on "Allow from this source" in Settings, then Install; the <a href="https://github.com/jbh99/joseon-poke-timetravel/releases/latest" target="_blank" rel="noopener">release page</a> has the full steps.</p>
       <p>The <b>English / 한국어</b> button beside the screen switches the language on the spot: dialogue and names change instantly without restarting the game.</p>
@@ -487,7 +496,7 @@
       <h2>Dungeon battles and difficulty</h2>
       <ul>
         <li>Turn-based: every time you act, the foes act once. Your partner and ally fight on their own.</li>
-        <li>Your team's moves turn by themselves to the nearest foe within reach, whichever way you face, and <b>always hit</b>: <b>physical moves</b> reach <b>3 tiles</b>, <b>special and status moves</b> <b>4</b>, and nothing farther. A <b>plain attack</b> (Z) also turns to a foe within 3 tiles, and a <b>Sling Stone</b> flies at a foe within 3 tiles, or straight ahead when there is none. Moves that hit <b>all around</b> (Earthquake, Bubble, Surf, Growl...) strike every foe within <b>3 tiles</b> if physical and <b>4 tiles</b> otherwise (a diagonal step counts as one; walls shield those behind them). A foe you <b>cannot see</b> (more than two tiles off in a dark corridor, or outside the room you stand in) is not hit by your moves and cannot strike you either. <b>Ordinary foes</b> such as wild Pokémon aim at your team from as far (3 tiles physical, 4 otherwise, all-around moves alike), though they can miss. <b>Bosses</b> strike only in a straight line the way they face: their physical moves and plain attacks reach <b>2 tiles</b>, their other moves <b>4</b>, their all-around moves only the tiles beside them, and their warning blasts <b>4 tiles</b> from them at most. Bosses can't be put to sleep, frozen or poisoned, and <b>legendary bosses</b> shrug off <b>every status problem</b>, paralysis and burns too.</li>
+        <li>Your team's moves turn by themselves to the nearest foe within reach, whichever way you face, and <b>always hit</b>: every move, physical, special or status, reaches <b>4 tiles</b>, and nothing farther. A <b>plain attack</b> (Z) turns to a foe within <b>3 tiles</b>, and a <b>Sling Stone</b> flies at a foe within 3 tiles, or straight ahead when there is none. Moves that hit <b>all around</b> (Earthquake, Bubble, Surf, Growl...) strike every foe within <b>4 tiles</b> (a diagonal step counts as one, so a square nine tiles across; walls shield those behind them). A foe you <b>cannot see</b> (more than two tiles off in a dark corridor, or outside the room you stand in) is not hit by your moves and cannot strike you either. <b>Ordinary foes</b> such as wild Pokémon aim at your team from as far (moves 4 tiles, plain attacks 3, all-around moves alike), though they can miss. <b>Bosses</b> strike only in a straight line the way they face: their physical moves and plain attacks reach <b>3 tiles</b>, their other moves <b>4</b>, their all-around moves only the tiles beside them, and their warning blasts <b>4 tiles</b> from them at most. From Lv 30 on every boss has a warning blast, and a legend its signature move as well. Bosses can't be put to sleep, frozen or poisoned, and <b>legendary bosses</b> shrug off <b>every status problem</b>, paralysis and burns too.</li>
         <li>The Pokémon you control wears the <b>leader badge</b> (a crowned shield) over its head and beside its name in the team panel. Your partner and ally keep close to it and follow in a line through corridors.</li>
         <li>Pokémon grow past the main games' 100, up to <b>Lv 180</b>. Foes above it join at Lv 180.</li>
         <li>Stepping into a <b>boss room</b> brings fallen teammates back with half their HP; otherwise a <b>Revive</b> from the market (1000 nyang) gets one back up, once per dungeon run (twice against Kyurem, any number of times in the Boss Tower).</li>

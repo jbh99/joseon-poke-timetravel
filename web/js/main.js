@@ -1,6 +1,6 @@
 // Boot and main loop.
 import { G, VW, VH, APP, touchUI, initCanvas, initTouch, padMoves, pollGamepads, input, ui, setScene, fade, fadeTo, holdFade, prepImages, prepped, updateFade, drawToasts, relangToasts, loadJSON, loadImages, loadFonts, toast, COL, prefs, repause, say } from './core.js';
-import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, audioState } from './audio.js';
+import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, setVolume, volume, audioState } from './audio.js';
 import { initData, initSaves, S, save, load, newGame, saves, Mon, readSave, saveOver, outdated } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
@@ -140,10 +140,23 @@ function setSpeed(n, quiet) {
 }
 G.setSpeed = (n) => setSpeed(n);
 // sound on/off from the HUD (the town and dungeon menus have the same switch under Settings)
-function soundLabel() { document.getElementById('btn-sound').textContent = prefs.muted ? tr('소리 끔', 'Sound off') : tr('소리 켬', 'Sound on'); }
+// and its volume beside it, 0 to 100% (1.38; Settings has the same as a row)
+function soundLabel() {
+  document.getElementById('btn-sound').textContent = prefs.muted ? tr('소리 끔', 'Sound off') : tr('소리 켬', 'Sound on');
+  const r = document.getElementById('vol-range'), v = volume();
+  if (+r.value !== v) r.value = v;
+  r.setAttribute('aria-label', tr('소리 크기', 'Volume'));
+  document.getElementById('vol-pct').textContent = `${v}%`;
+  document.getElementById('vol').title = tr(`소리 크기 ${v}%`, `Volume ${v}%`);
+}
 G.onPrefs = soundLabel;
 function initSound() {
   document.getElementById('btn-sound').addEventListener('click', (e) => { setMuted(!prefs.muted); soundLabel(); e.currentTarget.blur(); });
+  const r = document.getElementById('vol-range');
+  r.addEventListener('input', () => setVolume(r.value));
+  // let go, the slider gives the keys back to the game (a focused slider would take the arrow keys for itself)
+  for (const t of ['change', 'pointerup', 'keyup']) r.addEventListener(t, () => r.blur());
+  r.addEventListener('keydown', (e) => e.stopPropagation());
 }
 function initSpeed() {
   let n = 1;

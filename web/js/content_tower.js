@@ -11,8 +11,8 @@ import { ARCEUS } from './content_modern.js';
 
 // Latias and Latios never fight as bosses in the story (in town they join by choice): their tower selves
 const LATI = (sp, moves, tele) => ({ sp, hp: 1.9, atk: 0.85, cap: 0.34, bgm: 'ba_secret2', moves, tele });
-const LATIAS = LATI(380, [296, 406, 94, 225], { name: K('미스트볼', 'Mist Ball'), every: 3, dmg: 0.32, pats: ['ring', 'target', 'checker', 'near'], type: 14 });
-const LATIOS = LATI(381, [295, 406, 94, 337], { name: K('라스트버지', 'Luster Purge'), every: 3, dmg: 0.32, pats: ['cross', 'x', 'far', 'rows'], type: 14 });
+const LATIAS = LATI(380, [296, 406, 94, 225], { name: K('미스트볼', 'Mist Ball'), every: 3, dmg: 0.32, pats: ['slash', 'target', 'rings', 'near'], type: 14 });
+const LATIOS = LATI(381, [295, 406, 94, 337], { name: K('라스트버지', 'Luster Purge'), every: 3, dmg: 0.32, pats: ['cone', 'lattice', 'far', 'rows'], type: 14 });
 
 const UP = 1.15; // the great legends' edge in the tower: HP and attack
 const PAIR_HP = 0.85; // two at once had too much HP between them (1.28): each of a pair has 15% less
