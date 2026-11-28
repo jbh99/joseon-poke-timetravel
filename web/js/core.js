@@ -1,5 +1,7 @@
 // Core: canvas, input, assets, UI drawing, dialogue, scene stack.
 export const VW = 480, VH = 270, TILE = 24;
+// the game's version (a bug report would name it, report.js): goes up with versionName in mobile/android/app/build.gradle
+export const VERSION = '1.40';
 // G.W: how wide the world is drawn, in game pixels. VW everywhere but on a touch screen wider than 16:9, where the
 // field runs on under the button column to the screen's edge (1.28; fit below). The UI keeps to the left VW of it.
 export const G = { S: 2, W: VW, time: 0, real: 0, dt: 0, speed: 1, scene: null, overlays: [], touchL: 0 };
@@ -163,11 +165,11 @@ const release = (k) => { input.down.delete(k); delete input.repeatAt[k]; };
 addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) release(k); });
 addEventListener('blur', () => { input.down.clear(); input.repeatAt = {}; });
 
-// What holds the game still (G.paused): an HTML panel open over it (the guide, co-op, the cloud, the search box), or being
+// What holds the game still (G.paused): an HTML panel open over it (the guide, co-op, the cloud, a bug report, the search box), or being
 // a co-op guest, who watches the host's game (G.guest, netui.js). Whoever opens or closes one says so here (1.31: each
 // wrote G.paused itself, and a guest closing the guide or the cloud panel set its own game going under the host's
 // picture, every press played twice)
-const PANELS = ['guide', 'mp', 'cloud', 'ask'];
+const PANELS = ['guide', 'mp', 'cloud', 'report', 'ask'];
 export function repause() { G.paused = !!G.guest || PANELS.some((id) => { const el = document.getElementById(id); return !!el && !el.hidden; }); }
 const press = (k) => { if (G.paused || G.menuOpen) return; if (!input.down.has(k)) input.pressed.add(k); input.down.add(k); }; // the guide, the search box or a phone's Menu panel is open
 // keeps a finger's pointer on the control it started on; capture can be refused (the pointer already ended), which is harmless
@@ -571,7 +573,7 @@ export class Menu {
     const n = this.items.length;
     if (input.repeat('up')) { this.sel = (this.sel + n - 1) % n; G.sfx?.('cursor'); }
     if (input.repeat('down')) { this.sel = (this.sel + 1) % n; G.sfx?.('cursor'); }
-    // ◀ ▶ jump a page in long lists (a roster holds up to 500)
+    // ◀ ▶ jump a page in long lists (a roster holds up to 700)
     const page = this.box?.rows || n;
     if (n > page && input.repeat('left')) { this.sel = Math.max(0, this.sel - page); G.sfx?.('cursor'); }
     if (n > page && input.repeat('right')) { this.sel = Math.min(n - 1, this.sel + page); G.sfx?.('cursor'); }

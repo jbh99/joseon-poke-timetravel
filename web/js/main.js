@@ -3,6 +3,8 @@ import { G, VW, VH, APP, touchUI, initCanvas, initTouch, padMoves, pollGamepads,
 import { initAudio, unlockAudio, pauseAudio, playBgm, stopBgm, setMuted, setVolume, volume, audioState } from './audio.js';
 import { initData, initSaves, S, save, load, newGame, saves, Mon, readSave, saveOver, outdated, dropRun } from './game.js';
 import { ERAS, STARTERS, CELEBI, QITEMS, CELEBI_INTRO, TELE_TUT, EN_EXTRA, FACTIONS, FACTION_TALK, FACTION_PICK, KOREA_LAST } from './content.js';
+import { SIG, SP_SIG } from './content_k.js';
+import { initReport } from './report.js';
 import { EN, LANG, tr, setLang, bindStory, initLang, onLang, swapText } from './i18n.js';
 import { Town, setBuildings, setPearl, setBW, townSets, townPictures } from './town.js';
 import { initPmd, tileSet, portraitImage, spriteReady } from './pmd.js';
@@ -198,7 +200,7 @@ function initGuide() {
 window.onAndroidBack = () => {
   const ask = document.getElementById('ask'); // the search box closes first
   if (ask) return ask.querySelector('[data-close]').click();
-  const open = ['tmenu', 'guide', 'mp', 'cloud'].map((id) => document.getElementById(id)).find((el) => !el.hidden);
+  const open = ['tmenu', 'guide', 'report', 'mp', 'cloud'].map((id) => document.getElementById(id)).find((el) => !el.hidden);
   if (open) return open.querySelector('[data-close]').click();
   if (G.scene instanceof Title && !G.overlays.length && !G.paused) return window.AndroidHost?.exit();
   dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
@@ -225,6 +227,7 @@ async function boot() {
   initSound();
   initNetUI();
   initCloud();
+  initReport();
   const status = document.getElementById('status');
   try {
     await Promise.all([
@@ -232,7 +235,9 @@ async function boot() {
       loadImages(['poke/front/251.png', ...STARTERS.flatMap((s) => [`poke/front/${s}s.png`, `poke/icon/${s}s.png`])]),
       loadJSON('data/content_en.json').then((t) => {
         const missing = new Set();
-        bindStory({ ERAS, QITEMS, CELEBI_INTRO, TELE_TUT, FACTIONS, FACTION_TALK, FACTION_PICK }, { ...t, ...EN_EXTRA }, missing);
+        // (SIG, SP_SIG: the signature moves a legend uses by its species stand outside the story's tree; 1.40: up to 1.39
+        // their names stayed Korean in English, Mewtwo's Psystrike, Articuno's Sheer Cold, Heatran's Magma Storm)
+        bindStory({ ERAS, QITEMS, CELEBI_INTRO, TELE_TUT, FACTIONS, FACTION_TALK, FACTION_PICK, SIG, SP_SIG }, { ...t, ...EN_EXTRA }, missing);
         if (missing.size) console.warn('untranslated story text', [...missing]);
       }),
     ]);

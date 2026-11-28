@@ -1,7 +1,7 @@
 // Title, starter selection, era transition cards, world map and ending.
 import { G, VW, VH, TILE, img, ready, input, ui, COL, say, openMenu, toast, fadeTo, setScene, clamp, loadJSON, prefs, setPref, touchUI, prepImages } from './core.js';
 import { playBgm, sfx, cry, jingle, preloadBgm } from './audio.js';
-import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept, deleteKept, claim, runElsewhere } from './game.js';
+import { S, DEX, newGame, journey, saves, load, save, TYPE_COLORS, MODE_NAMES, LEGENDS, mode, keptSaves, keepJourney, restoreKept, deleteKept, claim, runElsewhere, runFromElsewhere } from './game.js';
 import { ERAS, STARTERS, CELEBI, CELEBI_INTRO } from './content.js';
 import { era, mainStep, activeSides, lines, eraComplete, liftLevels, chooseFaction, talkTown, questMenu, rosterMenu, settingsMenu, legendsAt, wanderAt, foeLevels, checkRun, lairDone, endingOpen, sortieMenu, formationMenu, yearOf, shownYear } from './quests.js';
 import { drawMon, BLD, townPictures } from './town.js';
@@ -102,8 +102,17 @@ export class Title {
         return say([{ who: 'narr', text: tr('이 챌린지 여행은 지금 다른 창(탭)에서 던전을 진행하고 있어요. 그 창에서 계속해 주세요. 그 창을 닫은 뒤에 이어 하면 던전 도중에 멈춘 것으로 처리돼요.',
           'This challenge journey is in the middle of a dungeon in another window (tab) right now. Go on there. Continuing after that window is closed counts as stopping in the middle of the dungeon.') }]);
       }
-      if (load(slot, ERAS.length)) fadeTo(() => { liftLevels(); if (!checkRun()) G.goTown(); });
-      else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
+      const go = () => {
+        if (load(slot, ERAS.length)) fadeTo(() => { liftLevels(); if (!checkRun()) G.goTown(); });
+        else { this.started = false; toast(tr('기록을 불러오지 못했다. 새로 시작해 주세요.', 'Could not load the save. Please start a new game.'), COL.red); }
+      };
+      // a run this device did not start (game.js runFromElsewhere, 1.40): the device that played it may hold its end,
+      // not yet in the cloud, so the player is asked before the journey ends for it (the cursor starts on going back,
+      // and X goes back too)
+      if (!runFromElsewhere(slot)) return go();
+      say([{ who: 'narr', text: tr('이 챌린지 여행은 다른 기기에서 던전에 들어간 채 저장된 기록이에요. 그 기기에서 던전을 이미 마쳤다면 결과가 아직 클라우드에 올라오지 않은 거예요. 그 기기에서 게임을 다시 열어 결과를 올린 뒤 여기서 새 기록을 받아 주세요. 지금 이어 하면 던전 도중에 멈춘 것으로 처리되어 여행이 끝나요.',
+        'This challenge journey was saved inside a dungeon on another device. If that run is already over there, its result has not reached the cloud yet: open the game on that device to send it, then take the new save here. Continuing now counts as stopping in the middle of the dungeon, and the journey ends.'),
+        choices: tr(['그래도 이어 하기', '돌아가기'], ['Continue anyway', 'Go back']), sel: 1, onChoice: (i) => { if (i === 0) go(); else this.started = false; } }]);
     });
   }
   // the language row shows the language in use; rebuild the menu so every label follows a switch

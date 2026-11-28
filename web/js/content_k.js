@@ -65,7 +65,7 @@ const FUTURE = storm('미래예지', 'Future Sight', 14, '#f0b0ff', '염력', 'p
 export const SP_SIG = {
   144: SHEER, // Articuno
   145: SIG.thunder, // Zapdos
-  146: storm('열풍', 'Heat Wave', 10, '#ffb060', '열풍', 'scorching wind', { status: 'brn' }), // Moltres
+  146: storm('열풍', 'Heat Wave', 10, '#ffb060', '뜨거운 바람', 'scorching wind', { status: 'brn' }), // Moltres (1.40: named '열풍' like the move, its English came out as the move's name twice)
   150: { kind: 'pulse', name: K('사이코브레이크', 'Psystrike'), type: 14, dmg: 0.34 }, // Mewtwo
   243: SIG.thunder, // Raikou
   244: storm('불대문자', 'Fire Blast', 10, '#ff9050', '불길', 'fire', { status: 'brn' }), // Entei

@@ -74,16 +74,18 @@ export function pauseAudio(on) {
 }
 // The volume, 0 to 100 (1.38): what the player sets, kept with the other preferences. The gain goes by its square, so
 // that half on the slider sounds about half as loud (-12 dB) and the low end stays usable; 100 is the mix as it always
-// was. It is the last gain before the speaker, after a phone's compressor and limiter. Raising it from nothing while the
-// sound is switched off switches it on (the switch would otherwise leave the slider doing nothing).
+// was. It is the last gain before the speaker, after a phone's compressor and limiter. Raising it while the sound is
+// switched off switches it on (the switch would otherwise leave the slider doing nothing); lowering it leaves the
+// switch alone (1.40: up to 1.39 any setting above 0 switched the sound on, a volume turned down too).
 export const volume = () => clamp(Math.round(+prefs.volume), 0, 100) || (prefs.volume === 0 ? 0 : 100);
 const volumeGain = () => (volume() / 100) ** 2;
 export function setVolume(v) {
   v = clamp(Math.round(+v) || 0, 0, 100);
+  const was = volume();
   setPref('volume', v);
   if (vol) vol.gain.setTargetAtTime(volumeGain(), ctx.currentTime, 0.02);
   G.onVolume?.(volumeGain()); // (a co-op guest's picture of the host's screen follows, netui.js)
-  if (v > 0 && prefs.muted) setMuted(false);
+  if (v > was && prefs.muted) setMuted(false);
   G.onPrefs?.();
 }
 // sound on/off silences the master bus (music, cries and effects; co-op guests hear the same mix)

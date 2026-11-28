@@ -273,7 +273,7 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 
 ### 동료
 - 쓰러뜨린 야생 포켓몬은 **35%** 확률(이로치는 70%)로 동료가 되고 싶어 합니다. **보스와 전설의 포켓몬은 이기면 반드시** 동료로 맞이할 수 있습니다.
-- 파티는 주인공·파트너·동료 1마리, 모두 3마리입니다. 나머지는 **동료 명부**(최대 500마리)에서 기다리며 던전에서 얻는 경험치의 70%를 함께 받습니다(1.31; 그전에는 절반).
+- 파티는 주인공·파트너·동료 1마리, 모두 3마리입니다. 나머지는 **동료 명부**(최대 700마리)에서 기다리며 던전에서 얻는 경험치의 70%를 함께 받습니다(1.31; 그전에는 절반).
 - **동료 바꾸기**: 던전 밖(마을·세계 지도)에서 **P**를 누르거나, X 메뉴의 **동료 명부**, 주막 주인에게 말을 걸어 명부를 엽니다. 명부 위쪽의 팀에서 하나를 고르면 서로 자리를 바꾸고, 명부의 포켓몬을 고르면 리더·파트너·동료 중 원하는 자리와 교체합니다. 명부의 동료는 던전에서 불러올 수 없습니다.
 - **동료 찾기**: 명부의 **찾기**로 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"를 넣어 원하는 동료만 골라 봅니다. **정렬**은 들어온 순 · 레벨 높은 순 · 도감 번호 순 · 가나다 순입니다.
 - **순서 바꾸기**: X 메뉴 → **포켓몬**에서 포켓몬을 고르고 Z를 누르면 **기술 순서 바꾸기**(Q·W·E·R 자리, 던전 안에서도 가능)와 **파티 순서 바꾸기**(리더·파트너·동료 자리, 마을에서만)가 나옵니다. 하나를 Z로 고른 뒤 바꿀 자리에서 Z를 누르면 서로 바뀝니다.
@@ -319,6 +319,20 @@ adb install -r mobile\android\app\build\outputs\apk\debug\app-debug.apk
 - 방장의 화면과 소리가 친구에게 실시간으로 전송됩니다. 던전에서는 친구가 파트너(P2)와 세 번째 동료(P3)를 직접 조종합니다 (방향키 이동: 누르고 있으면 계속 걷습니다, Z 공격, QWER 기술, A 쉬기). 소리는 각자 **소리** 버튼으로 끄고 켭니다. 최대 2명까지 참가할 수 있습니다.
 - 친구가 나가면 그 포켓몬은 다시 자동으로 움직입니다. 저장은 방장의 게임에만 남습니다.
 - WebRTC(PeerJS 공개 서버)로 연결하므로 두 사람 모두 인터넷이 필요합니다. 회사·학교처럼 방화벽이 강한 네트워크에서는 연결이 안 될 수 있습니다.
+
+### 바뀐 점 (1.40)
+
+- **동료 명부 700마리**: 명부가 500마리에서 **700마리**로 늘었습니다.
+- **'클라우드 세이브 받기'도 다시 확인**: **클라우드 세이브 받기**(또는 **클라우드에서 불러오기**)를 누르면 받기 직전에 클라우드를 다시 확인합니다. 창을 열어 둔 사이 다른 기기가 다른 세이브를 올렸다면 아무것도 받지 않고, 바뀐 세이브의 시대와 시간을 보여 주며 다시 고르게 합니다. 지금까지는 버튼에 적힌 것과 다른 세이브가 이 기기의 진행을 대신했습니다.
+- **다른 기기에서 진행하던 챌린지 던전**: 다른 기기에서 던전에 들어간 채 올라온 챌린지 기록을 **이어하기** 하면, 여행을 끝내기 전에 먼저 묻습니다. 그 기기에서 던전을 이미 마쳤는데 결과가 아직 올라오지 않았을 수 있기 때문입니다(결과가 올라가기 전에 창을 닫은 경우). 그 기기에서 게임을 다시 열면 결과가 올라가고, **돌아가기**를 고르면 여행은 그대로입니다. 지금까지는 묻지 않고 '던전 도중에 멈춘 것'으로 처리되어 이미 클리어한 던전 때문에 여행이 끝났습니다. 이 기기에서 멈춘 던전은 전과 같이 바로 처리됩니다.
+- **던전 결과 안내가 빠지던 경우**: 던전에 들어갈 때 시작된 동기화가 끝나기 전에 던전을 마치면, 결과는 올라갔는데 '던전 결과를 클라우드에 올렸어요' 안내가 나오지 않았습니다. 이제 결과가 클라우드에 올라간 것이 확인되면 언제나 알려 줍니다.
+- **다른 난이도의 세이브**: 한 난이도의 클라우드 선택(이 기기와 클라우드의 세이브가 다를 때)을 기다리는 동안 다른 난이도에서 기록한 세이브가 올라가지 않고, 그 난이도를 다시 기록할 때까지 이 기기에만 남았습니다. 이제 다른 난이도의 세이브는 그대로 올라가고, 선택 창이 다시 뜨지도 않습니다.
+- **빈 여행의 '지금 클라우드에 저장'**: 아직 한 번도 기록하지 않은 여행에서 누르면 올라간 것이 없는데도 저장했다고 나왔습니다. 이제 저장된 여행이 없다고 알려 줍니다.
+- **막다른 곳의 예고 공격**: 막다른 골목에 있고 보스가 하나뿐인 출구를 막아 벗어날 길이 없는 동료에게는 예고 공격의 표시를 놓지 않습니다(그 표시가 덮게 될 옆 동료도 같이). 표시할 동료가 아무도 없으면 그 턴에는 예고 공격 없이 보통 공격을 합니다. 지금까지는 그런 동료에게 1턴 뒤에 터지는 표시를 놓아 피할 수 없었습니다(서울 시가전의 그란돈).
+- **해전에서 영입할 때 명부 초과**: 본대가 2마리이고 명부와 출전 팀이 가득 찬 채 해전에서 영입하면 가득 찬 명부로 들어가 한도를 넘었습니다. 이제 뭍의 본대 빈자리로 들어가고, 자리가 없으면 영입하지 않습니다.
+- **소리를 끈 채 볼륨을 내릴 때**: 소리를 꺼 둔 채 볼륨을 내려도 소리가 켜졌습니다. 이제 볼륨을 올릴 때만 켜집니다.
+- **영어 화면의 전용기 이름**: 뮤츠의 Psystrike, 프리져의 Sheer Cold, 히드런의 Magma Storm 등 종족 전용기 이름이 영어 화면에서 한글로 나오던 것을 고쳤습니다.
+- **멀티 손님의 가이드**: 손님이 가이드를 연 채 누른 Enter나 방향키가 방장 쪽 게임에 그대로 전해지던 것을 막았습니다.
 
 ### 바뀐 점 (1.39)
 
@@ -578,6 +592,7 @@ tools/                  롬에서 그래픽·음악·데이터를 추출한 스�
   bw/sprites.py 등      블랙의 5세대 그림 · 아이콘(sprites.py), 울음소리(cries.py), 음악(render_bw_bgm.py), 능력치(dexdata.py)
   geo/worldmaps.py      세계 모드의 동아시아 · 유럽 · 태평양 지도 (Natural Earth)
   pokedex.py            펄 · 블랙 도감 문장과 분류 → assets/data/pokedex.json
+  bug_report.gs         버그 제보를 받아 메일로 보내는 Google Apps Script (아직 쓰지 않음: 웹 앱으로 배포한 주소를 web/js/report.js의 ENDPOINT에 넣어야 게임에 제보 버튼이 나옴)
 docs/screenshots/       README 스크린샷
 ```
 
@@ -588,7 +603,7 @@ docs/screenshots/       README 스크린샷
 
 - **GitHub Pages**: `main` 브랜치에 push하면 `.github/workflows/pages.yml`이 `web/`(dev 제외)를 배포합니다.
 - **Netlify**: `tools/build_dist.ps1`로 `dist/`를 만든 뒤 `netlify deploy --prod --dir dist`로 올립니다.
-- **안드로이드**: `mobile/android/app/build.gradle`의 versionCode·versionName을 올리고 `tools/build_mobile.ps1 -Release`로 만든 두 파일을 GitHub 릴리스에 올립니다: `gh release create v1.1 mobile\release\joseon-poke.apk mobile\release\joseon-poke-apk.zip`. 파일 이름을 그대로 두어야 `releases/latest/download/joseon-poke.apk` 링크가 늘 최신 버전을 가리킵니다.
+- **안드로이드**: `mobile/android/app/build.gradle`의 versionCode·versionName을 올리고(`web/js/core.js`의 `VERSION`도 같은 값으로) `tools/build_mobile.ps1 -Release`로 만든 두 파일을 GitHub 릴리스에 올립니다: `gh release create v1.1 mobile\release\joseon-poke.apk mobile\release\joseon-poke-apk.zip`. 파일 이름을 그대로 두어야 `releases/latest/download/joseon-poke.apk` 링크가 늘 최신 버전을 가리킵니다.
 
 ## 저작권 고지
 
@@ -616,6 +631,7 @@ docs/screenshots/       README 스크린샷
   - The First World War: 1914 Sarajevo (Nacrene City): Scolipede, **Shaymin** · 1914 the Marne, Paris (Nimbasa City): **Keldeo**, **Shaymin** · 1915 Gallipoli (Nuvema Town): **Manaphy**, Gigalith · 1916 Verdun and the Somme (Icirrus City): **Cobalion** (two phases), **Genesect** · 1916 Jutland, Scapa Flow (Driftveil City): **Tornadus** (Therian Forme), Chandelure · 1918 the Armistice, Compiègne (Accumula Town): **Virizion** (two phases), **Victini**, **Mew** (optional) · 1919 the Paris Peace Conference, Versailles (Striaton City): **Meloetta**, **Shaymin**.
   - The Second World War: 1939 Danzig (Nacrene City): Emboar, **Cobalion** (two phases) · 1940 Dunkirk (Driftveil City): Sawk, **Keldeo** (two phases), **Phione** (optional) · 1940 the Blitz, London (Mistralton City): **Tornadus** (Therian Forme), and **Reshiram** in a town battle, rising twice · 1941 Moscow (Opelucid City): **Landorus** (Therian Forme), Darmanitan (two phases) · 1942 Pearl Harbor and Midway, Honolulu (Undella Town): **Manaphy**, Volcarona (two phases) · 1942 Leningrad (Nacrene City): Haxorus, **Meloetta** (two phases) · 1942 El Alamein, Alexandria (Undella Town): **Landorus** (Therian Forme), **Victini** (two phases) · 1943 Stalingrad and Kursk (Icirrus City): **Terrakion** (two phases), **Genesect** (two phases) · 1944 Normandy (Nuvema Town): **Zekrom**, rising twice, Samurott · 1944 Leyte Gulf, Tacloban (Undella Town): **Thundurus** (Therian Forme), **Manaphy** · 1945 Berlin (Lacunosa Town): Hydreigon, and the last quest, **Kyurem** in three phases (Black and White Kyurem).
 - **Features**:
+  - 1.40: the roster holds 700. Taking the cloud save looks the copy up again first, and one that another device replaced while the panel stood open is shown anew instead of taken unseen. Continuing a challenge whose dungeon run was started on another device asks first (that device may hold the run's end, not yet uploaded) instead of ending the journey; a run left on this device still counts as left. The run's result is told whichever sync carried it, a save of another difficulty goes up while a cloud question stands, and an empty journey's manual upload no longer says "saved". A boss no longer marks a teammate who has no way off the mark (a dead end with the boss in its mouth). A recruit at sea with crew and roster full joins the team ashore instead of going past the roster's limit. Turning the volume down no longer switches the sound on. The species' signature moves are named in English (Psystrike, Sheer Cold, Magma Storm...). A co-op guest's keys no longer reach the host while the guest's guide is open.
   - 1.39: pressing Upload (or Save to the cloud now) looks the cloud's copy up again first, and one that another device changed while the panel stood open is shown anew instead of written over. A challenge whose dungeon run is going on in another tab of the same browser can no longer be ended by pressing Continue there (that tab is pointed to; a run whose tab was closed still counts as left). The end of a challenge's run goes to the cloud at once, with a word when it is up, and a save still waiting goes up when the page is put away. A boss's warning blast is charged only when everyone can walk off it in time round the walls (it was the distance as the crow flies, wrong in town battles and Pearl rooms about 1 to 3 times in 100); the last-resort marks wait as many turns as the slowest needs, up to 3.
   - 1.38: a challenge run walked out of or won is told to the cloud at once (its copy kept the run's mark until the town's next save, and another device continuing it meanwhile ended the journey); after "another device went further" is closed and this device plays on and saves, the Cloud panel offers both saves (only taking the cloud's before, until a reload); the leader's step moves the team's sight at once, so a foe that step left out of sight no longer strikes that turn. Every move reaches 4 tiles (physical moves 3 before), plain attacks and the Sling Stone 3; a boss's physical moves and plain attacks 3 tiles along its lines (2 before). Thirteen more shapes for a boss's warning blast, dealt out over every boss in place of most X's and crosses; from Lv 30 on every boss has a warning blast (ordinary bosses that had none use their strongest move's name) and every legend a signature move at 65% and 30% of its HP (Psystrike, Magma Storm, Crush Grip, Psycho Cut, Zap Cannon, Future Sight and others). Legends play their own battle music where Pearl or Black has one, and 35 more pieces (Pearl's towns, cities and routes, Black's bridges) go to towns and dungeons that shared music with an earlier one. The game's volume can be set from 0 to 100% (the slider beside the Sound button, or Volume under Settings).
   - 1.37: reach: the team's physical moves turn by themselves to the nearest foe within 3 tiles and its special and status moves within 4, whichever way it faces, and always hit (up to 1.36 they turned within 4 tiles and flew on in a line to 4 or 5); all-around moves reach 3 or 4 tiles; a plain attack turns to a foe within 3 tiles (the tile in front before) and a Sling Stone flies at a foe within 3 tiles, else straight ahead. Ordinary foes aim at the team from as far, though they can still miss (up to 1.36 their physical moves struck the tile in front and their others flew 4 tiles in a line). A boss's physical moves and plain attacks reach 2 tiles in its lines (1 before); the rest of its reach is unchanged.
@@ -671,7 +687,7 @@ docs/screenshots/       README 스크린샷
   - From 1200 on, foes stand 5 to 7 levels above your strongest Pokémon (Normal, Hard and Challenge alike) and bosses have 30% more HP.
   - Easy, Normal and Hard difficulty (Hard: every foe, bosses included, has 25% more HP and stats); Challenge (after any ending) means no wipes (a wipe ends the journey for good) and no legendary recruits. Each difficulty keeps a save of its own: after the ending, a new journey at another difficulty starts from the beginning while the finished one stays (Continue then asks which journey). A new journey at the same difficulty puts the one in play aside under Past journeys on the title, to be played again any time (1.20).
   - Water-only naval battles; pick a side in the Korean War.
-  - 35% recruit rate (legendaries always join) and a 500-slot roster.
+  - 35% recruit rate (legendaries always join) and a 700-slot roster.
   - Co-op: friends join from another computer, watch the host's screen and steer P2/P3 in dungeons.
 - **Android app** (`mobile/`, Capacitor): the whole game ships inside the app and plays offline; only co-op needs the internet. It runs full-screen in landscape with a round 8-way pad on the left, the moves Q W E R as a DraStic-style cross on the right beside Z and X, and a separate Menu button for the game menus and settings; menus can be tapped directly. The back button works like X, and Bluetooth gamepads are supported. **[Download the APK](https://github.com/jbh99/joseon-poke-timetravel/releases/latest/download/joseon-poke.apk)** and open it on the phone: allow installs from Chrome when Android asks, let Play Protect scan it or install without a scan, then install. **Google login** keeps your saves (one per difficulty) in a hidden app folder of your own Google Drive, shared with the web version. Build it with `tools/build_mobile.ps1` (`-Release` for the public APK; JDK 21 and the Android SDK required).
 - **Run locally**: `python -m http.server 8000 --directory web`, then open http://localhost:8000.

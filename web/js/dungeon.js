@@ -1204,8 +1204,8 @@ export class Dungeon {
       return true;
     }
     if (--e.teleCD <= 0) {
-      if (!other) { this.charge(e); return true; }
-      e.teleCD = 1; // its partner's blast first
+      if (!other && this.charge(e)) return true;
+      e.teleCD = 1; // its partner's blast first (or nobody it could fairly mark this turn: charge)
     }
     return sweep;
   }
@@ -1323,9 +1323,21 @@ export class Dungeon {
     if (!pick) {
       // nothing on its list can be left in time from where the team stands: marks on each of them, with as many turns
       // of warning as the slowest of them needs to walk off (1.39: one turn whatever the walls, up to 1.38)
-      const tiles = this.patternTiles('target', e, allies), off = beam || lit.length ? new Set([...tiles, ...(beam || []), ...lit]) : tiles;
-      const need = allies.map((a) => this.escapeSteps(a, off)).filter((n) => n < 99);
-      pick = { tiles, delay: clamp(Math.max(1, ...need), 1, 3), name: 'target' };
+      // One of them with no way off its mark within those turns (the end of an alley, the boss itself standing in its
+      // mouth) is not marked, nor is a neighbour whose mark would cover it; with nobody left to mark there is no blast
+      // this turn and the boss fights on (1.40: up to 1.39 such a one was marked like the rest, a turn's warning for a
+      // blast that could not be left: an outside report's Groudon in the battle for Seoul, five times out of five)
+      let aim = allies, tiles, need;
+      for (;;) {
+        tiles = this.patternTiles('target', e, aim);
+        const off = beam || lit.length ? new Set([...tiles, ...(beam || []), ...lit]) : tiles;
+        need = allies.map((a) => this.escapeSteps(a, off, 3));
+        const stuck = allies.filter((a, i) => need[i] > 3 && tiles.has(a.y * W + a.x));
+        if (!stuck.length) break;
+        aim = aim.filter((t) => !stuck.some((s) => Math.abs(s.x - t.x) + Math.abs(s.y - t.y) <= 1));
+        if (!aim.length) { if (P.mix) e.mixN--; return false; }
+      }
+      pick = { tiles, delay: clamp(Math.max(1, ...need.filter((n) => n <= 3)), 1, 3), name: 'target' };
     }
     const nm = T.orbName && pick.name.includes('orbs') ? T.orbName : T.name; // Judgment's orbs go by its own name
     e.teleN = (e.teleN || 0) + 1;
@@ -1333,6 +1345,7 @@ export class Dungeon {
     e.tele = { tiles: pick.tiles, turns: pick.delay, name: nm, dmg: T.dmg * e.tier.blast, color: TYPE_COLORS[T.type ?? e.mon.types[0]], orbs: pick.tiles.orbs, leave: T.leave };
     e.face = [0, 1];
     this.step(() => { this.msg(tr(`${e.mon.name}의 ${nm}! 붉은 칸에서 벗어나라!`, `${e.mon.name}'s ${nm}! Get off the red tiles!`), COL.red); sfx('buff'); this.shake = 0.15; }, 0.3);
+    return true;
   }
   unleash(e) {
     const t = e.tele;
@@ -1833,7 +1846,7 @@ export class Dungeon {
       if (LEGENDS.has(mon.sp)) S.flags['got_' + mon.sp] = true; // a legend that joined never comes back as a missed one
       jingle('fanfa4');
       if (where === 'party' && !this.done) { const [x, y] = this.freeNear(this.player.x, this.player.y); this.mates.push(this.addEnt(m, x, y, 'ally')); }
-      toast(where === 'party' ? tr(`${name}이(가) 동료가 되어 함께 간다!`, `${name} joined and travels with you!`) : tr(`${name}이(가) 동료가 되었다! (마을의 동료 명부로)`, `${name} joined! (waiting in the town roster)`), COL.blue);
+      toast(where === 'party' ? tr(`${name}이(가) 동료가 되어 함께 간다!`, `${name} joined and travels with you!`) : where === 'home' ? tr(`${name}이(가) 동료가 되었다! (뭍의 팀에서 기다린다)`, `${name} joined! (waiting with the team ashore)`) : tr(`${name}이(가) 동료가 되었다! (마을의 동료 명부로)`, `${name} joined! (waiting in the town roster)`), COL.blue);
     } }], res));
   }
   cleared() {

@@ -53,7 +53,9 @@ export function initNetUI() {
   addEventListener('blur', letGo);
   document.addEventListener('visibilitychange', () => { if (document.hidden) letGo(); });
   addEventListener('keydown', (e) => {
-    if (NET.role !== 'guest' || e.target === chat || e.target === $('mp-code')) return;
+    // (not with the guide open over the game, 1.40: Enter on its Close attacked and an arrow walked a tile on the host's
+    // side, an outside report; nor while a bug report is typed)
+    if (NET.role !== 'guest' || e.target === chat || e.target === $('mp-code') || !$('guide').hidden || !$('report').hidden) return;
     const d = DIRK[e.code];
     if (d) {
       e.preventDefault();

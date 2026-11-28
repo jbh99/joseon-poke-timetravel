@@ -32,6 +32,7 @@
   /* a narrow window's row of buttons (English labels are longer): a shorter slider, its percent left to the tooltip */
   @media (max-width: 860px) { #hud:not(.side):not(.inmenu) .vol input { width: 44px; } #hud:not(.side):not(.inmenu) .vol output { display: none; } }
   #hud button:disabled { opacity: 0.5; cursor: default; }
+  #hud:not(.side):not(.inmenu) { flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 16px); }
   /* core.js fit() picks the layout: a column in the strip beside the game, a row above it, or faded over it */
   #hud.side { flex-direction: column; align-items: stretch; }
   #hud.over { opacity: 0.4; transition: opacity 0.2s; }
@@ -164,24 +165,37 @@
 
 
   /* co-op panel and the guest's streamed screen */
-  /* the co-op and Google account panels share one look */
-  :is(#mp, #cloud) { position: fixed; z-index: 9; right: max(8px, env(safe-area-inset-right)); top: calc(max(8px, env(safe-area-inset-top)) + 34px); width: min(380px, calc(100vw - 16px));
+  /* the co-op, Google account and bug report panels share one look */
+  :is(#mp, #cloud, #report) { position: fixed; z-index: 9; right: max(8px, env(safe-area-inset-right)); top: calc(max(8px, env(safe-area-inset-top)) + 34px); width: min(380px, calc(100vw - 16px));
     background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 4px 4px 0 rgba(0,0,0,0.45); font: 14px/1.55 system-ui, 'Malgun Gothic', sans-serif; }
-  :is(#mp, #cloud)[hidden], :is(#mp, #cloud) [hidden] { display: none !important; }
-  :is(#mp, #cloud) header { border-top: 4px solid var(--red); box-shadow: inset 0 3px 0 var(--green), inset 0 5px 0 var(--blue); padding: 10px 14px 4px; display: flex; justify-content: space-between; align-items: center; }
-  :is(#mp, #cloud) h2 { font: 15px 'Galmuri11B', sans-serif; margin: 0; }
-  :is(#mp, #cloud) .in { padding: 4px 14px 12px; }
-  :is(#mp, #cloud) p { margin: 6px 0; font-size: 13px; color: var(--ink2); }
-  :is(#mp, #cloud) button { font: 13px 'Galmuri11B', sans-serif; background: var(--paper2); color: var(--ink); border: 2px solid var(--ink); padding: 6px 12px; cursor: pointer; }
-  :is(#mp, #cloud) button.primary { background: var(--red); color: #fff4dc; }
+  :is(#mp, #cloud, #report)[hidden], :is(#mp, #cloud, #report) [hidden] { display: none !important; }
+  :is(#mp, #cloud, #report) header { border-top: 4px solid var(--red); box-shadow: inset 0 3px 0 var(--green), inset 0 5px 0 var(--blue); padding: 10px 14px 4px; display: flex; justify-content: space-between; align-items: center; }
+  :is(#mp, #cloud, #report) h2 { font: 15px 'Galmuri11B', sans-serif; margin: 0; }
+  :is(#mp, #cloud, #report) .in { padding: 4px 14px 12px; }
+  :is(#mp, #cloud, #report) p { margin: 6px 0; font-size: 13px; color: var(--ink2); }
+  :is(#mp, #cloud, #report) button { font: 13px 'Galmuri11B', sans-serif; background: var(--paper2); color: var(--ink); border: 2px solid var(--ink); padding: 6px 12px; cursor: pointer; }
+  :is(#mp, #cloud, #report) button.primary { background: var(--red); color: #fff4dc; }
   #mp input { font: 14px 'Galmuri11', monospace; border: 2px solid var(--ink); padding: 5px 8px; width: 9em; text-transform: uppercase; background: #fffaf0; }
-  :is(#mp, #cloud) .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  :is(#mp, #cloud, #report) .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
   #mp .code { font: 26px 'Galmuri11B', monospace; letter-spacing: 4px; color: var(--red); }
   #mp ul { margin: 6px 0; padding-left: 18px; font-size: 13px; }
   #mp-status, #cloud-status { color: var(--blue); font-size: 13px; min-height: 1em; }
   #cloud-buttons { flex-direction: column; align-items: stretch; }
   #cloud button:disabled { opacity: 0.5; cursor: default; }
   #cloud .fine { font-size: 12px; margin: 2px 0 0; } #cloud .fine a { color: var(--ink2); }
+  /* the bug report panel (report.js): the picture taken, a few words, an address for a reply. On a phone it starts at
+     the top (the buttons there are in the Menu panel) and scrolls where the screen is short */
+  #report { max-height: calc(100vh - 54px); overflow-y: auto; box-sizing: border-box; }
+  body.touch #report { top: max(8px, env(safe-area-inset-top)); max-height: calc(100vh - 16px); }
+  #report img { display: block; max-width: 100%; max-height: 120px; border: 2px solid var(--ink); margin: 6px 0; }
+  #report label { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--ink2); }
+  #report textarea, #report input[type=email] { display: block; width: 100%; box-sizing: border-box; font: 13px/1.5 system-ui, 'Malgun Gothic', sans-serif; color: var(--ink);
+    background: #fffaf0; border: 2px solid var(--ink); padding: 6px 8px; margin: 6px 0 0; }
+  #report textarea { min-height: 76px; resize: vertical; }
+  body.touch #report img { max-height: 60px; } body.touch #report textarea { height: 52px; min-height: 52px; } /* a phone held sideways is short: Send stays in view */
+  #report button:disabled { opacity: 0.5; cursor: default; }
+  #report .fine { font-size: 12px; margin: 4px 0 0; } #report .fine a { color: var(--ink2); }
+  #report-status { color: var(--blue); font-size: 13px; min-height: 1em; } #report-status.bad { color: var(--red); }
   #mp-chat { width: 100% !important; box-sizing: border-box; text-transform: none !important; }
   #mp-video { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; background: #000; z-index: 1; }
   #mp-play { position: fixed; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 16px 'Galmuri11B', sans-serif; padding: 12px 22px;
@@ -218,7 +232,7 @@
 <body>
 <canvas id="screen"></canvas>
 <div id="status">불러오는 중…</div>
-<div id="hud"><button id="btn-sound" type="button" data-stay>소리 켬</button><label id="vol" class="vol" data-stay><input id="vol-range" type="range" min="0" max="100" step="5" value="100" tabindex="-1" aria-label="소리 크기"><output id="vol-pct">100%</output></label><button id="btn-speed" type="button" data-stay>속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-cloud" type="button">구글 로그인</button><button id="btn-lang" type="button" data-stay>English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-full" type="button">전체화면</button></div>
+<div id="hud"><button id="btn-sound" type="button" data-stay>소리 켬</button><label id="vol" class="vol" data-stay><input id="vol-range" type="range" min="0" max="100" step="5" value="100" tabindex="-1" aria-label="소리 크기"><output id="vol-pct">100%</output></label><button id="btn-speed" type="button" data-stay>속도 1배 (1·2·3)</button><button id="btn-mp" type="button">멀티</button><button id="btn-cloud" type="button">구글 로그인</button><button id="btn-lang" type="button" data-stay>English</button><button id="btn-guide" type="button">가이드 (H)</button><button id="btn-report" type="button" hidden>버그 제보</button><button id="btn-full" type="button">전체화면</button></div>
 <video id="mp-video" playsinline autoplay muted hidden></video>
 <button id="mp-play" type="button" hidden>▶</button>
 <div id="mp" hidden role="dialog" aria-labelledby="mp-title">
@@ -248,6 +262,20 @@
     <p id="cloud-who"></p>
     <div class="row" id="cloud-buttons"></div>
     <p id="cloud-status"></p>
+    <p class="fine"><a href="https://joseon-poke-timetravel.netlify.app/privacy.html" target="_blank" rel="noopener"><span data-lang="ko">개인정보처리방침</span><span data-lang="en" hidden>Privacy policy</span></a></p>
+  </div>
+</div>
+<div id="report" hidden role="dialog" aria-labelledby="report-title">
+  <header><h2 id="report-title">버그 제보</h2><button type="button" data-close>✕</button></header>
+  <div class="in">
+    <p id="report-intro"></p>
+    <img id="report-shot" alt="" hidden>
+    <label><input id="report-with" type="checkbox" checked><span id="report-with-label"></span></label>
+    <textarea id="report-text" maxlength="2000" rows="4"></textarea>
+    <input id="report-reply" type="email" maxlength="120" autocomplete="email" spellcheck="false">
+    <div class="row"><button id="report-send" class="primary" type="button">보내기</button></div>
+    <p id="report-status"></p>
+    <p class="fine" id="report-fine"></p>
     <p class="fine"><a href="https://joseon-poke-timetravel.netlify.app/privacy.html" target="_blank" rel="noopener"><span data-lang="ko">개인정보처리방침</span><span data-lang="en" hidden>Privacy policy</span></a></p>
   </div>
 </div>
@@ -418,7 +446,7 @@
       <h2>동료</h2>
       <ul>
         <li>쓰러뜨린 야생 포켓몬은 <b>35%</b> 확률(이로치는 70%)로 동료가 되고 싶어 합니다. <b>보스와 전설의 포켓몬은 이기면 반드시</b> 동료가 될 수 있어요.</li>
-        <li>던전에는 리더 · 파트너 · 동료 1마리까지 셋이 갑니다. 나머지는 <b>동료 명부</b>(P, X 메뉴 또는 주막, 최대 500마리)에서 쉬며 <b>경험치의 70%</b>를 함께 받습니다. 명부에 있는 동료는 던전에서 불러올 수 없으니, 마을이나 세계 지도에서 미리 팀을 짜 두세요.</li>
+        <li>던전에는 리더 · 파트너 · 동료 1마리까지 셋이 갑니다. 나머지는 <b>동료 명부</b>(P, X 메뉴 또는 주막, 최대 700마리)에서 쉬며 <b>경험치의 70%</b>를 함께 받습니다. 명부에 있는 동료는 던전에서 불러올 수 없으니, 마을이나 세계 지도에서 미리 팀을 짜 두세요.</li>
         <li>명부의 <b>찾기</b>는 이름 일부, 초성(ㄹㄱㅇ → 루기아), 타입(드래곤), 도감 번호(445), "이로치"로 찾고, <b>정렬</b>은 들어온 순 · 레벨 · 도감 번호 · 이름 순으로 바꿉니다.</li>
         <li>내 포켓몬의 기술 PP는 원작의 <b>2배</b>입니다(1.9부터, 야생 포켓몬과 보스는 원작 그대로). 던전을 나오면 <b>PP가 모두 회복</b>됩니다.</li>
       </ul>
@@ -570,7 +598,7 @@
       <h2>Companions</h2>
       <ul>
         <li>Defeated wild Pokémon want to join you <b>35%</b> of the time (Shiny ones 70%). <b>Bosses and legendary Pokémon always</b> offer to join once you win.</li>
-        <li>Up to three go into dungeons: leader, partner and one ally. The rest wait in the <b>roster</b> (P, X menu or the inn, up to 500) and <b>earn 70% of the experience</b> your team gets from fights. Roster companions can't be called into a dungeon, so set your team in town or on the world map.</li>
+        <li>Up to three go into dungeons: leader, partner and one ally. The rest wait in the <b>roster</b> (P, X menu or the inn, up to 700) and <b>earn 70% of the experience</b> your team gets from fights. Roster companions can't be called into a dungeon, so set your team in town or on the world map.</li>
         <li>The roster's <b>Search</b> finds part of a name, a type (Dragon), a dex number (445) or "shiny", and <b>Sort</b> orders it by joining, level, dex number or name.</li>
         <li>Your Pokémon carry <b>twice</b> the games' PP for every move (since 1.9; wild Pokémon and bosses keep the games' own). Leaving a dungeon <b>restores every move's PP</b>.</li>
       </ul>

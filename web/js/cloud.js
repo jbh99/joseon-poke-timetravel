@@ -33,7 +33,7 @@ const $ = (id) => document.getElementById(id);
 // of the session when it ends. Work still waiting on Google when the player signs out belongs to a session that is over:
 // its requests are cut, and whatever answer still arrives changes nothing on this device (live). Up to 1.28 a save on its
 // way down replaced this device's after the sign-out and wrote the link again.
-const st = { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, busy: false, again: false, msg: '', session: 0, op: 0, cut: new AbortController() };
+const st = { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, busy: false, again: false, tell: null, msg: '', session: 0, op: 0, cut: new AbortController() };
 const stale = () => st.op !== st.session;
 const live = (v) => { if (stale()) throw new Error('signed out'); return v; };
 
@@ -129,6 +129,8 @@ async function find() {
 // over the copy leaves this field as it was, and the time then tells that the mark is another save's (revOf: null, not known)
 const meta = (o, slot) => ({ slot, era: String(o.era), playtime: String(Math.round(o.playtime || 0)), savedAt: String(o.savedAt || 0), ...(o.rev && { rev: `${o.rev} ${o.savedAt || 0}` }) });
 const revOf = (props) => { const [rev, at] = String(props?.rev || '').split(' '); return rev && at === props.savedAt ? rev : null; };
+// a save on this device and a copy in the cloud being one and the same save: by its time, and by its mark where both carry one
+const sameSave = (local, props) => !!local && !!props && String(local.savedAt) === props.savedAt && (!local.rev || !revOf(props) || revOf(props) === local.rev);
 // a file of the app folder written: over `file`, or new under `name`
 async function writeFile(file, name, props, text) {
   const head = { appProperties: props, ...(file ? {} : { name, parents: ['appDataFolder'] }) };
@@ -154,9 +156,16 @@ async function push(slot) {
 // a journey's cloud copy replaces its save on this device, unless this device saved that journey since `before` was read
 // (the panel closed meanwhile): then nothing is replaced, and the next sync finds both sides moved on and asks (up to 1.19
 // the copy replaced the newer save; a button's press reads `before` when pressed, as it waits on Google first)
-async function pull(slot, before = saveText(slot)) {
+// shown (a button's press, 1.40): the copy the look-up just found, the one the player was told of. A copy written over
+// in the moment between that look-up and this read is another save, and is not taken unseen
+async function pull(slot, before = saveText(slot), shown = null) {
   const text = await (await api(`/drive/v3/files/${st.files[slot].id}?alt=media`)).text();
   if (saveText(slot) !== before) throw new Error('saved meanwhile');
+  if (shown) {
+    let o = null;
+    try { o = JSON.parse(text); } catch (e) { /* (not a save: replaceSave says so below) */ }
+    if (o && !sameSave(o, shown)) throw new Error('changed meanwhile');
+  }
   replaceSave(text, slot, ERAS.length); // a damaged copy, or one from a newer version, throws here and the save on this device stays
   const at = String(JSON.parse(text).savedAt);
   markSynced(slot, at, { mine: false, from: at });
@@ -267,16 +276,20 @@ function took(list) {
 // line each journey on this device up with its cloud copy: the side that moved on since this device last synced wins by
 // itself; a device's first sync of a journey, or both sides having moved on, asks the player (one journey at a time).
 // auto: not asked for, so the journey in play is never taken away
-async function sync(auto) {
+// held: the journey of a question still standing (autoSync, 1.40): the question stays as it is and that journey waits
+// for the player's answer, while the other journeys go on
+async function sync(auto, held = null) {
   await find();
   await shareKept(); // first: a save once taken must not wait on anything before the game restarts on it (took)
   const link = linked() || {}, was = link.synced || {}, p = playing(), got = [];
   let sent = 0;
-  st.choice = null;
+  st.choice = held && st.choice?.slot === held ? st.choice : null;
+  const waits = st.choice ? held : null;
   if (!st.keptLate) setDropped(droppedKept().filter((d) => SLOTS.some((slot) => heldBack(d, slot))));
   const dropped = droppedKept();
   try {
     for (const slot of SLOTS) {
+      if (slot === waits) continue;
       const local = readSave(slot), cloud = st.files[slot]?.appProperties, w = was[slot];
       if (!cloud) { if (local) { await push(slot); sent++; } continue; }
       // the journey the player just put aside for a new one that has no save yet: its cloud copy is no news from another
@@ -309,7 +322,7 @@ async function sync(auto) {
     throw e;
   }
   st.pending = st.keptLate;
-  say(st.choice ? '' : (sent ? tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud.")
+  if (!waits) say(st.choice ? '' : (sent ? tr('이 기기의 세이브를 클라우드에 올렸어요.', "This device's save is now in the cloud.")
     : SLOTS.some((s) => st.files[s]) ? tr('클라우드와 같은 최신 세이브예요.', 'Up to date with the cloud.') : tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.')) + keptNote());
   if (got.length) took(got);
   return sent;
@@ -332,6 +345,7 @@ function say(msg) { st.msg = msg; }
 function explain(e) {
   const m = String(e?.message || e);
   if (m === 'not a save') return tr('클라우드의 세이브가 손상됐거나 더 새로운 버전의 것이라 받지 않았어요. 이 기기의 세이브는 그대로예요.', "The cloud save is damaged or from a newer version, so it wasn't taken. The save on this device is untouched.");
+  if (m === 'changed meanwhile') return tr('받는 사이에 클라우드의 세이브가 또 바뀌어서 받지 않았어요. 이 기기의 세이브는 그대로예요. 한 번 더 눌러 주세요.', 'The cloud save changed again while it came down, so it was not taken. The save on this device is untouched. Press once more.');
   if (m === 'saved meanwhile') return tr('받는 사이에 이 기기에서 저장해서 바꾸지 않았어요. 이 기기의 세이브는 그대로예요.', 'This device saved while the cloud save came down, so nothing was replaced. The save on this device is untouched.');
   // no room on this device for the cloud save, or for keeping aside the journey it would replace (game.js replaceSave,
   // which then leaves everything as it was)
@@ -360,17 +374,26 @@ async function autoSync() {
   st.busy = true; st.op = st.session; render(); // (an open panel shows it is at work: its save and load buttons wait)
   // (tell: a dungeon run just ended and its word went up at once, G.onSaved(true): the player hears how that went, since
   // another device continuing the journey before it is up would still find the run going on)
-  const tell = st.tell;
+  // st.tell names that journey. Its word counts as told once the cloud holds this device's save of it, whichever sync
+  // carried it there (1.40: a sync already on its way when the run ended sent it, the run's own sync then found nothing
+  // left to send, and the player heard nothing: an outside report's five runs out of five).
+  // A question still standing (asked) keeps its own journey waiting for the answer; the other journeys' saves go up all
+  // the same (1.40: up to 1.39 nothing at all was sent meanwhile, and a save of another difficulty made then stayed on
+  // this device until that difficulty was saved again).
+  const told = st.tell, asked = st.choice?.slot || null;
   try {
     await getToken(false);
-    if (st.choice) return;
-    const sent = await sync(true);
-    if (tell && sent && !st.choice) toast(tr('던전 결과를 클라우드에 올렸어요', "The run's result is in the cloud"), COL.blue, 3);
+    await sync(true, asked);
+    const t = st.tell;
+    if (t && st.choice?.slot !== t && sameSave(readSave(t), st.files?.[t]?.appProperties)) {
+      st.tell = null;
+      toast(tr('던전 결과를 클라우드에 올렸어요', "The run's result is in the cloud"), COL.blue, 3);
+    }
   } catch (e) {
-    if (!stale()) { st.pending = true; if (tell) toast(tr('던전 결과를 클라우드에 올리지 못했어요 · 연결을 확인해 주세요', "Couldn't send the run's result to the cloud · check the connection"), COL.red, 5); }
-  } finally { st.busy = false; if (tell) st.tell = false; render(); }
+    if (!stale()) { st.pending = true; if (told) toast(tr('던전 결과를 클라우드에 올리지 못했어요 · 연결을 확인해 주세요', "Couldn't send the run's result to the cloud · check the connection"), COL.red, 5); }
+  } finally { st.busy = false; if (told) st.tell = null; render(); }
   syncAgain();
-  if (st.choice) { openPanel(); toast(st.choice.newer ? tr('다른 기기에서 더 진행한 세이브가 있어요', 'Another device went further') : tr('이 기기와 클라우드의 세이브가 달라요', 'This device and the cloud differ'), COL.blue, 4); }
+  if (st.choice && st.choice.slot !== asked) { openPanel(); toast(st.choice.newer ? tr('다른 기기에서 더 진행한 세이브가 있어요', 'Another device went further') : tr('이 기기와 클라우드의 세이브가 달라요', 'This device and the cloud differ'), COL.blue, 4); }
 }
 const signIn = () => run(async () => {
   await getToken(true);
@@ -378,6 +401,14 @@ const signIn = () => run(async () => {
   if (linked()?.email !== st.email) setLink({ email: st.email, kept: linked()?.kept }); // another account: this device has not synced with it
   await sync(false);
 });
+// The cloud's copy of a journey as the player knew it when pressing a button: the one the question named, else the one
+// last looked up (before any look-up: the one this device last synced with, by its time alone); and whether the copy
+// found now is another one
+const shownCopy = (slot) => {
+  const shown = st.choice?.slot === slot ? st.choice.cloud : st.files?.[slot]?.appProperties;
+  return shown ? [shown.savedAt, shown.rev || ''] : [st.files ? '' : linked()?.synced?.[slot] || '', null];
+};
+const movedSince = (base, now) => !!now && (now.savedAt !== base[0] || (base[1] !== null && (now.rev || '') !== base[1]));
 const upload = () => run(async () => {
   // the journey the button meant when pressed, as for a download below (1.31: read after the wait on Google, a journey
   // of another difficulty loaded meanwhile went up in its place, over that difficulty's copy)
@@ -388,13 +419,12 @@ const upload = () => run(async () => {
   // player never saw, which that device then took back as "what the journey went on from" without a word (1.39: an
   // outside report's two devices lost the newer play both ways). So the copy is looked up again first, and one that
   // changed is shown with its own era and time for the player to choose again; nothing is written over it unseen.
-  const shown = st.choice?.slot === slot ? st.choice.cloud : st.files?.[slot]?.appProperties;
-  const base = shown ? [shown.savedAt, shown.rev || ''] : [st.files ? '' : linked()?.synced?.[slot] || '', null];
+  const base = shownCopy(slot);
   await getToken(true); await find();
   const now = st.files[slot]?.appProperties, local = readSave(slot);
-  const moved = !!now && (now.savedAt !== base[0] || (base[1] !== null && (now.rev || '') !== base[1]));
-  const same = !!now && !!local && String(local.savedAt) === now.savedAt && (!local.rev || !revOf(now) || revOf(now) === local.rev); // (the very save here)
-  if (moved && local && !same) {
+  // (a journey with no save on this device yet has nothing to send; 1.40: up to 1.39 the panel said "saved" all the same)
+  if (!local) return say(tr('이 기기에는 아직 저장된 여행이 없어요. 게임에서 한 번 기록한 뒤 다시 눌러 주세요.', 'There is no saved journey on this device yet. Save once in the game, then press again.'));
+  if (movedSince(base, now) && !sameSave(local, now)) { // (the very save here needs no question)
     st.choice = { slot, local: meta(local, slot), cloud: now };
     return say(tr('그 사이 다른 기기가 클라우드에 다른 세이브를 올렸어요. 아무것도 덮어쓰지 않았어요. 바뀐 내용을 보고 다시 골라 주세요.', 'Another device sent a different save to the cloud meanwhile. Nothing was written over it. Look at what changed and choose again.'));
   }
@@ -405,11 +435,20 @@ const upload = () => run(async () => {
 const download = () => run(async () => {
   // the journey and the save the player means to replace, as of the press: Google's window and the file list take a while,
   // and the panel can be closed and the journey played and saved meanwhile
-  const slot = current(), before = saveText(slot);
+  const slot = current(), before = saveText(slot), base = shownCopy(slot), newer = st.choice?.slot === slot && !!st.choice.newer;
   await getToken(true); await find();
-  if (!st.files[slot]) return say(tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.'));
+  const now = st.files[slot]?.appProperties, local = readSave(slot);
+  if (!now) { if (st.choice?.slot === slot) st.choice = null; return say(tr('클라우드에 아직 세이브가 없어요.', 'There is no save in the cloud yet.')); }
+  // The copy is looked up again first, as for an upload: another device may have replaced it since the button was drawn
+  // (1.40, an outside report: the button named 1019, a third device had put its 612 in the cloud meanwhile, and the
+  // press took that one over this device's 660 without a word). A copy that changed is shown with its own era and time
+  // for the player to choose again, and no save here is replaced by one the player never saw.
+  if (movedSince(base, now) && (newer || (local && !sameSave(local, now)))) {
+    st.choice = newer ? { slot, cloud: now, newer: true } : { slot, local: meta(local, slot), cloud: now };
+    return say(tr('그 사이 클라우드의 세이브가 바뀌었어요. 아무것도 받지 않았고 이 기기의 세이브는 그대로예요. 바뀐 내용을 보고 다시 골라 주세요.', 'The save in the cloud changed meanwhile. Nothing was taken and the save on this device is untouched. Look at what changed and choose again.'));
+  }
   await shareKept();
-  const m = await pull(slot, before);
+  const m = await pull(slot, before, now);
   st.choice = null; took([m]);
 });
 // (what this device has seen of the Past journeys stays, so that one taken back while signed out still leaves the other devices)
@@ -418,7 +457,7 @@ const download = () => run(async () => {
 function signOut() {
   const kept = linked()?.kept;
   st.session++; st.cut.abort(); st.cut = new AbortController();
-  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, again: false, msg: tr('로그아웃했어요.', 'Signed out.') });
+  Object.assign(st, { token: null, exp: 0, email: null, files: undefined, kept: {}, keptBad: new Set(), keptLate: false, choice: null, pending: false, again: false, tell: null, msg: tr('로그아웃했어요.', 'Signed out.') });
   setLink(kept?.length ? { kept } : null); render();
 }
 function render() {
@@ -484,9 +523,11 @@ export function initCloud() {
   const flush = () => { if (timer == null) return; clearTimeout(timer); timer = null; autoSync(); };
   G.onSaved = (now) => {
     if (!st.email) return;
-    if (st.choice) return heldSave();
+    // (a question standing about the journey just saved: nothing of it goes up until the answer. A save of another
+    // journey goes up as ever, the question staying: autoSync)
+    if (st.choice?.slot === S.slot) return heldSave();
     clearTimeout(timer);
-    if (now) st.tell = true;
+    if (now) st.tell = S.slot;
     timer = setTimeout(() => { timer = null; autoSync(); }, now ? 0 : 2500);
   };
   document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });

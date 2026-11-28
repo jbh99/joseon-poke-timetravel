@@ -455,6 +455,7 @@ export function clearRunMark() {
     if (!o || !o.inRun || (o.jid || '') !== (S.jid || '')) return false;
     o.inRun = null; o.savedAt = Math.max(Date.now(), (+o.savedAt || 0) + 1); o.rev = Math.random().toString(36).slice(2, 10);
     localStorage.setItem(slotKey(S.slot), JSON.stringify(o));
+    localStorage.removeItem(RUN_HERE);
     see(S.slot);
     G.onSaved?.(true); // the cloud copy follows at once (cloud.js: another device must not find the run still going on)
     return true;
@@ -468,8 +469,23 @@ export function clearRunMark() {
 // first (Title.resume): held elsewhere, that window is pointed to; held by nobody, the run was left and the rule
 // stands. A browser without Web Locks goes on as before.
 const runName = (slot, jid) => `joseon-run ${slot} ${jid || ''}`;
+// The device a run starts on keeps a note of it (1.40; beside the save, not in it, so it never travels). A challenge's
+// save that says a run is going on, on a device without that note, came from another device by the cloud: the run was
+// played there, and may well have ended there with its word not yet sent (a tab closed while the upload was on its
+// way: an outside report's second device then continued, and the journey ended for a dungeon already cleared).
+// Continue asks before it counts that as a run left in the middle (Title.resume), so that the player can first open
+// the game on the device that played the run and let its save go up. The note goes when the run's mark does.
+const RUN_HERE = 'joseon-poke-run-here';
+const runNote = (slot, jid, dId) => `${slot} ${jid || ''} ${dId}`;
+export function runFromElsewhere(slot) {
+  try {
+    const o = readSave(slot);
+    return !!o?.inRun && !o.over && o.mode === 'challenge' && localStorage.getItem(RUN_HERE) !== runNote(slot, o.jid, o.inRun);
+  } catch (e) { return false; }
+}
 let runHeld = null; // lets the lock go
 export function holdRun() {
+  try { localStorage.setItem(RUN_HERE, runNote(S.slot, S.jid, S.inRun)); } catch (e) { /* private mode */ }
   if (runHeld || !globalThis.navigator?.locks) return;
   let done; const until = new Promise((r) => { done = r; });
   runHeld = done;
@@ -717,7 +733,7 @@ export const MODES = {
 };
 export const mode = () => MODES[S.mode] || MODES.normal;
 export const MODE_NAMES = () => tr({ easy: '쉬움', normal: '보통', hard: '어려움', challenge: '챌린지' }, { easy: 'Easy', normal: 'Normal', hard: 'Hard', challenge: 'Challenge' });
-export const ROSTER_MAX = 500; // the 35% recruit rate fills a roster fast
+export const ROSTER_MAX = 700; // the 35% recruit rate fills a roster fast (1.40, the user's wish: 500 up to 1.39)
 // how many more Pokémon the team and the roster can take. At sea (a naval battle, S.homeParty) one recruited joins the
 // crew for the run and then the team ashore or the roster (dungeon.js restoreCrew), so the room is theirs, less those
 // already recruited on the way (1.33: up to 1.32 a recruit at sea took the crew's room and went on to a full roster,
@@ -736,6 +752,9 @@ export function recruit(mon) {
   if (roomLeft() <= 0) return { m, where: 'full' }; // (not caught: up to 1.30 the Pokédex said so all the same)
   dexMark(m.sp, 2);
   if (S.party.length < 3) { S.party.push(m); return { m, where: 'party' }; }
+  // at sea with the crew and the roster both full, the room counted (roomLeft) is on the team ashore: it waits there
+  // (1.40: up to 1.39 it went to the full roster all the same, and so did the next, an outside report's 502/500)
+  if (S.homeParty && S.roster.length >= ROSTER_MAX) { S.homeParty.push(m); return { m, where: 'home' }; }
   S.roster.push(m);
   return { m, where: 'roster' };
 }
